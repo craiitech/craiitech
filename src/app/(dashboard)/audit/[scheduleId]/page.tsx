@@ -3,7 +3,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -86,6 +86,16 @@ export default function AuditExecutionPage() {
     [firestore]
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  /**
+   * COMPLIANCE HISTORY FETCHING
+   * Fetches historical CARs for the unit being audited to provide context.
+   */
+  const unitCarsQuery = useMemoFirebase(() => {
+    if (!firestore || !schedule?.targetId) return null;
+    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', schedule.targetId));
+  }, [firestore, schedule?.targetId]);
+  const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
 
   const clausesInScope = useMemo(() => {
     if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
@@ -413,6 +423,7 @@ export default function AuditExecutionPage() {
                         clausesToAudit={clausesInScope}
                         existingFindings={findings || []}
                         onFindingSaved={handleFindingSync}
+                        unitCars={unitCars || []}
                     />
 
                     {/* STEP 3: FINAL REPORT SUMMARY */}
