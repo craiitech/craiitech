@@ -65,25 +65,43 @@ export function UnitSubmissionDetailCard({
   const firestore = useFirestore();
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
 
-  // Fetch contextual data for comprehensive SWOT
+  // Fetch contextual data for comprehensive SWOT with strict site context
   const risksQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId || !selectedYear) return null;
-    return query(collection(firestore, 'risks'), where('unitId', '==', unitId), where('year', '==', selectedYear));
-  }, [firestore, unitId, selectedYear]);
+    if (!firestore || !unitId || !selectedYear || !campusId) return null;
+    return query(
+        collection(firestore, 'risks'), 
+        where('unitId', '==', unitId), 
+        where('campusId', '==', campusId),
+        where('year', '==', selectedYear)
+    );
+  }, [firestore, unitId, campusId, selectedYear]);
   const { data: unitRisks } = useCollection<Risk>(risksQuery);
 
   const monitoringQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId) return null;
-    return query(collection(firestore, 'unitMonitoringRecords'), where('unitId', '==', unitId));
-  }, [firestore, unitId]);
+    if (!firestore || !unitId || !campusId) return null;
+    return query(
+        collection(firestore, 'unitMonitoringRecords'), 
+        where('unitId', '==', unitId),
+        where('campusId', '==', campusId)
+    );
+  }, [firestore, unitId, campusId]);
   const { data: unitMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId || !selectedYear) return null;
-    return query(collection(firestore, 'programCompliances'), where('unitId', '==', unitId), where('academicYear', '==', selectedYear));
-  }, [firestore, unitId, selectedYear]);
+    if (!firestore || !unitId || !selectedYear || !campusId) return null;
+    return query(
+        collection(firestore, 'programCompliances'), 
+        where('unitId', '==', unitId), 
+        where('campusId', '==', campusId),
+        where('academicYear', '==', selectedYear)
+    );
+  }, [firestore, unitId, campusId, selectedYear]);
   const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
+  /**
+   * CORRECTIVE ACTION REQUESTS FETCHING
+   * Strictly scoped to unit AND site context.
+   */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !unitId || !campusId) return null;
     return query(
@@ -96,14 +114,14 @@ export function UnitSubmissionDetailCard({
 
   const findingsQuery = useMemoFirebase(() => {
     if (!firestore || !unitId) return null;
-    return collection(firestore, 'auditFindings'); // Simplified for prototype
+    return collection(firestore, 'auditFindings'); 
   }, [firestore, unitId]);
   const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
 
   const mrOutputsQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId) return null;
-    return collection(firestore, 'managementReviewOutputs'); // Simplified for prototype
-  }, [firestore, unitId]);
+    if (!firestore || !unitId || !campusId) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, unitId, campusId]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   const unitSubmissions = useMemo(() => {
@@ -201,7 +219,7 @@ export function UnitSubmissionDetailCard({
                     programCompliances={unitCompliances || []}
                     auditFindings={auditFindings || []}
                     correctiveActionRequests={unitCars || []}
-                    mrOutputs={mrOutputs || []}
+                    mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === unitId)) || []}
                     scope="unit"
                     name={unit.name}
                     selectedYear={selectedYear}

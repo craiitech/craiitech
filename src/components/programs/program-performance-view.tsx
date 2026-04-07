@@ -111,7 +111,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
   /**
    * COMPLIANCE HISTORY FETCHING
-   * Strictly scoped to the program's academic unit AND campus site.
+   * Strictly scoped to the academic unit AND campus site.
    */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !record?.unitId || !record?.campusId) return null;
@@ -780,7 +780,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
             </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1">
             <Card className="shadow-2xl border-primary/10 flex flex-col h-full bg-background">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center justify-between">
