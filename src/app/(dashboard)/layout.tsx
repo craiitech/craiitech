@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor, systemSettings } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
   // LOGIC: Detect if user needs to see the "What's New" pop-up
@@ -128,7 +128,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/logout');
   }, [router, toast]);
   
-  useIdleTimer(handleIdle, 30 * 60 * 1000, !isAdmin);
+  // Disable idle timer for both Admins and Auditors as per institutional request
+  useIdleTimer(handleIdle, 30 * 60 * 1000, !isAdmin && !isAuditor);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(campusesQuery);
