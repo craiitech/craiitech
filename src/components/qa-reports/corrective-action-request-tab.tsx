@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp, where } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -144,7 +145,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
 
-    const isInstitutionalViewer = isAdmin || isAuditor;
+    // Auditors and Admins are "Institutional Viewers" and can see everything in the registry.
+    const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
     let result = rawCars.filter(car => {
@@ -413,7 +415,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return format(d, 'PP');
   };
 
-  const isInstitutionalViewer = isAdmin || userRole === 'Auditor';
+  const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
   const canIssueNew = isInstitutionalViewer;
 
   const isFieldReadOnly = (fieldName: string) => {
@@ -475,7 +477,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Verified Closure</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.closed}</div>
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">
+                    {analytics.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%
+                </div>
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Non-Conformances</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>

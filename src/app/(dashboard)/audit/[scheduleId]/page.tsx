@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -90,15 +91,22 @@ export default function AuditExecutionPage() {
   /**
    * COMPLIANCE HISTORY FETCHING
    * Strictly scoped to the unit AND site context of the audit session.
+   * Ensures that only Corrective Action Requests (CARs) belonging to this specific unit at this site are retrieved.
    */
   const unitCarsQuery = useMemoFirebase(() => {
     if (!firestore || !schedule?.targetId || !schedule?.campusId) return null;
+    
+    // Explicitly using trimmed IDs to ensure match integrity
+    const unitId = String(schedule.targetId).trim();
+    const campusId = String(schedule.campusId).trim();
+
     return query(
         collection(firestore, 'correctiveActionRequests'), 
-        where('unitId', '==', schedule.targetId),
-        where('campusId', '==', schedule.campusId)
+        where('unitId', '==', unitId),
+        where('campusId', '==', campusId)
     );
   }, [firestore, schedule?.targetId, schedule?.campusId]);
+  
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
 
   const clausesInScope = useMemo(() => {
@@ -358,7 +366,7 @@ export default function AuditExecutionPage() {
                     </CardHeader>
                     <CardContent className="space-y-6 pt-8">
                         <Form {...form}>
-                            <form className="space-y-6">
+                            <div className="space-y-6">
                                 <FormField
                                     control={form.control}
                                     name="officerInCharge"
@@ -419,7 +427,7 @@ export default function AuditExecutionPage() {
                                         )}
                                     />
                                 </div>
-                            </form>
+                            </div>
                         </Form>
                     </CardContent>
                 </Card>
@@ -444,7 +452,7 @@ export default function AuditExecutionPage() {
                     </CardHeader>
                     <CardContent className="space-y-8 pt-8">
                         <Form {...form}>
-                            <form className="space-y-6">
+                            <div className="space-y-6">
                                 <FormField
                                     control={form.control}
                                     name="summaryCommendable"
@@ -485,7 +493,7 @@ export default function AuditExecutionPage() {
                                         </FormItem>
                                     )}
                                 />
-                            </form>
+                            </div>
                         </Form>
                     </CardContent>
                     <CardFooter className="bg-slate-50 border-t py-6 px-8">
