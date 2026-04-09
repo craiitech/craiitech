@@ -90,22 +90,20 @@ export default function AuditExecutionPage() {
 
   /**
    * COMPLIANCE HISTORY FETCHING
-   * Strictly scoped to the unit AND site context of the audit session.
-   * Ensures that only Corrective Action Requests (CARs) belonging to this specific unit at this site are retrieved.
+   * Broadened scoping: Fetches ALL Corrective Action Requests (CARs) for the target unit ID.
+   * We remove the strict campusId filter here because unit history is vital regardless of 
+   * the campus context of the current audit session (especially for institutional units).
    */
   const unitCarsQuery = useMemoFirebase(() => {
-    if (!firestore || !schedule?.targetId || !schedule?.campusId) return null;
+    if (!firestore || !schedule?.targetId) return null;
     
-    // Explicitly using trimmed IDs to ensure match integrity
     const unitId = String(schedule.targetId).trim();
-    const campusId = String(schedule.campusId).trim();
 
     return query(
         collection(firestore, 'correctiveActionRequests'), 
-        where('unitId', '==', unitId),
-        where('campusId', '==', campusId)
+        where('unitId', '==', unitId)
     );
-  }, [firestore, schedule?.targetId, schedule?.campusId]);
+  }, [firestore, schedule?.targetId]);
   
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
 

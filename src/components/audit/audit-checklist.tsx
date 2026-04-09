@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -301,11 +302,16 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
             const hasFinding = findingsMap.has(clause.id);
             const findingType = findingsMap.get(clause.id)?.type;
             
-            // LOGIC: For Clause 10.1, show ALL unit non-conformances. 
-            // For other clauses, show only those specifically linked to that requirement.
+            // NORMALIZED MATCHING:
+            // For Clause 10.1, show ALL unit non-conformances. 
+            // For other clauses, show only those specifically linked to that requirement using a robust comparison.
             const relevantCars = clause.id === '10.1' 
                 ? unitCars 
-                : unitCars.filter(c => c.concerningClause === clause.id);
+                : unitCars.filter(c => {
+                    const concerning = String(c.concerningClause || '').toLowerCase().trim();
+                    const currentId = String(clause.id).toLowerCase().trim();
+                    return concerning === currentId || concerning.includes(`clause ${currentId}`);
+                });
 
             return (
               <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
