@@ -43,12 +43,13 @@ service cloud.firestore {
 
     // --------------------------------------------------------------------------
     // CORE WORKFLOW COLLECTIONS
-    // Standardized to allow read (get/list) and write (create/update/delete)
-    // for all authenticated university personnel.
     // --------------------------------------------------------------------------
     
+    // unitFormRequests: Simplified to only allow creation and individual lookups
+    // Collection-level listing removed to resolve persistent security errors
     match /unitFormRequests/{docId} {
-      allow read, write: if request.auth != null;
+      allow get, create: if request.auth != null;
+      allow update, delete, list: if isAdmin();
     }
 
     match /unitForms/{docId} {

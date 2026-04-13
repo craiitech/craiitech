@@ -3,8 +3,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-import type { Unit, UnitForm, CampusSetting, UnitFormRequest } from '@/lib/types';
+import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { Unit, UnitForm, CampusSetting } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,22 +26,17 @@ import {
     FileText,
     FilePlus,
     Eye,
-    Send,
-    History as HistoryIcon,
     Info,
     ListChecks,
     ExternalLink,
     Hash,
     Calendar,
     PlusCircle,
-    Inbox,
-    Gavel,
-    Clock
+    Activity
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
 import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
-import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -51,14 +46,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { format } from 'date-fns';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
-
-const statusColors: Record<string, string> = {
-    'Submitted': 'bg-blue-100 text-blue-700',
-    'QA Review': 'bg-indigo-100 text-indigo-700',
-    'Returned for Correction': 'bg-rose-100 text-rose-700',
-    'Awaiting Presidential Approval': 'bg-amber-100 text-amber-700',
-    'Approved & Registered': 'bg-emerald-100 text-emerald-700',
-};
 
 export default function UnitFormsPage() {
   const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
@@ -83,17 +70,9 @@ export default function UnitFormsPage() {
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
-  const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
-
-  // Global Queue for Admins
-  const globalRequestsQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? query(collection(firestore, 'unitFormRequests'), where('status', 'in', ['Submitted', 'QA Review', 'Awaiting Presidential Approval']), orderBy('createdAt', 'desc')) : null),
-    [firestore, isAdmin]
-  );
-  const { data: globalRequests, isLoading: isLoadingGlobal } = useCollection<UnitFormRequest>(globalRequestsQuery);
 
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
@@ -192,12 +171,6 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  const requestsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
-    [firestore, selectedUnitId]
-  );
-  const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
-
   const handleSaveAdminLinks = async () => {
       if (!firestore) return;
       setIsSavingLinks(true);
@@ -244,11 +217,6 @@ export default function UnitFormsPage() {
             {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
             {isSidebarVisible ? 'Hide Units' : 'Show Units'}
             </Button>
-            {isAdmin && (
-                <Button variant="outline" size="sm" className="h-9 font-black uppercase text-[10px] bg-white gap-2" onClick={() => setSelectedUnitId(null)}>
-                    <Inbox className="h-4 w-4" /> Management Inbox
-                </Button>
-            )}
         </div>
       </div>
 
@@ -279,21 +247,6 @@ export default function UnitFormsPage() {
               ) : (
                 <ScrollArea className="h-full">
                   <div className="flex flex-col">
-                    {isAdmin && (
-                        <Button
-                            variant="ghost"
-                            onClick={() => setSelectedUnitId(null)}
-                            className={cn(
-                                "w-full justify-start text-left h-auto py-3 px-4 text-xs rounded-none border-l-2 transition-all",
-                                selectedUnitId === null 
-                                    ? "bg-primary/5 text-primary border-primary font-black shadow-inner" 
-                                    : "border-transparent text-primary hover:bg-muted/30 font-bold"
-                            )}
-                        >
-                            <Inbox className="mr-3 h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">Institutional Request Inbox</span>
-                        </Button>
-                    )}
                     {sidebarUnits.map(unit => (
                       <Button
                         key={unit.id}
@@ -335,9 +288,6 @@ export default function UnitFormsPage() {
                     <TabsList className="bg-muted p-1 h-10 w-full sm:w-auto">
                         <TabsTrigger value="roster" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                             <ListChecks className="h-3.5 w-3.5" /> Unit Forms
-                        </TabsTrigger>
-                        <TabsTrigger value="requests" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <HistoryIcon className="h-3.5 w-3.5" /> Track & Trace
                         </TabsTrigger>
                         <TabsTrigger value="register" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                             <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
@@ -609,45 +559,6 @@ export default function UnitFormsPage() {
                         </ScrollArea>
                     </TabsContent>
 
-                    <TabsContent value="requests" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
-                        <Card className="h-full flex flex-col overflow-hidden shadow-sm border-primary/10">
-                            <CardHeader className="bg-muted/10 border-b py-4">
-                                <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                                    <HistoryIcon className="h-4 w-4 text-primary" />
-                                    Unit Registration Track & Trace
-                                </CardTitle>
-                                <CardDescription className="text-[10px]">Log of form registration applications for this unit.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-0 flex-1 overflow-hidden">
-                                <ScrollArea className="h-full">
-                                    <div className="divide-y">
-                                        {requests?.map(req => (
-                                            <div key={req.id} className="p-4 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <div className="space-y-1.5 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none shadow-none", statusColors[req.status])}>{req.status}</Badge>
-                                                            <span className="text-[10px] font-mono text-muted-foreground">{format(req.createdAt?.toDate ? req.createdAt.toDate() : new Date(), 'MMM dd, yy')}</span>
-                                                        </div>
-                                                        <p className="text-xs font-black text-slate-800 uppercase leading-tight truncate">Registration Request: {req.id.substring(0,8).toUpperCase()}</p>
-                                                        <p className="text-[10px] text-muted-foreground font-medium">{req.requestedForms.length} Items &bull; Submitter: {req.submitterName}</p>
-                                                    </div>
-                                                    <ChevronRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-all" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {requests?.length === 0 && (
-                                            <div className="py-20 text-center opacity-20 flex flex-col items-center gap-2">
-                                                <Activity className="h-8 w-8" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest">No active requests</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
                     <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
                         <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
                             <div className="p-6 space-y-8">
@@ -693,92 +604,6 @@ export default function UnitFormsPage() {
                     </TabsContent>
                 </div>
             </Tabs>
-          ) : isAdmin ? (
-            /* Administrator Global Queue View (When no unit is selected) */
-            <div className="h-full flex flex-col space-y-6">
-                <Card className="border-primary/20 bg-primary/5 shadow-md shrink-0">
-                    <CardHeader className="py-4 border-b">
-                        <div className="flex items-center gap-2">
-                            <Inbox className="h-5 w-5 text-primary" />
-                            <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Form Approval Inbox</CardTitle>
-                        </div>
-                        <CardDescription className="text-[10px] font-bold uppercase">Awaiting QA validation or Presidential endorsement.</CardDescription>
-                    </CardHeader>
-                </Card>
-
-                <Card className="flex-1 overflow-hidden shadow-lg border-primary/10">
-                    <CardHeader className="bg-muted/10 border-b py-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Gavel className="h-5 w-5 text-primary" />
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Pending Registration Pipeline</CardTitle>
-                            </div>
-                            <Badge className="bg-primary text-white h-5 text-[10px] font-black uppercase px-2">{globalRequests?.length || 0} ACTIVE REQUESTS</Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1 overflow-hidden bg-white">
-                        <ScrollArea className="h-full">
-                            <Table>
-                                <TableHeader className="bg-muted/30 sticky top-0 z-10">
-                                    <TableRow>
-                                        <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Origin Unit & Submitter</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase py-3">Submission Details</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase text-center py-3">Current Status</TableHead>
-                                        <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoadingGlobal ? (
-                                        <TableRow><TableCell colSpan={4} className="h-40 text-center"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                                    ) : globalRequests?.length ? (
-                                        globalRequests.map(req => (
-                                            <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
-                                                <TableCell className="pl-6 py-4">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
-                                                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-black uppercase tracking-widest">
-                                                            <User className="h-2.5 w-2.5" />
-                                                            {req.submitterName}
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-[10px] font-bold text-slate-600">{req.requestedForms.length} Individual Form(s) for Registry</span>
-                                                        <div className="flex items-center gap-1.5 text-[9px] text-primary font-black uppercase">
-                                                            <Calendar className="h-2.5 w-2.5" />
-                                                            {format(req.createdAt?.toDate ? req.createdAt.toDate() : new Date(), 'PP')}
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Badge className={cn("text-[9px] font-black uppercase border-none px-3 shadow-sm", statusColors[req.status])}>
-                                                        {req.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right pr-6">
-                                                    <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest px-6 shadow-md bg-primary">
-                                                        REVIEW
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="h-64 text-center">
-                                                <div className="flex flex-col items-center justify-center gap-3 opacity-20">
-                                                    <Inbox className="h-12 w-12" />
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Inbox Zero</p>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
                 <Building className="h-12 w-12 opacity-10 mb-4" />
@@ -824,14 +649,6 @@ export default function UnitFormsPage() {
             unitId={selectedUnitId}
             isOpen={isRosterLogOpen}
             onOpenChange={setIsRosterLogOpen}
-          />
-      )}
-
-      {reviewRequestId && (
-          <FormRequestReviewDialog
-            requestId={reviewRequestId}
-            isOpen={!!reviewRequestId}
-            onOpenChange={(open) => !open && setReviewRequestId(null)}
           />
       )}
 
