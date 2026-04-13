@@ -42,35 +42,33 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW - EXPLICIT PERMISSIONS
+    // CORE WORKFLOW COLLECTIONS - EXPLICIT PERMISSIONS
+    // Explicitly defining get and list to ensure complex dashboard queries 
+    // pass security verification for all authenticated users.
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{requestId} { 
-      allow read, write: if request.auth != null;
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
-      allow read, write: if request.auth != null;
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
-    match /formDownloadLogs/{logId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // --------------------------------------------------------------------------
-    // EOMS SUBMISSIONS & RISKS - EXPLICIT PERMISSIONS
-    // --------------------------------------------------------------------------
-    
     match /submissions/{id} { 
-      allow read, write: if request.auth != null;
+      allow get, list, create, update, delete: if isSignedIn();
     }
     
     match /risks/{id} { 
-      allow read, write: if request.auth != null;
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    match /formDownloadLogs/{logId} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     // --------------------------------------------------------------------------
-    // CORE COLLECTIONS
+    // CORE SYSTEM COLLECTIONS
     // --------------------------------------------------------------------------
     
     match /users/{userId} {
@@ -164,9 +162,6 @@ service cloud.firestore {
       allow create: if true; 
     }
 
-    // --------------------------------------------------------------------------
-    // EMPLOYEE ACTIVITY LOG - REFINED PERMISSION
-    // --------------------------------------------------------------------------
     match /employeeActivities/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -174,7 +169,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
     }
 
-    // Catch-all for admins
+    // Final catch-all for admins
     match /{path=**} {
       allow read, write: if isAdmin();
     }
