@@ -363,7 +363,7 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    natureOfFinding: 'NC' | 'OFI';
+    nature of finding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp
@@ -693,4 +693,24 @@ export type EmployeeActivity = {
     approvedBy?: string;
     approvedByName?: string;
     approvedAt?: any;
+};
+
+export type WfhActivity = {
+    id: string;
+    userId: string;
+    userName: string;
+    unitId: string;
+    campusId: string;
+    date: any; // Timestamp
+    deliverables: string;
+    accomplishment: string;
+    status: 'Pending' | 'Verified';
+    type: 'Teaching' | 'Non-Teaching';
+    natureOfAppointment: string;
+    teachingLoad?: string;
+    subjectsTaught?: string;
+    officeAssignment?: string;
+    otherDesignations?: string;
+    createdAt: any;
+    updatedAt: any;
 };
