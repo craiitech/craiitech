@@ -19,6 +19,48 @@
       },
       "required": ["id", "email", "firstName", "lastName", "roleId", "role", "campusId", "unitId", "verified"]
     },
+    "UnitFormRequest": {
+      "title": "UnitFormRequest",
+      "description": "Application for enrolling or revising controlled quality forms.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "unitId": { "type": "string" },
+        "unitName": { "type": "string" },
+        "campusId": { "type": "string" },
+        "submitterId": { "type": "string" },
+        "submitterName": { "type": "string" },
+        "scannedRegistrationFormLink": { "type": "string", "format": "uri", "description": "Link to signed DRF evidence." },
+        "requestedForms": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "code": { "type": "string" },
+              "link": { "type": "string" },
+              "revision": { "type": "string" }
+            }
+          } 
+        },
+        "status": { "type": "string", "enum": ["Submitted", "QA Review", "Returned for Correction", "Awaiting Presidential Approval", "Approved & Registered"] },
+        "comments": { "type": "array", "items": { "$ref": "#/backend/entities/Comment" } }
+      }
+    },
+    "UnitForm": {
+      "title": "UnitForm",
+      "description": "An approved, controlled form available in a unit's active roster.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "unitId": { "type": "string" },
+        "formCode": { "type": "string" },
+        "formName": { "type": "string" },
+        "googleDriveLink": { "type": "string", "format": "uri" },
+        "revision": { "type": "string" },
+        "requestId": { "type": "string", "description": "The ID of the originating registration request." }
+      }
+    },
     "AuditPlan": {
       "title": "AuditPlan",
       "type": "object",
@@ -76,23 +118,14 @@
       },
       "required": ["controlNumber", "subject", "releaseDate", "googleDriveLink", "scope"]
     },
-    "Signatories": {
-      "title": "Signatories",
+    "Comment": {
+      "title": "Comment",
       "type": "object",
       "properties": {
-        "qaoDirector": { "type": "string" },
-        "qmsHead": { "type": "string" },
-        "accreditationHead": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "GadSettings": {
-      "title": "GadSettings",
-      "type": "object",
-      "properties": {
-        "leadershipUnitId": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "updatedBy": { "type": "string" }
+        "text": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -101,10 +134,10 @@
   },
   "firestore": {
     "/users/{userId}": { "schema": { "$ref": "#/backend/entities/User" }, "description": "Institutional user profiles." },
+    "/unitFormRequests/{requestId}": { "schema": { "$ref": "#/backend/entities/UnitFormRequest" }, "description": "Applications for form registration." },
+    "/unitForms/{formId}": { "schema": { "$ref": "#/backend/entities/UnitForm" }, "description": "Active roster of controlled forms." },
     "/auditPlans/{planId}": { "schema": { "$ref": "#/backend/entities/AuditPlan" }, "description": "High-level IQA frameworks." },
     "/employeeActivities/{activityId}": { "schema": { "$ref": "#/backend/entities/EmployeeActivity" }, "description": "Daily task logs." },
-    "/qaAdvisories/{advisoryId}": { "schema": { "$ref": "#/backend/entities/QaAdvisory" }, "description": "QA communications." },
-    "/system/signatories": { "schema": { "$ref": "#/backend/entities/Signatories" }, "description": "Institutional signatories." },
-    "/system/gadSettings": { "schema": { "$ref": "#/backend/entities/GadSettings" }, "description": "GAD governance settings." }
+    "/qaAdvisories/{advisoryId}": { "schema": { "$ref": "#/backend/entities/QaAdvisory" }, "description": "QA communications." }
   }
 }
