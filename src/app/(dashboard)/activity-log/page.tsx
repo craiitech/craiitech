@@ -133,12 +133,18 @@ export default function EmployeeActivityLogPage() {
   const filteredWfhActivities = useMemo(() => {
     if (!rawWfhActivities) return [];
     return rawWfhActivities.filter(activity => {
-        const matchesSearch = activity.deliverables.toLowerCase().includes(searchTerm.toLowerCase()) || (activity.accomplishment || '').toLowerCase().includes(searchTerm.toLowerCase()) || (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = activity.deliverables.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (activity.accomplishment || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
         const aDate = activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date);
-        const matchesDate = !dateFilter || format(aDate, 'yyyy-MM-dd') === dateFilter;
-        return matchesSearch && matchesDate;
+        
+        // Use monthFilter for WFH activities instead of dateFilter
+        const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
+        
+        return matchesSearch && matchesMonth;
     }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
-  }, [rawWfhActivities, searchTerm, dateFilter]);
+  }, [rawWfhActivities, searchTerm, monthFilter]);
 
   const handleApprove = async (id: string, isWfh = false) => {
     if (!firestore || !userProfile) return;
@@ -240,7 +246,7 @@ export default function EmployeeActivityLogPage() {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
         printWindow.document.open();
-        printWindow.document.write(`<html><head><title>${title}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Click to Print Report</button></div>${html}</body></html>`);
+        printWindow.document.write(`<html><head><title>${title}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Click to Print Report</button></div>${html}</body></html>`);
         printWindow.document.close();
     }
   };
