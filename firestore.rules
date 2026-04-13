@@ -42,34 +42,31 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // GAD CORNER & PCW REPORTING
-    // --------------------------------------------------------------------------
-    
-    match /gadInitiatives/{id} {
-      allow read, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('role', '').matches('(?i).*(coordinator|director|odimo|admin).*')));
-      allow delete: if isAdmin();
-    }
-
-    match /gadMainstreaming/{id} {
-      allow read, list: if isSignedIn();
-      allow write: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('role', '').matches('(?i).*(coordinator|director|odimo|admin).*')));
-    }
-
-    // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW
+    // UNIT FORMS & WORKFLOW - EXPLICIT PERMISSIONS
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{requestId} { 
-      allow get, list, write: if isSignedIn();
+      allow read, write: if request.auth != null;
     }
 
     match /unitForms/{formId} { 
-      allow get, list, write: if isSignedIn();
+      allow read, write: if request.auth != null;
     }
 
     match /formDownloadLogs/{logId} {
-      allow get, list, write: if isSignedIn();
+      allow read, write: if request.auth != null;
+    }
+
+    // --------------------------------------------------------------------------
+    // EOMS SUBMISSIONS & RISKS - EXPLICIT PERMISSIONS
+    // --------------------------------------------------------------------------
+    
+    match /submissions/{id} { 
+      allow read, write: if request.auth != null;
+    }
+    
+    match /risks/{id} { 
+      allow read, write: if request.auth != null;
     }
 
     // --------------------------------------------------------------------------
@@ -88,13 +85,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Aligned Submissions and Risks with the Form Request pattern
-    match /submissions/{id} { 
-      allow get, list, write: if isSignedIn(); 
+    match /gadInitiatives/{id} {
+      allow read, list: if isSignedIn();
+      allow create, update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('role', '').matches('(?i).*(coordinator|director|odimo|admin).*')));
+      allow delete: if isAdmin();
     }
-    
-    match /risks/{id} { 
-      allow get, list, write: if isSignedIn(); 
+
+    match /gadMainstreaming/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('role', '').matches('(?i).*(coordinator|director|odimo|admin).*')));
     }
 
     match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
