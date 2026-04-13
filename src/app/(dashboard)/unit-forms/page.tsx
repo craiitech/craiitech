@@ -279,6 +279,21 @@ export default function UnitFormsPage() {
               ) : (
                 <ScrollArea className="h-full">
                   <div className="flex flex-col">
+                    {isAdmin && (
+                        <Button
+                            variant="ghost"
+                            onClick={() => setSelectedUnitId(null)}
+                            className={cn(
+                                "w-full justify-start text-left h-auto py-3 px-4 text-xs rounded-none border-l-2 transition-all",
+                                selectedUnitId === null 
+                                    ? "bg-primary/5 text-primary border-primary font-black shadow-inner" 
+                                    : "border-transparent text-primary hover:bg-muted/30 font-bold"
+                            )}
+                        >
+                            <Inbox className="mr-3 h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">Institutional Request Inbox</span>
+                        </Button>
+                    )}
                     {sidebarUnits.map(unit => (
                       <Button
                         key={unit.id}

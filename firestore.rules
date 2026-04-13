@@ -58,19 +58,18 @@ service cloud.firestore {
 
     // --------------------------------------------------------------------------
     // UNIT FORMS & WORKFLOW
-    // Explicitly allow read (get/list) for workflow transparency
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{requestId} { 
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /formDownloadLogs/{logId} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     // --------------------------------------------------------------------------
