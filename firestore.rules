@@ -88,8 +88,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /submissions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
-    match /risks/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    // Aligned Submissions and Risks with the Form Request pattern
+    match /submissions/{id} { 
+      allow get, list, write: if isSignedIn(); 
+    }
+    
+    match /risks/{id} { 
+      allow get, list, write: if isSignedIn(); 
+    }
+
     match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
     match /auditSchedules/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
     match /auditFindings/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
