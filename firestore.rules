@@ -42,25 +42,40 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // CORE WORKFLOW COLLECTIONS - EXPLICIT RECURSIVE PERMISSIONS
-    // Using recursive wildcards {allPaths=**} to ensure collection-level 'list'
-    // operations are explicitly authorized for all authenticated users.
+    // CORE WORKFLOW COLLECTIONS - EXPLICIT COLLECTION & DOCUMENT PERMISSIONS
+    // Explicitly matching the collection path allows 'list' operations to succeed
+    // independently of document-level rules.
     // --------------------------------------------------------------------------
     
-    match /unitFormRequests/{allPaths=**} { 
-      allow read, write: if request.auth != null;
+    // 1. Unit Form Registration Workflow
+    match /unitFormRequests {
+      allow get, list, write: if request.auth != null;
+    }
+    match /unitFormRequests/{docId} { 
+      allow get, list, write: if request.auth != null;
     }
 
-    match /unitForms/{allPaths=**} { 
-      allow read, write: if request.auth != null;
+    match /unitForms {
+      allow get, list, write: if request.auth != null;
+    }
+    match /unitForms/{docId} { 
+      allow get, list, write: if request.auth != null;
     }
 
-    match /submissions/{allPaths=**} { 
-      allow read, write: if request.auth != null;
+    // 2. EOMS Submissions Registry
+    match /submissions {
+      allow get, list, write: if request.auth != null;
+    }
+    match /submissions/{docId} { 
+      allow get, list, write: if request.auth != null;
     }
     
-    match /risks/{allPaths=**} { 
-      allow read, write: if request.auth != null;
+    // 3. Risk and Opportunity Registry
+    match /risks {
+      allow get, list, write: if request.auth != null;
+    }
+    match /risks/{docId} { 
+      allow get, list, write: if request.auth != null;
     }
 
     match /formDownloadLogs/{logId} {
