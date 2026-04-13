@@ -32,7 +32,8 @@ import {
     Hash,
     Calendar,
     PlusCircle,
-    Activity
+    Activity,
+    Send
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
