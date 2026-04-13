@@ -31,7 +31,8 @@ import {
     Monitor,
     Briefcase,
     GraduationCap,
-    Download
+    Download,
+    Award
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -411,7 +412,7 @@ export default function EmployeeActivityLogPage() {
                                         <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/30 text-primary">{activity.type}</Badge>
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2", activity.status === 'Verified' ? "bg-emerald-600" : "bg-amber-500")}>{activity.status}</Badge>
+                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2", activity.status === 'Verified' ? "bg-emerald-600" : "bg-amber-50")}>{activity.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right pr-6 whitespace-nowrap">
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -36,7 +37,8 @@ import {
   ChevronRight,
   XCircle,
   Settings,
-  Building2
+  Building2,
+  Award
 } from 'lucide-react';
 import {
   useUser,
@@ -800,7 +802,7 @@ export default function HomePage() {
                         <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-amber-200">
                             <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                    <Award className="h-4 w-4" />
+                                    <Award className="h-4 w-4 text-amber-600" />
                                 </div>
                                 <div>
                                     <p className="text-xs font-black text-slate-900 uppercase">Accreditation Gaps</p>
@@ -1059,13 +1061,11 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
-      <ScrollArea className="w-full">
-        <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
-            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-            <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
-        </TabsList>
-      </ScrollArea>
+      <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
+          <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+          <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+          <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+      </TabsList>
       <TabsContent value="overview" className="space-y-4">
         
         <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
