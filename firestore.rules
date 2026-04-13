@@ -58,18 +58,19 @@ service cloud.firestore {
 
     // --------------------------------------------------------------------------
     // UNIT FORMS & WORKFLOW
+    // Explicitly allow list/get for workflow transparency
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{requestId} { 
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /formDownloadLogs/{logId} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     // --------------------------------------------------------------------------
@@ -158,10 +159,6 @@ service cloud.firestore {
       allow create: if true; 
     }
 
-    match /{path=**} {
-      allow read, write: if isAdmin();
-    }
-
     // --------------------------------------------------------------------------
     // EMPLOYEE ACTIVITY LOG - REFINED PERMISSION
     // --------------------------------------------------------------------------
@@ -170,6 +167,11 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isUnitLead() || isSupervisor() || isAdmin());
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    // Catch-all for admins
+    match /{path=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
