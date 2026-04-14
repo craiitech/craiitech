@@ -34,7 +34,9 @@ import {
     FileText,
     LayoutList,
     Hash,
-    ChevronRight
+    ChevronRight,
+    FileSearch,
+    Monitor
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +68,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeFormPreview, setActiveFormPreview] = useState<{ name: string; link: string } | null>(null);
 
   const requestRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'unitFormRequests', requestId) : null),
@@ -174,24 +177,56 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                     </div>
                                 </section>
 
+                                {/* 1. Scanned Evidence (DRF) - Moved Up */}
                                 <section className="space-y-4">
                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
-                                        <FileText className="h-4 w-4" /> Individual Roster Items
+                                        <ShieldCheck className="h-4 w-4" /> 1. Scanned Evidence (Signed DRF)
                                     </h4>
+                                    <div className="aspect-video w-full rounded-2xl border bg-muted overflow-hidden shadow-inner relative opacity-90">
+                                        <iframe 
+                                            src={getEmbedUrl(request.scannedRegistrationFormLink)} 
+                                            className="absolute inset-0 w-full h-full border-none"
+                                            allow="autoplay"
+                                            title="DRF Evidence Preview"
+                                        />
+                                    </div>
+                                </section>
+
+                                <Separator />
+
+                                {/* 2. Individual Roster Items */}
+                                <section className="space-y-4">
+                                    <div className="flex items-center justify-between border-b pb-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                            <FileText className="h-4 w-4" /> 2. Individual Roster Items
+                                        </h4>
+                                        <p className="text-[9px] font-bold text-muted-foreground italic">Click code to preview specific form</p>
+                                    </div>
                                     <div className="border rounded-xl overflow-hidden shadow-sm">
                                         <Table>
                                             <TableHeader className="bg-slate-50">
                                                 <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase">Code</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Form Code</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase">Rev.</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Source</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {request.requestedForms.map((f, i) => (
-                                                    <TableRow key={i}>
-                                                        <TableCell className="font-mono text-xs font-bold text-primary">{f.code}</TableCell>
+                                                    <TableRow key={i} className={cn("transition-colors", activeFormPreview?.link === f.link ? "bg-primary/5" : "hover:bg-muted/20")}>
+                                                        <TableCell>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setActiveFormPreview({ name: f.name, link: f.link })}
+                                                                className={cn(
+                                                                    "font-mono text-xs font-black uppercase transition-all hover:scale-105 active:scale-95",
+                                                                    activeFormPreview?.link === f.link ? "text-primary scale-105" : "text-slate-600 hover:text-primary"
+                                                                )}
+                                                            >
+                                                                {f.code}
+                                                            </button>
+                                                        </TableCell>
                                                         <TableCell className="text-xs font-bold">{f.name}</TableCell>
                                                         <TableCell><Badge variant="outline" className="h-4 text-[9px] font-bold">Rev {f.revision}</Badge></TableCell>
                                                         <TableCell className="text-right pr-6">
@@ -206,18 +241,25 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                     </div>
                                 </section>
 
-                                <section className="space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
-                                        <ShieldCheck className="h-4 w-4" /> Scanned Evidence (DRF)
-                                    </h4>
-                                    <div className="aspect-video w-full rounded-2xl border bg-muted overflow-hidden shadow-inner relative opacity-90">
-                                        <iframe 
-                                            src={getEmbedUrl(request.scannedRegistrationFormLink)} 
-                                            className="absolute inset-0 w-full h-full border-none"
-                                            allow="autoplay"
-                                        />
-                                    </div>
-                                </section>
+                                {/* 3. Dynamic Form Preview */}
+                                {activeFormPreview && (
+                                    <section className="space-y-4 animate-in slide-in-from-top-4 duration-500">
+                                        <div className="flex items-center justify-between border-b pb-2">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
+                                                <FileSearch className="h-4 w-4" /> 3. Specific Form Preview: {activeFormPreview.name}
+                                            </h4>
+                                            <Button variant="ghost" size="sm" onClick={() => setActiveFormPreview(null)} className="h-6 text-[9px] font-black uppercase text-muted-foreground">Clear Preview</Button>
+                                        </div>
+                                        <div className="aspect-[16/10] w-full rounded-2xl border-2 border-emerald-100 bg-muted overflow-hidden shadow-xl relative">
+                                            <iframe 
+                                                src={getEmbedUrl(activeFormPreview.link)} 
+                                                className="absolute inset-0 w-full h-full border-none bg-white"
+                                                allow="autoplay"
+                                                title="Form Content Preview"
+                                            />
+                                        </div>
+                                    </section>
+                                )}
                             </div>
                         </ScrollArea>
                     </div>
