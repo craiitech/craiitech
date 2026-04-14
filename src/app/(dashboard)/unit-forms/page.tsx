@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-import type { Unit, UnitForm, CampusSetting, UnitFormRequest } from '@/lib/types';
+import type { Unit, UnitForm, CampusSetting, UnitFormRequest, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,12 +88,21 @@ export default function UnitFormsPage() {
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: allCampuses } = useCollection<Campus>(campusesQuery);
+
   // Query for Admin Inbox
   const allRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? query(collection(firestore, 'unitFormRequests'), orderBy('createdAt', 'desc')) : null),
     [firestore, isAdmin]
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
+
+  const campusMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allCampuses?.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [allCampuses]);
 
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
@@ -229,8 +238,8 @@ export default function UnitFormsPage() {
           isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-ml-6"
         )}>
           <Card className="flex flex-col h-[400px] md:h-full shadow-sm border-primary/10">
-            <CardHeader className="pb-4 bg-muted/30 border-b">
-              <CardTitle className="text-xs font-black uppercase tracking-widest">Unit Directory</CardTitle>
+            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unit Selection</CardTitle>
               <div className="relative pt-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -241,7 +250,7 @@ export default function UnitFormsPage() {
                 />
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-0">
+            <CardContent className="p-0 flex-1 overflow-hidden">
               {isLoadingUnits ? (
                 <div className="flex h-full items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
@@ -447,7 +456,7 @@ export default function UnitFormsPage() {
                                     <CardFooter className="bg-white border-t py-4 px-6 flex flex-col xl:flex-row items-center justify-between gap-6">
                                         <div className="flex items-start gap-3 flex-1">
                                             <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                                            <p className="text-[10px] text-muted-foreground italic leading-tight">
+                                            <p className="text-[9px] text-muted-foreground italic leading-tight">
                                                 <strong>Institutional Standard:</strong> This preview allows users to cross-reference their operational requirements with the controlled forms roster. Refer to your unit's **Procedure Manual** to verify applicable codes.
                                             </p>
                                         </div>
@@ -662,7 +671,7 @@ export default function UnitFormsPage() {
                                     <TableCell className="py-4">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId)}</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-4">
