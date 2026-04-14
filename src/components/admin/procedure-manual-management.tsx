@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -39,6 +38,7 @@ import { Loader2, Edit, Trash2, FileText, Calendar, Layers } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
