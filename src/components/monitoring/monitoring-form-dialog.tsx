@@ -40,7 +40,7 @@ import { Badge } from '../ui/badge';
 
 interface MonitoringFormDialogProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   record: UnitMonitoringRecord | null;
   campuses: Campus[];
   units: Unit[];
@@ -92,6 +92,8 @@ const eomsReportMap: Record<string, string> = {
     "SWOT Analysis": "SWOT Analysis",
     "Needs and Expectation of Interested Parties": "Needs and Expectation of Interested Parties"
 };
+
+const SHARED_ACADEMIC_ID = 'academic-shared';
 
 export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units, onPrint }: MonitoringFormDialogProps) {
   const { userProfile, isAdmin, userRole } = useUser();
@@ -160,8 +162,10 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   const manualRef = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !isOpen) return null;
-    return doc(firestore, 'procedureManuals', selectedUnitId);
-  }, [firestore, selectedUnitId, isOpen]);
+    const unit = units.find(u => u.id === selectedUnitId);
+    const manualId = unit?.category === 'Academic' ? SHARED_ACADEMIC_ID : selectedUnitId;
+    return doc(firestore, 'procedureManuals', manualId);
+  }, [firestore, selectedUnitId, isOpen, units]);
 
   const { data: unitManual } = useDoc<ProcedureManual>(manualRef);
 

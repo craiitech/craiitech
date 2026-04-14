@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import type { Unit, ProcedureManual } from '@/lib/types';
 import {
@@ -35,10 +35,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, Edit, Trash2, FileText, Calendar } from 'lucide-react';
+import { Loader2, Edit, Trash2, FileText, Calendar, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
+
+const SHARED_ACADEMIC_ID = 'academic-shared';
 
 const manualSchema = z.object({
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
@@ -46,11 +48,13 @@ const manualSchema = z.object({
   dateImplemented: z.string().min(1, 'Implementation date is required.'),
 });
 
+type VirtualUnit = { id: string; name: string; isShared?: boolean };
+
 export function ProcedureManualManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<VirtualUnit | null>(null);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
@@ -63,6 +67,27 @@ export function ProcedureManualManagement() {
     return new Map(manuals.map(m => [m.id, m]));
   }, [manuals]);
 
+  const manageableUnits = useMemo(() => {
+    if (!units) return [];
+    
+    // Filter non-academic units for individual assignment
+    const filtered = units
+        .filter(u => u.category !== 'Academic')
+        .map(u => ({ id: u.id, name: u.name, isShared: false }));
+
+    // Add exactly one shared entry for all academic units
+    const hasAcademic = units.some(u => u.category === 'Academic');
+    if (hasAcademic) {
+        filtered.unshift({ 
+            id: SHARED_ACADEMIC_ID, 
+            name: 'Academic Units (Shared Manual)', 
+            isShared: true 
+        });
+    }
+
+    return filtered.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
+  }, [units]);
+
   const form = useForm<z.infer<typeof manualSchema>>({
     resolver: zodResolver(manualSchema),
     defaultValues: {
@@ -72,7 +97,7 @@ export function ProcedureManualManagement() {
     }
   });
   
-  const handleOpenDialog = (unit: Unit) => {
+  const handleOpenDialog = (unit: VirtualUnit) => {
     setSelectedUnit(unit);
     const existingManual = manualMap.get(unit.id);
     form.reset({ 
@@ -103,7 +128,7 @@ export function ProcedureManualManagement() {
 
     try {
       await setDoc(manualRef, manualData, { merge: true });
-      toast({ title: 'Success', description: `Manual for ${selectedUnit.name} has been saved.` });
+      toast({ title: 'Success', description: `Manual configuration saved.` });
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving manual:', error);
@@ -114,13 +139,13 @@ export function ProcedureManualManagement() {
   };
 
   const handleDelete = async (unitId: string) => {
-    if (!firestore) return;
+    if (!firestore || !window.confirm('Delete this manual configuration?')) return;
     try {
         await deleteDoc(doc(firestore, 'procedureManuals', unitId));
-        toast({ title: 'Success', description: 'Manual has been removed.' });
+        toast({ title: 'Success', description: 'Manual entry has been removed.' });
     } catch (error) {
         console.error("Error deleting manual:", error);
-        toast({ title: 'Error', description: 'Could not remove the manual.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Could not remove the entry.', variant: 'destructive' });
     }
   };
   
@@ -130,22 +155,22 @@ export function ProcedureManualManagement() {
     <>
     <Card>
       <CardHeader>
-        <CardTitle>Procedure Manuals</CardTitle>
+        <CardTitle>Procedure Manuals Administration</CardTitle>
         <CardDescription>
-          Manage the official procedure manuals for each university unit. These manuals are used for verification during unit monitoring.
+          Manage institutional operating procedures. Academic units utilize a shared manual to ensure university-wide consistency.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <ScrollArea className="h-[60vh] pr-4">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Unit Name</TableHead>
+                  <TableHead>Target Unit / Group</TableHead>
                   <TableHead>Revision</TableHead>
                   <TableHead>Implemented</TableHead>
                   <TableHead>Manual Link</TableHead>
@@ -153,11 +178,16 @@ export function ProcedureManualManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {units?.sort((a,b) => a.name.localeCompare(b.name)).map((unit) => {
+                {manageableUnits.map((unit) => {
                   const manual = manualMap.get(unit.id);
                   return (
-                    <TableRow key={unit.id}>
-                      <TableCell className="font-medium">{unit.name}</TableCell>
+                    <TableRow key={unit.id} className={cn(unit.isShared && "bg-primary/5")}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                            {unit.isShared ? <Layers className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-muted-foreground opacity-40" />}
+                            <span className={cn(unit.isShared && "font-black uppercase text-primary")}>{unit.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {manual ? <Badge variant="secondary">Rev {manual.revisionNumber || '00'}</Badge> : '--'}
                       </TableCell>
@@ -197,12 +227,14 @@ export function ProcedureManualManagement() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2 text-primary mb-1">
-            <FileText className="h-5 w-5" />
+            {selectedUnit?.isShared ? <Layers className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
             <span className="text-xs font-bold uppercase tracking-widest">Manual Configuration</span>
           </div>
-          <DialogTitle>Manage Manual: "{selectedUnit?.name}"</DialogTitle>
+          <DialogTitle>Manage: "{selectedUnit?.name}"</DialogTitle>
           <DialogDescription>
-            Configure the official procedure manual details for this unit.
+            {selectedUnit?.isShared 
+                ? "Update the official shared procedure manual for all academic units." 
+                : "Configure the specific procedure manual details for this unit."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

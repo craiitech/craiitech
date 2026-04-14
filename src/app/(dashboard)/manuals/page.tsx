@@ -2,18 +2,21 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { ProcedureManual, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, BookOpen, Building, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Hash, Calendar } from 'lucide-react';
+import { Loader2, Search, BookOpen, Building, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Hash, Calendar, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 
+const SHARED_ACADEMIC_ID = 'academic-shared';
+
 export default function ProcedureManualsPage() {
+  const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
@@ -31,13 +34,62 @@ export default function ProcedureManualsPage() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const filteredManuals = useMemo(() => {
-    if (!manuals || !allUnits) return [];
+  const sidebarItems = useMemo(() => {
+    if (!allUnits || !userProfile || isUserLoading) return [];
     
-    return manuals
-      .filter(manual => manual.unitName.toLowerCase().includes(searchTerm.toLowerCase()))
-      .sort((a, b) => a.unitName.localeCompare(b.unitName));
-  }, [manuals, allUnits, searchTerm]);
+    // 1. Filter out all individual academic units
+    let filtered = allUnits.filter(u => u.category !== 'Academic');
+    
+    // 2. Apply standard scoping (Campus/Unit)
+    if (!isAdmin && userRole !== 'Auditor') {
+        filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
+        if (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') {
+            filtered = filtered.filter(u => u.id === userProfile.unitId);
+        }
+    }
+
+    // 3. Search Filter
+    if (searchTerm) {
+        const lower = searchTerm.toLowerCase();
+        filtered = filtered.filter(u => u.name.toLowerCase().includes(lower));
+    }
+
+    // 4. Map to Display Items
+    const items = filtered.map(u => ({ 
+        id: u.id, 
+        name: u.name, 
+        isShared: false 
+    }));
+
+    // 5. Add Shared Academic Entry if relevant
+    const hasAcademic = allUnits.some(u => u.category === 'Academic');
+    if (hasAcademic) {
+        const myUnit = allUnits.find(u => u.id === userProfile.unitId);
+        const canSeeAcademic = isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic';
+        
+        if (canSeeAcademic) {
+            items.unshift({ 
+                id: SHARED_ACADEMIC_ID, 
+                name: 'Academic Units (Shared Manual)', 
+                isShared: true 
+            });
+        }
+    }
+
+    return items.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
+  }, [allUnits, userProfile, isAdmin, userRole, isUserLoading, searchTerm]);
+
+  // Initial selection logic
+  useEffect(() => {
+    if (userProfile && !selectedUnitId && !isUserLoading) {
+        const myUnit = allUnits?.find(u => u.id === userProfile.unitId);
+        if (myUnit?.category === 'Academic') {
+            setSelectedUnitId(SHARED_ACADEMIC_ID);
+        } else {
+            setSelectedUnitId(userProfile.unitId || null);
+        }
+    }
+  }, [userProfile, allUnits, selectedUnitId, isUserLoading]);
 
   const selectedManual = useMemo(() => {
     return manuals?.find(m => m.id === selectedUnitId) || null;
@@ -94,20 +146,24 @@ export default function ProcedureManualsPage() {
               ) : (
                 <ScrollArea className="h-full">
                   <div className="flex flex-col">
-                    {filteredManuals.map(manual => (
+                    {sidebarItems.map(item => (
                       <Button
-                        key={manual.id}
+                        key={item.id}
                         variant="ghost"
-                        onClick={() => setSelectedUnitId(manual.id)}
+                        onClick={() => setSelectedUnitId(item.id)}
                         className={cn(
                           "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-4 transition-all",
-                          selectedUnitId === manual.id 
+                          selectedUnitId === item.id 
                             ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
                             : "border-transparent hover:bg-muted/50"
                         )}
                       >
-                        <Building className="mr-3 h-4 w-4 flex-shrink-0 opacity-40" />
-                        <span className="truncate text-xs">{manual.unitName}</span>
+                        {item.isShared ? (
+                            <Layers className="mr-3 h-4 w-4 flex-shrink-0 text-primary" />
+                        ) : (
+                            <Building className="mr-3 h-4 w-4 flex-shrink-0 opacity-40" />
+                        )}
+                        <span className={cn("truncate text-xs", item.isShared && "font-black")}>{item.name}</span>
                       </Button>
                     ))}
                   </div>
@@ -133,7 +189,7 @@ export default function ProcedureManualsPage() {
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
                         <CardTitle className="text-lg font-black uppercase tracking-tight truncate max-w-[500px]">
-                            {selectedManual?.unitName || 'Select a Unit'}
+                            {selectedManual?.unitName || (selectedUnitId === SHARED_ACADEMIC_ID ? 'Academic Procedure Manual' : 'Select a Unit')}
                         </CardTitle>
                         <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                             Official Operational Reference Log
