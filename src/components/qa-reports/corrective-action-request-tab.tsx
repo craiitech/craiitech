@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -145,7 +144,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
 
-    // Auditors and Admins are "Institutional Viewers" and can see everything in the registry.
     const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
@@ -421,12 +419,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     
-    // Institutional verification is ONLY for Auditors/Admins
     if (fieldName.startsWith('verificationRecords')) {
         return !isInstitutionalViewer;
     }
 
-    // Unit responder fields
     const responderFields = ['rootCauseAnalysis', 'actionSteps', 'status'];
     if (responderFields.includes(fieldName)) {
         return userProfile?.unitId !== form.getValues('unitId');
@@ -437,7 +433,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   return (
     <div className="space-y-6">
-      {/* 1. ANALYTICS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
@@ -478,7 +473,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">
-                    {analytics.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%
+                    {carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%
                 </div>
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Non-Conformances</p>
             </CardContent>
@@ -497,7 +492,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </Card>
       </div>
 
-      {/* 2. FILTER & ACTION BAR */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex-1 flex flex-col md:flex-row gap-4">
             <div className="flex-1 space-y-1.5">
@@ -573,7 +567,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </div>
       </div>
 
-      {/* 3. REGISTRY TABLE */}
       <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
@@ -694,7 +687,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </CardFooter>
       </Card>
 
-      {/* --- FORM DIALOG --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
@@ -845,7 +837,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     )}
                                 </div>
 
-                                {/* --- INSTITUTIONAL VERIFICATION SECTIONS (AUDITOR/ADMIN ONLY) --- */}
                                 <div className="space-y-10 pt-10 border-t border-dashed">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
@@ -884,7 +875,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                 </Button>
                                             )}
 
-                                            {/* Follow-up Result */}
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2">
                                                     <HistoryIcon className="h-4 w-4 text-indigo-600" />
@@ -908,7 +898,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
                                             <Separator className="bg-indigo-100" />
 
-                                            {/* Effectiveness Verification */}
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2">
                                                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -964,7 +953,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </ScrollArea>
             </div>
 
-            {/* SIDEBAR INSTRUCTIONS FOR UNIT */}
             <div className="hidden lg:flex w-[380px] flex-col bg-muted/10 shrink-0 border-l">
                 <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
                     <BookOpen className="h-4 w-4 text-primary" /> Unit Compliance Guide
