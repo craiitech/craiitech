@@ -711,6 +711,7 @@ export type WfhActivity = {
     subjectsTaught?: string;
     officeAssignment?: string;
     otherDesignations?: string;
+    evidenceLink?: string;
     createdAt: any;
     updatedAt: any;
 };

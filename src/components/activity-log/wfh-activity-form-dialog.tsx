@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,7 +30,8 @@ import {
     GraduationCap,
     Activity,
     ClipboardCheck,
-    CheckCircle2
+    CheckCircle2,
+    Link as LinkIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WfhActivity } from '@/lib/types';
@@ -51,6 +53,7 @@ const formSchema = z.object({
   subjectsTaught: z.string().optional(),
   officeAssignment: z.string().optional(),
   otherDesignations: z.string().optional(),
+  evidenceLink: z.string().url('Please enter a valid Google Drive URL').optional().or(z.literal('')),
 });
 
 export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhActivityFormDialogProps) {
@@ -71,6 +74,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
       subjectsTaught: '',
       officeAssignment: '',
       otherDesignations: '',
+      evidenceLink: '',
     }
   });
 
@@ -89,6 +93,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
         subjectsTaught: activity.subjectsTaught || '',
         officeAssignment: activity.officeAssignment || '',
         otherDesignations: activity.otherDesignations || '',
+        evidenceLink: activity.evidenceLink || '',
       });
     } else if (!activity && isOpen) {
       form.reset({
@@ -101,6 +106,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
         subjectsTaught: '',
         officeAssignment: '',
         otherDesignations: '',
+        evidenceLink: '',
       });
     }
   }, [activity, isOpen, form]);
@@ -223,6 +229,19 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
                         <FormMessage />
                     </FormItem>
                 )} />
+
+                <FormField control={form.control} name="evidenceLink" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
+                            <LinkIcon className="h-3.5 w-3.5" /> Evidence Link (Google Drive)
+                        </FormLabel>
+                        <FormControl>
+                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="h-9 text-xs bg-blue-50/30 border-blue-100" />
+                        </FormControl>
+                        <FormDescription className="text-[9px]">Paste the link to your digital evidence folder or file.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )} />
             </div>
 
             <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
@@ -235,7 +254,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
             <DialogFooter className="pt-4 border-t mt-6">
                 <Button type="button" variant="ghost" className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => onOpenChange(false)}>Discard</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-11">
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                     {activity ? 'Update Entry' : 'Log WFH Task'}
                 </Button>
             </DialogFooter>

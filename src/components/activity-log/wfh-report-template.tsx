@@ -115,6 +115,12 @@ export function WfhReportTemplate({ activities, userName, campusName, type }: Wf
               </td>
               <td className="border border-black p-2 align-top italic whitespace-pre-wrap leading-snug">
                 {a.accomplishment || ''}
+                {a.evidenceLink && (
+                  <div className="mt-3 not-italic font-bold text-[8px] border-t border-black/10 pt-1 overflow-hidden">
+                    <span className="uppercase opacity-60 block mb-0.5">Attachment/Evidences:</span>
+                    <span className="text-blue-700 underline truncate block">{a.evidenceLink}</span>
+                  </div>
+                )}
               </td>
             </tr>
           ))}
