@@ -42,7 +42,8 @@ import {
     ListChecks,
     ChevronRight,
     Gavel,
-    BookOpen
+    BookOpen,
+    School
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -124,6 +125,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   
   const [searchTerm, setSearchTerm] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [campusFilter, setCampusFilter] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const carQuery = useMemoFirebase(
@@ -165,8 +167,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
         const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
+        if (!matchesYear) return false;
 
-        return matchesYear;
+        const matchesCampus = campusFilter === 'all' || car.campusId === campusFilter;
+        return matchesCampus;
     });
 
     if (sortConfig) {
@@ -192,7 +196,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     return result;
-  }, [rawCars, searchTerm, yearFilter, sortConfig, unitMap, userProfile, isAdmin, isAuditor, userRole]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, unitMap, userProfile, isAdmin, isAuditor, userRole]);
 
   const carStats = useMemo(() => {
     const total = processedCars.length;
@@ -508,6 +512,20 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         className="pl-9 h-10 shadow-sm bg-background border-primary/10"
                     />
                 </div>
+            </div>
+            <div className="w-full md:w-48 space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                    <School className="h-2.5 w-2.5" /> Campus / Site
+                </label>
+                <Select value={campusFilter} onValueChange={setCampusFilter}>
+                    <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
+                        <SelectValue placeholder="All Sites" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Sites</SelectItem>
+                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="w-full md:w-48 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
