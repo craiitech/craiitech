@@ -8,10 +8,11 @@ import { Timestamp } from 'firebase/firestore';
 interface CARControlRegisterTemplateProps {
   cars: CorrectiveActionRequest[];
   unitMap: Map<string, string>;
+  campusMap: Map<string, string>;
   year: string;
 }
 
-export function CARControlRegisterTemplate({ cars, unitMap, year }: CARControlRegisterTemplateProps) {
+export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: CARControlRegisterTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -79,7 +80,8 @@ export function CARControlRegisterTemplate({ cars, unitMap, year }: CARControlRe
                 <td className="border border-black p-1 text-center align-top">
                     {hasData ? (
                         <>
-                            <div className="font-bold uppercase leading-tight">{unitMap.get(car.unitId)}</div>
+                            <div className="font-black uppercase leading-tight text-slate-900">{unitMap.get(car.unitId)}</div>
+                            <div className="text-[7px] font-black uppercase text-slate-500 mt-0.5">{campusMap.get(car.campusId)}</div>
                             <div className="text-[7px] mt-1 opacity-60">Head: {car.unitHead}</div>
                         </>
                     ) : ''}

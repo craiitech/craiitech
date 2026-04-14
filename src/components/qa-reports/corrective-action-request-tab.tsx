@@ -295,6 +295,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <CARControlRegisterTemplate 
                 cars={processedCars} 
                 unitMap={unitMap} 
+                campusMap={campusMap}
                 year={yearFilter} 
             />
         );
@@ -425,7 +426,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
     const responderFields = ['rootCauseAnalysis', 'actionSteps', 'status'];
     if (responderFields.includes(fieldName)) {
-        return userProfile?.unitId !== form.getValues('unitId');
+        return userProfile?.unitId === form.getValues('unitId');
     }
     
     return true; 
