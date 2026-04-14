@@ -3,8 +3,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { Unit, UnitForm, CampusSetting } from '@/lib/types';
+import { collection, query, where, doc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import type { Unit, UnitForm, CampusSetting, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,11 +33,14 @@ import {
     Calendar,
     PlusCircle,
     Activity,
-    Send
+    Send,
+    Inbox,
+    History
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
 import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
+import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -47,6 +50,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { format } from 'date-fns';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
+
+const statusColors: Record<string, string> = {
+    'Submitted': 'bg-blue-100 text-blue-700',
+    'QA Review': 'bg-indigo-100 text-indigo-700',
+    'Returned for Correction': 'bg-rose-100 text-rose-700',
+    'Awaiting Presidential Approval': 'bg-amber-100 text-amber-700',
+    'Approved & Registered': 'bg-emerald-100 text-emerald-700',
+};
 
 export default function UnitFormsPage() {
   const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
@@ -71,9 +82,18 @@ export default function UnitFormsPage() {
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
+  const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
 
+  // Queries for the Registry Directory
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  // Query for Admin Inbox
+  const allRequestsQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? query(collection(firestore, 'unitFormRequests'), orderBy('createdAt', 'desc')) : null),
+    [firestore, isAdmin]
+  );
+  const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
 
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
@@ -201,27 +221,8 @@ export default function UnitFormsPage() {
 
   const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
-          <p className="text-muted-foreground text-sm">Registry of official controlled forms and repository management.</p>
-        </div>
-        <div className="flex items-center gap-2">
-            <Button 
-            variant="outline" 
-            size="sm" 
-            className="md:hidden" 
-            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            >
-            {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-            {isSidebarVisible ? 'Hide Units' : 'Show Units'}
-            </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-12rem)]">
+  const renderRegistryWorkspace = () => (
+    <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-20rem)]">
         {/* Unit Directory Sidebar */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
@@ -615,7 +616,140 @@ export default function UnitFormsPage() {
             </div>
           )}
         </div>
+    </div>
+  );
+
+  const renderAdminInbox = () => (
+    <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col h-[calc(100vh-20rem)]">
+        <CardHeader className="bg-primary/5 border-b py-4">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                        <Inbox className="h-5 w-5 text-primary" />
+                        Form Registration Management Inbox
+                    </CardTitle>
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                        Review and approve institutional form registration applications from all university units.
+                    </CardDescription>
+                </div>
+                <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary uppercase">
+                    {allRequests?.length || 0} TOTAL REQUESTS
+                </Badge>
+            </div>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+                {isLoadingAllRequests ? (
+                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                ) : (
+                    <Table>
+                        <TableHeader className="bg-muted/30 sticky top-0 z-10 shadow-sm">
+                            <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Submit Date</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Originating Unit</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase text-center">Items</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase text-center">Workflow Status</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {allRequests?.map((req) => (
+                                <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group">
+                                    <TableCell className="pl-6 py-4 font-mono text-xs font-bold text-slate-600">
+                                        {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : 'TBA'}
+                                    </TableCell>
+                                    <TableCell className="py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId)}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="py-4">
+                                        <div className="flex items-center gap-2 text-xs font-medium">
+                                            <User className="h-3.5 w-3.5 opacity-40" />
+                                            {req.submitterName}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center py-4">
+                                        <Badge variant="secondary" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-none">
+                                            {req.requestedForms.length} FORMS
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center py-4">
+                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2 h-5", statusColors[req.status])}>
+                                            {req.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right pr-6 whitespace-nowrap">
+                                        <Button 
+                                            size="sm" 
+                                            variant="default" 
+                                            onClick={() => setReviewRequestId(req.id)}
+                                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
+                                        >
+                                            Review Request
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {allRequests?.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center gap-2 opacity-20">
+                                            <Inbox className="h-10 w-10" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Inbox is currently empty</p>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
+            </ScrollArea>
+        </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                    <strong>Admin Tip:</strong> Reviewing a request allows you to RETURN it for correction or APPROVE it, which automatically enrolls the individual forms into the target unit's active roster.
+                </p>
+            </div>
+        </CardFooter>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
+          <p className="text-muted-foreground text-sm">Registry of official controlled forms and repository management.</p>
+        </div>
       </div>
+
+      {isAdmin ? (
+          <Tabs defaultValue="management" className="space-y-6">
+              <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
+                  <TabsTrigger value="management" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                      <Layers className="h-3.5 w-3.5" /> Registry Management
+                  </TabsTrigger>
+                  <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                      <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
+                  </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="management" className="animate-in fade-in duration-500">
+                  {renderRegistryWorkspace()}
+              </TabsContent>
+
+              <TabsContent value="inbox" className="animate-in fade-in duration-500">
+                  {renderAdminInbox()}
+              </TabsContent>
+          </Tabs>
+      ) : (
+          renderRegistryWorkspace()
+      )}
 
       {selectedUnit && (
           <FormRegistrationDialog 
@@ -653,6 +787,14 @@ export default function UnitFormsPage() {
           />
       )}
 
+      {reviewRequestId && (
+          <FormRequestReviewDialog
+            requestId={reviewRequestId}
+            isOpen={!!reviewRequestId}
+            onOpenChange={(open) => !open && setReviewRequestId(null)}
+          />
+      )}
+
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         <DialogContent className="max-w-[95vw] lg:max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-4 border-b bg-slate-50 shrink-0">
@@ -668,7 +810,7 @@ export default function UnitFormsPage() {
             {previewDoc && (
               <iframe 
                 src={previewDoc.url} 
-                className="absolute inset-0 w-full h-full border-none bg-white" 
+                className="absolute inset-0 w-full h-full border-none bg-white shadow-inner" 
                 allow="autoplay" 
                 title="QA Form Preview"
               />
