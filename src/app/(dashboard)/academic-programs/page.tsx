@@ -17,22 +17,17 @@ import {
     Search, 
     Building, 
     Trash2,
-    Award,
-    CheckCircle2,
-    Briefcase,
-    FileX,
-    Users,
-    Trophy
+    Database
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
+import { BatchDataHub } from '@/components/programs/batch-data-hub';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
 import { MaturityStrengths } from '@/components/programs/maturity-strengths';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,7 +61,7 @@ export default function AcademicProgramsPage() {
   const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
-  const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator');
 
   // Role-based initial filter setup & strict locking
   useEffect(() => {
@@ -202,7 +197,7 @@ export default function AcademicProgramsPage() {
                     </SelectContent>
                 </Select>
             </div>
-            {canManage && (
+            {isAdmin && (
             <div className="pt-4">
                 <Button onClick={handleNewProgram} size="sm" className="h-9 font-bold uppercase tracking-tight">
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -271,15 +266,18 @@ export default function AcademicProgramsPage() {
       </Card>
 
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md">
-            <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+        <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-fit">
+            <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <BarChart3 className="h-4 w-4" /> Decision Support
             </TabsTrigger>
-            <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                <Trophy className="h-4 w-4 text-amber-500" /> Maturity Strengths & Gaps
+            <TabsTrigger value="batch-hub" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <Database className="h-4 w-4 text-indigo-600" /> Batch Data Hub
             </TabsTrigger>
-            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <Layers className="h-4 w-4" /> Program Registry
+            </TabsTrigger>
+            <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
             </TabsTrigger>
         </TabsList>
 
@@ -291,6 +289,18 @@ export default function AcademicProgramsPage() {
                 units={units || []}
                 isLoading={isLoading}
                 selectedYear={selectedYear}
+            />
+        </TabsContent>
+
+        <TabsContent value="batch-hub" className="animate-in fade-in duration-500">
+            <BatchDataHub 
+                programs={filteredPrograms}
+                compliances={rawCompliances || []}
+                campuses={campuses || []}
+                units={units || []}
+                selectedYear={selectedYear}
+                isLoading={isLoading}
+                canEdit={canManage}
             />
         </TabsContent>
 
@@ -306,67 +316,15 @@ export default function AcademicProgramsPage() {
         </TabsContent>
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <div className="text-3xl font-black text-primary tabular-nums">{filteredPrograms.filter(p => p.isActive).length} Active</div>
-                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">{filteredPrograms.filter(p => !p.isActive).length} Closed Programs</p>
-                    </CardContent>
-                    <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
-                </Card>
-            </div>
-
-            <Tabs defaultValue="active" className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <TabsList className="bg-muted/50 p-1 border shadow-sm h-9 animate-tab-highlight rounded-md">
-                        <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white">
-                            <ShieldCheck className="h-3 w-3" /> Active Offerings
-                        </TabsTrigger>
-                        <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
-                            <FileX className="h-3 w-3" /> Closed Programs
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <TabsContent value="active" className="animate-in slide-in-from-left-2 duration-300">
-                    {isLoading ? (
-                        <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                        </div>
-                    ) : (
-                        <ProgramRegistry 
-                            programs={filteredPrograms.filter(p => p.isActive)} 
-                            compliances={rawCompliances || []}
-                            campuses={campuses || []} 
-                            units={units || []} 
-                            onEdit={handleEditProgram}
-                            onDelete={setDeletingProgram}
-                            canManage={canManage}
-                        />
-                    )}
-                </TabsContent>
-
-                <TabsContent value="inactive" className="animate-in slide-in-from-right-2 duration-300">
-                    {isLoading ? (
-                        <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                        </div>
-                    ) : (
-                        <ProgramRegistry 
-                            programs={filteredPrograms.filter(p => !p.isActive)} 
-                            compliances={rawCompliances || []}
-                            campuses={campuses || []} 
-                            units={units || []} 
-                            onEdit={handleEditProgram}
-                            onDelete={setDeletingProgram}
-                            canManage={canManage}
-                        />
-                    )}
-                </TabsContent>
-            </Tabs>
+            <ProgramRegistry 
+                programs={filteredPrograms} 
+                compliances={rawCompliances || []}
+                campuses={campuses || []} 
+                units={units || []} 
+                onEdit={handleEditProgram}
+                onDelete={setDeletingProgram}
+                canManage={canManage}
+            />
         </TabsContent>
       </Tabs>
 
