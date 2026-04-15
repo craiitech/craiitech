@@ -282,7 +282,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official CAR Form</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official CAR Form</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
@@ -424,15 +424,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     
+    // Institutional verification is ONLY for Admins/Auditors
     if (fieldName.startsWith('verificationRecords')) {
         return !isInstitutionalViewer;
     }
 
+    // Root Cause and Action Steps are for the Responsible Unit to fill out
     const responderFields = ['rootCauseAnalysis', 'actionSteps', 'status'];
     if (responderFields.includes(fieldName)) {
-        return userProfile?.unitId === form.getValues('unitId');
+        // Return TRUE (read-only) if I am NOT the unit assigned to this CAR
+        return userProfile?.unitId !== form.getValues('unitId');
     }
     
+    // Everything else (metadata) is read-only for non-admins
     return true; 
   };
 
@@ -920,7 +924,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2">
                                                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                                    <h5 className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">IV. Verification of Effectiveness of the Action Taken</h5>
+                                                    <h5 className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">IV. Verification of Effectiveness of the action taken</h5>
                                                 </div>
                                                 <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
                                                     <FormItem>
