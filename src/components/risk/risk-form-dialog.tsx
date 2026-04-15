@@ -43,7 +43,7 @@ import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -51,7 +51,7 @@ import { useSearchParams } from 'next/navigation';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   risk: Risk | null;
   unitUsers: AppUser[];
   allUnits: Unit[];
@@ -70,7 +70,7 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
+const yearsList = Array.from({ length: 2076 - (currentYear - 10) + 1 }, (_, i) => String(currentYear - 10 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const getRating = (magnitude: number): string => {
@@ -223,7 +223,6 @@ export function RiskFormDialog({
         adminUnitId: r.unitId || '',
       });
     } else {
-      // For new risks, strictly reset to the year being viewed in the registry
       form.reset({
         year: defaultYear || currentYear,
         objective: form.getValues('objective') || '', 
@@ -247,15 +246,23 @@ export function RiskFormDialog({
     }
   }, [initialRisk, isOpen]);
 
+  /**
+   * REINFORCED SIDEBAR QUERY
+   * Strictly filters by Campus, Unit, and Year to maintain institutional context integrity.
+   */
   const unitRisksQuery = useMemoFirebase(() => {
     const targetUnitId = isAdmin ? selectedAdminUnitId : userProfile?.unitId;
-    if (!firestore || !targetUnitId || !isOpen) return null;
+    const targetCampusId = isAdmin ? selectedAdminCampusId : userProfile?.campusId;
+    
+    if (!firestore || !targetUnitId || !targetCampusId || !isOpen) return null;
+    
     return query(
         collection(firestore, 'risks'), 
         where('unitId', '==', targetUnitId),
+        where('campusId', '==', targetCampusId),
         where('year', '==', watchYear)
     );
-  }, [firestore, selectedAdminUnitId, userProfile, watchYear, isOpen, isAdmin]);
+  }, [firestore, selectedAdminUnitId, selectedAdminCampusId, userProfile, watchYear, isOpen, isAdmin]);
 
   const { data: unitRisks } = useCollection<Risk>(unitRisksQuery);
 
