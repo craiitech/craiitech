@@ -647,17 +647,17 @@ export default function SubmissionDetailPage() {
                                                       ) : (
                                                           <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
                                                       )}
-                                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type}</span>
+                                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type} ({risk.year})</span>
                                                       <Badge 
                                                           className={cn(
                                                               "text-[8px] font-black h-4 py-0 px-1.5 border-none shadow-none",
                                                               risk.type === 'Risk' ? (
                                                                   risk.preTreatment.rating === 'High' ? "bg-rose-600 text-white" :
-                                                                  risk.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" :
+                                                                  risk.preTreatment.rating === 'Medium' ? "bg-amber-50 text-white" :
                                                                   "bg-emerald-600 text-white"
                                                               ) : (
                                                                   risk.preTreatment.rating === 'High' ? "bg-emerald-600 text-white" :
-                                                                  risk.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" :
+                                                                  risk.preTreatment.rating === 'Medium' ? "bg-amber-50 text-white" :
                                                                   "bg-rose-600 text-white"
                                                               )
                                                           )}
@@ -703,7 +703,7 @@ export default function SubmissionDetailPage() {
                       </ScrollArea>
                   </CardContent>
                   <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center">
-                      <p className="text-[9px] text-muted-foreground font-medium italic">Integrated QMS Data Synchronization Layer</p>
+                      <p className="text-[9px] text-muted-foreground font-medium italic">Integrated QMS Data synchronization Layer</p>
                       {isAdmin && (
                           <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black uppercase gap-1 text-primary" onClick={handleOpenRiskBridge}>
                               <PlusCircle className="h-3 w-3" /> Manage Digital Records
