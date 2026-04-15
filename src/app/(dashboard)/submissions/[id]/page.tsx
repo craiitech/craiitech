@@ -224,11 +224,17 @@ export default function SubmissionDetailPage() {
   );
   const { data: unitUsers } = useCollection<AppUser>(unitUsersQuery);
 
+  /**
+   * REINFORCED SCOPING LOGIC:
+   * Digital Risks must be filtered by UnitId, CampusId, AND Year 
+   * to ensure strict parity with the current submission context.
+   */
   const existingRisksQuery = useMemoFirebase(() => {
     if (!firestore || !submission) return null;
     return query(
         collection(firestore, 'risks'),
         where('unitId', '==', submission.unitId),
+        where('campusId', '==', submission.campusId), // ADDED THIS FILTER
         where('year', '==', submission.year)
     );
   }, [firestore, submission]);
