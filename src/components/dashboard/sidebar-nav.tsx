@@ -38,12 +38,14 @@ export function SidebarNav({
       href: '/activity-log',
       label: 'Activity Log (Daily)',
       active: pathname.startsWith('/activity-log'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <UserCheck />,
     },
     {
       href: '/advisories',
       label: 'QA Advisories',
       active: pathname.startsWith('/advisories'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <Megaphone />,
     },
     {
@@ -57,7 +59,7 @@ export function SidebarNav({
       href: '/monitoring',
       label: 'Unit Monitoring',
       active: pathname.startsWith('/monitoring'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <ClipboardList />,
     },
     {
@@ -71,6 +73,7 @@ export function SidebarNav({
       href: '/gad-corner',
       label: 'GAD Corner',
       active: pathname.startsWith('/gad-corner'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <HandHeart />,
     },
     {
