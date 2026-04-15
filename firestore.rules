@@ -98,7 +98,9 @@ service cloud.firestore {
     
     match /correctiveActionRequests/{carId} { 
       allow read: if isSignedIn(); 
-      allow write: if isAdmin() || isAuditor() || isSupervisor() || (isUnitLead() && profile().unitId == resource.data.unitId);
+      allow create: if isAdmin() || isAuditor() || isSupervisor();
+      allow update: if isAdmin() || isAuditor() || isSupervisor() || (isSignedIn() && hasProfile() && profile().unitId == resource.data.unitId);
+      allow delete: if isAdmin();
     }
     
     match /correctiveActionPlans/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
