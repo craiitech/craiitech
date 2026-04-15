@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck, Star } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,13 @@ export function SidebarNav({
       label: 'Home',
       active: pathname === '/dashboard',
       icon: <LayoutDashboard />,
+    },
+    {
+      href: '/faculty-evaluation',
+      label: 'Faculty Evaluation (AFES)',
+      active: pathname.startsWith('/faculty-evaluation'),
+      roles: ['Admin', 'Faculty', 'Student', 'Dean', 'Program Chair', 'Campus Director'],
+      icon: <Star />,
     },
     {
       href: '/activity-log',
@@ -80,6 +87,7 @@ export function SidebarNav({
       href: '/submissions',
       label: 'EOMS SUBMISSION HUB',
       active: pathname.startsWith('/submissions'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO', 'Auditor'],
       icon: <FileText />,
     },
     {
