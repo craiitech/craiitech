@@ -292,19 +292,34 @@ export default function SubmissionDetailPage() {
 
   const handleReject = async () => {
       if (!submissionDocRef || !user || !userProfile) return;
-      const uncheckedReasons = submission?.isDraft ? [] : approverChecklistItems
+      
+      const reasons = submission?.isDraft ? [] : approverChecklistItems
         .filter(item => !approverChecklist[item.id])
         .map(item => `* ${item.rejectionReason}`);
 
-      if (uncheckedReasons.length === 0 && !feedback.trim()) {
-        toast({ title: 'Error', description: 'To reject, please uncheck an item or provide manual feedback.', variant: 'destructive'});
+      // DETECT INCORRECT DIGITAL ENTRIES AS REJECTION REASON
+      const isRor = normalizeReportType(submission?.reportType || '') === 'Risk and Opportunity Registry';
+      if (isRor && existingRisks) {
+          const incorrectEntries = existingRisks.filter(r => 
+            (submission?.cycleId === 'first' && r.verification?.status === 'Incorrect') ||
+            (submission?.cycleId === 'final' && r.verification?.status === 'Not Updated')
+          );
+
+          if (incorrectEntries.length > 0) {
+              const statusLabel = submission?.cycleId === 'first' ? 'Incorrect' : 'Not Updated';
+              reasons.push(`* Digital Register Discrepancy: ${incorrectEntries.length} entries in the digital risk register are marked as "${statusLabel}". The digital database must exactly match the submitted document.`);
+          }
+      }
+
+      if (reasons.length === 0 && !feedback.trim()) {
+        toast({ title: 'Error', description: 'To reject, please uncheck an item, identify a digital discrepancy, or provide manual feedback.', variant: 'destructive'});
         return;
       };
 
       setIsSubmitting(true);
       let rejectionComment = '';
-      if (uncheckedReasons.length > 0) {
-        rejectionComment += `**Rejection based on:**\n${uncheckedReasons.join('\n')}`;
+      if (reasons.length > 0) {
+        rejectionComment += `**Rejection based on:**\n${reasons.join('\n')}`;
       }
       if (feedback.trim()) {
         if (rejectionComment) rejectionComment += `\n\n**Additional Comments:**\n${feedback.trim()}`;
@@ -492,11 +507,11 @@ export default function SubmissionDetailPage() {
                     <p className="text-sm font-bold text-foreground truncate">{submission.unitName}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Year</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-foreground/60 leading-none">Year</p>
                     <p className="text-sm font-bold text-foreground">{submission.year}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Cycle</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-foreground/60 leading-none">Cycle</p>
                     <p className="text-sm font-bold text-foreground capitalize">{submission.cycleId} Cycle</p>
                 </div>
             </div>
