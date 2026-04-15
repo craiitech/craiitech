@@ -35,13 +35,6 @@ export function SidebarNav({
       icon: <LayoutDashboard />,
     },
     {
-      href: '/faculty-evaluation',
-      label: 'Faculty Evaluation (AFES)',
-      active: pathname.startsWith('/faculty-evaluation'),
-      roles: ['Admin', 'Faculty', 'Student', 'Dean', 'Program Chair', 'Campus Director'],
-      icon: <Star />,
-    },
-    {
       href: '/activity-log',
       label: 'Activity Log (Daily)',
       active: pathname.startsWith('/activity-log'),
