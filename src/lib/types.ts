@@ -95,6 +95,11 @@ export type Risk = {
     updates?: string;
     preparedBy?: string; // Unit Head
     approvedBy?: string; // VPAA/VPAF/VPREDI
+    verification?: {
+        status: 'Correct' | 'Incorrect' | 'Updated' | 'Not Updated';
+        verifiedBy: string;
+        verifiedAt: any;
+    };
     createdAt: any; // serverTimestamp()
     updatedAt: any; // serverTimestamp()
 }
@@ -363,7 +368,7 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    nature of finding: 'NC' | 'OFI';
+    natureOfFinding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp
