@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -63,6 +64,8 @@ import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { cn } from '@/lib/utils';
 import { MultiSelector } from './multi-selector';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -343,46 +346,63 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
-    try {
-      const carData: any = {
-        ...values,
-        ncReportNumber: values.ncReportNumber || '',
-        concerningTopManagementName: values.concerningTopManagementName || '',
-        rootCauseAnalysis: values.rootCauseAnalysis || '',
-        timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
-        requestDate: Timestamp.fromDate(new Date(values.requestDate)),
-        actionSteps: (values.actionSteps || []).map(step => ({
-            ...step,
-            evidenceLink: step.evidenceLink || '',
-            completionDate: Timestamp.fromDate(new Date(step.completionDate))
-        })),
-        verificationRecords: (values.verificationRecords || []).map(rec => ({
-            ...rec,
-            remarks: rec.remarks || '',
-            resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
-            effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
-        })),
-        updatedAt: serverTimestamp(),
-      };
+    
+    const carData: any = {
+      ...values,
+      ncReportNumber: values.ncReportNumber || '',
+      concerningTopManagementName: values.concerningTopManagementName || '',
+      rootCauseAnalysis: values.rootCauseAnalysis || '',
+      timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
+      requestDate: Timestamp.fromDate(new Date(values.requestDate)),
+      actionSteps: (values.actionSteps || []).map(step => ({
+          ...step,
+          evidenceLink: step.evidenceLink || '',
+          completionDate: Timestamp.fromDate(new Date(step.completionDate))
+      })),
+      verificationRecords: (values.verificationRecords || []).map(rec => ({
+          ...rec,
+          remarks: rec.remarks || '',
+          resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
+          effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
+      })),
+      updatedAt: serverTimestamp(),
+    };
 
-      if (editingCar) {
-        await updateDoc(doc(firestore, 'correctiveActionRequests', editingCar.id), carData);
-        toast({ title: 'Success', description: 'CAR record updated.' });
-      } else {
-        await addDoc(collection(firestore, 'correctiveActionRequests'), {
-          ...carData,
-          createdAt: serverTimestamp(),
-        });
-        toast({ title: 'Success', description: 'New CAR registered in system.' });
-      }
-      setIsDialogOpen(false);
-      form.reset();
-      setEditingCar(null);
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Error', description: 'Failed to save CAR record.', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
+    if (editingCar) {
+      const docRef = doc(firestore, 'correctiveActionRequests', editingCar.id);
+      updateDoc(docRef, carData)
+        .then(() => {
+          toast({ title: 'Success', description: 'CAR record updated.' });
+          setIsDialogOpen(false);
+          form.reset();
+          setEditingCar(null);
+        })
+        .catch(async (error) => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'update',
+            requestResourceData: carData
+          }));
+        })
+        .finally(() => setIsSubmitting(false));
+    } else {
+      const colRef = collection(firestore, 'correctiveActionRequests');
+      const dataWithTimestamp = { ...carData, createdAt: serverTimestamp() };
+      addDoc(colRef, dataWithTimestamp)
+        .then(() => {
+          toast({ title: 'Success', description: 'New CAR registered in system.' });
+          setIsDialogOpen(false);
+          form.reset();
+          setEditingCar(null);
+        })
+        .catch(async (error) => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: colRef.path,
+            operation: 'create',
+            requestResourceData: dataWithTimestamp
+          }));
+        })
+        .finally(() => setIsSubmitting(false));
     }
   };
 
@@ -430,13 +450,23 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     // Root Cause and Action Steps are for the Responsible Unit to fill out
-    const responderFields = ['rootCauseAnalysis', 'actionSteps', 'status'];
+    const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.includes(fieldName)) {
-        // Return TRUE (read-only) if I am NOT the unit assigned to this CAR
+        // Return FALSE (allow edit) if I am the unit assigned to this CAR
         return userProfile?.unitId !== form.getValues('unitId');
     }
+
+    if (fieldName === 'status') {
+        // Allow status updates if I am institutional or the responsible unit
+        return !isInstitutionalViewer && userProfile?.unitId !== form.getValues('unitId');
+    }
     
-    // Everything else (metadata) is read-only for non-admins
+    // Everything else (metadata) is read-only for non-admins (Auditors can also edit if they are issuers)
+    const metadataFields = ['carNumber', 'ncReportNumber', 'source', 'initiator', 'natureOfFinding', 'procedureTitle', 'concerningClause', 'concerningTopManagementName', 'timeLimitForReply', 'unitId', 'campusId', 'unitHead', 'descriptionOfNonconformance', 'requestDate', 'preparedBy', 'approvedBy'];
+    if (metadataFields.includes(fieldName)) {
+        return !isInstitutionalViewer;
+    }
+
     return true; 
   };
 

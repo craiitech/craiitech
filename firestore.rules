@@ -95,7 +95,12 @@ service cloud.firestore {
     match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
     match /auditSchedules/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
     match /auditFindings/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
-    match /correctiveActionRequests/{carId} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor() || isSupervisor(); }
+    
+    match /correctiveActionRequests/{carId} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin() || isAuditor() || isSupervisor() || (isUnitLead() && profile().unitId == resource.data.unitId);
+    }
+    
     match /correctiveActionPlans/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
