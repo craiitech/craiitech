@@ -1,7 +1,26 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter, Shield, TrendingUp, Printer, Activity, Info } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { 
+    PlusCircle, 
+    Loader2, 
+    CalendarSearch, 
+    BarChart3, 
+    List, 
+    Search, 
+    Building, 
+    Layers, 
+    Filter, 
+    Shield, 
+    TrendingUp, 
+    Printer, 
+    Activity, 
+    Info, 
+    FileSearch, 
+    ExternalLink, 
+    X, 
+    ShieldCheck 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import type { 
@@ -18,7 +37,7 @@ import type {
     ManagementReviewOutput 
 } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, limit, orderBy } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';
@@ -31,6 +50,15 @@ import { RORPrintTemplate } from '@/components/risk/ror-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogDescription, 
+    DialogHeader, 
+    DialogTitle,
+    DialogFooter
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -45,6 +73,10 @@ export default function RiskRegisterPage() {
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
     const [isMandatory, setIsMandatory] = useState(false);
     const [registryLink, setRegistryLink] = useState<string | null>(null);
+    
+    // Preview States
+    const [previewSubmission, setPreviewSubmission] = useState<Submission | null>(null);
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
     
     // Filtering States
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -138,10 +170,6 @@ export default function RiskRegisterPage() {
     }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
     const { data: harvestedCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
-    /**
-     * CORRECTIVE ACTION REQUESTS FETCHING
-     * Strictly scoped to site context for non-admin users.
-     */
     const carQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
         const baseRef = collection(firestore, 'correctiveActionRequests');
@@ -256,6 +284,33 @@ export default function RiskRegisterPage() {
         setIsFormOpen(true);
     };
 
+    const handleViewForm = async (risk: Risk) => {
+        if (!firestore) return;
+        setIsPreviewLoading(true);
+        try {
+            const q = query(
+                collection(firestore, 'submissions'),
+                where('unitId', '==', risk.unitId),
+                where('campusId', '==', risk.campusId),
+                where('year', '==', risk.year),
+                where('reportType', '==', 'Risk and Opportunity Registry'),
+                orderBy('submissionDate', 'desc'),
+                limit(1)
+            );
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                setPreviewSubmission(snap.docs[0].data() as Submission);
+            } else {
+                toast({ title: 'No Submission Found', description: 'This unit has not yet submitted their formal registry document for this year.', variant: 'destructive' });
+            }
+        } catch (e) {
+            console.error(e);
+            toast({ title: 'Error', description: 'Could not retrieve document link.', variant: 'destructive' });
+        } finally {
+            setIsPreviewLoading(false);
+        }
+    };
+
     const handlePrintROR = () => {
         if (!filteredRisks.length || !userProfile) return;
 
@@ -334,6 +389,8 @@ export default function RiskRegisterPage() {
 
     const currentScopeType = unitFilter !== 'all' ? 'unit' : 'campus';
 
+    const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
+
   return (
     <>
     <div className="space-y-4">
@@ -378,7 +435,6 @@ export default function RiskRegisterPage() {
           </div>
       </div>
 
-      {/* Global Filter Bar */}
       <Card className="border-primary/10 shadow-sm bg-muted/10">
           <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
               <div className="flex-1 w-full space-y-1.5">
@@ -436,7 +492,6 @@ export default function RiskRegisterPage() {
           </CardContent>
       </Card>
 
-      {/* STRATEGIC STRENGTHS & GAPS */}
       {!isLoading && (
           <StrategicSwotAnalysis 
             submissions={harvestedSubmissions || []}
@@ -509,6 +564,7 @@ export default function RiskRegisterPage() {
                                         risks={filteredRisks.filter(r => r.type === 'Risk')}
                                         usersMap={usersMap}
                                         onEdit={handleEditRisk}
+                                        onViewForm={handleViewForm}
                                         isAdmin={isAdmin}
                                         isSupervisor={isSupervisor}
                                         campusMap={campusMap}
@@ -544,6 +600,7 @@ export default function RiskRegisterPage() {
                                         risks={filteredRisks.filter(r => r.type === 'Opportunity')}
                                         usersMap={usersMap}
                                         onEdit={handleEditRisk}
+                                        onViewForm={handleViewForm}
                                         isAdmin={isAdmin}
                                         isSupervisor={isSupervisor}
                                         campusMap={campusMap}
@@ -558,6 +615,52 @@ export default function RiskRegisterPage() {
         </TabsContent>
       </Tabs>
     </div>
+
+    {/* Preview Dialog for the Submitted ROR Form */}
+    <Dialog open={!!previewSubmission} onOpenChange={(open) => !open && setPreviewSubmission(null)}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+            <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <FileSearch className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <DialogTitle className="text-sm font-black uppercase tracking-tight">Source Document Review: ROR Registry</DialogTitle>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                {previewSubmission?.unitName} &bull; {previewSubmission?.cycleId} Cycle {previewSubmission?.year}
+                            </p>
+                        </div>
+                    </div>
+                    <Badge variant="secondary" className="h-6 px-3 bg-primary/5 text-primary border-primary/20 font-black text-xs uppercase">
+                        {previewSubmission?.controlNumber}
+                    </Badge>
+                </div>
+            </DialogHeader>
+            <div className="flex-1 bg-muted relative group">
+                {previewSubmission && (
+                    <iframe 
+                        src={getEmbedUrl(previewSubmission.googleDriveLink)} 
+                        className="absolute inset-0 w-full h-full border-none bg-white" 
+                        allow="autoplay" 
+                        title="Risk Registry Document Preview"
+                    />
+                )}
+            </div>
+            <DialogFooter className="p-4 border-t bg-card shrink-0 flex justify-between items-center px-8">
+                <p className="text-[9px] text-muted-foreground italic font-medium">Digital Evidence integrity verified via Google Drive Cloud Storage.</p>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest" onClick={() => setPreviewSubmission(null)}>Close Preview</Button>
+                    <Button variant="default" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
+                        <a href={previewSubmission?.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open in Drive
+                        </a>
+                    </Button>
+                </div>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
     <RiskFormDialog 
         key={editingRisk?.id || 'new'}
         isOpen={isFormOpen}

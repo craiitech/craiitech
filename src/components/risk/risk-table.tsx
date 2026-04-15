@@ -15,11 +15,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ interface RiskTableProps {
   risks: Risk[];
   usersMap: Map<string, AppUser>;
   onEdit: (risk: Risk) => void;
+  onViewForm?: (risk: Risk) => void;
   isAdmin?: boolean;
   isSupervisor?: boolean;
   campusMap?: Map<string, string>;
@@ -45,7 +47,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Closed': 'default',
 };
 
-export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
+export function RiskTable({ risks, usersMap, onEdit, onViewForm, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
 
   const sortedRisks = useMemo(() => {
@@ -127,11 +129,6 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
     return format(d, 'PP');
   }
 
-  /**
-   * DYNAMIC RATING COLORS
-   * Risk: High=Red, Medium=Yellow, Low=Green
-   * Opportunity: High=Green, Medium=Yellow, Low=Red
-   */
   const getRatingBadgeStyle = (type: 'Risk' | 'Opportunity', rating: string) => {
     if (type === 'Risk') {
         switch (rating) {
@@ -141,7 +138,6 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
             default: return '';
         }
     } else {
-        // Opportunity
         switch (rating) {
             case 'High': return 'bg-emerald-600 text-white border-none';
             case 'Medium': return 'bg-amber-400 text-amber-950 border-none';
@@ -268,11 +264,16 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel className="text-[10px] uppercase font-black">Controls</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => onEdit(risk)} className="text-xs font-bold">
-                        View Full Details
+                        <Edit className="h-3 w-3 mr-2" /> View Full Details
                     </DropdownMenuItem>
+                    {onViewForm && (
+                        <DropdownMenuItem onClick={() => onViewForm(risk)} className="text-xs font-bold text-primary">
+                            <FileSearch className="h-3 w-3 mr-2" /> View Submitted Form
+                        </DropdownMenuItem>
+                    )}
                     </DropdownMenuContent>
                 </DropdownMenu>
               </div>
