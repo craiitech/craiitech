@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
@@ -199,13 +198,13 @@ export default function SubmissionDetailPage() {
     () => (firestore && submission ? doc(firestore, 'users', submission.userId) : null),
     [firestore, submission]
   );
-  const { data: submitter } = useDoc<AppUser>(submitterDocRef);
+  const { data: submitter, isLoading: isLoadingSubmitter } = useDoc<AppUser>(submitterDocRef);
 
   const campusDocRef = useMemoFirebase(
     () => (firestore && submission?.campusId ? doc(firestore, 'campuses', submission.campusId) : null),
     [firestore, submission?.campusId]
   );
-  const { data: campus } = useDoc<Campus>(campusDocRef);
+  const { data: campus, isLoading: isLoadingCampus } = useDoc<Campus>(campusDocRef);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? collection(firestore, 'units') : null),
@@ -519,7 +518,7 @@ export default function SubmissionDetailPage() {
             <CardContent className="pt-6">
                 {previewUrl ? (
                     <div className={cn("w-full rounded-lg border bg-muted shadow-inner transition-all duration-500 overflow-hidden relative", previewOrientation === 'landscape' ? "aspect-video" : "aspect-[1/1.4]")}>
-                        <iframe src={previewUrl} className="absolute inset-0 h-full w-full transition-transform duration-300" style={{ transform: `rotate(${rotation}deg)` }} allow="autoplay"></iframe>
+                        <iframe src={previewUrl} className="absolute inset-0 h-full w-full transition-transform duration-300" style={{ transform: `rotate(${rotation}deg)` }} allow="autoplay" title="Submission File Preview"></iframe>
                     </div>
                 ) : <div className="aspect-video w-full rounded-lg border bg-muted flex items-center justify-center text-muted-foreground">No preview available.</div>}
             </CardContent>
