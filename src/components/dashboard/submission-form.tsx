@@ -40,7 +40,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
 import { debounce } from 'lodash';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { generateControlNumber, cn } from '@/lib/utils';
+import { generateControlNumber, cn, normalizeReportType } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { getOfficialServerTime } from '@/lib/actions';
 import Link from 'next/link';
@@ -56,6 +56,8 @@ const submissionSchema = z.object({
     ),
   isDraft: z.boolean().default(false),
   comments: z.string().optional(),
+  adminCampusId: z.string().optional(),
+  adminUnitId: z.string().optional(),
 });
 
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
@@ -85,8 +87,7 @@ export function SubmissionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
   const { toast } = useToast();
-  const { user, userProfile, userRole, isAdmin } = useUser();
-  const firestore = useFirestore();
+  const { user, userProfile, userRole, isAdmin, firestore } = useUser();
   const { logSessionActivity } = useSessionActivity();
   const router = useRouter();
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -101,33 +102,41 @@ export function SubmissionForm({
     setCurrentDate(new Date());
   }, []);
 
-  const isRorForm = reportType === 'Risk and Opportunity Registry';
+  const isRorForm = normalizeReportType(reportType) === 'Risk and Opportunity Registry';
+
+  const form = useForm<z.infer<typeof submissionSchema>>({
+    resolver: zodResolver(submissionSchema),
+    defaultValues: {
+      googleDriveLink: '',
+      isDraft: false,
+      comments: '',
+      adminCampusId: userProfile?.campusId || '',
+      adminUnitId: userProfile?.unitId || '',
+    },
+  });
+
+  const watchAdminCampus = form.watch('adminCampusId');
+  const watchAdminUnit = form.watch('adminUnitId');
 
   // Digital Risk Validation - Check if BOTH risks AND opportunities exist in DB before allowing submission
   const digitalRisksQuery = useMemoFirebase(() => {
-    const targetUnitId = isAdmin ? form.getValues('adminUnitId') : userProfile?.unitId;
-    if (!firestore || !targetUnitId || !year || !isRorForm) return null;
+    const targetUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
+    const targetCampusId = isAdmin ? watchAdminCampus : userProfile?.campusId;
+    
+    if (!firestore || !targetUnitId || !targetCampusId || !year || !isRorForm) return null;
     return query(
       collection(firestore, 'risks'),
       where('unitId', '==', targetUnitId),
+      where('campusId', '==', targetCampusId),
       where('year', '==', year)
     );
-  }, [firestore, userProfile?.unitId, year, isRorForm, isAdmin]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, year, isRorForm, isAdmin, watchAdminUnit, watchAdminCampus]);
 
   const { data: digitalRisks, isLoading: isLoadingDigitalRisks } = useCollection<Risk>(digitalRisksQuery);
   
   const hasRisks = digitalRisks?.some(r => r.type === 'Risk');
   const hasOpportunities = digitalRisks?.some(r => r.type === 'Opportunity');
   const isDigitalComplete = hasRisks && hasOpportunities;
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(submissionSchema),
-    defaultValues: {
-      googleDriveLink: '',
-      isDraft: false,
-      comments: '',
-    },
-  });
 
   const isDraftValue = form.watch('isDraft');
 
@@ -290,10 +299,12 @@ export function SubmissionForm({
       return;
     }
 
-    const unit = units.find((u) => u.id === userProfile.unitId);
+    const unitId = isAdmin ? values.adminUnitId : userProfile.unitId;
+    const campusId = isAdmin ? values.adminCampusId : userProfile.campusId;
+    const unit = units.find((u) => u.id === unitId);
     
     if (!unit) {
-        toast({ title: 'Profile Error', description: 'Your assigned unit could not be found.', variant: 'destructive' });
+        toast({ title: 'Profile Error', description: 'Assigned unit could not be found.', variant: 'destructive' });
         return;
     }
 
@@ -335,8 +346,8 @@ export function SubmissionForm({
               userId: user.uid,
               revision: newRevision,
               controlNumber: newControlNumber,
-              campusId: userProfile.campusId, // Ensure scoping is explicitly reinforced on update
-              unitId: userProfile.unitId,
+              campusId: campusId,
+              unitId: unitId,
             };
 
             if (isRorForm) {
@@ -369,8 +380,8 @@ export function SubmissionForm({
                 year,
                 cycleId,
                 userId: user.uid,
-                campusId: userProfile.campusId,
-                unitId: userProfile.unitId,
+                campusId: campusId,
+                unitId: unitId,
                 unitName: unit.name,
                 statusId: 'submitted',
                 submissionDate: serverTimestamp(), // Atomic server time
