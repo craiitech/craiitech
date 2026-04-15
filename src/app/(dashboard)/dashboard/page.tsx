@@ -215,7 +215,12 @@ export default function HomePage() {
     const baseRef = collection(firestore, 'unitMonitoringRecords');
     if (isAdmin) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId));
+    
+    // For Unit Level: Strictly filter by Unit AND Site to prevent cross-campus leakage
+    return query(baseRef, 
+        where('unitId', '==', userProfile.unitId),
+        where('campusId', '==', userProfile.campusId)
+    );
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
   const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
@@ -330,9 +335,13 @@ export default function HomePage() {
         return query(baseRef, where('campusId', '==', userProfile.campusId), where('status', 'in', activeStatuses));
     }
     
-    // Unit-level roles see audits for their specific unit
-    if (userProfile.unitId) {
-        return query(baseRef, where('targetId', '==', userProfile.unitId), where('status', 'in', activeStatuses));
+    // Unit-level roles see audits specifically for their unit AND site context to prevent leakage
+    if (userProfile.unitId && userProfile.campusId) {
+        return query(baseRef, 
+            where('targetId', '==', userProfile.unitId), 
+            where('campusId', '==', userProfile.campusId),
+            where('status', 'in', activeStatuses)
+        );
     }
     
     return null;
