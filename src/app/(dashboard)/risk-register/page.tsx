@@ -37,7 +37,7 @@ import type {
     ManagementReviewOutput 
 } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, doc, getDocs, limit, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';
@@ -288,18 +288,24 @@ export default function RiskRegisterPage() {
         if (!firestore) return;
         setIsPreviewLoading(true);
         try {
+            // Simplified query to bypass complex composite index requirement for prototype
             const q = query(
                 collection(firestore, 'submissions'),
                 where('unitId', '==', risk.unitId),
                 where('campusId', '==', risk.campusId),
                 where('year', '==', risk.year),
-                where('reportType', '==', 'Risk and Opportunity Registry'),
-                orderBy('submissionDate', 'desc'),
-                limit(1)
+                where('reportType', '==', 'Risk and Opportunity Registry')
             );
             const snap = await getDocs(q);
             if (!snap.empty) {
-                setPreviewSubmission(snap.docs[0].data() as Submission);
+                // Sort in memory to identify the most recent version
+                const sorted = snap.docs.map(d => ({ ...d.data(), id: d.id } as Submission))
+                    .sort((a, b) => {
+                        const dateA = a.submissionDate instanceof Timestamp ? a.submissionDate.toMillis() : new Date(a.submissionDate).getTime();
+                        const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
+                        return dateB - dateA;
+                    });
+                setPreviewSubmission(sorted[0]);
             } else {
                 toast({ title: 'No Submission Found', description: 'This unit has not yet submitted their formal registry document for this year.', variant: 'destructive' });
             }
