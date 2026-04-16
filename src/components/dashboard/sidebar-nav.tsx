@@ -82,6 +82,7 @@ export function SidebarNav({
       active: pathname.startsWith('/submissions'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO', 'Auditor'],
       icon: <FileText />,
+      showBadge: true,
     },
     {
       href: '/approvals',
@@ -89,6 +90,7 @@ export function SidebarNav({
       active: pathname.startsWith('/approvals'),
       roles: ['Campus Director', 'Campus ODIMO', 'Admin', 'Vice President'],
       icon: <CheckSquare />,
+      showBadge: true,
     },
      {
       href: '/manuals',
@@ -175,8 +177,10 @@ export function SidebarNav({
               <Link href={route.href}>
                 {route.icon}
                 <span>{route.label}</span>
-                {route.href === '/approvals' && isSupervisor && notificationCount > 0 && (
-                  <SidebarMenuBadge>{notificationCount}</SidebarMenuBadge>
+                {route.showBadge && notificationCount > 0 && (
+                  <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                    {notificationCount}
+                  </SidebarMenuBadge>
                 )}
               </Link>
             </SidebarMenuButton>
