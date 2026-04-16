@@ -56,7 +56,8 @@ export function BatchDataHub({ programs, compliances, campuses, units, selectedY
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
-  const activePrograms = useMemo(() => programs.filter(p => p.isActive), [programs]);
+  // STRICTOR FILTERING: Only show programs that are currently active in the University
+  const activePrograms = useMemo(() => programs.filter(p => p.isActive === true), [programs]);
 
   const stats = useMemo(() => {
     return activePrograms.map(p => {

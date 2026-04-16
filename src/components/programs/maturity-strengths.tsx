@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -51,7 +50,9 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
 
     const strengthsList: StrengthItem[] = [];
     const gapsRegistry: any[] = [];
-    const activePrograms = programs.filter(p => p.isActive);
+    
+    // STRATEGIC FILTER: Only analyze active programs for strengths and gaps
+    const activePrograms = programs.filter(p => p.isActive === true);
 
     activePrograms.forEach(p => {
         // Robust normalized ID matching
