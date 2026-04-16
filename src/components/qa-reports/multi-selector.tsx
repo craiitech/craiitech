@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface MultiSelectorProps {
   items: { id: string; name: string }[];
@@ -22,8 +23,8 @@ interface MultiSelectorProps {
 }
 
 /**
- * A robust multi-selection component optimized for use within high-density Dialogs.
- * Avoiding cmdk focus traps by using a standard list with manual event handling.
+ * A highly robust multi-selection component designed to work inside nested Dialogs.
+ * It avoids cmdk/Command focus traps by using a standard list with Pointer event handling.
  */
 export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add item...", label = "Select Items" }: MultiSelectorProps) {
   const [open, setOpen] = React.useState(false);
@@ -52,7 +53,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2 items-center min-h-10 p-2 rounded-md border bg-slate-50/50">
+      <div className="flex flex-wrap gap-2 items-center min-h-11 p-2 rounded-md border bg-slate-50/50 shadow-sm">
         {selectedItems.map((item) => (
           <Badge 
             key={item.id} 
@@ -82,7 +83,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-72 p-0 border shadow-2xl z-[100] bg-white overflow-hidden rounded-lg" 
+            className="w-80 p-0 border shadow-2xl z-[100] bg-white overflow-hidden rounded-lg" 
             align="start"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
@@ -91,13 +92,13 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                     <Search className="h-4 w-4 text-muted-foreground opacity-50" />
                     <Input 
                         placeholder={placeholder} 
-                        className="h-8 text-xs border-none focus:ring-0 p-0 shadow-none bg-transparent" 
+                        className="h-9 text-xs border-none focus:ring-0 p-0 shadow-none bg-transparent" 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <ScrollArea className="max-h-64 h-auto">
-                    <div className="p-1">
+                <ScrollArea className="max-h-72 h-auto">
+                    <div className="p-2 space-y-1">
                         {filteredItems.length > 0 ? (
                             filteredItems.map((item) => {
                                 const isSelected = selectedIds.includes(item.id);
@@ -105,29 +106,28 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                                     <div
                                         key={item.id}
                                         className={cn(
-                                            "flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-colors hover:bg-primary/5",
+                                            "flex items-center gap-3 px-3 py-3 rounded-md cursor-pointer transition-colors hover:bg-primary/5",
                                             isSelected && "bg-primary/5"
                                         )}
-                                        onClick={(e) => {
+                                        onPointerDown={(e) => {
+                                            // Explicitly handle selection on pointer down to prevent focus shifts
                                             e.preventDefault();
-                                            e.stopPropagation();
                                             toggleItem(item.id);
                                         }}
                                     >
-                                        <div className={cn(
-                                            "h-4 w-4 border rounded flex items-center justify-center shrink-0 transition-colors",
-                                            isSelected ? "bg-primary border-primary text-white" : "border-slate-300 bg-white"
-                                        )}>
-                                            {isSelected && <Check className="h-3 w-3" />}
-                                        </div>
-                                        <span className={cn("text-xs truncate", isSelected ? "font-bold text-primary" : "text-slate-600")}>
+                                        <Checkbox 
+                                            id={`item-${item.id}`} 
+                                            checked={isSelected}
+                                            className="pointer-events-none"
+                                        />
+                                        <span className={cn("text-xs truncate font-bold select-none", isSelected ? "text-primary" : "text-slate-600")}>
                                             {item.name}
                                         </span>
                                     </div>
                                 );
                             })
                         ) : (
-                            <div className="p-4 text-center text-xs text-muted-foreground font-bold uppercase">No results found</div>
+                            <div className="p-6 text-center text-xs text-muted-foreground font-bold uppercase opacity-50">No matching items</div>
                         )}
                     </div>
                 </ScrollArea>
@@ -136,7 +136,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
         </Popover>
 
         {selectedIds.length === 0 && (
-            <span className="text-[10px] text-muted-foreground font-medium italic ml-1">No items selected</span>
+            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest ml-1">No items selected</span>
         )}
       </div>
     </div>
