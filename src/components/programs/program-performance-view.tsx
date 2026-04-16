@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -138,15 +137,15 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
             enrollmentRecords.forEach(rec => {
                 const s1 = rec.firstSemester?.[level];
                 const s2 = rec.secondSemester?.[level];
-                totalSem1 += (s1?.male || 0) + (s1?.female || 0);
-                totalSem2 += (s2?.male || 0) + (s2?.female || 0);
+                totalSem1 += (Number(s1?.male) || 0) + (Number(s1?.female) || 0);
+                totalSem2 += (Number(s2?.male) || 0) + (Number(s2?.female) || 0);
             });
         } else {
             // Fallback to legacy single stats structure
             const s1 = record.stats.enrollment?.firstSemester?.[level];
             const s2 = record.stats.enrollment?.secondSemester?.[level];
-            totalSem1 = (s1?.male || 0) + (s1?.female || 0);
-            totalSem2 = (s2?.male || 0) + (s2?.female || 0);
+            totalSem1 = (Number(s1?.male) || 0) + (Number(s1?.female) || 0);
+            totalSem2 = (Number(s2?.male) || 0) + (Number(s2?.female) || 0);
         }
 
         return {
