@@ -42,13 +42,26 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
     const uniqueFacultySet = new Set<string>();
 
     compliances.forEach(record => {
-        // SDD: Enrollment (CHED Standard usually binary, but we track aggregate)
-        const s1 = record.stats?.enrollment?.firstSemester;
-        if (s1) {
-            ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
-                totalMaleEnrolled += Number(s1[lvl]?.male || 0);
-                totalFemaleEnrolled += Number(s1[lvl]?.female || 0);
+        // SDD: Enrollment (Aggregate from major-specific records for 1st Semester)
+        const enrollmentRecords = record.enrollmentRecords || [];
+        const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+        
+        if (enrollmentRecords.length > 0) {
+            enrollmentRecords.forEach(rec => {
+                levels.forEach(level => {
+                    totalMaleEnrolled += Number(rec.firstSemester?.[level]?.male || 0);
+                    totalFemaleEnrolled += Number(rec.firstSemester?.[level]?.female || 0);
+                });
             });
+        } else {
+            // Fallback to legacy structure
+            const s1 = record.stats?.enrollment?.firstSemester;
+            if (s1) {
+                levels.forEach(level => {
+                    totalMaleEnrolled += Number(s1[level]?.male || 0);
+                    totalFemaleEnrolled += Number(s1[level]?.female || 0);
+                });
+            }
         }
 
         // SDD: Faculty (Deduplicated with Expanded Categories)

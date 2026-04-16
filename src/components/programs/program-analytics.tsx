@@ -57,7 +57,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { Separator } from '../ui/separator';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from './recommendation-print-template';
 
@@ -239,23 +239,49 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 }
             });
 
-            const statsData = record.stats?.enrollment;
-            const sumTerm = (term: any) => {
+            // SDD: Enrollment aggregation (Aggregate from major-specific records)
+            const enrollmentRecords = record.enrollmentRecords || [];
+            const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+            
+            const sumTermFromRecords = (termKey: 'firstSemester' | 'secondSemester' | 'midYearTerm') => {
                 let m = 0, f = 0;
-                if (!term) return { m, f };
-                ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach(lvl => {
-                    m += Number(term[lvl]?.male || 0);
-                    f += Number(term[lvl]?.female || 0);
+                enrollmentRecords.forEach(rec => {
+                    const term = rec[termKey];
+                    if (term) {
+                        levels.forEach(level => {
+                            m += Number(term[level]?.male || 0);
+                            f += Number(term[level]?.female || 0);
+                        });
+                    }
                 });
                 return { m, f };
             };
 
-            const s1 = sumTerm(statsData?.firstSemester);
-            sem1Male += s1.m; sem1Female += s1.f;
-            const s2 = sumTerm(statsData?.secondSemester);
-            sem2Male += s2.m; sem2Female += s2.f;
-            const sSummer = sumTerm(statsData?.midYearTerm);
-            summerMale += sSummer.m; summerFemale += sSummer.f;
+            const sumTermLegacy = (term: any) => {
+                let m = 0, f = 0;
+                if (!term) return { m, f };
+                levels.forEach(level => {
+                    m += Number(term[level]?.male || 0);
+                    f += Number(term[level]?.female || 0);
+                });
+                return { m, f };
+            };
+
+            if (enrollmentRecords.length > 0) {
+                const t1 = sumTermFromRecords('firstSemester');
+                const t2 = sumTermFromRecords('secondSemester');
+                const tS = sumTermFromRecords('midYearTerm');
+                sem1Male += t1.m; sem1Female += t1.f;
+                sem2Male += t2.m; sem2Female += t2.f;
+                summerMale += tS.m; summerFemale += tS.f;
+            } else {
+                const t1 = sumTermLegacy(record.stats?.enrollment?.firstSemester);
+                const t2 = sumTermLegacy(record.stats?.enrollment?.secondSemester);
+                const tS = sumTermLegacy(record.stats?.enrollment?.midYearTerm);
+                sem1Male += t1.m; sem1Female += t1.f;
+                sem2Male += t2.m; sem2Female += t2.f;
+                summerMale += tS.m; summerFemale += tS.f;
+            }
 
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
@@ -330,7 +356,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         roadmapData,
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
-        gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
         gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         monitoredCount,
@@ -585,7 +610,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Data Integrity Index</p>
             </CardContent>
             <CardFooter className="bg-blue-100/20 py-2">
-                <p className="text-[8px] text-blue-800/60 italic">Percentage of programs with finalized AY {selectedYear} data logs.</p>
+                <p className="text-[8px] text-muted-foreground italic">Percentage of programs with finalized AY {selectedYear} data logs.</p>
             </CardFooter>
         </Card>
       </div>

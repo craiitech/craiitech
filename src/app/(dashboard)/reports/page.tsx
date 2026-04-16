@@ -229,12 +229,25 @@ export default function ReportsPage() {
     const uniqueFacultySet = new Set<string>();
 
     filteredCompliances.forEach(record => {
-        const s1 = record.stats?.enrollment?.firstSemester;
-        if (s1) {
-            ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
-                totalMaleEnrolled += Number(s1[lvl]?.male || 0);
-                totalFemaleEnrolled += Number(s1[lvl]?.female || 0);
+        // SDD: Enrollment aggregation (1st Sem baseline)
+        const enrollmentRecords = record.enrollmentRecords || [];
+        const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+        
+        if (enrollmentRecords.length > 0) {
+            enrollmentRecords.forEach(rec => {
+                levels.forEach(level => {
+                    totalMaleEnrolled += Number(rec.firstSemester?.[level]?.male || 0);
+                    totalFemaleEnrolled += Number(rec.firstSemester?.[level]?.female || 0);
+                });
             });
+        } else {
+            const s1 = record.stats?.enrollment?.firstSemester;
+            if (s1) {
+                levels.forEach(level => {
+                    totalMaleEnrolled += Number(s1[level]?.male || 0);
+                    totalFemaleEnrolled += Number(s1[level]?.female || 0);
+                });
+            }
         }
         
         if (record.faculty) {
@@ -475,7 +488,7 @@ export default function ReportsPage() {
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
                                     <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.students}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Enrollment</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -500,7 +513,7 @@ export default function ReportsPage() {
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
                                     <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.faculty}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Deduplicated Personnel</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -525,7 +538,7 @@ export default function ReportsPage() {
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
                                     <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.grads}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Graduates</p>
                                 </div>
                             </CardContent>
                         </Card>
