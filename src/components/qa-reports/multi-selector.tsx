@@ -28,7 +28,9 @@ interface MultiSelectorProps {
 }
 
 /**
- * A multi-selection component optimized for use within Dialogs.
+ * A multi-selection component optimized for use within high-density Dialogs.
+ * Uses pointer-event interception to prevent parent Dialog focus-traps from 
+ * closing the popover during item selection.
  */
 export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add item...", label = "Select Items" }: MultiSelectorProps) {
   const [open, setOpen] = React.useState(false);
@@ -84,9 +86,10 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-72 p-0 border-none shadow-2xl z-[60]" 
+            className="w-72 p-0 border-none shadow-2xl z-[100]" 
             align="start" 
             onOpenAutoFocus={(e) => e.preventDefault()}
+            onCloseAutoFocus={(e) => e.preventDefault()}
           >
             <Command className="bg-white border rounded-lg overflow-hidden">
               <div className="flex items-center border-b px-3">
@@ -100,10 +103,15 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                     return (
                       <CommandItem
                         key={item.id}
-                        // Use ID for unique identification in the filter
-                        value={item.id}
+                        value={item.name} // Use name for filtering
                         onSelect={() => toggleItem(item.id)}
-                        className="cursor-pointer flex items-center justify-between px-4 py-3"
+                        // CRITICAL: Prevent the item from taking focus and closing the popover 
+                        // when used inside a Radix Dialog.
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
+                        className="cursor-pointer flex items-center justify-between px-4 py-3 aria-selected:bg-primary/5"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
                             <div className={cn(
