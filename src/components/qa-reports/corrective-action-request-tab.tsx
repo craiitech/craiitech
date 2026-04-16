@@ -129,6 +129,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [searchTerm, setSearchTerm] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const carQuery = useMemoFirebase(
@@ -146,13 +147,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
+  const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
+
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
 
-    const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
     let result = rawCars.filter(car => {
+        // Scoping
         if (!isInstitutionalViewer) {
             if (isCampusSupervisor) {
                 if (car.campusId !== userProfile.campusId) return false;
@@ -161,6 +164,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             }
         }
 
+        // Sub-Tab Filtering
+        if (activeSubTab === 'verification' && !car.needsVerification) return false;
+        if (activeSubTab === 'my-unit' && car.unitId !== userProfile.unitId) return false;
+
+        // Search & Globals
         const matchesSearch = 
             car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -199,16 +207,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, unitMap, userProfile, isAdmin, isAuditor, userRole]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, isAuditor, userRole, isInstitutionalViewer]);
 
   const carStats = useMemo(() => {
     const total = processedCars.length;
     const open = processedCars.filter(c => c.status === 'Open').length;
     const inProgress = processedCars.filter(c => c.status === 'In Progress').length;
     const closed = processedCars.filter(c => c.status === 'Closed').length;
-    const successRate = total > 0 ? Math.round((closed / total) * 100) : 0;
+    const needsVerification = processedCars.filter(c => c.needsVerification).length;
 
-    return { total, open, inProgress, closed, successRate };
+    return { total, open, inProgress, closed, needsVerification };
   }, [processedCars]);
 
   const years = useMemo(() => {
@@ -344,11 +352,31 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   };
 
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
-    if (!firestore) return;
+    if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
+    // WORKFLOW LOGIC:
+    // If the person saving is from the responsible unit (not admin) and it was 'Open', move to 'In Progress'
+    // and flag as 'needsVerification'.
+    const isUnitResponding = userProfile.unitId === values.unitId && !isAdmin;
+    const currentStatus = values.status;
+    let nextStatus = currentStatus;
+    let needsVerification = editingCar?.needsVerification || false;
+
+    if (isUnitResponding && currentStatus === 'Open') {
+        nextStatus = 'In Progress';
+        needsVerification = true;
+    } else if (isUnitResponding && currentStatus === 'In Progress') {
+        needsVerification = true;
+    } else if (isAdmin) {
+        // Admin verification clears the flag unless they explicitly want to keep it
+        needsVerification = false;
+    }
+
     const carData: any = {
       ...values,
+      status: nextStatus,
+      needsVerification,
       ncReportNumber: values.ncReportNumber || '',
       concerningTopManagementName: values.concerningTopManagementName || '',
       rootCauseAnalysis: values.rootCauseAnalysis || '',
@@ -372,7 +400,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       const docRef = doc(firestore, 'correctiveActionRequests', editingCar.id);
       updateDoc(docRef, carData)
         .then(() => {
-          toast({ title: 'Success', description: 'CAR record updated.' });
+          toast({ title: 'Success', description: isUnitResponding ? 'Your updates have been logged and sent for verification.' : 'CAR record updated.' });
           setIsDialogOpen(false);
           form.reset();
           setEditingCar(null);
@@ -432,15 +460,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     setIsDialogOpen(true);
   };
 
-  const safeFormatDate = (date: any) => {
-    if (!date) return 'N/A';
-    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
-    return format(d, 'PP');
-  };
-
-  const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
-  const canIssueNew = isInstitutionalViewer;
-
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     
@@ -452,16 +471,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     // Root Cause and Action Steps are for the Responsible Unit to fill out
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.includes(fieldName)) {
-        // Return FALSE (allow edit) if I am the unit assigned to this CAR
         return userProfile?.unitId !== form.getValues('unitId');
     }
 
     if (fieldName === 'status') {
-        // Allow status updates if I am institutional or the responsible unit
         return !isInstitutionalViewer && userProfile?.unitId !== form.getValues('unitId');
     }
     
-    // Everything else (metadata) is read-only for non-admins (Auditors can also edit if they are issuers)
     const metadataFields = ['carNumber', 'ncReportNumber', 'source', 'initiator', 'natureOfFinding', 'procedureTitle', 'concerningClause', 'concerningTopManagementName', 'timeLimitForReply', 'unitId', 'campusId', 'unitHead', 'descriptionOfNonconformance', 'requestDate', 'preparedBy', 'approvedBy'];
     if (metadataFields.includes(fieldName)) {
         return !isInstitutionalViewer;
@@ -497,37 +513,35 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Implementation</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In-Progress</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div>
-                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">In Progress</p>
+                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><Clock className="h-12 w-12 text-amber-600" /></div>
         </Card>
 
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Verified Closure</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600 tabular-nums">
-                    {carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%
-                </div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Non-Conformances</p>
-            </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
-        </Card>
-
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Success Rate</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Verification Pending</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.successRate}%</div>
-                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Closure Maturity</p>
+                <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div>
+                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-blue-600" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
+        </Card>
+
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Items</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-emerald-600" /></div>
         </Card>
       </div>
 
@@ -570,13 +584,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <SelectValue placeholder="All Years" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All recorded years</SelectItem>
+                        <SelectItem value="all">All Years</SelectItem>
                         {years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pt-5">
             <Button 
                 variant="outline" 
                 onClick={handlePrintRegistry} 
@@ -586,159 +600,186 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <TableProperties className="h-4 w-4" />
                 Print Control Register
             </Button>
-            {canIssueNew && (
-            <Button onClick={() => {
-                setEditingCar(null);
-                form.reset({
-                    carNumber: '',
-                    ncReportNumber: '',
-                    source: 'Audit Finding', 
-                    natureOfFinding: 'NC', 
-                    procedureTitle: '',
-                    initiator: '',
-                    concerningClause: '',
-                    concerningTopManagementName: '',
-                    timeLimitForReply: '',
-                    unitId: '',
-                    campusId: '',
-                    unitHead: '',
-                    descriptionOfNonconformance: '',
-                    rootCauseAnalysis: '',
-                    preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
-                    approvedBy: signatories?.qaoDirector || '',
-                    status: 'Open',
-                    requestDate: format(new Date(), 'yyyy-MM-dd'),
-                    actionSteps: [],
-                    evidences: [],
-                    verificationRecords: []
-                });
-                setIsDialogOpen(true);
-            }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6">
-                <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
-            </Button>
+            {isInstitutionalViewer && (
+                <Button onClick={() => {
+                    setEditingCar(null);
+                    form.reset({
+                        carNumber: '',
+                        ncReportNumber: '',
+                        source: 'Audit Finding', 
+                        natureOfFinding: 'NC', 
+                        procedureTitle: '',
+                        initiator: '',
+                        concerningClause: '',
+                        concerningTopManagementName: '',
+                        timeLimitForReply: '',
+                        unitId: '',
+                        campusId: '',
+                        unitHead: '',
+                        descriptionOfNonconformance: '',
+                        rootCauseAnalysis: '',
+                        preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
+                        approvedBy: signatories?.qaoDirector || '',
+                        status: 'Open',
+                        requestDate: format(new Date(), 'yyyy-MM-dd'),
+                        actionSteps: [],
+                        evidences: [],
+                        verificationRecords: []
+                    });
+                    setIsDialogOpen(true);
+                }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
+                </Button>
             )}
         </div>
       </div>
 
-      <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-          ) : (
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader className="bg-muted/50">
-                    <TableRow>
-                    <TableHead className="py-4 pl-6">
-                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
-                            CAR Number & Unit {getSortIcon('carNumber')}
-                        </Button>
-                    </TableHead>
-                    <TableHead className="py-4">
-                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>
-                            Responsible Office {getSortIcon('unit')}
-                        </Button>
-                    </TableHead>
-                    <TableHead className="py-4">
-                        <div className="text-[10px] font-black uppercase">Procedure / Findings Context</div>
-                    </TableHead>
-                    <TableHead className="text-center py-4">
-                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>
-                            Deadline {getSortIcon('deadline')}
-                        </Button>
-                    </TableHead>
-                    <TableHead className="text-center py-4">
-                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
-                            Status {getSortIcon('status')}
-                        </Button>
-                    </TableHead>
-                    <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {processedCars.map((car) => {
-                    const isMyCar = car.unitId === userProfile?.unitId;
-                    const canEditThis = isInstitutionalViewer || isMyCar;
-                    return (
-                        <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                        <TableCell className="pl-6 py-4">
-                            <div className="flex flex-col gap-1">
-                            <span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>
-                            <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                                <HistoryIcon className="h-2.5 w-2.5" />
-                                Logged: {safeFormatDate(car.requestDate)}
-                            </div>
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span>
-                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs font-black truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</span>
-                                <p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p>
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100">
-                                <Clock className="h-3 w-3" />
-                                {safeFormatDate(car.timeLimitForReply)}
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                            <Badge 
-                            className={cn(
-                                "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
-                                car.status === 'Open' ? "bg-rose-600 text-white" : 
-                                car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
-                                "bg-emerald-600 text-white"
-                            )}
-                            >
-                            {car.status}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                            <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5">
-                            <Printer className="h-3 w-3" />
-                            PRINT
-                            </Button>
-                            <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">
-                            {canEditThis ? 'MANAGE' : 'VIEW'}
-                            </Button>
-                        </TableCell>
-                        </TableRow>
-                    );
-                    })}
-                    {processedCars.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                                <div className="flex flex-col items-center gap-3 opacity-20">
-                                    <ClipboardCheck className="h-12 w-12" />
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-black uppercase tracking-widest">No matching records</p>
-                                        <p className="text-xs font-medium">Adjust your search or year filter to browse the registry.</p>
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
+        <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
+            <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <ListChecks className="h-3.5 w-3.5" /> Full Registry
+            </TabsTrigger>
+            {isInstitutionalViewer && (
+                <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Verification Queue
+                    {carStats.needsVerification > 0 && <Badge className="ml-2 bg-white text-blue-600 border-none h-4 px-1 text-[8px] font-black">{carStats.needsVerification}</Badge>}
+                </TabsTrigger>
+            )}
+            {!isAdmin && (
+                <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                    <Building2 className="h-3.5 w-3.5" /> My Unit Gaps
+                </TabsTrigger>
+            )}
+        </TabsList>
+
+        <TabsContent value={activeSubTab} className="animate-in fade-in slide-in-from-left-2 duration-300">
+            <Card className="shadow-md border-primary/10 overflow-hidden">
+                <CardContent className="p-0">
+                {isLoading ? (
+                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <Table>
+                        <TableHeader className="bg-muted/30">
+                            <TableRow>
+                            <TableHead className="py-4 pl-6">
+                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
+                                    CAR Number & Unit {getSortIcon('carNumber')}
+                                </Button>
+                            </TableHead>
+                            <TableHead className="py-4">
+                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>
+                                    Responsible Office {getSortIcon('unit')}
+                                </Button>
+                            </TableHead>
+                            <TableHead className="py-4">
+                                <div className="text-[10px] font-black uppercase">Procedure / Findings Context</div>
+                            </TableHead>
+                            <TableHead className="text-center py-4">
+                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>
+                                    Deadline {getSortIcon('deadline')}
+                                </Button>
+                            </TableHead>
+                            <TableHead className="text-center py-4">
+                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
+                                    Status {getSortIcon('status')}
+                                </Button>
+                            </TableHead>
+                            <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {processedCars.map((car) => {
+                            const isMyCar = car.unitId === userProfile?.unitId;
+                            const canEditThis = isInstitutionalViewer || isMyCar;
+                            const dateMatch = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
+                            const limitMatch = car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply);
+
+                            return (
+                                <TableRow key={car.id} className={cn("hover:bg-muted/20 transition-colors group", car.needsVerification && "bg-blue-50/30")}>
+                                <TableCell className="pl-6 py-4">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>
+                                            {car.needsVerification && <Badge variant="outline" className="h-4 text-[7px] font-black border-blue-200 text-blue-700 bg-white animate-pulse">UNIT RESPONDED</Badge>}
+                                        </div>
+                                        <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                                            <HistoryIcon className="h-2.5 w-2.5" />
+                                            Logged: {format(dateMatch, 'MM/dd/yy')}
+                                        </div>
                                     </div>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="bg-muted/5 border-t py-3 px-6">
-            <div className="flex items-start gap-3">
-                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                    <strong>Standard Requirement:</strong> This registry tracks all non-conformities identified during audits or operations. Per ISO 21001:2018 Clause 10.1, units must establish root causes and execute corrective actions within the specified time limits to ensure management system integrity.
-                </p>
-            </div>
-        </CardFooter>
-      </Card>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span>
+                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="max-w-xs">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-xs font-black truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</span>
+                                        <p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100">
+                                        <Clock className="h-3 w-3" />
+                                        {format(limitMatch, 'MM/dd/yy')}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge 
+                                    className={cn(
+                                        "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
+                                        car.status === 'Open' ? "bg-rose-600 text-white" : 
+                                        car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
+                                        "bg-emerald-600 text-white"
+                                    )}
+                                    >
+                                    {car.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                                    <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5">
+                                        <Printer className="h-3 w-3" />
+                                        PRINT
+                                    </Button>
+                                    <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">
+                                        {canEditThis ? 'MANAGE' : 'VIEW'}
+                                    </Button>
+                                </TableCell>
+                                </TableRow>
+                            );
+                            })}
+                            {!isLoading && processedCars.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center gap-3 opacity-20">
+                                            <ClipboardCheck className="h-12 w-12" />
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-black uppercase tracking-widest">No matching records</p>
+                                                <p className="text-xs font-medium">Adjust your search or year filter to browse the registry.</p>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                        </Table>
+                    </div>
+                )}
+                </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-relaxed">
+                            <strong>Standard Requirement:</strong> Units must establish root causes and execute corrective actions. Status automatically updates to <strong>In Progress</strong> when units log responses. Administrators use the <strong>Verification Queue</strong> to track hand-offs.
+                        </p>
+                    </div>
+                </CardFooter>
+            </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
@@ -1076,7 +1117,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting || (userProfile?.unitId !== form.getValues('unitId') && !isAdmin)} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
@@ -1086,3 +1127,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+

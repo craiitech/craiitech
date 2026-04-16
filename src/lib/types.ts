@@ -386,6 +386,7 @@ export type CorrectiveActionRequest = {
     verificationRecords?: CARVerificationRecord[];
     
     status: 'Open' | 'In Progress' | 'Closed';
+    needsVerification?: boolean; // New flag for tracking unit updates
     createdAt: any;
     updatedAt: any;
 };
