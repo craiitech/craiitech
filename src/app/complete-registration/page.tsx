@@ -76,7 +76,7 @@ export default function CompleteRegistrationPage() {
       campusId: '',
       unitId: '',
       roleId: '',
-      sex: 'Female',
+      sex: undefined,
     },
   });
 
@@ -288,7 +288,11 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sex Identification (GAD Standard)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      key={field.value}
+                      onValueChange={field.onChange} 
+                      value={field.value || ''}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <div className="flex items-center gap-2">

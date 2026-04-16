@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -189,11 +188,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (isUserLoading) return; 
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
-    if (!user) { redirect('/login'); return; }
+    if (!user) { router.push('/login'); return; }
     if (isAdmin) return;
     
     if (userProfile) {
-        if (!userProfile.verified) { redirect('/awaiting-verification'); return; }
+        if (!userProfile.verified) { router.push('/awaiting-verification'); return; }
         
         const roleLower = userRole?.toLowerCase() || '';
         const isUnitOptionalUser = 
@@ -203,14 +202,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             roleLower.includes('vice president');
 
         const isProfileIncomplete = isUnitOptionalUser
-            ? !userProfile.campusId || !userProfile.roleId
-            : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+            ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex
+            : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
             
-        if (isProfileIncomplete) redirect('/complete-registration');
+        if (isProfileIncomplete) router.push('/complete-registration');
     } else {
-      redirect('/complete-registration');
+      router.push('/complete-registration');
     }
-  }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
+  }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname, router]);
 
   // Apply Font Size Scaling Globally to the document root
   useEffect(() => {
