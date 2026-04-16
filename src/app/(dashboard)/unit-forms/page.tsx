@@ -35,7 +35,8 @@ import {
     Send,
     Inbox,
     History,
-    User
+    User,
+    Edit
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -69,6 +70,7 @@ export default function UnitFormsPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   
   const [isRegOpen, setIsRegOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<UnitFormRequest | null>(null);
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   
   const [editRosterLink, setEditRosterLink] = useState('');
@@ -97,6 +99,17 @@ export default function UnitFormsPage() {
     [firestore, isAdmin]
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
+
+  // Query for Unit-level Track & Trace
+  const unitRequestsQuery = useMemoFirebase(
+    () => {
+        if (!firestore || !userProfile?.unitId || isAdmin) return null;
+        const targetId = (allUnits?.find(u => u.id === userProfile.unitId)?.category === 'Academic') ? SHARED_ACADEMIC_ID : userProfile.unitId;
+        return query(collection(firestore, 'unitFormRequests'), where('unitId', '==', targetId), orderBy('createdAt', 'desc'));
+    },
+    [firestore, userProfile, isAdmin, allUnits]
+  );
+  const { data: unitRequests, isLoading: isLoadingUnitRequests } = useCollection<UnitFormRequest>(unitRequestsQuery);
 
   const campusMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -279,6 +292,45 @@ export default function UnitFormsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Unit-specific Track & Trace moved to sidebar area or separate card */}
+          {!isAdmin && (
+              <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
+                <CardHeader className="pb-3 border-b py-4">
+                    <div className="flex items-center gap-2">
+                        <History className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800">My Requests</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0 flex-1 overflow-hidden">
+                    <ScrollArea className="h-full">
+                        {isLoadingUnitRequests ? (
+                            <div className="p-10 text-center"><Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" /></div>
+                        ) : unitRequests && unitRequests.length > 0 ? (
+                            <div className="divide-y divide-primary/5">
+                                {unitRequests.map(req => (
+                                    <div key={req.id} className="p-3 hover:bg-white transition-colors group">
+                                        <div className="flex justify-between items-start gap-2 mb-1.5">
+                                            <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
+                                            <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Registration</p>
+                                        <div className="mt-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="sm" className="h-5 text-[8px] font-black text-primary p-0 px-1" onClick={() => setReviewRequestId(req.id)}>DETAILS</Button>
+                                            {req.status === 'Returned for Correction' && (
+                                                <Button variant="default" size="sm" className="h-5 text-[8px] font-black bg-rose-600 hover:bg-rose-700 p-0 px-1" onClick={() => { setEditingRequest(req); setIsRegOpen(true); }}>RESUBMIT</Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">No history</div>
+                        )}
+                    </ScrollArea>
+                </CardContent>
+              </Card>
+          )}
         </div>
 
         {/* Workspace Area */}
@@ -597,7 +649,7 @@ export default function UnitFormsPage() {
                                                 <p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p>
                                                 <p className="text-[10px] text-muted-foreground font-medium italic">Upload signed evidence and form links for QA review.</p>
                                             </div>
-                                            <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase shadow-sm border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Registration Wizard</Button>
+                                            <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase shadow-sm border-indigo-200 text-indigo-700" onClick={() => { setEditingRequest(null); setIsRegOpen(true); }}>Launch Registration Wizard</Button>
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -763,8 +815,9 @@ export default function UnitFormsPage() {
       {selectedUnit && (
           <FormRegistrationDialog 
             isOpen={isRegOpen} 
-            onOpenChange={setIsRegOpen} 
-            unit={selectedUnit as any} 
+            onOpenChange={(open) => { setIsRegOpen(open); if (!open) setEditingRequest(null); }} 
+            unit={selectedUnit as any}
+            request={editingRequest}
           />
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 
@@ -34,18 +34,21 @@ import {
     CheckCircle2,
     Info,
     AlertTriangle,
-    FilePlus
+    FilePlus,
+    RefreshCw
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import type { UnitFormRequest } from '@/lib/types';
 
 interface FormRegistrationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   unit: { id: string; name: string; category: string; isShared?: boolean };
+  request?: UnitFormRequest | null;
 }
 
 const formRequestSchema = z.object({
@@ -58,7 +61,7 @@ const formRequestSchema = z.object({
   })).min(1, 'Please register at least one form in this request.'),
 });
 
-export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegistrationDialogProps) {
+export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: FormRegistrationDialogProps) {
   const { userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -73,6 +76,27 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
     }
   });
 
+  useEffect(() => {
+    if (isOpen && request) {
+        form.reset({
+            scannedRegistrationFormLink: request.scannedRegistrationFormLink,
+            requestedForms: request.requestedForms.map(f => ({
+                name: f.name,
+                code: f.code,
+                link: f.link,
+                revision: f.revision
+            }))
+        });
+        setStep(2); // Start at step 2 for resubmission
+    } else if (isOpen && !request) {
+        form.reset({
+            scannedRegistrationFormLink: '',
+            requestedForms: [{ name: '', code: '', link: '', revision: '00' }],
+        });
+        setStep(1);
+    }
+  }, [isOpen, request, form]);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "requestedForms"
@@ -82,21 +106,34 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     try {
-      const requestData = {
-        ...values,
-        unitId: unit.isShared ? 'academic-shared' : unit.id,
-        unitName: unit.name,
-        campusId: userProfile.campusId,
-        submitterId: userProfile.id,
-        submitterName: `${userProfile.firstName} ${userProfile.lastName}`,
-        status: 'Submitted',
-        comments: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
+      if (request) {
+          // RESUBMISSION LOGIC
+          const requestRef = doc(firestore, 'unitFormRequests', request.id);
+          await updateDoc(requestRef, {
+              ...values,
+              status: 'Submitted', // Reset status to alert Admin
+              updatedAt: serverTimestamp(),
+          });
+          toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged and sent back for review.' });
+      } else {
+          // NEW SUBMISSION LOGIC
+          const requestData = {
+            ...values,
+            unitId: unit.isShared ? 'academic-shared' : unit.id,
+            unitName: unit.name,
+            campusId: userProfile.campusId,
+            submitterId: userProfile.id,
+            submitterName: `${userProfile.firstName} ${userProfile.lastName}`,
+            status: 'Submitted',
+            comments: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
 
-      await addDoc(collection(firestore, 'unitFormRequests'), requestData);
-      toast({ title: 'Request Logged', description: 'Your registration request has been sent to QA for institutional review.' });
+          await addDoc(collection(firestore, 'unitFormRequests'), requestData);
+          toast({ title: 'Request Logged', description: 'Your registration request has been sent to QA for institutional review.' });
+      }
+      
       onOpenChange(false);
       form.reset();
       setStep(1);
@@ -120,8 +157,12 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
             <ShieldCheck className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span>
           </div>
-          <DialogTitle className="text-xl">Form Registration Request</DialogTitle>
-          <DialogDescription className="text-xs">Submit new or revised controlled forms for QA validation and Presidential approval.</DialogDescription>
+          <DialogTitle className="text-xl">
+            {request ? 'Edit & Resubmit Request' : 'Form Registration Request'}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {request ? 'Update your application based on the review feedback provided.' : 'Submit new or revised controlled forms for QA validation and Presidential approval.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="bg-muted/30 px-6 py-2 border-b flex items-center justify-between shrink-0">
@@ -185,6 +226,17 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
 
                   {step === 2 && (
                     <div className="space-y-10 animate-in fade-in zoom-in duration-500">
+                        {request && (
+                            <div className="ml-11 p-4 rounded-xl bg-rose-50 border border-rose-100 flex items-start gap-4">
+                                <HistoryIcon className="h-5 w-5 text-rose-600 shrink-0 mt-1" />
+                                <div className="space-y-1">
+                                    <p className="text-xs font-black uppercase text-rose-800">Review Feedback Integration</p>
+                                    <p className="text-[11px] text-rose-700 leading-relaxed font-medium italic">
+                                        You are currently editing a returned request. Please update the fields below to address the comments left by the QA Office.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <section className="space-y-4">
                             <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><ClipboardCheck className="h-4 w-4" /></div>
@@ -268,7 +320,9 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                             <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
                                 <Send className="h-8 w-8 text-emerald-600" />
                             </div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Verification Readiness</h3>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">
+                                {request ? 'Ready for Resubmission' : 'Verification Readiness'}
+                            </h3>
                             <p className="text-sm text-muted-foreground max-sm mx-auto font-medium">Please review the summary below. All forms must be accessible to the QA Office for validation.</p>
                         </div>
 
@@ -335,8 +389,8 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                             </Button>
                         ) : (
                             <Button type="submit" form="reg-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-10">
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
-                                Submit Registration
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : request ? <RefreshCw className="mr-2 h-4 w-4 mr-1.5" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
+                                {request ? 'Resubmit Corrections' : 'Submit Registration'}
                             </Button>
                         )}
                     </div>
