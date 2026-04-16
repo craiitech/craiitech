@@ -11,6 +11,7 @@ import { SDDHub } from '@/components/gad/sdd-hub';
 import { GADOverview } from '@/components/gad/gad-overview';
 import { GADInitiatives } from '@/components/gad/gad-initiatives';
 import { GADMainstreaming } from '@/components/gad/gad-mainstreaming';
+import { UnitSddExplorer } from '@/components/gad/unit-sdd-explorer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -157,6 +158,16 @@ export default function GadCornerPage() {
             </div>
         </div>
       </div>
+
+      {isInstitutionalViewer && selectedUnitId === 'all' && compliances && units && (
+          <div className="animate-in slide-in-from-top-4 duration-500">
+              <UnitSddExplorer 
+                compliances={compliances}
+                units={units}
+                selectedYear={selectedYear}
+              />
+          </div>
+      )}
 
       <Tabs defaultValue="overview" className="space-y-6">
         <ScrollArea className="w-full">

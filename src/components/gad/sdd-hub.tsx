@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon, ShieldCheck } from 'lucide-react';
+import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon, ShieldCheck, CalendarRange } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SDDHubProps {
@@ -29,8 +29,9 @@ const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 
 export function SDDHub({ compliances, campuses, units, selectedYear, unitName }: SDDHubProps) {
   const aggregatedData = useMemo(() => {
-    let totalMaleEnrolled = 0;
-    let totalFemaleEnrolled = 0;
+    let s1Male = 0, s1Female = 0;
+    let s2Male = 0, s2Female = 0;
+    let smMale = 0, smFemale = 0;
     
     let totalMaleFaculty = 0;
     let totalFemaleFaculty = 0;
@@ -42,26 +43,30 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
     const uniqueFacultySet = new Set<string>();
 
     compliances.forEach(record => {
-        // SDD: Enrollment (Aggregate from major-specific records for 1st Semester)
         const enrollmentRecords = record.enrollmentRecords || [];
         const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
         
         if (enrollmentRecords.length > 0) {
             enrollmentRecords.forEach(rec => {
                 levels.forEach(level => {
-                    totalMaleEnrolled += Number(rec.firstSemester?.[level]?.male || 0);
-                    totalFemaleEnrolled += Number(rec.firstSemester?.[level]?.female || 0);
+                    s1Male += Number(rec.firstSemester?.[level]?.male || 0);
+                    s1Female += Number(rec.firstSemester?.[level]?.female || 0);
+                    s2Male += Number(rec.secondSemester?.[level]?.male || 0);
+                    s2Female += Number(rec.secondSemester?.[level]?.female || 0);
+                    smMale += Number(rec.midYearTerm?.[level]?.male || 0);
+                    smFemale += Number(rec.midYearTerm?.[level]?.female || 0);
                 });
             });
         } else {
-            // Fallback to legacy structure
+            // Legacy fallback
             const s1 = record.stats?.enrollment?.firstSemester;
-            if (s1) {
-                levels.forEach(level => {
-                    totalMaleEnrolled += Number(s1[level]?.male || 0);
-                    totalFemaleEnrolled += Number(s1[level]?.female || 0);
-                });
-            }
+            const s2 = record.stats?.enrollment?.secondSemester;
+            const sm = record.stats?.enrollment?.midYearTerm;
+            levels.forEach(level => {
+                if (s1) { s1Male += Number(s1[level]?.male || 0); s1Female += Number(s1[level]?.female || 0); }
+                if (s2) { s2Male += Number(s2[level]?.male || 0); s2Female += Number(s2[level]?.female || 0); }
+                if (sm) { smMale += Number(sm[level]?.male || 0); smFemale += Number(sm[level]?.female || 0); }
+            });
         }
 
         // SDD: Faculty (Deduplicated with Expanded Categories)
@@ -97,11 +102,15 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
     ].filter(d => d.value > 0);
 
     return {
-        enrollment: createPieData(totalMaleEnrolled, totalFemaleEnrolled),
+        s1: createPieData(s1Male, s1Female),
+        s2: createPieData(s2Male, s2Female),
+        sm: createPieData(smMale, smFemale),
         faculty: createPieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         graduation: createPieData(totalMaleGrads, totalFemaleGrads),
         totals: {
-            students: totalMaleEnrolled + totalFemaleEnrolled,
+            s1: s1Male + s1Female,
+            s2: s2Male + s2Female,
+            sm: smMale + smFemale,
             faculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
             grads: totalMaleGrads + totalFemaleGrads
         }
@@ -114,38 +123,11 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
 
     return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[12px] font-black">
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
-
-  const hubDefinitions = [
-    { 
-        title: 'Student Population', 
-        data: aggregatedData.enrollment, 
-        total: aggregatedData.totals.students, 
-        icon: <Users className="h-5 w-5 text-primary" />, 
-        desc: 'Unit Enrollment',
-        explanation: 'Headcount distribution of current students disaggregated by sex. Essential for planning gender-responsive student services and facility allocation.'
-    },
-    { 
-        title: 'Personnel Distribution', 
-        data: aggregatedData.faculty, 
-        total: aggregatedData.totals.faculty, 
-        icon: <UserCircle className="h-5 w-5 text-emerald-600" />, 
-        desc: 'Unit Registered Users',
-        explanation: 'Gender profile of teaching and administrative staff. Includes institutional recognition of LGBTQI++ personnel to monitor parity and inclusivity across university units.'
-    },
-    { 
-        title: 'Graduation Output', 
-        data: aggregatedData.graduation, 
-        total: aggregatedData.totals.grads, 
-        icon: <GraduationCap className="h-5 w-5 text-purple-600" />, 
-        desc: 'Degree Completion',
-        explanation: 'Historical count of graduates by sex. This metric measures the long-term effectiveness of the university’s inclusivity efforts in degree completion.'
-    }
-  ];
 
   return (
     <div className="space-y-6">
@@ -160,9 +142,54 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
         </CardHeader>
       </Card>
 
+      {/* Term-Specific Population Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {hubDefinitions.map((hub, i) => (
-            <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all min-h-[520px]">
+          {[
+              { title: '1st Semester Population', data: aggregatedData.s1, total: aggregatedData.totals.s1, icon: <Users className="h-5 w-5 text-primary" />, desc: '1st Sem Total' },
+              { title: '2nd Semester Population', data: aggregatedData.s2, total: aggregatedData.totals.s2, icon: <CalendarRange className="h-5 w-5 text-blue-600" />, desc: '2nd Sem Total' },
+              { title: 'Summer Term Population', data: aggregatedData.sm, total: aggregatedData.totals.sm, icon: <Activity className="h-5 w-5 text-amber-600" />, desc: 'Summer Total' }
+          ].map((term, i) => (
+              <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0 text-center">
+                      <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm group-hover:scale-110 transition-transform">{term.icon}</div>
+                      <CardTitle className="text-[10px] font-black uppercase tracking-widest leading-tight">{term.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 flex-1 flex flex-col items-center">
+                      {term.data.length > 0 ? (
+                          <>
+                            <ChartContainer config={{}} className="h-[180px] w-full mb-4">
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie data={term.data} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
+                                            {term.data.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                        </Pie>
+                                        <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                        <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '15px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                            <div className="text-center mt-2">
+                                <p className="text-2xl font-black text-slate-800 tabular-nums">{term.total.toLocaleString()}</p>
+                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{term.desc}</p>
+                            </div>
+                          </>
+                      ) : (
+                          <div className="flex flex-col items-center justify-center text-center flex-1 opacity-20 py-10 space-y-3">
+                              <PieIcon className="h-10 w-10" />
+                              <p className="text-[9px] font-black uppercase tracking-widest">No Data Recorded</p>
+                          </div>
+                      )}
+                  </CardContent>
+              </Card>
+          ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[
+            { title: 'Faculty & Personnel Distribution', data: aggregatedData.faculty, total: aggregatedData.totals.faculty, icon: <UserCircle className="h-5 w-5 text-emerald-600" />, desc: 'Institutional Staffing Pool' },
+            { title: 'Graduation Statistics', data: aggregatedData.graduation, total: aggregatedData.totals.grads, icon: <GraduationCap className="h-5 w-5 text-purple-600" />, desc: 'Degree Completion Rate' }
+        ].map((hub, i) => (
+            <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all">
                 <CardHeader className="p-4 bg-muted/10 border-b shrink-0 text-center">
                     <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm group-hover:scale-110 transition-transform">{hub.icon}</div>
                     <CardTitle className="text-xs font-black uppercase tracking-widest leading-tight">{hub.title}</CardTitle>
@@ -195,26 +222,14 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
                                 <p className="text-3xl font-black text-slate-800 tabular-nums">{hub.total.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{hub.desc}</p>
                             </div>
-                            
-                            <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-100 w-full">
-                                <div className="flex items-start gap-2">
-                                    <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
-                                        {hub.explanation}
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center text-center flex-1 opacity-20 space-y-3">
+                        <div className="flex flex-col items-center justify-center text-center flex-1 opacity-20 py-20 space-y-3">
                             <PieIcon className="h-12 w-12" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">NO DATA FOR THIS UNIT</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">No Data for this Unit</p>
                         </div>
                     )}
                 </CardContent>
-                <CardFooter className="bg-muted/5 border-t py-3 px-6 shrink-0">
-                    <p className="text-[9px] text-muted-foreground italic leading-tight text-center w-full">Verified Analytics AY {selectedYear}</p>
-                </CardFooter>
             </Card>
         ))}
       </div>
