@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -47,7 +48,7 @@ const registrationSchema = z.object({
 export default function CompleteRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -80,6 +81,20 @@ export default function CompleteRegistrationPage() {
     },
   });
 
+  const isLoading = isLoadingCampuses || isLoadingRoles || isLoadingUnits;
+
+  // Initialize form with existing data if available
+  useEffect(() => {
+    if (userProfile && !isLoading) {
+      form.reset({
+        campusId: userProfile.campusId || '',
+        roleId: userProfile.roleId || '',
+        unitId: userProfile.unitId || '',
+        sex: (userProfile.sex as any) || undefined,
+      });
+    }
+  }, [userProfile, isLoading, form]);
+
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
   
@@ -108,8 +123,10 @@ export default function CompleteRegistrationPage() {
   
    // Reset unitId if campus changes
   useEffect(() => {
-    form.setValue('unitId', '');
-  }, [selectedCampusId, form]);
+    if (userProfile && selectedCampusId !== userProfile.campusId) {
+        form.setValue('unitId', '');
+    }
+  }, [selectedCampusId, form, userProfile]);
 
   
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
@@ -135,15 +152,25 @@ export default function CompleteRegistrationPage() {
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      const updateData = {
+      // CRITICAL: Preserve existing verified status to prevent loop
+      const updateData: any = {
         campusId: values.campusId,
         unitId: isUnitRequired ? values.unitId : '',
         roleId: isAdminEmail ? 'admin' : values.roleId,
         role: isAdminEmail ? 'Admin' : (selectedRoleObject ? selectedRoleObject.name : ''),
         sex: values.sex,
-        verified: isAdminEmail, // Admin email is auto-verified
-        ndaAccepted: isAdminEmail, // Admin email auto-accepts NDA for bootstrapping
+        ndaAccepted: isAdminEmail || userProfile?.ndaAccepted || false,
       };
+
+      // Only explicitly set verified to false if they are not already verified
+      if (isAdminEmail) {
+          updateData.verified = true;
+      } else if (userProfile?.verified === undefined || userProfile?.verified === null) {
+          updateData.verified = false;
+      } else {
+          // Keep current status if they are updating profile
+          updateData.verified = userProfile.verified;
+      }
 
       batch.update(userDocRef, updateData);
 
@@ -155,8 +182,8 @@ export default function CompleteRegistrationPage() {
 
       await batch.commit();
 
-      if (isAdminEmail) {
-        toast({ title: 'Bootstrap Successful', description: 'Admin account verified. Redirecting to dashboard...' });
+      if (isAdminEmail || updateData.verified) {
+        toast({ title: 'Profile Updated', description: 'Institutional details synchronized. Redirecting...' });
         router.push('/dashboard');
       } else {
         toast({ title: 'Registration Details Submitted', description: 'Your account is now pending administrator verification.' });
@@ -171,8 +198,6 @@ export default function CompleteRegistrationPage() {
       setIsSubmitting(false);
     }
   };
-  
-  const isLoading = isLoadingCampuses || isLoadingRoles || isLoadingUnits;
 
   if (isLoading) {
     return (
@@ -202,7 +227,7 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Campus</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your campus" />
@@ -226,7 +251,7 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your role" />
@@ -254,6 +279,7 @@ export default function CompleteRegistrationPage() {
                             Unit
                         </FormLabel>
                         <Select 
+                            key={field.value}
                             onValueChange={field.onChange} 
                             value={field.value || ""} 
                             disabled={!selectedCampusId}

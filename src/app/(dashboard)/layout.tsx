@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -189,11 +190,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isUserLoading) return; 
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
     if (!user) { router.push('/login'); return; }
+    
+    // Admins bypass profile checks
     if (isAdmin) return;
     
     if (userProfile) {
-        if (!userProfile.verified) { router.push('/awaiting-verification'); return; }
+        // 1. Verification Check
+        if (!userProfile.verified) { 
+            router.push('/awaiting-verification'); 
+            return; 
+        }
         
+        // 2. Profile Integrity Check
         const roleLower = userRole?.toLowerCase() || '';
         const isUnitOptionalUser = 
             roleLower === 'campus director' || 
@@ -201,12 +209,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             roleLower === 'auditor' || 
             roleLower.includes('vice president');
 
+        // Only redirect already verified users if critical identifying data is missing
         const isProfileIncomplete = isUnitOptionalUser
             ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex
             : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
             
-        if (isProfileIncomplete) router.push('/complete-registration');
+        if (isProfileIncomplete) {
+            router.push('/complete-registration');
+        }
     } else {
+      // New account with no profile document at all
       router.push('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname, router]);

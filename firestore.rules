@@ -46,19 +46,20 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{docId} {
-      allow read, write: if isSignedIn();
+      allow read, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     match /unitForms/{docId} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     match /submissions/{docId} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
     
     match /risks/{docId} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     match /formDownloadLogs/{docId} {
