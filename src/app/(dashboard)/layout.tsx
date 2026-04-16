@@ -116,11 +116,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!user || !firestore) return;
     const userStatusRef = doc(firestore, 'users', user.uid);
+    // Log the initial presence only on mount/login, without a recurring interval
+    // to prevent background context updates that interfere with form data.
     updateDoc(userStatusRef, { lastSeen: serverTimestamp() }).catch(() => {});
-    const interval = setInterval(() => {
-        if (document.hasFocus()) updateDoc(userStatusRef, { lastSeen: serverTimestamp() }).catch(() => {});
-    }, 300000);
-    return () => clearInterval(interval);
   }, [user, firestore]);
 
   const handleIdle = useCallback(() => {
