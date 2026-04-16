@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { QaAuditReport, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MultiSelector } from './multi-selector';
 
 interface AuditReportsTabProps {
   type: 'IQA' | 'EQA';
@@ -32,7 +30,6 @@ const reportSchema = z.object({
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
   googleDriveLink: z.string().url('Invalid URL'),
-  campusIds: z.array(z.string()).min(1, 'Select at least one campus'),
   eqaCategory: z.string().optional(),
   certifyingBody: z.string().optional(),
   standard: z.string().min(1, 'Standard is required'),
@@ -69,7 +66,6 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       startDate: '', 
       endDate: '', 
       googleDriveLink: '', 
-      campusIds: [], 
       eqaCategory: 'Certification / Re-Certification Audit', 
       certifyingBody: '',
       standard: 'ISO 21001:2018'
@@ -83,6 +79,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       const dataToSave: any = {
         ...values,
         type,
+        campusIds: [UNIVERSITY_WIDE_ID], // Default to university-wide as per request
         startDate: Timestamp.fromDate(new Date(values.startDate)),
         endDate: Timestamp.fromDate(new Date(values.endDate)),
         createdAt: serverTimestamp(),
@@ -96,16 +93,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       await addDoc(collection(firestore, 'qaAuditReports'), dataToSave);
       toast({ title: 'Success', description: 'Report uploaded successfully.' });
       setIsDialogOpen(false);
-      form.reset({
-        title: '',
-        startDate: '',
-        endDate: '',
-        googleDriveLink: '',
-        campusIds: [],
-        eqaCategory: 'Certification / Re-Certification Audit',
-        certifyingBody: '',
-        standard: 'ISO 21001:2018'
-      });
+      form.reset();
     } catch (error) {
       console.error(error);
       toast({ title: 'Error', description: 'Failed to upload report.', variant: 'destructive' });
@@ -123,12 +111,6 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
     }
   };
-
-  const campusOptions = useMemo(() => {
-    const opts = campuses.map(c => ({ id: c.id, name: c.name }));
-    opts.unshift({ id: UNIVERSITY_WIDE_ID, name: 'University-Wide (Institutional)' });
-    return opts;
-  }, [campuses]);
 
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -159,7 +141,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">Strategic Purpose of the Vault</CardTitle>
             </div>
             <CardDescription className="text-[10px] font-medium leading-relaxed italic mt-1">
-                The {type} Vault serves as the institutional memory for all formal quality inspections. These records are vital evidence for external regulatory bodies (e.g., CHED, AACCUP) and provide the longitudinal data required for Management Reviews to drive university-wide improvements.
+                The {type} Vault serves as the institutional memory for all formal quality inspections. These records are vital evidence for external regulatory bodies (e.g., CHED, AACCUP) and provide the longitudinal data required for Management Reviews.
             </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -218,7 +200,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                                     {report.startDate?.toDate ? format(report.startDate.toDate(), 'PP') : 'N/A'}
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                    <div className="w-3" /> {/* Spacer */}
+                                    <div className="w-3" />
                                     to {report.endDate?.toDate ? format(report.endDate.toDate(), 'PP') : 'N/A'}
                                 </div>
                             </div>
@@ -305,7 +287,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                           </FormItem>
                       )} />
                   ) : (
-                      <div /> // Placeholder for grid alignment
+                      <div />
                   )}
               </div>
 
@@ -323,28 +305,12 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                     <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Audit End Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
-              
-              <FormField control={form.control} name="campusIds" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase tracking-wider">Site Scope (Multi-Selection)</FormLabel>
-                    <FormControl>
-                        <MultiSelector 
-                            items={campusOptions}
-                            selectedIds={field.value}
-                            onSelect={field.onChange}
-                            placeholder="Search campuses..."
-                            label="Target Sites"
-                        />
-                    </FormControl>
-                    <FormDescription className="text-[10px]">Select all campuses covered by this audit report.</FormDescription>
-                    <FormMessage /></FormItem>
-              )} />
 
               <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-xs font-bold uppercase tracking-wider">Google Drive Reference</FormLabel>
                     <FormControl><Input {...field} placeholder="https://drive.google.com/..." className="h-9 text-sm" /></FormControl>
-                    <FormDescription className="text-[10px]">Must be accessible to 'Anyone with the link'.</FormDescription>
+                    <FormDescription className="text-[10px]">Ensure sharing is 'Anyone with the link can view'. Records are vaulted institutionally.</FormDescription>
                     <FormMessage />
                 </FormItem>
               )} />
@@ -375,7 +341,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
             {previewReport && (
               <iframe 
                 src={getEmbedUrl(previewReport.googleDriveLink)} 
-                className="absolute inset-0 w-full h-full border-none bg-white" 
+                className="absolute inset-0 w-full h-full border-none bg-white shadow-inner" 
                 allow="autoplay" 
                 title="QA Document Preview"
               />
