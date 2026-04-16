@@ -18,9 +18,10 @@ import {
   getRedirectResult,
   AuthError,
   UserCredential,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { Loader2, Mail, X, Eye, EyeOff, AlertCircle, Users } from 'lucide-react';
+import { Loader2, Mail, X, Eye, EyeOff, AlertCircle, Users, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
@@ -32,6 +33,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface AuthFormProps {
   initialTab: 'signin' | 'signup';
@@ -64,6 +73,12 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  
+  // Forgot Password States
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
@@ -225,6 +240,29 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   };
 
+  const handleResetPasswordSubmit = async () => {
+    if (!auth || !resetEmail) return;
+    setIsSendingReset(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      toast({
+        title: "Reset Link Sent",
+        description: `A password reset email has been sent to ${resetEmail}. Please check your inbox.`,
+      });
+      setIsResetDialogOpen(false);
+      setResetEmail('');
+    } catch (error) {
+      const errorCode = (error as AuthError).code;
+      toast({
+        title: "Request Failed",
+        description: firebaseErrorMap[errorCode] || "Could not send reset email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
   const processGoogleSignIn = () => {
     if (!auth || !firestore) {
         setAuthError('Authentication service is not available.');
@@ -278,7 +316,20 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password-signin">Password</Label>
+        <div className="flex justify-between items-center">
+            <Label htmlFor="password-signin">Password</Label>
+            <Button 
+                type="button" 
+                variant="link" 
+                className="p-0 h-auto text-[10px] text-white/60 hover:text-white uppercase font-bold tracking-widest"
+                onClick={() => {
+                    setResetEmail(email);
+                    setIsResetDialogOpen(true);
+                }}
+            >
+                Forgot password?
+            </Button>
+        </div>
         <div className="relative">
             <Input
             id="password-signin"
@@ -516,6 +567,46 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         </p>
       )}
     </div>
+
+    {/* Reset Password Dialog */}
+    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent className="bg-slate-900 border-gray-700 text-white sm:max-w-md">
+            <DialogHeader>
+                <div className="mx-auto bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mb-4">
+                    <KeyRound className="h-6 w-6 text-primary" />
+                </div>
+                <DialogTitle className="text-center text-xl font-bold">Account Recovery</DialogTitle>
+                <DialogDescription className="text-center text-gray-400 text-sm">
+                    Enter your RSU email address and we'll send you a link to reset your password.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Label htmlFor="reset-email" className="text-gray-300">Official RSU Email</Label>
+                <div className="relative mt-2">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input 
+                        id="reset-email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder="yourname@rsu.edu.ph"
+                        className="bg-gray-800 border-gray-700 text-white pl-10 h-11"
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsResetDialogOpen(false)} className="text-gray-400 hover:text-white hover:bg-gray-800">Cancel</Button>
+                <Button 
+                    onClick={handleResetPasswordSubmit} 
+                    disabled={isSendingReset || !resetEmail}
+                    className="bg-white text-black hover:bg-gray-200 h-11 px-8"
+                >
+                    {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Send Reset Link
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
     <DataPrivacyDialog 
       isOpen={isPrivacyDialogOpen}
       onOpenChange={setIsPrivacyDialogOpen}
