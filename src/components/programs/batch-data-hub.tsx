@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -56,7 +55,6 @@ export function BatchDataHub({ programs, compliances, campuses, units, selectedY
   const [activeProgramId, setActiveProgramId] = useState<string | null>(null);
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const activePrograms = useMemo(() => programs.filter(p => p.isActive), [programs]);
 
@@ -64,26 +62,46 @@ export function BatchDataHub({ programs, compliances, campuses, units, selectedY
     return activePrograms.map(p => {
         const record = compliances.find(c => c.programId === p.id);
         
-        // Enrollment summary
-        const sumEnrollment = (term: any) => {
-            if (!term) return 0;
-            return Object.values(term).reduce((acc: number, level: any) => acc + (Number(level?.total) || 0), 0);
+        // Aggregate Enrollment from all Major-Specific Records
+        const enrollmentRecords = record?.enrollmentRecords || [];
+        const sumSem = (termKey: 'firstSemester' | 'secondSemester') => {
+            return enrollmentRecords.reduce((total, rec: any) => {
+                const term = rec[termKey];
+                if (!term) return total;
+                const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+                const semTotal = levels.reduce((acc, level) => 
+                    acc + (Number(term[level]?.total) || 0), 0
+                );
+                return total + semTotal;
+            }, 0);
         };
-        const sem1 = sumEnrollment(record?.stats?.enrollment?.firstSemester);
-        const sem2 = sumEnrollment(record?.stats?.enrollment?.secondSemester);
+
+        const sem1 = sumSem('firstSemester');
+        const sem2 = sumSem('secondSemester');
+        
+        // Fallback to legacy if no new records yet
+        const legacySem1 = record?.stats?.enrollment?.firstSemester ? 
+            Object.values(record.stats.enrollment.firstSemester).reduce((a, b: any) => a + (Number(b.total) || 0), 0) : 0;
+        const legacySem2 = record?.stats?.enrollment?.secondSemester ? 
+            Object.values(record.stats.enrollment.secondSemester).reduce((a, b: any) => a + (Number(b.total) || 0), 0) : 0;
+
+        const finalSem1 = sem1 || legacySem1;
+        const finalSem2 = sem2 || legacySem2;
 
         // Outcomes summary
         const grads = record?.graduationRecords?.reduce((acc, r) => acc + (r.count || 0), 0) || 0;
         const tracerCount = record?.tracerRecords?.length || 0;
-        const latestBoard = record?.boardPerformance?.[record.boardPerformance.length - 1]?.overallPassRate || 0;
+        const latestBoard = record?.boardPerformance && record.boardPerformance.length > 0 
+            ? record.boardPerformance[record.boardPerformance.length - 1].overallPassRate 
+            : 0;
 
         return {
             id: p.id,
             name: p.name,
             abbreviation: p.abbreviation,
             campus: campusMap.get(p.campusId) || '...',
-            sem1,
-            sem2,
+            sem1: finalSem1,
+            sem2: finalSem2,
             grads,
             tracerCount,
             latestBoard,

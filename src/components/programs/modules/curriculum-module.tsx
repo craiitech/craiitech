@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardFooter } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -39,7 +39,6 @@ function EnrollmentRecordCard({
     watch: any;
 }) {
     const enrollment = watch(`enrollmentRecords.${index}`);
-    const majorId = watch(`enrollmentRecords.${index}.majorId`);
 
     useEffect(() => {
         const terms = ['firstSemester', 'secondSemester', 'midYearTerm'] as const;
@@ -87,10 +86,10 @@ function EnrollmentRecordCard({
             <CardHeader className="bg-primary/5 py-4 border-b">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
+                        <p className="text-xs font-black uppercase text-primary flex items-center gap-2">
                             <Users className="h-3.5 w-3.5" />
                             Enrollment Data Log #{index + 1}
-                        </CardTitle>
+                        </p>
                         <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Year-Level Headcount Distribution</p>
                     </div>
                     <div className="w-full sm:w-[250px]">
@@ -165,10 +164,10 @@ function CurriculumRecordCard({
         </Button>
       )}
       <CardHeader className="bg-muted/30 py-3 border-b">
-        <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
+        <p className="text-xs font-black uppercase text-primary flex items-center gap-2">
           <Layers className="h-3.5 w-3.5" />
           Specialization/Major Curriculum & Notation Record #{index + 1}
-        </CardTitle>
+        </p>
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -305,13 +304,13 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
       {showRegistry && (
         <div className="space-y-8">
             <Card className="border-primary/20 shadow-sm overflow-hidden">
-                <CardHeader className="bg-primary/5 border-b py-4">
-                    <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
+                <div className="bg-primary/5 border-b py-4 px-6">
+                    <p className="text-xs font-black uppercase text-primary flex items-center gap-2">
                         <BookOpen className="h-4 w-4" />
                         Program Standard Reference
-                    </CardTitle>
-                    <CardDescription className="text-[10px]">The CHED Memorandum Order (CMO) that governs this entire degree program.</CardDescription>
-                </CardHeader>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">The CHED Memorandum Order (CMO) that governs this entire degree program.</p>
+                </div>
                 <CardContent className="pt-6">
                     <FormField
                         control={control}
@@ -429,12 +428,12 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
 
             {showRegistry && (
                 <Card className="bg-slate-50 border-dashed">
-                    <CardHeader className="py-4">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                    <div className="py-4 px-6">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                             <Calculator className="h-3.5 w-3.5" />
                             Institutional Totals (Summary)
-                        </CardTitle>
-                    </CardHeader>
+                        </p>
+                    </div>
                     <CardContent>
                         <FormField
                             control={control}
