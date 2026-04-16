@@ -27,8 +27,7 @@ function EnrollmentRecordCard({
     canEdit,
     onRemove,
     programSpecializations,
-    setValue,
-    watch
+    setValue
 }: {
     index: number;
     control: any;
@@ -36,52 +35,58 @@ function EnrollmentRecordCard({
     onRemove: () => void;
     programSpecializations?: { id: string, name: string }[];
     setValue: any;
-    watch: any;
 }) {
-    const enrollment = watch(`enrollmentRecords.${index}`);
+    // Watch all values for this specific record to perform real-time calculation
+    const recordValues = useWatch({
+        control,
+        name: `enrollmentRecords.${index}`
+    });
 
-    useEffect(() => {
-        const terms = ['firstSemester', 'secondSemester', 'midYearTerm'] as const;
-        const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
-        
-        terms.forEach(term => {
-            levels.forEach(level => {
-                const male = Number(enrollment?.[term]?.[level]?.male) || 0;
-                const female = Number(enrollment?.[term]?.[level]?.female) || 0;
-                const total = male + female;
-                if (enrollment?.[term]?.[level] && enrollment[term][level].total !== total) {
-                    setValue(`enrollmentRecords.${index}.${term}.${level}.total`, total);
-                }
-            });
-        });
-    }, [enrollment, index, setValue]);
+    const calculateLevelTotal = (term: string, level: string) => {
+        const male = Number(recordValues?.[term]?.[level]?.male) || 0;
+        const female = Number(recordValues?.[term]?.[level]?.female) || 0;
+        return male + female;
+    };
+
+    const calculateTermTotal = (term: string) => {
+        const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'];
+        return levels.reduce((acc, level) => acc + calculateLevelTotal(term, level), 0);
+    };
 
     const renderTermInputs = (termKey: string) => (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, lIdx) => (
-                <div key={level} className="p-3 rounded-lg border bg-muted/5 space-y-3">
-                    <p className="text-[9px] font-black uppercase text-primary border-b pb-1">{lIdx + 1}{lIdx === 0 ? 'st' : lIdx === 1 ? 'nd' : lIdx === 2 ? 'rd' : 'th'} Year Level</p>
-                    <div className="grid grid-cols-3 gap-2">
-                        <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.male`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} /></FormControl></FormItem>
+            {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, lIdx) => {
+                const total = calculateLevelTotal(termKey, level);
+                return (
+                    <div key={level} className="p-3 rounded-lg border bg-muted/5 space-y-3">
+                        <p className="text-[9px] font-black uppercase text-primary border-b pb-1">{lIdx + 1}{lIdx === 0 ? 'st' : lIdx === 1 ? 'nd' : lIdx === 2 ? 'rd' : 'th'} Year Level</p>
+                        <div className="grid grid-cols-3 gap-2">
+                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.male`} render={({ field }) => (
+                                <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
+                            )} />
+                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.female`} render={({ field }) => (
+                                <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
+                            )} />
+                            <FormItem>
+                                <FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel>
+                                <div className="h-7 flex items-center justify-center text-[10px] font-black bg-primary/5 rounded border border-primary/20 tabular-nums">
+                                    {total}
+                                </div>
+                            </FormItem>
+                        </div>
+                        <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.specialNeeds`} render={({ field }) => (
+                            <FormItem><FormLabel className="text-[8px] uppercase font-bold text-blue-600 flex items-center gap-1"><HeartHandshake className="h-2 w-2" /> Special Needs</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px] bg-blue-50 border-blue-100" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
                         )} />
-                        <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.female`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} /></FormControl></FormItem>
-                        )} />
-                        <FormItem><FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel><FormControl><Input type="number" value={enrollment?.[termKey]?.[level]?.total || 0} className="h-7 text-[10px] font-black bg-muted/20 text-center" disabled /></FormControl></FormItem>
                     </div>
-                    <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.specialNeeds`} render={({ field }) => (
-                        <FormItem><FormLabel className="text-[8px] uppercase font-bold text-blue-600 flex items-center gap-1"><HeartHandshake className="h-2 w-2" /> Special Needs</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px] bg-blue-50 border-blue-100" disabled={!canEdit} /></FormControl></FormItem>
-                    )} />
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 
     return (
         <Card className="border-primary/10 shadow-md overflow-hidden animate-in slide-in-from-top-4 duration-500 relative group">
             {canEdit && (
-                <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"><Trash2 className="h-4 w-4" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={onRemove}><Trash2 className="h-4 w-4" /></Button>
             )}
             <CardHeader className="bg-primary/5 py-4 border-b">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -124,10 +129,16 @@ function EnrollmentRecordCard({
                 </Tabs>
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-2 px-4 flex justify-between items-center">
-                <p className="text-[8px] font-black uppercase text-primary/50">Disaggregated SDD Entry</p>
-                <div className="flex gap-4 text-[9px] font-black text-slate-800">
-                    <span>1ST SEM: {Object.values(enrollment?.firstSemester || {}).reduce((acc: number, level: any) => acc + (level.total || 0), 0)}</span>
-                    <span>2ND SEM: {Object.values(enrollment?.secondSemester || {}).reduce((acc: number, level: any) => acc + (level.total || 0), 0)}</span>
+                <p className="text-[8px] font-black uppercase text-primary/50">Real-time Calculation Active</p>
+                <div className="flex gap-6 text-[10px] font-black text-slate-800">
+                    <div className="flex items-center gap-2">
+                        <span className="opacity-40">1ST SEM TOTAL:</span>
+                        <span className="text-primary tabular-nums">{calculateTermTotal('firstSemester')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="opacity-40">2ND SEM TOTAL:</span>
+                        <span className="text-primary tabular-nums">{calculateTermTotal('secondSemester')}</span>
+                    </div>
                 </div>
             </CardFooter>
         </Card>

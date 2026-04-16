@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -46,42 +46,9 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
 
   const hasMajors = program?.hasSpecializations && (program?.specializations?.length || 0) > 0;
 
-  // Sync graduation totals
-  const watchGrads = watch("graduationRecords");
-  useEffect(() => {
-    if (!watchGrads || !Array.isArray(watchGrads)) return;
-    watchGrads.forEach((item, index) => {
-        const male = Number(item.maleCount) || 0;
-        const female = Number(item.femaleCount) || 0;
-        const total = male + female;
-        if (item.count !== total) {
-            setValue(`graduationRecords.${index}.count`, total);
-        }
-    });
-  }, [watchGrads, setValue]);
-
-  // Automatically calculate board exam percentages
-  const watchBoard = watch("boardPerformance");
-  useEffect(() => {
-    if (!watchBoard || !Array.isArray(watchBoard)) return;
-
-    watchBoard.forEach((item, index) => {
-      const fTakers = Number(item.firstTakersCount) || 0;
-      const fPassed = Number(item.firstTakersPassed) || 0;
-      const rTakers = Number(item.retakersCount) || 0;
-      const rPassed = Number(item.retakersPassed) || 0;
-
-      const fRate = fTakers > 0 ? parseFloat(((fPassed / fTakers) * 100).toFixed(2)) : 0;
-      const rRate = rTakers > 0 ? parseFloat(((rPassed / rTakers) * 100).toFixed(2)) : 0;
-      const totalTakers = fTakers + rTakers;
-      const totalPassed = fPassed + rPassed;
-      const overallRate = totalTakers > 0 ? parseFloat(((totalPassed / totalTakers) * 100).toFixed(2)) : 0;
-
-      if (item.firstTakersPassRate !== fRate) setValue(`boardPerformance.${index}.firstTakersPassRate`, fRate);
-      if (item.retakersPassRate !== rRate) setValue(`boardPerformance.${index}.retakersPassRate`, rRate);
-      if (item.overallPassRate !== overallRate) setValue(`boardPerformance.${index}.overallPassRate`, overallRate);
-    });
-  }, [watchBoard, setValue]);
+  // Real-time calculation for board exam percentages using useWatch for instant UI response
+  const watchedBoard = useWatch({ control, name: "boardPerformance" });
+  const watchedGrads = useWatch({ control, name: "graduationRecords" });
 
   const MajorSelector = ({ name }: { name: string }) => (
     <FormField control={control} name={name} render={({ field }) => (
@@ -131,48 +98,59 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {boardFields.map((field, index) => (
-                        <TableRow key={field.id} className="hover:bg-muted/30">
-                            <TableCell className="pl-6"><MajorSelector name={`boardPerformance.${index}.majorId`} /></TableCell>
-                            <TableCell>
-                                <FormField control={control} name={`boardPerformance.${index}.examDate`} render={({ field }) => (
-                                    <FormControl><Input {...field} placeholder="e.g. Sept 2024" className="h-8 text-[10px] font-bold" disabled={!canEdit} /></FormControl>
-                                )} />
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-1 justify-center">
-                                    <FormField control={control} name={`boardPerformance.${index}.firstTakersPassed`} render={({ field }) => (
-                                        <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>
+                    {boardFields.map((field, index) => {
+                        const entry = watchedBoard?.[index] || {};
+                        const fTakers = Number(entry.firstTakersCount) || 0;
+                        const fPassed = Number(entry.firstTakersPassed) || 0;
+                        const rTakers = Number(entry.retakersCount) || 0;
+                        const rPassed = Number(entry.retakersPassed) || 0;
+                        const totalTakers = fTakers + rTakers;
+                        const totalPassed = fPassed + rPassed;
+                        const rate = totalTakers > 0 ? Math.round((totalPassed / totalTakers) * 100) : 0;
+
+                        return (
+                            <TableRow key={field.id} className="hover:bg-muted/30">
+                                <TableCell className="pl-6"><MajorSelector name={`boardPerformance.${index}.majorId`} /></TableCell>
+                                <TableCell>
+                                    <FormField control={control} name={`boardPerformance.${index}.examDate`} render={({ field }) => (
+                                        <FormControl><Input {...field} placeholder="e.g. Sept 2024" className="h-8 text-[10px] font-bold" disabled={!canEdit} /></FormControl>
                                     )} />
-                                    <span className="text-[10px] opacity-20">/</span>
-                                    <FormField control={control} name={`boardPerformance.${index}.firstTakersCount`} render={({ field }) => (
-                                        <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>
-                                    )} />
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-1 justify-center">
-                                    <FormField control={control} name={`boardPerformance.${index}.retakersPassed`} render={({ field }) => (
-                                        <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>
-                                    )} />
-                                    <span className="text-[10px] opacity-20">/</span>
-                                    <FormField control={control} name={`boardPerformance.${index}.retakersCount`} render={({ field }) => (
-                                        <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>
-                                    )} />
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                                <Badge variant="secondary" className="h-6 text-[10px] font-black tabular-nums bg-primary/5 text-primary border-none">
-                                    {watchBoard?.[index]?.overallPassRate || 0}%
-                                </Badge>
-                            </TableCell>
-                            {canEdit && (
-                                <TableCell className="pr-6">
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBoard(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
                                 </TableCell>
-                            )}
-                        </TableRow>
-                    ))}
+                                <TableCell>
+                                    <div className="flex items-center gap-1 justify-center">
+                                        <FormField control={control} name={`boardPerformance.${index}.firstTakersPassed`} render={({ field }) => (
+                                            <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                        )} />
+                                        <span className="text-[10px] opacity-20">/</span>
+                                        <FormField control={control} name={`boardPerformance.${index}.firstTakersCount`} render={({ field }) => (
+                                            <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                        )} />
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-1 justify-center">
+                                        <FormField control={control} name={`boardPerformance.${index}.retakersPassed`} render={({ field }) => (
+                                            <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                        )} />
+                                        <span className="text-[10px] opacity-20">/</span>
+                                        <FormField control={control} name={`boardPerformance.${index}.retakersCount`} render={({ field }) => (
+                                            <FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                        )} />
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant="secondary" className="h-6 text-[10px] font-black tabular-nums bg-emerald-50 text-emerald-700 border-none">
+                                        {rate}%
+                                    </Badge>
+                                </TableCell>
+                                {canEdit && (
+                                    <TableCell className="pr-6">
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeBoard(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        );
+                    })}
                     {boardFields.length === 0 && (
                         <TableRow><TableCell colSpan={6} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No board exam records encoded.</TableCell></TableRow>
                     )}
@@ -212,36 +190,42 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {gradFields.map((field, index) => (
-                    <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="pl-6"><MajorSelector name={`graduationRecords.${index}.majorId`} /></TableCell>
-                    <TableCell>
-                        <div className="grid grid-cols-2 gap-1">
-                            <FormField control={control} name={`graduationRecords.${index}.year`} render={({ field }) => (
-                            <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} /></FormControl>
-                            )} />
-                            <FormField control={control} name={`graduationRecords.${index}.semester`} render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                                <FormControl><SelectTrigger className="h-8 text-[9px] font-bold"><SelectValue /></SelectTrigger></FormControl>
-                                <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                            </Select>
-                            )} />
-                        </div>
-                    </TableCell>
-                    <TableCell><FormField control={control} name={`graduationRecords.${index}.maleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>)} /></TableCell>
-                    <TableCell><FormField control={control} name={`graduationRecords.${index}.femaleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>)} /></TableCell>
-                    <TableCell className="text-center">
-                        <Badge variant="outline" className="h-6 px-4 text-[10px] font-black tabular-nums bg-white border-primary/20 text-primary">
-                            {watchGrads?.[index]?.count || 0}
-                        </Badge>
-                    </TableCell>
-                    {canEdit && (
-                        <TableCell className="pr-6 text-right">
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeGrad(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
+                {gradFields.map((field, index) => {
+                    const male = Number(watchedGrads?.[index]?.maleCount) || 0;
+                    const female = Number(watchedGrads?.[index]?.femaleCount) || 0;
+                    const total = male + female;
+
+                    return (
+                        <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="pl-6"><MajorSelector name={`graduationRecords.${index}.majorId`} /></TableCell>
+                        <TableCell>
+                            <div className="grid grid-cols-2 gap-1">
+                                <FormField control={control} name={`graduationRecords.${index}.year`} render={({ field }) => (
+                                <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                )} />
+                                <FormField control={control} name={`graduationRecords.${index}.semester`} render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                    <FormControl><SelectTrigger className="h-8 text-[9px] font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                                )} />
+                            </div>
                         </TableCell>
-                    )}
-                    </TableRow>
-                ))}
+                        <TableCell><FormField control={control} name={`graduationRecords.${index}.maleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>)} /></TableCell>
+                        <TableCell><FormField control={control} name={`graduationRecords.${index}.femaleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>)} /></TableCell>
+                        <TableCell className="text-center">
+                            <Badge variant="outline" className="h-6 px-4 text-[10px] font-black tabular-nums bg-white border-primary/20 text-primary">
+                                {total}
+                            </Badge>
+                        </TableCell>
+                        {canEdit && (
+                            <TableCell className="pr-6 text-right">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeGrad(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
+                            </TableCell>
+                        )}
+                        </TableRow>
+                    );
+                })}
                 </TableBody>
             </Table>
             </CardContent>
@@ -279,14 +263,18 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
                 </TableHeader>
                 <TableBody>
                 {tracerFields.map((field, index) => {
-                    const rate = Number(watch(`tracerRecords.${index}.employmentRate`)) || 0;
+                    const entry = watch(`tracerRecords.${index}`);
+                    const traced = (Number(entry?.maleTraced) || 0) + (Number(entry?.femaleTraced) || 0);
+                    const employed = (Number(entry?.maleEmployed) || 0) + (Number(entry?.femaleEmployed) || 0);
+                    const rate = traced > 0 ? Math.round((employed / traced) * 100) : 0;
+
                     return (
                     <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell className="pl-6"><MajorSelector name={`tracerRecords.${index}.majorId`} /></TableCell>
                         <TableCell>
                         <div className="grid grid-cols-2 gap-1">
                             <FormField control={control} name={`tracerRecords.${index}.year`} render={({ field }) => (
-                            <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} /></FormControl>
+                            <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
                             )} />
                             <FormField control={control} name={`tracerRecords.${index}.semester`} render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
@@ -298,21 +286,21 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
                         </TableCell>
                         <TableCell>
                             <div className="flex gap-1 justify-center">
-                                <FormField control={control} name={`tracerRecords.${index}.maleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
-                                <FormField control={control} name={`tracerRecords.${index}.femaleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                                <FormField control={control} name={`tracerRecords.${index}.maleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>)} />
+                                <FormField control={control} name={`tracerRecords.${index}.femaleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>)} />
                             </div>
                         </TableCell>
                         <TableCell>
                             <div className="flex gap-1 justify-center">
-                                <FormField control={control} name={`tracerRecords.${index}.maleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
-                                <FormField control={control} name={`tracerRecords.${index}.femaleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                                <FormField control={control} name={`tracerRecords.${index}.maleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>)} />
+                                <FormField control={control} name={`tracerRecords.${index}.femaleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>)} />
                             </div>
                         </TableCell>
                         <TableCell className="text-right pr-6">
                         <div className="space-y-1">
-                            <FormField control={control} name={`tracerRecords.${index}.employmentRate`} render={({ field }) => (
-                            <FormControl><Input type="number" step="0.01" {...field} className="h-7 text-[10px] font-black text-right text-emerald-600 border-none bg-transparent" disabled={!canEdit} /></FormControl>
-                            )} />
+                            <div className="text-[10px] font-black text-right text-emerald-600 tabular-nums">
+                                {rate}%
+                            </div>
                             <Progress value={rate} className="h-1 bg-muted" />
                         </div>
                         </TableCell>
