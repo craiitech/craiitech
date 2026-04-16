@@ -1,23 +1,17 @@
 'use client';
 
 import * as React from "react";
-import { Check, Plus, X } from "lucide-react";
+import { Check, Plus, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MultiSelectorProps {
   items: { id: string; name: string }[];
@@ -28,27 +22,33 @@ interface MultiSelectorProps {
 }
 
 /**
- * A multi-selection component optimized for use within high-density Dialogs.
- * Uses pointer-event interception to prevent parent Dialog focus-traps from 
- * closing the popover during item selection.
+ * A robust multi-selection component optimized for use within high-density Dialogs.
+ * Avoiding cmdk focus traps by using a standard list with manual event handling.
  */
 export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add item...", label = "Select Items" }: MultiSelectorProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
 
-  const handleUnselect = React.useCallback((id: string) => {
-    onSelect(selectedIds.filter((i) => i !== id));
-  }, [selectedIds, onSelect]);
+  const filteredItems = React.useMemo(() => {
+    return items.filter(item => 
+      item.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [items, search]);
 
-  const toggleItem = React.useCallback((id: string) => {
+  const toggleItem = (id: string) => {
     const newIds = selectedIds.includes(id)
       ? selectedIds.filter((i) => i !== id)
       : [...selectedIds, id];
     onSelect(newIds);
-  }, [selectedIds, onSelect]);
+  };
 
-  const selectedItems = React.useMemo(() => {
-    return items.filter(item => selectedIds.includes(item.id));
-  }, [items, selectedIds]);
+  const handleUnselect = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect(selectedIds.filter((i) => i !== id));
+  };
+
+  const selectedItems = items.filter(item => selectedIds.includes(item.id));
 
   return (
     <div className="flex flex-col gap-2">
@@ -63,11 +63,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
             <button
               type="button"
               className="ml-1 rounded-full outline-none hover:bg-destructive hover:text-white transition-colors p-0.5"
-              onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleUnselect(item.id);
-              }}
+              onClick={(e) => handleUnselect(e, item.id)}
             >
               <X className="h-3 w-3" />
             </button>
@@ -86,50 +82,56 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-72 p-0 border-none shadow-2xl z-[100]" 
-            align="start" 
+            className="w-72 p-0 border shadow-2xl z-[100] bg-white overflow-hidden rounded-lg" 
+            align="start"
             onOpenAutoFocus={(e) => e.preventDefault()}
-            onCloseAutoFocus={(e) => e.preventDefault()}
           >
-            <Command className="bg-white border rounded-lg overflow-hidden">
-              <div className="flex items-center border-b px-3">
-                <CommandInput placeholder={placeholder} className="h-10 text-xs border-none focus:ring-0" />
-              </div>
-              <CommandList className="max-h-64">
-                <CommandEmpty className="p-4 text-center text-xs text-muted-foreground uppercase font-bold">No results found</CommandEmpty>
-                <CommandGroup>
-                  {items.map((item) => {
-                    const isSelected = selectedIds.includes(item.id);
-                    return (
-                      <CommandItem
-                        key={item.id}
-                        value={item.name} // Use name for filtering
-                        onSelect={() => toggleItem(item.id)}
-                        // CRITICAL: Prevent the item from taking focus and closing the popover 
-                        // when used inside a Radix Dialog.
-                        onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }}
-                        className="cursor-pointer flex items-center justify-between px-4 py-3 aria-selected:bg-primary/5"
-                      >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                            <div className={cn(
-                                "h-4 w-4 border rounded flex items-center justify-center shrink-0 transition-colors",
-                                isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
-                            )}>
-                                {isSelected && <Check className="h-3 w-3" />}
-                            </div>
-                            <span className={cn("text-xs truncate", isSelected ? "font-bold text-primary" : "text-slate-600")}>
-                                {item.name}
-                            </span>
-                        </div>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+            <div className="flex flex-col">
+                <div className="flex items-center border-b px-3 py-2 gap-2 bg-slate-50">
+                    <Search className="h-4 w-4 text-muted-foreground opacity-50" />
+                    <Input 
+                        placeholder={placeholder} 
+                        className="h-8 text-xs border-none focus:ring-0 p-0 shadow-none bg-transparent" 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+                <ScrollArea className="max-h-64 h-auto">
+                    <div className="p-1">
+                        {filteredItems.length > 0 ? (
+                            filteredItems.map((item) => {
+                                const isSelected = selectedIds.includes(item.id);
+                                return (
+                                    <div
+                                        key={item.id}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-colors hover:bg-primary/5",
+                                            isSelected && "bg-primary/5"
+                                        )}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            toggleItem(item.id);
+                                        }}
+                                    >
+                                        <div className={cn(
+                                            "h-4 w-4 border rounded flex items-center justify-center shrink-0 transition-colors",
+                                            isSelected ? "bg-primary border-primary text-white" : "border-slate-300 bg-white"
+                                        )}>
+                                            {isSelected && <Check className="h-3 w-3" />}
+                                        </div>
+                                        <span className={cn("text-xs truncate", isSelected ? "font-bold text-primary" : "text-slate-600")}>
+                                            {item.name}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="p-4 text-center text-xs text-muted-foreground font-bold uppercase">No results found</div>
+                        )}
+                    </div>
+                </ScrollArea>
+            </div>
           </PopoverContent>
         </Popover>
 
