@@ -351,13 +351,18 @@ export type CAREvidence = {
     url: string;
 };
 
-export type CARVerificationRecord = {
+export type CARFollowUpLog = {
     result: string;
-    resultVerifiedBy: string;
-    resultVerificationDate: any; // Timestamp
-    effectivenessResult: string;
-    effectivenessVerifiedBy: string;
-    effectivenessVerificationDate: any; // Timestamp
+    verifiedBy: string;
+    date: any; // Timestamp
+    remarks?: string;
+};
+
+export type CAREffectivenessAudit = {
+    result: string;
+    verifiedBy: string;
+    date: any; // Timestamp
+    action: 'Close the NC' | 'Continue Monitoring the NC' | 'Provide More Actions to Address the NC';
     remarks?: string;
 };
 
@@ -383,7 +388,10 @@ export type CorrectiveActionRequest = {
     rootCauseAnalysis?: string;
     actionSteps?: CARActionStep[];
     evidences?: CAREvidence[];
-    verificationRecords?: CARVerificationRecord[];
+    
+    // Decoupled Oversight Sections
+    followUpLogs?: CARFollowUpLog[];
+    effectivenessAudits?: CAREffectivenessAudit[];
     
     status: 'Open' | 'In Progress' | 'Closed';
     needsVerification?: boolean; // New flag for tracking unit updates

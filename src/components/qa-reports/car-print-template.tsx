@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -23,8 +24,12 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
   const immediateActions = (car.actionSteps || []).filter(s => s.type === 'Immediate Correction');
   const longTermActions = (car.actionSteps || []).filter(s => s.type === 'Long-term Corrective Action');
   
-  const latestVerification = car.verificationRecords && car.verificationRecords.length > 0 
-    ? car.verificationRecords[car.verificationRecords.length - 1] 
+  const latestFollowUp = car.followUpLogs && car.followUpLogs.length > 0 
+    ? car.followUpLogs[car.followUpLogs.length - 1] 
+    : null;
+
+  const latestEffectiveness = car.effectivenessAudits && car.effectivenessAudits.length > 0
+    ? car.effectivenessAudits[car.effectivenessAudits.length - 1]
     : null;
 
   const directorName = signatories?.qaoDirector || '____________________';
@@ -208,48 +213,50 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
         </div>
       </div>
 
-      {/* Follow-up Result */}
+      {/* III. Follow-up Result */}
       <div className="w-full border-2 border-black border-b-0">
         <div className="grid grid-cols-12 min-h-[100px]">
           <div className="col-span-9 border-r border-black p-2">
-            <p className="font-bold">Follow up result of the Correction and Corrective Action</p>
-            <p className="mt-2 italic">{latestVerification?.result || '--'}</p>
+            <p className="font-bold">III. Follow up result of the Correction and Corrective Action</p>
+            <p className="mt-2 italic">{latestFollowUp?.result || '--'}</p>
           </div>
           <div className="col-span-3 p-2">
             <p className="font-bold">Remarks:</p>
-            <p className="mt-1 text-[10px]">{latestVerification?.remarks || '--'}</p>
+            <p className="mt-1 text-[10px]">{latestFollowUp?.remarks || '--'}</p>
           </div>
         </div>
       </div>
 
-      {/* Verification Footer 1 */}
       <div className="w-full border-2 border-black border-b-0">
         <div className="grid grid-cols-3 text-center font-bold text-[9px] uppercase">
           <div className="border-r border-black p-2">
             <p className="mb-4">Verified by:</p>
-            <p className="border-t border-black pt-1">{latestVerification?.resultVerifiedBy || '________________'}</p>
+            <p className="border-t border-black pt-1">{latestFollowUp?.verifiedBy || '________________'}</p>
           </div>
           <div className="border-r border-black p-2">
             <p className="mb-4">Date of Follow-up:</p>
-            <p className="border-t border-black pt-1">{safeDate(latestVerification?.resultVerificationDate)}</p>
+            <p className="border-t border-black pt-1">{safeDate(latestFollowUp?.date)}</p>
           </div>
           <div className="p-2">
-            <p className="mb-4">Date of Final/Verification Visit:</p>
-            <p className="border-t border-black pt-1">________________</p>
+            <p className="mb-4">Verification Code:</p>
+            <p className="border-t border-black pt-1">IQA-FU-{format(new Date(), 'yyyy')}</p>
           </div>
         </div>
       </div>
 
-      {/* Effectiveness Section */}
+      {/* IV. Effectiveness Section */}
       <div className="w-full border-2 border-black border-b-0">
         <div className="grid grid-cols-12 min-h-[100px]">
           <div className="col-span-9 border-r border-black p-2">
-            <p className="font-bold">Verification of Effectiveness of the action taken:</p>
-            <p className="mt-2 italic">{latestVerification?.effectivenessResult || '--'}</p>
+            <p className="font-bold">IV. Verification of Effectiveness of the action taken:</p>
+            <p className="mt-2 italic">{latestEffectiveness?.result || '--'}</p>
+            {latestEffectiveness?.action && (
+                <p className="mt-4 text-xs font-black uppercase text-primary">DETERMINATION: {latestEffectiveness.action}</p>
+            )}
           </div>
           <div className="col-span-3 p-2">
             <p className="font-bold">Remarks:</p>
-            <p className="mt-1 text-[10px]">{latestVerification?.remarks || '--'}</p>
+            <p className="mt-1 text-[10px]">{latestEffectiveness?.remarks || '--'}</p>
           </div>
         </div>
       </div>
@@ -259,11 +266,11 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
         <div className="grid grid-cols-3 text-center font-bold text-[9px] uppercase">
           <div className="border-r border-black p-2">
             <p className="mb-4">Verified by:</p>
-            <p className="border-t border-black pt-1">{latestVerification?.effectivenessVerifiedBy || '________________'}</p>
+            <p className="border-t border-black pt-1">{latestEffectiveness?.verifiedBy || '________________'}</p>
           </div>
           <div className="border-r border-black p-2">
             <p className="mb-4">Date of Verification:</p>
-            <p className="border-t border-black pt-1">{safeDate(latestVerification?.effectivenessVerificationDate)}</p>
+            <p className="border-t border-black pt-1">{safeDate(latestEffectiveness?.date)}</p>
           </div>
           <div className="p-2">
             <p className="mb-4">Approved by:</p>
@@ -272,27 +279,14 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
         </div>
       </div>
 
-      {/* Final Footer Row */}
-      <div className="grid grid-cols-2 text-[9px] mt-2 font-bold italic">
-        <div className="flex gap-2">
-          <span>Received by: (For Filing) _________________________</span>
-        </div>
-        <div className="text-right">
-          <span>Date Received: ________________</span>
-        </div>
-      </div>
-
-      {/* System Generated Note */}
       <div className="mt-4 text-center text-[9px] font-bold italic text-slate-500">
         This is a system-generated report; signature is not required.
       </div>
 
-      {/* Form Identifier */}
       <div className="mt-6 flex justify-between items-end">
         <div className="text-[10px] font-bold">
           <p>QAO-01-018</p>
           <p className="font-normal opacity-60">Creation Date: 2021-02-14</p>
-          <p className="font-normal opacity-60">Revision Date: 2021-10-15</p>
         </div>
         <div className="text-md font-black">
           CAR No.: <span className="font-mono">{car.carNumber}</span>

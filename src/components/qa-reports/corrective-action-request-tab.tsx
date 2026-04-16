@@ -98,17 +98,17 @@ const carSchema = z.object({
     status: z.enum(['Pending', 'Completed']),
     evidenceLink: z.string().url('Invalid URL').optional().or(z.literal('')),
   })).optional(),
-  evidences: z.array(z.object({
-    title: z.string().min(1, 'Title is required'),
-    url: z.string().url('Invalid Google Drive URL'),
+  followUpLogs: z.array(z.object({
+    result: z.string().min(1, 'Result is required'),
+    verifiedBy: z.string().min(1, 'Required'),
+    date: z.string().min(1, 'Required'),
+    remarks: z.string().optional(),
   })).optional(),
-  verificationRecords: z.array(z.object({
-    result: z.string().min(1, 'Verification result is required'),
-    resultVerifiedBy: z.string().min(1, 'Required'),
-    resultVerificationDate: z.string().min(1, 'Required'),
-    effectivenessResult: z.string().min(1, 'Verification of effectiveness is required'),
-    effectivenessVerifiedBy: z.string().min(1, 'Required'),
-    effectivenessVerificationDate: z.string().min(1, 'Required'),
+  effectivenessAudits: z.array(z.object({
+    result: z.string().min(1, 'Effectiveness result is required'),
+    verifiedBy: z.string().min(1, 'Required'),
+    date: z.string().min(1, 'Required'),
+    action: z.enum(['Close the NC', 'Continue Monitoring the NC', 'Provide More Actions to Address the NC']),
     remarks: z.string().optional(),
   })).optional(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
@@ -215,8 +215,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     const inProgress = processedCars.filter(c => c.status === 'In Progress').length;
     const closed = processedCars.filter(c => c.status === 'Closed').length;
     const needsVerification = processedCars.filter(c => c.needsVerification).length;
+    const successRate = total > 0 ? Math.round((closed / total) * 100) : 100;
 
-    return { total, open, inProgress, closed, needsVerification };
+    return { total, open, inProgress, closed, needsVerification, successRate };
   }, [processedCars]);
 
   const years = useMemo(() => {
@@ -251,8 +252,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         status: 'Open',
         requestDate: format(new Date(), 'yyyy-MM-dd'),
         actionSteps: [],
-        evidences: [],
-        verificationRecords: []
+        followUpLogs: [],
+        effectivenessAudits: []
     }
   });
 
@@ -261,25 +262,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "actionSteps"
   });
 
-  const { fields: verificationFields, append: appendVerification, remove: removeVerification } = useFieldArray({
+  const { fields: followUpFields, append: appendFollowUp, remove: removeFollowUp } = useFieldArray({
     control: form.control,
-    name: "verificationRecords"
+    name: "followUpLogs"
+  });
+
+  const { fields: effectivenessFields, append: appendEffectiveness, remove: removeEffectiveness } = useFieldArray({
+    control: form.control,
+    name: "effectivenessAudits"
   });
 
   const watchRootCause = form.watch('rootCauseAnalysis');
   const isInvestigationComplete = !!watchRootCause && watchRootCause.trim().length > 10;
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
@@ -355,43 +349,41 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
-    // WORKFLOW LOGIC:
-    // If the person saving is from the responsible unit (not admin) and it was 'Open', move to 'In Progress'
-    // and flag as 'needsVerification'.
     const isUnitResponding = userProfile.unitId === values.unitId && !isAdmin;
-    const currentStatus = values.status;
-    let nextStatus = currentStatus;
+    let nextStatus = values.status;
     let needsVerification = editingCar?.needsVerification || false;
 
-    if (isUnitResponding && currentStatus === 'Open') {
+    // Logic: Only "Close the NC" action can set status to Closed
+    const finalAudit = values.effectivenessAudits?.[values.effectivenessAudits.length - 1];
+    if (finalAudit && finalAudit.action === 'Close the NC') {
+        nextStatus = 'Closed';
+        needsVerification = false;
+    } else if (finalAudit) {
+        // If other actions are selected, force status to In Progress
+        nextStatus = 'In Progress';
+        needsVerification = false; // Admin has verified the current step
+    } else if (isUnitResponding) {
         nextStatus = 'In Progress';
         needsVerification = true;
-    } else if (isUnitResponding && currentStatus === 'In Progress') {
-        needsVerification = true;
-    } else if (isAdmin) {
-        // Admin verification clears the flag unless they explicitly want to keep it
-        needsVerification = false;
     }
 
     const carData: any = {
       ...values,
       status: nextStatus,
       needsVerification,
-      ncReportNumber: values.ncReportNumber || '',
-      concerningTopManagementName: values.concerningTopManagementName || '',
-      rootCauseAnalysis: values.rootCauseAnalysis || '',
       timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
       requestDate: Timestamp.fromDate(new Date(values.requestDate)),
       actionSteps: (values.actionSteps || []).map(step => ({
           ...step,
-          evidenceLink: step.evidenceLink || '',
           completionDate: Timestamp.fromDate(new Date(step.completionDate))
       })),
-      verificationRecords: (values.verificationRecords || []).map(rec => ({
-          ...rec,
-          remarks: rec.remarks || '',
-          resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
-          effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
+      followUpLogs: (values.followUpLogs || []).map(log => ({
+          ...log,
+          date: Timestamp.fromDate(new Date(log.date))
+      })),
+      effectivenessAudits: (values.effectivenessAudits || []).map(audit => ({
+          ...audit,
+          date: Timestamp.fromDate(new Date(audit.date))
       })),
       updatedAt: serverTimestamp(),
     };
@@ -400,7 +392,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       const docRef = doc(firestore, 'correctiveActionRequests', editingCar.id);
       updateDoc(docRef, carData)
         .then(() => {
-          toast({ title: 'Success', description: isUnitResponding ? 'Your updates have been logged and sent for verification.' : 'CAR record updated.' });
+          toast({ title: 'Success', description: 'CAR record updated.' });
           setIsDialogOpen(false);
           form.reset();
           setEditingCar(null);
@@ -418,7 +410,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       const dataWithTimestamp = { ...carData, createdAt: serverTimestamp() };
       addDoc(colRef, dataWithTimestamp)
         .then(() => {
-          toast({ title: 'Success', description: 'New CAR registered in system.' });
+          toast({ title: 'Success', description: 'New CAR registered.' });
           setIsDialogOpen(false);
           form.reset();
           setEditingCar(null);
@@ -440,21 +432,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     
     form.reset({
       ...car,
-      ncReportNumber: car.ncReportNumber || '',
-      concerningTopManagementName: car.concerningTopManagementName || '',
-      rootCauseAnalysis: car.rootCauseAnalysis || '',
       requestDate: safeDate(car.requestDate),
       timeLimitForReply: safeDate(car.timeLimitForReply),
       actionSteps: (car.actionSteps || []).map(step => ({
           ...step,
-          evidenceLink: step.evidenceLink || '',
           completionDate: safeDate(step.completionDate)
       })),
-      verificationRecords: (car.verificationRecords || []).map(rec => ({
-          ...rec,
-          remarks: rec.remarks || '',
-          resultVerificationDate: safeDate(rec.resultVerificationDate),
-          effectivenessVerificationDate: safeDate(rec.effectivenessVerificationDate)
+      followUpLogs: (car.followUpLogs || []).map(log => ({
+          ...log,
+          date: safeDate(log.date)
+      })),
+      effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({
+          ...audit,
+          date: safeDate(audit.date)
       })),
     } as any);
     setIsDialogOpen(true);
@@ -463,19 +453,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     
-    // Institutional verification is ONLY for Admins/Auditors
-    if (fieldName.startsWith('verificationRecords')) {
+    if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits')) {
         return !isInstitutionalViewer;
     }
 
-    // Root Cause and Action Steps are for the Responsible Unit to fill out
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.includes(fieldName)) {
         return userProfile?.unitId !== form.getValues('unitId');
     }
 
     if (fieldName === 'status') {
-        return !isInstitutionalViewer && userProfile?.unitId !== form.getValues('unitId');
+        return !isInstitutionalViewer;
     }
     
     const metadataFields = ['carNumber', 'ncReportNumber', 'source', 'initiator', 'natureOfFinding', 'procedureTitle', 'concerningClause', 'concerningTopManagementName', 'timeLimitForReply', 'unitId', 'campusId', 'unitHead', 'descriptionOfNonconformance', 'requestDate', 'preparedBy', 'approvedBy'];
@@ -623,8 +611,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         status: 'Open',
                         requestDate: format(new Date(), 'yyyy-MM-dd'),
                         actionSteps: [],
-                        evidences: [],
-                        verificationRecords: []
+                        followUpLogs: [],
+                        effectivenessAudits: []
                     });
                     setIsDialogOpen(true);
                 }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6">
@@ -696,7 +684,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             const limitMatch = car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply);
 
                             return (
-                                <TableRow key={car.id} className={cn("hover:bg-muted/20 transition-colors group", car.needsVerification && "bg-blue-50/30")}>
+                                <TableRow key={car.id} className={cn("transition-colors group", car.needsVerification && "bg-blue-50/30")}>
                                 <TableCell className="pl-6 py-4">
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
@@ -751,32 +739,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </TableRow>
                             );
                             })}
-                            {!isLoading && processedCars.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                                        <div className="flex flex-col items-center gap-3 opacity-20">
-                                            <ClipboardCheck className="h-12 w-12" />
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-black uppercase tracking-widest">No matching records</p>
-                                                <p className="text-xs font-medium">Adjust your search or year filter to browse the registry.</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
                         </TableBody>
                         </Table>
                     </div>
                 )}
                 </CardContent>
-                <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                    <div className="flex items-start gap-3">
-                        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                            <strong>Standard Requirement:</strong> Units must establish root causes and execute corrective actions. Status automatically updates to <strong>In Progress</strong> when units log responses. Administrators use the <strong>Verification Queue</strong> to track hand-offs.
-                        </p>
-                    </div>
-                </CardFooter>
             </Card>
         </TabsContent>
       </Tabs>
@@ -786,10 +753,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ShieldCheck className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Institutional Oversight</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Institutional Oversight Panel</span>
             </div>
-            <DialogTitle>{editingCar ? 'Manage' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
-            <DialogDescription className="text-xs">Formal documentation of non-conformance findings and resolution tracking.</DialogDescription>
+            <DialogTitle>{editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
           </DialogHeader>
           
           <div className="flex-1 flex overflow-hidden bg-white">
@@ -836,20 +802,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     )} />
                                 </div>
 
-                                <div className="space-y-6 pt-6 border-t">
-                                    <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                                    <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning Top Management</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Role or Person" className="bg-slate-50" disabled={isFieldReadOnly('concerningTopManagementName')} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Time Limit for Reply</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                </div>
+                                <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
+                                    <FormItem><FormLabel className="text-sm font-black text-slate-800 uppercase tracking-tight">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl><FormMessage /></FormItem>
+                                )} />
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
                                     <FormField control={form.control} name="campusId" render={({ field }) => (
@@ -866,16 +821,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <div className="pt-6 border-t space-y-4">
                                     <div className="flex items-center gap-2">
                                         <ShieldAlert className="h-5 w-5 text-primary" />
-                                        <h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</h4>
+                                        <h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis</h4>
                                     </div>
                                     <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl>
-                                            <FormDescription className="text-[10px] font-bold text-slate-500">
-                                                Mandatory Step: The unit must complete the investigation into the root cause before the Action Registry is enabled.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem><FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                 </div>
 
@@ -885,11 +834,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <ListChecks className="h-5 w-5 text-primary" />
                                             <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
                                         </div>
-                                        {!isInvestigationComplete && (
-                                            <Badge variant="outline" className="h-5 text-[8px] font-black uppercase border-amber-200 text-amber-700 bg-amber-50">
-                                                Awaiting Investigation Results
-                                            </Badge>
-                                        )}
                                     </div>
                                     {actionFields.map((field, index) => (
                                         <div key={field.id} className="space-y-4 p-4 rounded-lg border bg-muted/5 relative group">
@@ -904,28 +848,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
                                                 )} />
                                             </div>
-                                            <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: inputField }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-[9px] uppercase font-bold flex items-center gap-1">
-                                                        <LinkIcon className="h-2.5 w-2.5 text-primary" /> Evidence Link (Google Drive)
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} />
-                                                    </FormControl>
-                                                </FormItem>
-                                            )} />
                                             {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} 
-                                            className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2 hover:bg-primary/5 hover:text-primary"
-                                            disabled={!isInvestigationComplete}
-                                        >
+                                        <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2">
                                             <PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step
                                         </Button>
                                     )}
@@ -938,108 +865,78 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                 <Gavel className="h-6 w-6" />
                                             </div>
                                             <div className="space-y-0.5">
-                                                <h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Audit Verification</h4>
+                                                <h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Oversight & Verification</h4>
                                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Internal Auditor / Quality Assurance Office Use Only</p>
                                             </div>
                                         </div>
                                         {isInstitutionalViewer && (
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50"
-                                                onClick={() => appendVerification({ result: '', resultVerifiedBy: '', resultVerificationDate: format(new Date(), 'yyyy-MM-dd'), effectivenessResult: '', effectivenessVerifiedBy: '', effectivenessVerificationDate: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}
-                                            >
-                                                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Verification Entry
-                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}>
+                                                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up Log
+                                                </Button>
+                                                <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Continue Monitoring the NC', remarks: '' })}>
+                                                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Conduct Final Verification
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
 
-                                    {verificationFields.map((field, index) => (
-                                        <div key={field.id} className="space-y-8 p-6 rounded-2xl border bg-indigo-50/10 border-indigo-100 relative group animate-in slide-in-from-bottom-2 duration-500">
-                                            {isInstitutionalViewer && (
-                                                <Button 
-                                                    type="button" 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="absolute top-3 right-3 text-destructive h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" 
-                                                    onClick={() => removeVerification(index)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
-
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <HistoryIcon className="h-4 w-4 text-indigo-600" />
-                                                    <h5 className="text-[10px] font-black uppercase text-indigo-800 tracking-widest">III. Follow-up Result of Correction & Corrective Action</h5>
-                                                </div>
-                                                <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
-                                                    <FormItem>
-                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Describe the implementation findings during the follow-up visit..." className="bg-white border-indigo-100 italic text-xs" disabled={isFieldReadOnly(`verificationRecords.${index}.result`)} /></FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )} />
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.resultVerifiedBy`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white border-indigo-100" placeholder="Auditor Name" disabled={isFieldReadOnly(`verificationRecords.${index}.resultVerifiedBy`)} /></FormControl></FormItem>
+                                    {/* III. FOLLOW-UP REGISTRY */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">III. Follow-up Result Registry</h5>
+                                        {followUpFields.map((field, index) => (
+                                            <div key={field.id} className="p-5 rounded-2xl border bg-slate-50/50 relative group">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                    <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: inputField }) => (
+                                                        <FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Follow-up Observation</FormLabel><FormControl><Textarea {...inputField} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>
                                                     )} />
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.resultVerificationDate`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verification Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white border-indigo-100" disabled={isFieldReadOnly(`verificationRecords.${index}.resultVerificationDate`)} /></FormControl></FormItem>
+                                                    <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`followUpLogs.${index}.date`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Date of Follow-up</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>
                                                     )} />
                                                 </div>
+                                                {isInstitutionalViewer && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFollowUp(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                                             </div>
+                                        ))}
+                                    </div>
 
-                                            <Separator className="bg-indigo-100" />
-
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                                    <h5 className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">IV. Verification of Effectiveness of the action taken</h5>
-                                                </div>
-                                                <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
-                                                    <FormItem>
-                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Record objective evidence that the non-conformity has been eliminated and recurrence prevented..." className="bg-white border-emerald-100 italic text-xs" disabled={isFieldReadOnly(`verificationRecords.${index}.effectivenessResult`)} /></FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
+                                    {/* IV. EFFECTIVENESS AUDIT */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-[10px] font-black uppercase text-indigo-700 tracking-widest border-b pb-1">IV. Verification of Effectiveness Audit</h5>
+                                        {effectivenessFields.map((field, index) => (
+                                            <div key={field.id} className="p-6 rounded-2xl border-2 border-indigo-100 bg-indigo-50/20 relative group space-y-6">
+                                                <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Verification Result & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 italic text-sm" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>
                                                 )} />
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerifiedBy`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Effectiveness Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white border-emerald-100" placeholder="QA/Admin Name" disabled={isFieldReadOnly(`verificationRecords.${index}.effectivenessVerifiedBy`)} /></FormControl></FormItem>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <FormField control={form.control} name={`effectivenessAudits.${index}.action`} render={({ field: inputField }) => (
+                                                        <FormItem className="md:col-span-2">
+                                                            <FormLabel className="text-[10px] font-black uppercase text-primary">Verification Determination (Action)</FormLabel>
+                                                            <Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly(`effectivenessAudits.${index}.action`)}>
+                                                                <FormControl><SelectTrigger className="bg-white font-bold h-11 border-primary/20"><SelectValue /></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Close the NC" className="font-black text-emerald-600">1. Close the NC (Full Compliance Verified)</SelectItem>
+                                                                    <SelectItem value="Continue Monitoring the NC" className="font-bold">2. Continue Monitoring the NC</SelectItem>
+                                                                    <SelectItem value="Provide More Actions to Address the NC" className="font-bold text-rose-600">3. Provide More Actions to Address the NC</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormDescription className="text-[9px] font-medium text-slate-500 italic">Only "Close the NC" will formally set this CAR to Closed status.</FormDescription>
+                                                        </FormItem>
                                                     )} />
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerificationDate`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verification Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white border-emerald-100" disabled={isFieldReadOnly(`verificationRecords.${index}.effectivenessVerificationDate`)} /></FormControl></FormItem>
+                                                    <FormField control={form.control} name={`effectivenessAudits.${index}.verifiedBy`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white border-indigo-100" disabled={isFieldReadOnly(`effectivenessAudits.${index}.verifiedBy`)} /></FormControl></FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`effectivenessAudits.${index}.date`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Date of Final Visit</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white border-indigo-100" disabled={isFieldReadOnly(`effectivenessAudits.${index}.date`)} /></FormControl></FormItem>
                                                     )} />
                                                 </div>
+                                                {isInstitutionalViewer && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEffectiveness(index)}><Trash2 className="h-4 w-4" /></Button>}
                                             </div>
-
-                                            <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
-                                                <FormItem className="pt-2">
-                                                    <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Final Remarks / Closure Summary</FormLabel>
-                                                    <FormControl><Input {...inputField} value={inputField.value || ''} className="h-8 text-[10px] bg-white" placeholder="Optional audit notes..." disabled={isFieldReadOnly(`verificationRecords.${index}.remarks`)} /></FormControl>
-                                                </FormItem>
-                                            )} />
-                                        </div>
-                                    ))}
-
-                                    {verificationFields.length === 0 && (
-                                        <div className="py-12 border border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center text-center space-y-2 opacity-30">
-                                            <ShieldCheck className="h-8 w-8 text-muted-foreground" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">No Institutional Verification Logged</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t">
-                                    <FormField control={form.control} name="requestDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Request Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('requestDate')} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="preparedBy" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Prepared By</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('preparedBy')} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="approvedBy" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Approved By (QA Director)</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('approvedBy')} /></FormControl><FormMessage /></FormItem>
-                                    )} />
+                                        ))}
+                                    </div>
                                 </div>
                             </form>
                         </Form>
@@ -1047,78 +944,27 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </ScrollArea>
             </div>
 
-            <div className="hidden lg:flex w-[380px] flex-col bg-muted/10 shrink-0 border-l">
-                <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
-                    <BookOpen className="h-4 w-4 text-primary" /> Unit Compliance Guide
+            <div className="hidden lg:flex w-[380px] flex-col bg-muted/10 shrink-0 border-l p-6 space-y-6">
+                <div className="space-y-2">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Process Standard Registry</h4>
+                    <p className="text-[11px] text-slate-600 leading-relaxed italic">
+                        All corrective actions must be supported by objective evidence logged in the RSU Digital repository.
+                    </p>
                 </div>
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-6">
-                        <section className="space-y-3">
-                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">1</span>
-                                Investigation Phase
-                            </h4>
-                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                                The unit must first <strong>Provide the Root Cause Analysis</strong>. Investigate why the non-conformity occurred (manpower, method, machine, etc.). documenting this is mandatory before the Action Registry is enabled.
-                            </p>
-                        </section>
-
-                        <section className="space-y-3">
-                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">2</span>
-                                Action Strategy
-                            </h4>
-                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                                Units must provide the <strong>Corrective Action Registry</strong> steps. Ensure both <strong>Immediate Correction</strong> (short-term fix) and <strong>Long-term Corrective Action</strong> (prevention) are logged.
-                            </p>
-                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex gap-2">
-                                <LinkIcon className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-blue-800 font-bold">A valid Google Drive link to the PDF evidence is required for every action step.</p>
-                            </div>
-                        </section>
-
-                        <section className="space-y-3">
-                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">3</span>
-                                QA Monitoring
-                            </h4>
-                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                                <strong>Auditors and QA Officers</strong> will conduct a formal follow-up of the implementation on the prescribed target dates. Ensure all evidence logs are accessible.
-                            </p>
-                        </section>
-
-                        <section className="space-y-3">
-                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">4</span>
-                                Verification
-                            </h4>
-                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                                Final <strong>Verification of Effectiveness</strong> will be conducted by the QA team. Only after successful verification will the CAR status be marked as "Closed".
-                            </p>
-                        </section>
-
-                        <div className="pt-6 border-t">
-                            <Card className="bg-primary/5 border-primary/20">
-                                <CardContent className="p-4 space-y-2">
-                                    <div className="flex items-center gap-2 text-primary">
-                                        <ShieldCheck className="h-4 w-4" />
-                                        <span className="text-[9px] font-black uppercase">Standard: ISO 21001:2018</span>
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground italic leading-tight">
-                                        Compliance with CARs is a vital component of the university's continual improvement cycle.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </ScrollArea>
+                <Separator />
+                <div className="space-y-4">
+                    <Badge variant="outline" className="h-5 text-[9px] font-black uppercase bg-white">Standard: ISO 21001:2018</Badge>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        Administrators use Part III and IV to close the verification loop. Follow-ups ensure unit progression, while the final Effectiveness Audit determines if the NC can be formally closed.
+                    </p>
+                </div>
             </div>
           </div>
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4 mr-1.5" />}
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
           </DialogFooter>
@@ -1127,4 +973,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
