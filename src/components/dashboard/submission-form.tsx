@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -118,11 +119,11 @@ export function SubmissionForm({
   const watchAdminCampus = form.watch('adminCampusId');
   const watchAdminUnit = form.watch('adminUnitId');
 
+  const targetUnitId = useMemo(() => isAdmin ? watchAdminUnit : userProfile?.unitId, [isAdmin, watchAdminUnit, userProfile?.unitId]);
+  const targetCampusId = useMemo(() => isAdmin ? watchAdminCampus : userProfile?.campusId, [isAdmin, watchAdminCampus, userProfile?.campusId]);
+
   // Digital Risk Validation - Check if BOTH risks AND opportunities exist in DB before allowing submission
   const digitalRisksQuery = useMemoFirebase(() => {
-    const targetUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
-    const targetCampusId = isAdmin ? watchAdminCampus : userProfile?.campusId;
-    
     if (!firestore || !targetUnitId || !targetCampusId || !year || !isRorForm) return null;
     return query(
       collection(firestore, 'risks'),
@@ -130,13 +131,13 @@ export function SubmissionForm({
       where('campusId', '==', targetCampusId),
       where('year', '==', year)
     );
-  }, [firestore, userProfile?.unitId, userProfile?.campusId, year, isRorForm, isAdmin, watchAdminUnit, watchAdminCampus]);
+  }, [firestore, targetUnitId, targetCampusId, year, isRorForm]);
 
   const { data: digitalRisks, isLoading: isLoadingDigitalRisks } = useCollection<Risk>(digitalRisksQuery);
   
-  const hasRisks = digitalRisks?.some(r => r.type === 'Risk');
-  const hasOpportunities = digitalRisks?.some(r => r.type === 'Opportunity');
-  const isDigitalComplete = hasRisks && hasOpportunities;
+  const hasRisks = useMemo(() => digitalRisks?.some(r => r.type === 'Risk'), [digitalRisks]);
+  const hasOpportunities = useMemo(() => digitalRisks?.some(r => r.type === 'Opportunity'), [digitalRisks]);
+  const isDigitalComplete = useMemo(() => !!(hasRisks && hasOpportunities), [hasRisks, hasOpportunities]);
 
   const isDraftValue = form.watch('isDraft');
 
@@ -244,12 +245,12 @@ export function SubmissionForm({
 
   useEffect(() => {
     const fetchExistingSubmission = async () => {
-        if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return;
+        if (!firestore || !targetUnitId || !targetCampusId) return;
         
         const q = query(
             collection(firestore, 'submissions'),
-            where('unitId', '==', userProfile.unitId),
-            where('campusId', '==', userProfile.campusId),
+            where('unitId', '==', targetUnitId),
+            where('campusId', '==', targetCampusId),
             where('reportType', '==', reportType),
             where('year', '==', year),
             where('cycleId', '==', cycleId)
@@ -280,11 +281,17 @@ export function SubmissionForm({
             setExistingSubmission(null);
             setRiskRating(null);
             setOriginalSubmitter(null);
-            form.reset({ googleDriveLink: '', isDraft: false, comments: '' });
+            form.reset({ 
+                googleDriveLink: '', 
+                isDraft: false, 
+                comments: '', 
+                adminCampusId: targetCampusId, 
+                adminUnitId: targetUnitId 
+            });
         }
     }
     fetchExistingSubmission();
-  }, [firestore, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId, user]); 
+  }, [firestore, targetUnitId, targetCampusId, reportType, year, cycleId, user, form]); 
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;
@@ -299,9 +306,7 @@ export function SubmissionForm({
       return;
     }
 
-    const unitId = isAdmin ? values.adminUnitId : userProfile.unitId;
-    const campusId = isAdmin ? values.adminCampusId : userProfile.campusId;
-    const unit = units.find((u) => u.id === unitId);
+    const unit = units.find((u) => u.id === targetUnitId);
     
     if (!unit) {
         toast({ title: 'Profile Error', description: 'Assigned unit could not be found.', variant: 'destructive' });
@@ -346,8 +351,8 @@ export function SubmissionForm({
               userId: user.uid,
               revision: newRevision,
               controlNumber: newControlNumber,
-              campusId: campusId,
-              unitId: unitId,
+              campusId: targetCampusId,
+              unitId: targetUnitId,
             };
 
             if (isRorForm) {
@@ -380,8 +385,8 @@ export function SubmissionForm({
                 year,
                 cycleId,
                 userId: user.uid,
-                campusId: campusId,
-                unitId: unitId,
+                campusId: targetCampusId,
+                unitId: targetUnitId,
                 unitName: unit.name,
                 statusId: 'submitted',
                 submissionDate: serverTimestamp(), // Atomic server time
@@ -439,9 +444,9 @@ export function SubmissionForm({
   };
 
   const currentUnitName = useMemo(() => {
-    if (!units || !userProfile?.unitId) return '...';
-    return units.find(u => u.id === userProfile.unitId)?.name || '...';
-  }, [units, userProfile]);
+    if (!units || !targetUnitId) return '...';
+    return units.find(u => u.id === targetUnitId)?.name || '...';
+  }, [units, targetUnitId]);
 
   const previewControlData = useMemo(() => {
     const rev = existingSubmission ? (existingSubmission.revision || 0) + 1 : 0;
@@ -481,8 +486,7 @@ export function SubmissionForm({
                 <AlertTitle className="font-black uppercase tracking-tight text-destructive">Digital Registry Block</AlertTitle>
                 <AlertDescription className="space-y-4 pt-1">
                     <p className="text-xs font-bold leading-relaxed">
-                        Institutional quality standards require individual **Risks AND Opportunities** to be encoded digitally in the system BEFORE the formal document can be submitted. 
-                        Currently, your digital register is missing required data:
+                        Institutional quality standards require individual **Risks AND Opportunities** to be encoded digitally in the system BEFORE the formal document can be submitted for **AY {year}**.
                     </p>
                     <ul className="list-disc pl-5 text-xs font-bold space-y-1">
                         {!hasRisks && <li className="text-destructive">NO RISKS ENCODED</li>}
@@ -493,6 +497,10 @@ export function SubmissionForm({
                             Go to Risk Register Registry
                         </Link>
                     </Button>
+                    <div className="pt-2 border-t border-destructive/20 mt-2">
+                        <p className="text-[9px] font-black uppercase text-destructive/70 tracking-widest">Registry Search Context:</p>
+                        <p className="text-[9px] text-destructive/60 italic">Unit ID: {targetUnitId} | Site ID: {targetCampusId} | Year: {year}</p>
+                    </div>
                 </AlertDescription>
             </Alert>
         )}
@@ -750,7 +758,7 @@ export function SubmissionForm({
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={() => router.push(`/risk-register?openForm=true&mandatory=true&year=${year}&link=${encodeURIComponent(lastSubmittedLink)}`)}>
+                <AlertDialogAction onClick={() => router.push(`/risk-register?openForm=true&mandatory=true&year=${year}&link=${encodeURIComponent(lastSubmittedLink)}&unitId=${targetUnitId}&campusId=${targetCampusId}`)}>
                     Continue to Risk Register
                 </AlertDialogAction>
             </AlertDialogFooter>
@@ -759,3 +767,4 @@ export function SubmissionForm({
     </>
   );
 }
+

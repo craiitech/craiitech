@@ -179,8 +179,8 @@ export function RiskFormDialog({
       treatmentAction: '',
       monitoringScore: '',
       status: 'Open',
-      adminCampusId: defaultCampusId || userProfile?.campusId || '',
-      adminUnitId: defaultUnitId || userProfile?.unitId || '',
+      adminCampusId: defaultCampusId || searchParams.get('campusId') || userProfile?.campusId || '',
+      adminUnitId: defaultUnitId || searchParams.get('unitId') || userProfile?.unitId || '',
     },
   });
 
@@ -234,8 +234,8 @@ export function RiskFormDialog({
         treatmentAction: '',
         monitoringScore: '',
         status: 'Open',
-        adminCampusId: selectedAdminCampusId,
-        adminUnitId: selectedAdminUnitId,
+        adminCampusId: selectedAdminCampusId || searchParams.get('campusId') || userProfile?.campusId || '',
+        adminUnitId: selectedAdminUnitId || searchParams.get('unitId') || userProfile?.unitId || '',
       });
     }
   };
@@ -401,7 +401,7 @@ export function RiskFormDialog({
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-primary mb-1">
                         <ShieldCheck className="h-5 w-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Registry Tracking</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Risk Registry</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <DialogTitle className="text-xl">
@@ -945,3 +945,4 @@ export function RiskFormDialog({
     </Dialog>
   );
 }
+
