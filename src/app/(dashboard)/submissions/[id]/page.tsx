@@ -43,7 +43,8 @@ import {
     CheckCircle2,
     ThumbsUp,
     ThumbsDown,
-    RefreshCcw
+    RefreshCcw,
+    Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -483,42 +484,43 @@ export default function SubmissionDetailPage() {
               </Alert>
           )}
 
-          <div className="rounded-lg border bg-muted/5 p-6 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-8">
+          {/* DOCUMENT INFORMATION CARD - Now Sticky */}
+          <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Control Number</p>
-                    <p className="font-mono text-xs font-bold text-primary truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Control Number</p>
+                    <p className="font-mono text-[10px] font-bold text-primary truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Status</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Status</p>
                     <div className="flex items-center gap-2">
-                        <p className={cn("text-sm font-black uppercase tracking-tight", submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive")}>{getStatusText(submission.statusId)}</p>
+                        <p className={cn("text-xs font-black uppercase tracking-tight", submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive")}>{getStatusText(submission.statusId)}</p>
                         {submission.isDraft && <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">DRAFT</Badge>}
                     </div>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Revision</p>
-                    <Badge variant="outline" className="font-mono font-bold bg-background">Rev {String(submission.revision || 0).padStart(2, '0')}</Badge>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Revision</p>
+                    <Badge variant="outline" className="font-mono font-bold bg-background h-5 text-[10px]">Rev {String(submission.revision || 0).padStart(2, '0')}</Badge>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Submitter</p>
-                    <p className="text-sm font-bold text-foreground truncate">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Submitter</p>
+                    <p className="text-xs font-bold text-foreground truncate">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Campus</p>
-                    <p className="text-sm font-bold text-foreground truncate">{campus ? campus.name : '...'}</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Campus</p>
+                    <p className="text-xs font-bold text-foreground truncate">{campus ? campus.name : '...'}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Unit</p>
-                    <p className="text-sm font-bold text-foreground truncate">{submission.unitName}</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Unit</p>
+                    <p className="text-xs font-bold text-foreground truncate">{submission.unitName}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-foreground/60 leading-none">Year</p>
-                    <p className="text-sm font-bold text-foreground">{submission.year}</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase text-foreground/60 leading-none">Year</p>
+                    <p className="text-xs font-bold text-foreground">{submission.year}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-foreground/60 leading-none">Cycle</p>
-                    <p className="text-sm font-bold text-foreground capitalize">{submission.cycleId} Cycle</p>
+                    <p className="text-[9px] text-muted-foreground font-black uppercase text-foreground/60 leading-none">Cycle</p>
+                    <p className="text-xs font-bold text-foreground capitalize">{submission.cycleId} Cycle</p>
                 </div>
             </div>
           </div>
