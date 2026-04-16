@@ -479,6 +479,7 @@ export type ProgramFacultyMember = {
 };
 
 export type GraduationOutcome = {
+  majorId?: string; // New: Link to specialization
   year: number;
   semester: string;
   count: number;
@@ -487,6 +488,7 @@ export type GraduationOutcome = {
 };
 
 export type TracerOutcome = {
+  majorId?: string; // New: Link to specialization
   year: number;
   semester: string;
   totalGraduates: number;
@@ -507,6 +509,7 @@ export type RQATVisit = {
 };
 
 export type BoardExamPerformance = {
+  majorId?: string; // New: Link to specialization
   examDate: string;
   firstTakersCount: number;
   firstTakersPassed: number;
@@ -596,6 +599,14 @@ export type CurriculumRecord = {
   dateNoted?: string;
 };
 
+export type EnrollmentRecord = {
+    id: string;
+    majorId: string; // 'General' or specific specialization ID
+    firstSemester: YearLevelEnrollment;
+    secondSemester: YearLevelEnrollment;
+    midYearTerm?: YearLevelEnrollment;
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
@@ -616,6 +627,7 @@ export type ProgramComplianceRecord = {
   };
   accreditationRecords?: AccreditationRecord[];
   curriculumRecords?: CurriculumRecord[];
+  enrollmentRecords?: EnrollmentRecord[]; // New: Disaggregated enrollment
   faculty: {
     dean: FacultyLeadershipMember;
     hasAssociateDean?: boolean;

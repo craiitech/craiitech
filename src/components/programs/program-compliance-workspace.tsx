@@ -84,6 +84,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       },
       accreditationRecords: [],
       curriculumRecords: [],
+      enrollmentRecords: [], // Initialize new disaggregated array
       faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
       stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
       graduationRecords: [], tracerRecords: [], boardPerformance: []
@@ -100,7 +101,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       methods.reset({ 
         ...activeRecord, 
         academicYear: selectedAY,
-        curriculumRecords: activeRecord.curriculumRecords || [] 
+        curriculumRecords: activeRecord.curriculumRecords || [],
+        enrollmentRecords: activeRecord.enrollmentRecords || []
       });
     } else {
       methods.reset({
@@ -120,6 +122,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         },
         accreditationRecords: [],
         curriculumRecords: [],
+        enrollmentRecords: [],
         faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
         stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
         graduationRecords: [], tracerRecords: [], boardPerformance: []
@@ -213,7 +216,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
-              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
+              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} program={program} /></TabsContent>
             </div>
           </Tabs>
         )}
