@@ -27,6 +27,10 @@ interface MultiSelectorProps {
   label?: string;
 }
 
+/**
+ * A multi-selection component designed to work reliably within nested Dialogs.
+ * Uses onPointerDown and event stopping to navigate Radix focus traps.
+ */
 export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add item...", label = "Select Items" }: MultiSelectorProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -49,12 +53,16 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2 items-center min-h-10 p-2 rounded-md border bg-slate-50/50">
         {selectedItems.map((item) => (
-          <Badge key={item.id} variant="secondary" className="gap-1 pr-1 font-bold text-[10px] uppercase h-6 bg-white border-primary/20 text-primary">
+          <Badge key={item.id} variant="secondary" className="gap-1 pr-1 font-bold text-[10px] uppercase h-6 bg-white border-primary/20 text-primary animate-in zoom-in duration-200">
             {item.name}
             <button
               type="button"
-              className="ml-1 rounded-full outline-none hover:bg-destructive hover:text-white transition-colors"
-              onClick={() => handleUnselect(item.id)}
+              className="ml-1 rounded-full outline-none hover:bg-destructive hover:text-white transition-colors p-0.5"
+              onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleUnselect(item.id);
+              }}
             >
               <X className="h-3 w-3" />
             </button>
@@ -75,10 +83,10 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
           <PopoverContent 
             className="w-72 p-0 border-none shadow-2xl" 
             align="start" 
-            // Prevent Dialog from stealing focus back from the Popover input
+            // Prevent main Dialog from snatching focus back immediately
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <Command className="bg-white border rounded-lg overflow-hidden" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+            <Command className="bg-white border rounded-lg overflow-hidden">
               <div className="flex items-center border-b px-3">
                 <CommandInput placeholder={placeholder} className="h-10 text-xs border-none focus:ring-0" />
               </div>
@@ -91,7 +99,11 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                       <CommandItem
                         key={item.id}
                         value={item.name}
-                        // Critical for nested popovers: prevent click from bubbling
+                        // CRITICAL: Use onPointerDown to handle interactions before focus trap interferes
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
                         onSelect={() => toggleItem(item.id)}
                         className="cursor-pointer flex items-center justify-between px-4 py-3"
                       >
