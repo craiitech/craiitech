@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from "react";
-import { Check, Plus, X, Search } from "lucide-react";
+import { Plus, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +24,7 @@ interface MultiSelectorProps {
 
 /**
  * A highly robust multi-selection component designed to work inside nested Dialogs.
- * It avoids cmdk/Command focus traps by using a standard list with Pointer event handling.
+ * It uses onInteractOutside prevention to stay open during selection.
  */
 export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add item...", label = "Select Items" }: MultiSelectorProps) {
   const [open, setOpen] = React.useState(false);
@@ -36,7 +36,11 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
     );
   }, [items, search]);
 
-  const toggleItem = (id: string) => {
+  const toggleItem = (e: React.MouseEvent, id: string) => {
+    // CRITICAL: Stop propagation to prevent the Popover or Dialog from closing
+    e.preventDefault();
+    e.stopPropagation();
+    
     const newIds = selectedIds.includes(id)
       ? selectedIds.filter((i) => i !== id)
       : [...selectedIds, id];
@@ -85,7 +89,12 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
           <PopoverContent 
             className="w-80 p-0 border shadow-2xl z-[100] bg-white overflow-hidden rounded-lg" 
             align="start"
+            // CRITICAL: Prevent Dialog from stealing focus and closing the popover
             onOpenAutoFocus={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+                // Prevent closure when clicking items or scrolls within the popover container
+                e.preventDefault();
+            }}
           >
             <div className="flex flex-col">
                 <div className="flex items-center border-b px-3 py-2 gap-2 bg-slate-50">
@@ -95,6 +104,8 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                         className="h-9 text-xs border-none focus:ring-0 p-0 shadow-none bg-transparent" 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        // Prevent focus loss when typing
+                        onKeyDown={(e) => e.stopPropagation()}
                     />
                 </div>
                 <ScrollArea className="max-h-72 h-auto">
@@ -109,11 +120,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                                             "flex items-center gap-3 px-3 py-3 rounded-md cursor-pointer transition-colors hover:bg-primary/5",
                                             isSelected && "bg-primary/5"
                                         )}
-                                        onPointerDown={(e) => {
-                                            // Explicitly handle selection on pointer down to prevent focus shifts
-                                            e.preventDefault();
-                                            toggleItem(item.id);
-                                        }}
+                                        onClick={(e) => toggleItem(e, item.id)}
                                     >
                                         <Checkbox 
                                             id={`item-${item.id}`} 
@@ -131,6 +138,9 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                         )}
                     </div>
                 </ScrollArea>
+                <div className="p-2 border-t bg-slate-50">
+                    <Button variant="ghost" className="w-full h-8 text-[10px] font-black uppercase" onClick={() => setOpen(false)}>Close List</Button>
+                </div>
             </div>
           </PopoverContent>
         </Popover>
