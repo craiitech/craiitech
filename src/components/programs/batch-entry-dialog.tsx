@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -18,7 +17,7 @@ import {
     DialogFooter 
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ShieldCheck, Info, Users, GraduationCap, TrendingUp, BarChart3, ChevronRight, Calculator, CheckCircle2 } from 'lucide-react';
+import { Loader2, Save, Info, Users, GraduationCap, TrendingUp, BarChart3, ChevronRight, Calculator, CheckCircle2 } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -73,7 +72,9 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
                 },
                 graduationRecords: [],
                 boardPerformance: [],
-                tracerRecords: []
+                tracerRecords: [],
+                curriculumRecords: [],
+                enrollmentRecords: []
             });
         }
     }
@@ -123,7 +124,7 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden bg-white">
+        <div className="flex-1 overflow-hidden flex flex-col bg-white">
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 opacity-20">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -136,12 +137,17 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
                             <div className="p-8 pb-20">
                                 {mode === 'enrollment' && (
                                     <div className="space-y-6 animate-in slide-in-from-left-4 duration-500">
-                                        <CurriculumModule canEdit={true} programSpecializations={program?.specializations} />
+                                        <CurriculumModule canEdit={true} programSpecializations={program?.specializations} focusMode="enrollment" />
                                     </div>
                                 )}
                                 {(mode === 'graduation' || mode === 'board' || mode === 'tracer') && (
                                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                                        <OutcomesModule canEdit={true} isBoardProgram={program?.isBoardProgram} />
+                                        <OutcomesModule 
+                                          canEdit={true} 
+                                          isBoardProgram={program?.isBoardProgram} 
+                                          program={program || undefined} 
+                                          focusMode={mode}
+                                        />
                                     </div>
                                 )}
                             </div>

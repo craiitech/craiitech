@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray } from 'react-hook-form';
@@ -18,6 +17,7 @@ interface OutcomesModuleProps {
   canEdit: boolean;
   isBoardProgram?: boolean;
   program?: AcademicProgram;
+  focusMode?: 'graduation' | 'board' | 'tracer' | 'all';
 }
 
 const semesterOptions = [
@@ -26,7 +26,7 @@ const semesterOptions = [
   { value: 'Summer / Midyear', label: 'Summer / Midyear' },
 ];
 
-export function OutcomesModule({ canEdit, isBoardProgram, program }: OutcomesModuleProps) {
+export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = 'all' }: OutcomesModuleProps) {
   const { control, watch, setValue } = useFormContext();
 
   const { fields: gradFields, append: appendGrad, remove: removeGrad } = useFieldArray({
@@ -95,10 +95,14 @@ export function OutcomesModule({ canEdit, isBoardProgram, program }: OutcomesMod
     )} />
   );
 
+  const showBoard = (focusMode === 'all' || focusMode === 'board') && isBoardProgram;
+  const showGrad = focusMode === 'all' || focusMode === 'graduation';
+  const showTracer = focusMode === 'all' || focusMode === 'tracer';
+
   return (
     <div className="space-y-8">
       {/* 1. Board Examination Performance */}
-      {isBoardProgram && (
+      {showBoard && (
         <Card className="border-primary/20 shadow-sm overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-4 flex flex-row items-center justify-between">
             <div className="space-y-1">
@@ -179,148 +183,152 @@ export function OutcomesModule({ canEdit, isBoardProgram, program }: OutcomesMod
       )}
 
       {/* 2. Graduation Registry */}
-      <Card className="shadow-sm border-primary/10 overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b py-4 flex flex-row items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              Major-Disaggregated Graduation Registry
-            </CardTitle>
-            <CardDescription className="text-[10px]">Track degree completion per specialization.</CardDescription>
-          </div>
-          {canEdit && (
-            <Button type="button" size="sm" onClick={() => appendGrad({ majorId: 'General', year: new Date().getFullYear(), semester: '1st Semester', maleCount: 0, femaleCount: 0, count: 0 })} className="h-8 text-[10px] font-black uppercase">
-              <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Record
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="text-[9px] font-black uppercase text-muted-foreground">
-                <TableHead className="w-[150px] pl-6">Associated Major</TableHead>
-                <TableHead className="w-[180px]">Year / Semester</TableHead>
-                <TableHead className="text-center">Male</TableHead>
-                <TableHead className="text-center">Female</TableHead>
-                <TableHead className="text-center">Total Output</TableHead>
-                {canEdit && <TableHead className="w-[50px] pr-6"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gradFields.map((field, index) => (
-                <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="pl-6"><MajorSelector name={`graduationRecords.${index}.majorId`} /></TableCell>
-                  <TableCell>
-                    <div className="grid grid-cols-2 gap-1">
-                        <FormField control={control} name={`graduationRecords.${index}.year`} render={({ field }) => (
-                        <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} /></FormControl>
-                        )} />
-                        <FormField control={control} name={`graduationRecords.${index}.semester`} render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                            <FormControl><SelectTrigger className="h-8 text-[9px] font-bold"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                        </Select>
-                        )} />
-                    </div>
-                  </TableCell>
-                  <TableCell><FormField control={control} name={`graduationRecords.${index}.maleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>)} /></TableCell>
-                  <TableCell><FormField control={control} name={`graduationRecords.${index}.femaleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>)} /></TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline" className="h-6 px-4 text-[10px] font-black tabular-nums bg-white border-primary/20 text-primary">
-                        {watchGrads?.[index]?.count || 0}
-                    </Badge>
-                  </TableCell>
-                  {canEdit && (
-                    <TableCell className="pr-6 text-right">
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeGrad(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </TableCell>
-                  )}
+      {showGrad && (
+        <Card className="border-primary/20 shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b py-4 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900">
+                <GraduationCap className="h-4 w-4 text-primary" />
+                Major-Disaggregated Graduation Registry
+                </CardTitle>
+                <CardDescription className="text-[10px]">Track degree completion per specialization.</CardDescription>
+            </div>
+            {canEdit && (
+                <Button type="button" size="sm" onClick={() => appendGrad({ majorId: 'General', year: new Date().getFullYear(), semester: '1st Semester', maleCount: 0, femaleCount: 0, count: 0 })} className="h-8 text-[10px] font-black uppercase">
+                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Record
+                </Button>
+            )}
+            </CardHeader>
+            <CardContent className="p-0">
+            <Table>
+                <TableHeader className="bg-muted/50">
+                <TableRow className="text-[9px] font-black uppercase text-muted-foreground">
+                    <TableHead className="w-[150px] pl-6">Associated Major</TableHead>
+                    <TableHead className="w-[180px]">Year / Semester</TableHead>
+                    <TableHead className="text-center">Male</TableHead>
+                    <TableHead className="text-center">Female</TableHead>
+                    <TableHead className="text-center">Total Output</TableHead>
+                    {canEdit && <TableHead className="w-[50px] pr-6"></TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* 3. Tracer Registry */}
-      <Card className="shadow-sm border-primary/10 overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b py-4 flex flex-row items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              Disaggregated Tracer Study Log
-            </CardTitle>
-            <CardDescription className="text-[10px]">Employment statistics disaggregated by sex and major.</CardDescription>
-          </div>
-          {canEdit && (
-            <Button type="button" size="sm" onClick={() => appendTracer({ majorId: 'General', year: new Date().getFullYear(), semester: '1st Semester', totalGraduates: 0, tracedCount: 0, employmentRate: 0, maleTraced: 0, femaleTraced: 0, maleEmployed: 0, femaleEmployed: 0 })} className="h-8 text-[10px] font-black uppercase">
-              <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Tracer Record
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="text-[9px] font-black uppercase text-muted-foreground">
-                <TableHead className="w-[120px] pl-6">Associated Major</TableHead>
-                <TableHead className="w-[150px]">Period</TableHead>
-                <TableHead className="text-center">Traced (M/F)</TableHead>
-                <TableHead className="text-center">Employed (M/F)</TableHead>
-                <TableHead className="w-[100px] text-right pr-6">Employment %</TableHead>
-                {canEdit && <TableHead className="w-[40px]"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tracerFields.map((field, index) => {
-                const rate = Number(watch(`tracerRecords.${index}.employmentRate`)) || 0;
-                return (
-                  <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="pl-6"><MajorSelector name={`tracerRecords.${index}.majorId`} /></TableCell>
+                </TableHeader>
+                <TableBody>
+                {gradFields.map((field, index) => (
+                    <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="pl-6"><MajorSelector name={`graduationRecords.${index}.majorId`} /></TableCell>
                     <TableCell>
-                      <div className="grid grid-cols-2 gap-1">
-                        <FormField control={control} name={`tracerRecords.${index}.year`} render={({ field }) => (
-                          <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} /></FormControl>
-                        )} />
-                        <FormField control={control} name={`tracerRecords.${index}.semester`} render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                            <FormControl><SelectTrigger className="h-8 text-[9px] font-bold"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                          </Select>
-                        )} />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex gap-1 justify-center">
-                            <FormField control={control} name={`tracerRecords.${index}.maleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
-                            <FormField control={control} name={`tracerRecords.${index}.femaleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                        <div className="grid grid-cols-2 gap-1">
+                            <FormField control={control} name={`graduationRecords.${index}.year`} render={({ field }) => (
+                            <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} /></FormControl>
+                            )} />
+                            <FormField control={control} name={`graduationRecords.${index}.semester`} render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                <FormControl><SelectTrigger className="h-8 text-[9px] font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                            )} />
                         </div>
                     </TableCell>
-                    <TableCell>
-                        <div className="flex gap-1 justify-center">
-                            <FormField control={control} name={`tracerRecords.${index}.maleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
-                            <FormField control={control} name={`tracerRecords.${index}.femaleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
-                        </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <div className="space-y-1">
-                        <FormField control={control} name={`tracerRecords.${index}.employmentRate`} render={({ field }) => (
-                          <FormControl><Input type="number" step="0.01" {...field} className="h-7 text-[10px] font-black text-right text-emerald-600 border-none bg-transparent" disabled={!canEdit} /></FormControl>
-                        )} />
-                        <Progress value={rate} className="h-1 bg-muted" />
-                      </div>
+                    <TableCell><FormField control={control} name={`graduationRecords.${index}.maleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>)} /></TableCell>
+                    <TableCell><FormField control={control} name={`graduationRecords.${index}.femaleCount`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>)} /></TableCell>
+                    <TableCell className="text-center">
+                        <Badge variant="outline" className="h-6 px-4 text-[10px] font-black tabular-nums bg-white border-primary/20 text-primary">
+                            {watchGrads?.[index]?.count || 0}
+                        </Badge>
                     </TableCell>
                     {canEdit && (
-                      <TableCell className="pr-4">
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTracer(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </TableCell>
+                        <TableCell className="pr-6 text-right">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeGrad(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </TableCell>
                     )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+            </CardContent>
+        </Card>
+      )}
+
+      {/* 3. Tracer Registry */}
+      {showTracer && (
+        <Card className="shadow-sm border-primary/10 overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b py-4 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Disaggregated Tracer Study Log
+                </CardTitle>
+                <CardDescription className="text-[10px]">Employment statistics disaggregated by sex and major.</CardDescription>
+            </div>
+            {canEdit && (
+                <Button type="button" size="sm" onClick={() => appendTracer({ majorId: 'General', year: new Date().getFullYear(), semester: '1st Semester', totalGraduates: 0, tracedCount: 0, employmentRate: 0, maleTraced: 0, femaleTraced: 0, maleEmployed: 0, femaleEmployed: 0 })} className="h-8 text-[10px] font-black uppercase">
+                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Tracer Record
+                </Button>
+            )}
+            </CardHeader>
+            <CardContent className="p-0">
+            <Table>
+                <TableHeader className="bg-muted/50">
+                <TableRow className="text-[9px] font-black uppercase text-muted-foreground">
+                    <TableHead className="w-[120px] pl-6">Associated Major</TableHead>
+                    <TableHead className="w-[150px]">Period</TableHead>
+                    <TableHead className="text-center">Traced (M/F)</TableHead>
+                    <TableHead className="text-center">Employed (M/F)</TableHead>
+                    <TableHead className="w-[100px] text-right pr-6">Employment %</TableHead>
+                    {canEdit && <TableHead className="w-[40px]"></TableHead>}
+                </TableRow>
+                </TableHeader>
+                <TableBody>
+                {tracerFields.map((field, index) => {
+                    const rate = Number(watch(`tracerRecords.${index}.employmentRate`)) || 0;
+                    return (
+                    <TableRow key={field.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="pl-6"><MajorSelector name={`tracerRecords.${index}.majorId`} /></TableCell>
+                        <TableCell>
+                        <div className="grid grid-cols-2 gap-1">
+                            <FormField control={control} name={`tracerRecords.${index}.year`} render={({ field }) => (
+                            <FormControl><Input type="number" {...field} className="h-8 text-[11px] font-bold" disabled={!canEdit} /></FormControl>
+                            )} />
+                            <FormField control={control} name={`tracerRecords.${index}.semester`} render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                <FormControl><SelectTrigger className="h-8 text-[9px] font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                            )} />
+                        </div>
+                        </TableCell>
+                        <TableCell>
+                            <div className="flex gap-1 justify-center">
+                                <FormField control={control} name={`tracerRecords.${index}.maleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                                <FormField control={control} name={`tracerRecords.${index}.femaleTraced`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <div className="flex gap-1 justify-center">
+                                <FormField control={control} name={`tracerRecords.${index}.maleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                                <FormField control={control} name={`tracerRecords.${index}.femaleEmployed`} render={({ field }) => (<FormControl><Input type="number" {...field} className="h-7 w-12 text-center text-[10px]" disabled={!canEdit} /></FormControl>)} />
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                        <div className="space-y-1">
+                            <FormField control={control} name={`tracerRecords.${index}.employmentRate`} render={({ field }) => (
+                            <FormControl><Input type="number" step="0.01" {...field} className="h-7 text-[10px] font-black text-right text-emerald-600 border-none bg-transparent" disabled={!canEdit} /></FormControl>
+                            )} />
+                            <Progress value={rate} className="h-1 bg-muted" />
+                        </div>
+                        </TableCell>
+                        {canEdit && (
+                        <TableCell className="pr-4">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeTracer(index)} className="h-7 w-7 text-destructive opacity-20 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </TableCell>
+                        )}
+                    </TableRow>
+                    );
+                })}
+                </TableBody>
+            </Table>
+            </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
