@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -44,7 +43,8 @@ import {
     ChevronRight,
     Gavel,
     BookOpen,
-    School
+    School,
+    Save
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -534,7 +534,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       </div>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex-1 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 w-full space-y-1.5 md:space-y-0">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                     <Search className="h-2.5 w-2.5" /> Search Registry
@@ -577,6 +578,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     </SelectContent>
                 </Select>
             </div>
+          </div>
         </div>
         <div className="flex items-center gap-2 pt-5">
             <Button 
@@ -711,7 +713,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </TableCell>
                                 <TableCell className="text-center">
                                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100">
-                                        <Clock className="h-3 w-3" />
+                                        <Clock className="h-3 w-3 text-muted-foreground" />
                                         {format(limitMatch, 'MM/dd/yy')}
                                     </div>
                                 </TableCell>
@@ -848,7 +850,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
                                                 )} />
                                             </div>
-                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (
