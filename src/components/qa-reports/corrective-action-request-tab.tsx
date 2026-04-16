@@ -116,7 +116,7 @@ const carSchema = z.object({
   status: z.enum(['Open', 'In Progress', 'Closed']),
 });
 
-type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status';
+type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status' | 'updatedAt';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
@@ -192,6 +192,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 case 'carNumber': valA = a.carNumber; valB = b.carNumber; break;
                 case 'unit': valA = unitMap.get(a.unitId) || ''; valB = unitMap.get(b.unitId) || ''; break;
                 case 'status': valA = a.status; valB = b.status; break;
+                case 'updatedAt':
+                    valA = a.updatedAt?.toMillis?.() || new Date(a.updatedAt).getTime();
+                    valB = b.updatedAt?.toMillis?.() || new Date(b.updatedAt).getTime();
+                    break;
                 case 'deadline':
                     valA = a.timeLimitForReply?.toMillis?.() || new Date(a.timeLimitForReply).getTime();
                     valB = b.timeLimitForReply?.toMillis?.() || new Date(b.timeLimitForReply).getTime();
@@ -526,7 +530,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
         </Card>
 
@@ -1039,4 +1043,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
