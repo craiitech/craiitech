@@ -44,7 +44,9 @@ import {
     Gavel,
     BookOpen,
     School,
-    Save
+    Save,
+    Undo2,
+    Check
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -474,6 +476,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -755,7 +769,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ShieldCheck className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Institutional Oversight Panel</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Institutional Document Control</span>
             </div>
             <DialogTitle>{editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
           </DialogHeader>
