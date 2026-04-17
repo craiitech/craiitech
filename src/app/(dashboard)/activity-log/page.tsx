@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,7 +31,8 @@ import {
     Briefcase,
     GraduationCap,
     Download,
-    Award
+    Award,
+    User
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -79,6 +79,9 @@ export default function EmployeeActivityLogPage() {
   // Print States
   const [isWfhPrintDialogOpen, setIsWfhPrintDialogOpen] = useState(false);
   const [wfhPrintType, setWfhPrintType] = useState<'Teaching' | 'Non-Teaching'>('Non-Teaching');
+  const [wfhDeptChair, setWfhDeptChair] = useState('');
+  const [wfhDeanDirector, setWfhDeanDirector] = useState('');
+  const [wfhImmediateHead, setWfhImmediateHead] = useState('');
 
   // Defer default date to mount to avoid hydration mismatch
   useEffect(() => {
@@ -224,7 +227,7 @@ export default function EmployeeActivityLogPage() {
     const itemsToPrint = rawWfhActivities.filter(a => {
         const d = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
         return d >= start && d <= end && (a.status === 'Verified' || a.userId === user?.uid);
-    }).sort((a, b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
+    }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
 
     if (itemsToPrint.length === 0) {
         toast({ title: 'No WFH data for this month', variant: 'destructive' });
@@ -237,6 +240,9 @@ export default function EmployeeActivityLogPage() {
             userName={`${userProfile.firstName} ${userProfile.lastName}`}
             campusName={campusMap.get(userProfile.campusId) || 'Romblon State University'}
             type={wfhPrintType}
+            deptChair={wfhPrintType === 'Teaching' ? wfhDeptChair : undefined}
+            deanDirector={wfhPrintType === 'Teaching' ? wfhDeanDirector : undefined}
+            immediateHead={wfhPrintType === 'Non-Teaching' ? wfhImmediateHead : undefined}
         />
     );
     triggerPrint(reportHtml, `WFH_Monitoring_${wfhPrintType}_${monthFilter}`);
@@ -435,32 +441,89 @@ export default function EmployeeActivityLogPage() {
 
       {/* --- WFH Print Wizard --- */}
       <Dialog open={isWfhPrintDialogOpen} onOpenChange={setIsWfhPrintDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl">
             <DialogHeader>
                 <div className="flex items-center gap-2 text-primary mb-1">
                     <Printer className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Report Wizard</span>
                 </div>
                 <DialogTitle>Generate WFH Monitoring Sheet</DialogTitle>
-                <DialogDescription>Select the personnel template to generate for the selected month ({monthFilter}).</DialogDescription>
+                <DialogDescription>Configure the personnel template and signatories for the selected month ({monthFilter}).</DialogDescription>
             </DialogHeader>
-            <div className="py-6">
-                <RadioGroup value={wfhPrintType} onValueChange={(v: any) => setWfhPrintType(v)} className="grid grid-cols-2 gap-4">
-                    <Label htmlFor="type-teaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Teaching' ? "border-primary bg-primary/5" : "border-slate-100")}>
-                        <RadioGroupItem value="Teaching" id="type-teaching" className="sr-only" />
-                        <GraduationCap className={cn("h-8 w-8", wfhPrintType === 'Teaching' ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-xs font-black uppercase">Teaching</span>
-                    </Label>
-                    <Label htmlFor="type-nonteaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Non-Teaching' ? "border-primary bg-primary/5" : "border-slate-100")}>
-                        <RadioGroupItem value="Non-Teaching" id="type-nonteaching" className="sr-only" />
-                        <Briefcase className={cn("h-8 w-8", wfhPrintType === 'Non-Teaching' ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-xs font-black uppercase">Non-Teaching</span>
-                    </Label>
-                </RadioGroup>
+            <div className="py-6 space-y-8">
+                <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Personnel Type</Label>
+                    <RadioGroup value={wfhPrintType} onValueChange={(v: any) => setWfhPrintType(v)} className="grid grid-cols-2 gap-4">
+                        <Label htmlFor="type-teaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Teaching' ? "border-primary bg-primary/5" : "border-slate-100")}>
+                            <RadioGroupItem value="Teaching" id="type-teaching" className="sr-only" />
+                            <GraduationCap className={cn("h-8 w-8", wfhPrintType === 'Teaching' ? "text-primary" : "text-muted-foreground")} />
+                            <span className="text-xs font-black uppercase">Teaching</span>
+                        </Label>
+                        <Label htmlFor="type-nonteaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Non-Teaching' ? "border-primary bg-primary/5" : "border-slate-100")}>
+                            <RadioGroupItem value="Non-Teaching" id="type-nonteaching" className="sr-only" />
+                            <Briefcase className={cn("h-8 w-8", wfhPrintType === 'Non-Teaching' ? "text-primary" : "text-muted-foreground")} />
+                            <span className="text-xs font-black uppercase">Non-Teaching</span>
+                        </Label>
+                    </RadioGroup>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-primary" />
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-800">Identify Official Signatories</Label>
+                    </div>
+                    
+                    {wfhPrintType === 'Teaching' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-2">
+                                <Label htmlFor="dept-chair" className="text-[9px] font-bold uppercase text-muted-foreground">Department / Program Chair</Label>
+                                <Input 
+                                    id="dept-chair" 
+                                    value={wfhDeptChair} 
+                                    onChange={(e) => setWfhDeptChair(e.target.value)} 
+                                    placeholder="Enter full name" 
+                                    className="h-9 text-xs font-bold bg-slate-50"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="dean-director" className="text-[9px] font-bold uppercase text-muted-foreground">Dean / Campus Director</Label>
+                                <Input 
+                                    id="dean-director" 
+                                    value={wfhDeanDirector} 
+                                    onChange={(e) => setWfhDeanDirector(e.target.value)} 
+                                    placeholder="Enter full name" 
+                                    className="h-9 text-xs font-bold bg-slate-50"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="animate-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-2">
+                                <Label htmlFor="immediate-head" className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label>
+                                <Input 
+                                    id="immediate-head" 
+                                    value={wfhImmediateHead} 
+                                    onChange={(e) => setWfhImmediateHead(e.target.value)} 
+                                    placeholder="Enter full name" 
+                                    className="h-9 text-xs font-bold bg-slate-50"
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <p className="text-[9px] text-muted-foreground italic leading-relaxed">
+                        These names will be printed in the signature section of the official monitoring sheet.
+                    </p>
+                </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="border-t pt-4">
                 <Button variant="ghost" onClick={() => setIsWfhPrintDialogOpen(false)} className="font-bold text-[10px] uppercase">Cancel</Button>
-                <Button onClick={handlePrintWfh} className="font-black uppercase text-[10px] tracking-widest px-8">Generate & Print</Button>
+                <Button 
+                    onClick={handlePrintWfh} 
+                    className="font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-primary/20"
+                    disabled={wfhPrintType === 'Teaching' ? (!wfhDeptChair || !wfhDeanDirector) : !wfhImmediateHead}
+                >
+                    Generate & Print
+                </Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

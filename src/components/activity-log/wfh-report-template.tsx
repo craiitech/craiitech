@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -11,9 +10,20 @@ interface WfhReportTemplateProps {
   userName: string;
   campusName: string;
   type: 'Teaching' | 'Non-Teaching';
+  deptChair?: string;
+  deanDirector?: string;
+  immediateHead?: string;
 }
 
-export function WfhReportTemplate({ activities, userName, campusName, type }: WfhReportTemplateProps) {
+export function WfhReportTemplate({ 
+    activities, 
+    userName, 
+    campusName, 
+    type,
+    deptChair,
+    deanDirector,
+    immediateHead
+}: WfhReportTemplateProps) {
   const latest = activities[0] || {};
   
   // Fill up to 5 rows for the "Period" section as per template images
@@ -146,20 +156,26 @@ export function WfhReportTemplate({ activities, userName, campusName, type }: Wf
             <>
                 <div className="text-left">
                     <p className="mb-10">VALIDATED:</p>
-                    <div className="border-b border-black mb-1 w-64 min-h-[1.5rem]" />
-                    <p className="text-[10px]">Department Chair</p>
+                    <div className="border-b border-black font-bold text-center pb-1 mb-1 min-h-[1.5rem] uppercase">
+                        {deptChair || ''}
+                    </div>
+                    <p className="text-[10px] text-center font-semibold">Department Chair</p>
                 </div>
                 <div className="text-left">
                     <p className="mb-10">APPROVED:</p>
-                    <div className="border-b border-black mb-1 w-64 min-h-[1.5rem]" />
-                    <p className="text-[10px]">Dean/Director</p>
+                    <div className="border-b border-black font-bold text-center pb-1 mb-1 min-h-[1.5rem] uppercase">
+                        {deanDirector || ''}
+                    </div>
+                    <p className="text-[10px] text-center font-semibold">Dean/Director</p>
                 </div>
             </>
         ) : (
             <div className="col-span-2 flex flex-col items-center text-center">
                 <p className="mb-10 w-full text-center">VALIDATED AND APPROVED:</p>
-                <div className="border-b border-black mb-1 w-72 min-h-[1.5rem]" />
-                <p className="text-[10px]">Immediate Head</p>
+                <div className="border-b border-black font-bold text-center pb-1 mb-1 w-72 min-h-[1.5rem] uppercase">
+                    {immediateHead || ''}
+                </div>
+                <p className="text-[10px] font-semibold">Immediate Head</p>
             </div>
         )}
       </div>
