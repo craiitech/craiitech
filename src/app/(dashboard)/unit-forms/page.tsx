@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -15,8 +14,6 @@ import {
     ShieldCheck, 
     Building, 
     Search, 
-    PanelLeftClose, 
-    PanelLeftOpen, 
     ChevronLeft, 
     ChevronRight,
     Link as LinkIcon,
@@ -38,7 +35,9 @@ import {
     History,
     User,
     Edit,
-    LayoutList
+    LayoutList,
+    PanelLeftClose,
+    PanelLeftOpen
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -147,6 +146,15 @@ export default function UnitFormsPage() {
 
     return items.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
   }, [allUnits, userProfile, isAdmin, userRole, isUserLoading, searchTerm]);
+
+  const adminPendingCount = useMemo(() => {
+    if (!allRequests) return 0;
+    return allRequests.filter(r => 
+        r.status === 'Submitted' || 
+        r.status === 'QA Review' || 
+        r.status === 'Awaiting Presidential Approval'
+    ).length;
+  }, [allRequests]);
 
   useEffect(() => {
     if (userProfile && !selectedUnitId && !isUserLoading && !isAdmin) {
@@ -681,16 +689,17 @@ export default function UnitFormsPage() {
         <CardHeader className="bg-primary/5 border-b py-4">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-primary mb-1">
                         <Inbox className="h-5 w-5 text-primary" />
-                        Form Registration Management Inbox
-                    </CardTitle>
+                        <span className="text-[10px] font-black uppercase tracking-tight">Form Registration Management Inbox</span>
+                    </div>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Application Inbox</CardTitle>
                     <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
                         Review and approve institutional form registration applications from all university units.
                     </CardDescription>
                 </div>
                 <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary uppercase">
-                    {allRequests?.length || 0} TOTAL REQUESTS
+                    {adminPendingCount} PENDING ACTION
                 </Badge>
             </div>
         </CardHeader>
@@ -796,8 +805,8 @@ export default function UnitFormsPage() {
                   </TabsTrigger>
                   <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                       <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
-                      {allRequests && allRequests.length > 0 && (
-                          <Badge className="ml-2 bg-primary text-white border-none h-4 px-1 text-[8px] font-black">{allRequests.length}</Badge>
+                      {adminPendingCount > 0 && (
+                          <Badge className="ml-2 bg-primary text-white border-none h-4 px-1 text-[8px] font-black animate-in zoom-in duration-300">{adminPendingCount}</Badge>
                       )}
                   </TabsTrigger>
               </TabsList>

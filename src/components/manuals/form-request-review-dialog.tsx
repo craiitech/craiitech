@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, writeBatch, collection } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, writeBatch, collection, arrayUnion } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 
@@ -32,11 +32,9 @@ import {
     FileText,
     Hash,
     ChevronRight,
-    FileSearch,
-    AlertCircle,
-    LayoutList,
     CheckCircle2,
-    Monitor
+    Monitor,
+    LayoutList
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -109,9 +107,13 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
       const batch = writeBatch(firestore);
       const reqDocRef = doc(firestore, 'unitFormRequests', request.id);
 
-      const logs = [...(request.comments || [])];
+      const updateData: any = {
+          status: newStatus,
+          updatedAt: serverTimestamp()
+      };
+
       if (commentText) {
-          logs.push({
+          updateData.comments = arrayUnion({
               text: commentText,
               authorId: userProfile.id,
               authorName: `${userProfile.firstName} ${userProfile.lastName}`,
@@ -120,11 +122,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
           });
       }
 
-      batch.update(reqDocRef, {
-          status: newStatus,
-          comments: logs,
-          updatedAt: serverTimestamp()
-      });
+      batch.update(reqDocRef, updateData);
 
       if (newStatus === 'Approved & Registered') {
           request.requestedForms.forEach(f => {
@@ -325,7 +323,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                                         </FormItem>
                                                     )} />
                                                     <div className="grid grid-cols-2 gap-3">
-                                                        <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
+                                                        <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required for rejection.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
                                                         <Button type="button" variant="outline" className="h-10 font-black text-[10px] uppercase gap-1.5" onClick={() => { handleUpdateStatus('QA Review', form.getValues('comment') || 'Moved to active QA validation stage.'); }} disabled={isProcessing}><ShieldCheck className="h-3.5 w-3.5" /> START QA</Button>
                                                     </div>
                                                     <Separator />
@@ -340,16 +338,20 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                 </ScrollArea>
                             </TabsContent>
 
-                            <TabsContent value="history" className="h-full m-0">
+                            <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
                                 <ScrollArea className="h-full">
                                     <div className="p-6 space-y-4">
                                         {request.comments?.length ? (
                                             <div className="space-y-4">
-                                                {request.comments.map((c, i) => (
+                                                {request.comments.slice().sort((a, b) => {
+                                                    const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)?.toDate?.()?.getTime() || 0;
+                                                    const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)?.toDate?.()?.getTime() || 0;
+                                                    return dateB - dateA;
+                                                }).map((c, i) => (
                                                     <div key={i} className="bg-white p-4 rounded-xl border border-primary/5 shadow-sm space-y-2 transition-all hover:border-primary/20">
                                                         <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
                                                             <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
-                                                            <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : c.createdAt.toDate(), 'MMM dd, p')}</span>
+                                                            <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
                                                         </div>
                                                         <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
                                                         <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
