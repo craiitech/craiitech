@@ -110,6 +110,7 @@ export default function SubmissionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
+  const [modeFilter, setModeFilter] = useState<'all' | 'draft' | 'final'>('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
@@ -181,7 +182,7 @@ export default function SubmissionsPage() {
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
-  const { data: campuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
   const userMap = useMemo(() => {
@@ -239,6 +240,10 @@ export default function SubmissionsPage() {
     if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
     if (statusFilter !== 'all') filtered = filtered.filter(s => s.statusId === statusFilter);
     
+    // Draft vs Final Filtering
+    if (modeFilter === 'draft') filtered = filtered.filter(s => s.isDraft === true);
+    if (modeFilter === 'final') filtered = filtered.filter(s => s.isDraft === false || s.isDraft === undefined);
+    
     // Internal Tab Filtering
     if (activeDetailedTab !== 'all') {
         filtered = filtered.filter(s => s.reportType === activeDetailedTab);
@@ -249,7 +254,7 @@ export default function SubmissionsPage() {
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
+  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder, modeFilter]);
 
   const isRiskRegistered = (unitId: string, year: number) => {
     if (!allRisks) return false;
@@ -325,7 +330,7 @@ export default function SubmissionsPage() {
         </div>
 
         <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                         <School className="h-2.5 w-2.5" /> Campus Site
@@ -358,7 +363,7 @@ export default function SubmissionsPage() {
 
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Filter className="h-2.5 w-2.5" /> Filter by Workflow Status
+                        <Filter className="h-2.5 w-2.5" /> Workflow Status
                     </label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="h-9 text-xs bg-white">
@@ -369,6 +374,22 @@ export default function SubmissionsPage() {
                             <SelectItem value="submitted">Awaiting Approval</SelectItem>
                             <SelectItem value="approved">Approved</SelectItem>
                             <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <LayoutList className="h-2.5 w-2.5" /> Document Version
+                    </label>
+                    <Select value={modeFilter} onValueChange={(val: any) => setModeFilter(val)}>
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Versions" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All (Drafts & Finals)</SelectItem>
+                            <SelectItem value="draft">Drafts Only</SelectItem>
+                            <SelectItem value="final">Final Records Only</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
