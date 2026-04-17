@@ -151,12 +151,12 @@ export default function ProfilePage() {
     try {
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      await setDoc(userDocRef, {
+      await updateDoc(userDocRef, {
         firstName: values.firstName,
         lastName: values.lastName,
         sex: values.sex,
         accessibility: values.accessibility,
-      }, { merge: true });
+      });
 
       logSessionActivity('User updated their profile and accessibility preferences', { action: 'update_profile' });
 
@@ -219,6 +219,7 @@ export default function ProfilePage() {
 
   const currentFontSize = form.watch('accessibility.fontSize') || 1.0;
   const currentFontSizeIndex = fontSizeMap.indexOf(currentFontSize);
+  const sexValue = form.watch('sex');
 
   return (
     <div className="space-y-6">
@@ -277,7 +278,7 @@ export default function ProfilePage() {
                         <FormItem>
                             <FormLabel className="text-[10px] font-bold uppercase">Sex Identification (GAD Standard)</FormLabel>
                             <Select 
-                              key={field.value}
+                              key={field.value || 'profile-sex-selector'}
                               onValueChange={field.onChange} 
                               value={field.value || ''}
                             >

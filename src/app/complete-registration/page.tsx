@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection, query, where, getDocs, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -95,6 +95,7 @@ export default function CompleteRegistrationPage() {
 
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
+  const sexValue = form.watch('sex');
   
   const isUnitRequired = useMemo(() => {
     if (!selectedRoleId || !roles) return false; 
@@ -141,22 +142,19 @@ export default function CompleteRegistrationPage() {
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
       
+      // Preserve existing verified and nda status to prevent loops
+      const currentVerified = userProfile?.verified || false;
+      const currentNda = userProfile?.ndaAccepted || false;
+
       const updateData: any = {
         campusId: values.campusId,
         unitId: isUnitRequired ? values.unitId : '',
         roleId: isAdminEmail ? 'admin' : values.roleId,
         role: isAdminEmail ? 'Admin' : (selectedRoleObject ? selectedRoleObject.name : ''),
         sex: values.sex,
-        ndaAccepted: isAdminEmail || userProfile?.ndaAccepted || false,
+        ndaAccepted: isAdminEmail || currentNda,
+        verified: isAdminEmail || currentVerified,
       };
-
-      if (isAdminEmail) {
-          updateData.verified = true;
-      } else if (userProfile && userProfile.verified !== undefined) {
-          updateData.verified = userProfile.verified;
-      } else {
-          updateData.verified = false;
-      }
 
       batch.update(userDocRef, updateData);
 
@@ -167,8 +165,8 @@ export default function CompleteRegistrationPage() {
 
       await batch.commit();
 
-      if (isAdminEmail || updateData.verified) {
-        toast({ title: 'Profile Updated', description: 'Institutional details synchronized. Redirecting...' });
+      if (updateData.verified) {
+        toast({ title: 'Profile Updated', description: 'Institutional details synchronized.' });
         router.push('/dashboard');
       } else {
         toast({ title: 'Registration Details Submitted', description: 'Your account is now pending administrator verification.' });
@@ -293,7 +291,7 @@ export default function CompleteRegistrationPage() {
                   <FormItem>
                     <FormLabel>Sex Identification (GAD Standard)</FormLabel>
                     <Select 
-                      key={field.value}
+                      key={field.value || 'sex-selector'}
                       onValueChange={field.onChange} 
                       value={field.value || ''}
                     >

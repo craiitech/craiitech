@@ -38,8 +38,9 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} {
-      // Allow all authenticated users to read and write their own or unit requests
-      allow read, write: if isSignedIn();
+      // Explicitly allow get and list for all authenticated users to prevent permission errors
+      allow get, list: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /unitForms/{id} {
