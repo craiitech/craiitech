@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -97,12 +98,17 @@ export default function ProfilePage() {
     },
   });
 
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+      resolver: zodResolver(passwordSchema),
+      defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' }
+  });
+
   useEffect(() => {
     if (userProfile && !isUserLoading) {
       form.reset({
         firstName: userProfile.firstName || '',
         lastName: userProfile.lastName || '',
-        sex: (userProfile.sex as any) || '',
+        sex: (userProfile.sex as any) || undefined,
         accessibility: {
           highContrast: userProfile.accessibility?.highContrast || false,
           dyslexicFont: userProfile.accessibility?.dyslexicFont || false,

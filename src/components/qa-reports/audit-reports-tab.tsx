@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -79,7 +80,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       const dataToSave: any = {
         ...values,
         type,
-        campusIds: [UNIVERSITY_WIDE_ID], // Default to university-wide as per request
+        campusIds: [UNIVERSITY_WIDE_ID], // Defaulting to University-Wide
         startDate: Timestamp.fromDate(new Date(values.startDate)),
         endDate: Timestamp.fromDate(new Date(values.endDate)),
         createdAt: serverTimestamp(),
