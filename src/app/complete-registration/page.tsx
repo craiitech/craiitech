@@ -48,7 +48,7 @@ const registrationSchema = z.object({
 export default function CompleteRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { user, userProfile } = useUser();
+  const { user, userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -63,7 +63,6 @@ export default function CompleteRegistrationPage() {
   
   const assignableRoles = useMemo(() => {
     if (!roles) return [];
-    // Define roles that should NOT be self-assigned to prevent privilege escalation.
     const forbiddenRoles = ['admin', 'vice president'];
     return roles.filter(role => 
         !forbiddenRoles.includes(role.name.toLowerCase())
@@ -81,11 +80,10 @@ export default function CompleteRegistrationPage() {
     },
   });
 
-  const isLoading = isLoadingCampuses || isLoadingRoles || isLoadingUnits;
+  const isLoading = isLoadingCampuses || isLoadingRoles || isLoadingUnits || isUserLoading;
 
-  // Initialize form with existing data if available
   useEffect(() => {
-    if (userProfile && !isLoading) {
+    if (userProfile && !isUserLoading) {
       form.reset({
         campusId: userProfile.campusId || '',
         roleId: userProfile.roleId || '',
@@ -93,7 +91,7 @@ export default function CompleteRegistrationPage() {
         sex: (userProfile.sex as any) || undefined,
       });
     }
-  }, [userProfile, isLoading, form]);
+  }, [userProfile, isUserLoading, form]);
 
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
@@ -113,21 +111,12 @@ export default function CompleteRegistrationPage() {
   }, [selectedCampusId, allUnits]);
 
 
-  // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
     if (!isUnitRequired) {
-      form.setValue('unitId', ''); // Clear the value
+      form.setValue('unitId', '');
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
-  
-   // Reset unitId if campus changes
-  useEffect(() => {
-    if (userProfile && selectedCampusId !== userProfile.campusId) {
-        form.setValue('unitId', '');
-    }
-  }, [selectedCampusId, form, userProfile]);
-
   
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
     if (!user || !firestore || !roles) {
@@ -152,7 +141,6 @@ export default function CompleteRegistrationPage() {
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      // CRITICAL: Preserve existing verified status to prevent loop
       const updateData: any = {
         campusId: values.campusId,
         unitId: isUnitRequired ? values.unitId : '',
@@ -162,19 +150,16 @@ export default function CompleteRegistrationPage() {
         ndaAccepted: isAdminEmail || userProfile?.ndaAccepted || false,
       };
 
-      // Only explicitly set verified to false if they are not already verified
       if (isAdminEmail) {
           updateData.verified = true;
-      } else if (userProfile?.verified === undefined || userProfile?.verified === null) {
-          updateData.verified = false;
-      } else {
-          // Keep current status if they are updating profile
+      } else if (userProfile && userProfile.verified !== undefined) {
           updateData.verified = userProfile.verified;
+      } else {
+          updateData.verified = false;
       }
 
       batch.update(userDocRef, updateData);
 
-      // Bootstrapping the Admin role document
       if (isAdminEmail) {
         const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
         batch.set(adminRoleRef, { isAdmin: true, assignedAt: serverTimestamp() });
@@ -275,9 +260,7 @@ export default function CompleteRegistrationPage() {
                     name="unitId"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>
-                            Unit
-                        </FormLabel>
+                        <FormLabel>Unit</FormLabel>
                         <Select 
                             key={field.value}
                             onValueChange={field.onChange} 
@@ -295,11 +278,6 @@ export default function CompleteRegistrationPage() {
                                 {unit.name}
                                 </SelectItem>
                             ))}
-                             {selectedCampusId && unitsForSelectedCampus.length === 0 && (
-                                <div className="p-4 text-sm text-muted-foreground">
-                                    No units found for this campus.
-                                </div>
-                            )}
                         </SelectContent>
                         </Select>
                         <FormMessage />

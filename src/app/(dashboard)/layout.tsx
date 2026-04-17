@@ -91,11 +91,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
-  // LOGIC: Detect if user needs to see the "What's New" pop-up
   useEffect(() => {
     if (!isUserLoading && userProfile && userProfile.verified) {
         if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
-            // Delay slightly for a smoother UX after dashboard load
             const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
             return () => clearTimeout(timer);
         }
@@ -109,15 +107,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         await updateDoc(userRef, { lastSeenVersion: CURRENT_SYSTEM_VERSION });
         setIsWhatsNewOpen(false);
     } catch (e) {
-        setIsWhatsNewOpen(false); // Close anyway to avoid trapping the user
+        setIsWhatsNewOpen(false);
     }
   };
 
   useEffect(() => {
     if (!user || !firestore) return;
     const userStatusRef = doc(firestore, 'users', user.uid);
-    // Log the initial presence only on mount/login, without a recurring interval
-    // to prevent background context updates that interfere with form data.
     updateDoc(userStatusRef, { lastSeen: serverTimestamp() }).catch(() => {});
   }, [user, firestore]);
 
@@ -126,13 +122,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/logout');
   }, [router, toast]);
   
-  // Disable idle timer for both Admins and Auditors as per institutional request
   useIdleTimer(handleIdle, 30 * 60 * 1000, !isAdmin && !isAuditor);
 
-  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: allCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
   const { data: allUnits } = useCollection<Unit>(unitsQuery);
 
   const getNotificationQuery = (): Query | null => {
@@ -143,7 +138,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
 
-    // Only Campus-level supervisors see submissions to approve
     if (isSupervisor) {
         if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
             if (!userProfile.campusId) return null;
@@ -151,7 +145,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
     }
     
-    // Regular users (Coordinators and Unit ODIMOs) see their own rejections
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
@@ -174,7 +167,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const unitName = allUnits.find(u => u.id === userProfile.unitId)?.name;
     let location = campusName || '';
     
-    // Roles that strictly belong to a unit show both site and unit
     const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isAdmin || userRole?.toLowerCase().includes('vice president');
     if (unitName && !isCampusLevel && userRole !== 'Auditor') location += ` / ${unitName}`;
     return location;
@@ -191,17 +183,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
     if (!user) { router.push('/login'); return; }
     
-    // Admins bypass profile checks
     if (isAdmin) return;
     
     if (userProfile) {
-        // 1. Verification Check
         if (!userProfile.verified) { 
             router.push('/awaiting-verification'); 
             return; 
         }
         
-        // 2. Profile Integrity Check
         const roleLower = userRole?.toLowerCase() || '';
         const isUnitOptionalUser = 
             roleLower === 'campus director' || 
@@ -209,7 +198,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             roleLower === 'auditor' || 
             roleLower.includes('vice president');
 
-        // Only redirect already verified users if critical identifying data is missing
         const isProfileIncomplete = isUnitOptionalUser
             ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex
             : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
@@ -218,12 +206,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.push('/complete-registration');
         }
     } else {
-      // New account with no profile document at all
       router.push('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname, router]);
 
-  // Apply Font Size Scaling Globally to the document root
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const scale = userProfile?.accessibility?.fontSize || 1.0;
@@ -231,7 +217,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     return () => {
       if (typeof document !== 'undefined') {
-        document.documentElement.style.fontSize = ''; // Reset on unmount or logout
+        document.documentElement.style.fontSize = ''; 
       }
     };
   }, [userProfile?.accessibility?.fontSize]);
