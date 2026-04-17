@@ -34,13 +34,11 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // CORE WORKFLOW COLLECTIONS (PRIORITY)
+    // CORE WORKFLOW COLLECTIONS
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} {
-      // Explicitly allow get and list for all authenticated users to prevent permission errors
-      allow get, list: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     match /unitForms/{id} {
@@ -70,6 +68,83 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // ACADEMIC & PROGRAM MONITORING
+    // --------------------------------------------------------------------------
+
+    match /academicPrograms/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isSupervisor();
+    }
+
+    match /programCompliances/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /unitMonitoringRecords/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSupervisor();
+    }
+
+    // --------------------------------------------------------------------------
+    // GAD & STRATEGIC HUB
+    // --------------------------------------------------------------------------
+
+    match /gadInitiatives/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /gadMainstreaming/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // --------------------------------------------------------------------------
+    // QA REPORTS, AUDITS & CARS
+    // --------------------------------------------------------------------------
+
+    match /auditPlans/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /auditSchedules/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /auditFindings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /correctiveActionRequests/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /managementReviews/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /managementReviewOutputs/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /qaAuditReports/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    match /qaAdvisories/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    // --------------------------------------------------------------------------
     // SYSTEM COLLECTIONS
     // --------------------------------------------------------------------------
     
@@ -83,26 +158,6 @@ service cloud.firestore {
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
-    }
-
-    match /qaAdvisories/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    match /auditSchedules/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-
-    match /auditFindings/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-
-    match /correctiveActionRequests/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
     }
 
     match /campuses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
@@ -121,6 +176,27 @@ service cloud.firestore {
     match /campusSettings/{id} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
+    }
+
+    match /activityLogs/{id} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+
+    match /errorReports/{id} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+
+    match /appFeedbacks/{id} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+
+    match /softwareEvaluations/{id} {
+      allow create: if true;
+      allow read: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
 
     // Final catch-all for anything else
