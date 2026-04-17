@@ -88,21 +88,18 @@ export default function UnitFormsPage() {
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
 
-  // Queries for the Registry Directory
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  // Query for Admin Inbox
   const allRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? query(collection(firestore, 'unitFormRequests'), orderBy('createdAt', 'desc')) : null),
     [firestore, isAdmin]
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
 
-  // Query for Unit-level Track & Trace
   const unitRequestsQuery = useMemoFirebase(
     () => {
         if (!firestore || !userProfile?.unitId || isAdmin) return null;
@@ -245,7 +242,6 @@ export default function UnitFormsPage() {
 
   const renderRegistryWorkspace = () => (
     <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-20rem)]">
-        {/* Unit Directory Sidebar */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
           isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-ml-6"
@@ -293,7 +289,6 @@ export default function UnitFormsPage() {
             </CardContent>
           </Card>
 
-          {/* Unit-specific Track & Trace */}
           {!isAdmin && (
               <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
                 <CardHeader className="pb-3 border-b py-4">
@@ -336,7 +331,6 @@ export default function UnitFormsPage() {
           )}
         </div>
 
-        {/* Workspace Area */}
         <div className="flex-1 min-0 flex flex-col relative">
           <Button
             variant="secondary"
@@ -366,7 +360,6 @@ export default function UnitFormsPage() {
                     <TabsContent value="roster" className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300">
                         <ScrollArea className="h-full pr-4">
                             <div className="space-y-8 pb-10">
-                                {/* 1. Official Roster Access Card */}
                                 <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
                                     <CardHeader className="bg-primary/10 border-b py-4">
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -471,7 +464,6 @@ export default function UnitFormsPage() {
                                     </CardContent>
                                 </Card>
 
-                                {/* 2. Master List Preview Card */}
                                 <Card className="shadow-lg border-primary/10 overflow-hidden">
                                     <CardHeader className="bg-muted/10 border-b py-4">
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -573,7 +565,6 @@ export default function UnitFormsPage() {
                                     </CardFooter>
                                 </Card>
 
-                                {/* 3. Individual Forms Roster Table */}
                                 <Card className="shadow-sm border-primary/10 overflow-hidden">
                                     <CardHeader className="bg-muted/10 border-b py-4">
                                         <div className="flex items-center justify-between">
@@ -873,7 +864,7 @@ export default function UnitFormsPage() {
           <DialogHeader className="p-4 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                    <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title}</DialogTitle>
+                    <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title || 'Controlled Form Preview'}</DialogTitle>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Official Record Preview</p>
                 </div>
                 <Badge variant="secondary" className="h-5 text-[9px] font-bold bg-primary/10 text-primary border-primary/20">CONTROLLED FORM</Badge>

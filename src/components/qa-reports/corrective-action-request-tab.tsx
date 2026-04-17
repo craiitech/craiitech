@@ -8,6 +8,7 @@ import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/t
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
     Loader2, 
     PlusCircle, 
@@ -325,28 +326,28 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         if (printWindow) {
             printWindow.document.write(`
                 <html>
-                <head>
-                    <title>CAR Control Register - ${yearFilter}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @media print { 
-                            @page { size: landscape; margin: 0.5in; }
-                            body { margin: 0; padding: 0; background: white; } 
-                            .no-print { display: none !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print" style="padding: 20px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: center;">
-                        <button onclick="window.print()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                            Click to Print Matrix
-                        </button>
-                    </div>
-                    <div id="print-content">
-                        ${reportHtml}
-                    </div>
-                </body>
+                    <head>
+                        <title>CAR Control Register - ${yearFilter}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                        <style>
+                            @media print { 
+                                @page { size: landscape; margin: 0.5in; }
+                                body { margin: 0; padding: 0; background: white; } 
+                                .no-print { display: none !important; }
+                            }
+                            body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="no-print" style="padding: 20px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: center;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                                Click to Print Matrix
+                            </button>
+                        </div>
+                        <div id="print-content">
+                            ${reportHtml}
+                        </div>
+                    </body>
                 </html>
             `);
             printWindow.document.close();
@@ -490,45 +491,55 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Issued Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-primary tabular-nums">{carStats.total}</div>
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total CARs Logged</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
         </Card>
 
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Outstanding Gaps</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div>
                 <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Status</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
         </Card>
 
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In-Progress</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><Clock className="h-12 w-12 text-amber-600" /></div>
         </Card>
 
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Verification Pending</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
         </Card>
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div>
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Items</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-emerald-600" /></div>
         </Card>
       </div>
