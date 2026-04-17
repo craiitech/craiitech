@@ -186,6 +186,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isAdmin) return;
     
     if (userProfile) {
+        // First check for verification to avoid redirect loop
         if (!userProfile.verified) { 
             router.push('/awaiting-verification'); 
             return; 

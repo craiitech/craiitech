@@ -8,8 +8,6 @@ import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/t
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { 
     Loader2, 
     PlusCircle, 
@@ -492,55 +490,45 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Issued Requests</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-primary tabular-nums">{carStats.total}</div>
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total CARs Logged</p>
-            </CardContent>
+            </CardHeader>
             <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
         </Card>
 
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Outstanding Gaps</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div>
                 <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Status</p>
-            </CardContent>
+            </CardHeader>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
         </Card>
 
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In-Progress</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p>
-            </CardContent>
+            </CardHeader>
             <div className="absolute top-0 right-0 p-3 opacity-5"><Clock className="h-12 w-12 text-amber-600" /></div>
         </Card>
 
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Verification Pending</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p>
-            </CardContent>
+            </CardHeader>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
         </Card>
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div>
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Items</p>
-            </CardContent>
+            </CardHeader>
             <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-emerald-600" /></div>
         </Card>
       </div>
