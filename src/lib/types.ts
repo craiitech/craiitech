@@ -424,6 +424,7 @@ export type UnitFormRequestComment = {
     text: string;
     authorId: string;
     authorName: string;
+    authorRole: string;
     createdAt: any;
 };
 
@@ -435,6 +436,8 @@ export type UnitFormRequest = {
     submitterId: string;
     submitterName: string;
     scannedRegistrationFormLink: string; 
+    isDraft?: boolean; // New: Draft flag for preliminary content check
+    controlNumber?: string; // New: Standardized control number for the request
     requestedForms: {
         name: string;
         code: string;

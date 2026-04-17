@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -36,7 +37,8 @@ import {
     Inbox,
     History,
     User,
-    Edit
+    Edit,
+    LayoutList
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -241,8 +243,6 @@ export default function UnitFormsPage() {
       }
   };
 
-  const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
-
   const renderRegistryWorkspace = () => (
     <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-20rem)]">
         {/* Unit Directory Sidebar */}
@@ -293,7 +293,7 @@ export default function UnitFormsPage() {
             </CardContent>
           </Card>
 
-          {/* Unit-specific Track & Trace moved to sidebar area or separate card */}
+          {/* Unit-specific Track & Trace */}
           {!isAdmin && (
               <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
                 <CardHeader className="pb-3 border-b py-4">
@@ -309,16 +309,19 @@ export default function UnitFormsPage() {
                         ) : unitRequests && unitRequests.length > 0 ? (
                             <div className="divide-y divide-primary/5">
                                 {unitRequests.map(req => (
-                                    <div key={req.id} className="p-3 hover:bg-white transition-colors group">
+                                    <div key={req.id} className="p-3 hover:bg-white transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
                                         <div className="flex justify-between items-start gap-2 mb-1.5">
-                                            <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
+                                            <div className="flex gap-1 items-center">
+                                                <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
+                                                {req.isDraft && <Badge className="bg-blue-600 text-white h-3.5 px-1 text-[7px] font-black uppercase">DRAFT</Badge>}
+                                            </div>
                                             <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
                                         </div>
-                                        <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Registration</p>
+                                        <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
                                         <div className="mt-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="sm" className="h-5 text-[8px] font-black text-primary p-0 px-1" onClick={() => setReviewRequestId(req.id)}>DETAILS</Button>
+                                            <span className="text-[8.5px] font-black text-primary flex items-center gap-1">VIEW DETAILS <ChevronRight className="h-2 w-2" /></span>
                                             {req.status === 'Returned for Correction' && (
-                                                <Button variant="default" size="sm" className="h-5 text-[8px] font-black bg-rose-600 hover:bg-rose-700 p-0 px-1" onClick={() => { setEditingRequest(req); setIsRegOpen(true); }}>RESUBMIT</Button>
+                                                <Button variant="default" size="sm" className="h-5 text-[8px] font-black bg-rose-600 hover:bg-rose-700 p-0 px-2" onClick={(e) => { e.stopPropagation(); setEditingRequest(req); setIsRegOpen(true); }}>RESUBMIT</Button>
                                             )}
                                         </div>
                                     </div>
@@ -490,7 +493,7 @@ export default function UnitFormsPage() {
                                     <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
                                         {activeMasterlistData.link ? (
                                             <iframe 
-                                                src={getEmbedUrl(activeMasterlistData.link)} 
+                                                src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} 
                                                 className="absolute inset-0 w-full h-full border-none bg-white"
                                                 allow="autoplay"
                                                 title="Unit Masterlist Preview"
@@ -573,9 +576,11 @@ export default function UnitFormsPage() {
                                 {/* 3. Individual Forms Roster Table */}
                                 <Card className="shadow-sm border-primary/10 overflow-hidden">
                                     <CardHeader className="bg-muted/10 border-b py-4">
-                                        <div className="flex items-center gap-2">
-                                            <ShieldCheck className="h-4 w-4 text-primary" />
-                                            <CardTitle className="text-xs font-black uppercase tracking-tight">Enrolled Controlled Forms Log</CardTitle>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <ShieldCheck className="h-4 w-4 text-primary" />
+                                                <CardTitle className="text-xs font-black uppercase tracking-tight">Enrolled Controlled Forms Log</CardTitle>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
@@ -722,7 +727,10 @@ export default function UnitFormsPage() {
                                     </TableCell>
                                     <TableCell className="py-4">
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
+                                                {req.isDraft && <Badge className="bg-blue-600 text-white h-4 px-1.5 text-[8px] font-black uppercase">DRAFT</Badge>}
+                                            </div>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
                                         </div>
                                     </TableCell>
@@ -749,7 +757,7 @@ export default function UnitFormsPage() {
                                             onClick={() => setReviewRequestId(req.id)}
                                             className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
                                         >
-                                            Review Request
+                                            Review Application
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -797,6 +805,9 @@ export default function UnitFormsPage() {
                   </TabsTrigger>
                   <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                       <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
+                      {allRequests && allRequests.length > 0 && (
+                          <Badge className="ml-2 bg-primary text-white border-none h-4 px-1 text-[8px] font-black">{allRequests.length}</Badge>
+                      )}
                   </TabsTrigger>
               </TabsList>
 

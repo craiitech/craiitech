@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import {
     DialogHeader, 
     DialogTitle 
 } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -27,15 +27,16 @@ import {
     Building2, 
     History as HistoryIcon, 
     User, 
-    ArrowRightCircle, 
     Gavel, 
     Undo2,
     Check,
     FileText,
-    LayoutList,
     Hash,
     ChevronRight,
     FileSearch,
+    AlertCircle,
+    LayoutList,
+    CheckCircle2,
     Monitor
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,9 +50,11 @@ import {
     TableHeader, 
     TableRow 
 } from '@/components/ui/table';
-import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
+import type { UnitFormRequest, UnitFormRequestStatus, Comment } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
 
 interface FormRequestReviewDialogProps {
   requestId: string;
@@ -63,12 +66,20 @@ const commentSchema = z.object({
   comment: z.string().min(5, 'Please provide detailed feedback.'),
 });
 
+const adminChecklistItems = [
+    { id: 'drf-signed', label: 'Is the DRF evidence log signed and complete?' },
+    { id: 'code-match', label: 'Do form codes align with the Procedure Manual?' },
+    { id: 'link-access', label: 'Are all individual form links public/viewable?' },
+    { id: 'rev-correct', label: 'Is the revision history sequence accurate?' },
+];
+
 export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: FormRequestReviewDialogProps) {
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeFormPreview, setActiveFormPreview] = useState<{ name: string; link: string } | null>(null);
+  const [adminChecklist, setAdminChecklist] = useState<Record<string, boolean>>({});
 
   const requestRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'unitFormRequests', requestId) : null),
@@ -80,6 +91,16 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
     resolver: zodResolver(commentSchema),
     defaultValues: { comment: '' }
   });
+
+  const isChecklistComplete = useMemo(() => {
+    if (!request) return false;
+    if (request.isDraft) return true; // Drafts bypass strict checklist
+    return adminChecklistItems.every(item => adminChecklist[item.id] === true);
+  }, [adminChecklist, request]);
+
+  const handleToggleChecklist = (id: string) => {
+    setAdminChecklist(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const handleUpdateStatus = async (newStatus: UnitFormRequestStatus, commentText?: string) => {
     if (!firestore || !request || !userProfile) return;
@@ -94,6 +115,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
               text: commentText,
               authorId: userProfile.id,
               authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+              authorRole: userRole || 'Admin',
               createdAt: new Date(),
           });
       }
@@ -104,6 +126,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
           updatedAt: serverTimestamp()
       });
 
+      // Automated Enrollment logic for Final Approval
       if (newStatus === 'Approved & Registered') {
           request.requestedForms.forEach(f => {
               const formDocRef = doc(collection(firestore, 'unitForms'));
@@ -121,11 +144,10 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
       }
 
       await batch.commit();
-      toast({ title: 'Status Updated', description: `Request moved to ${newStatus}.` });
+      toast({ title: 'Decision Logged', description: `Request status transitioned to ${newStatus}.` });
       onOpenChange(false);
     } catch (error) {
-      console.error(error);
-      toast({ title: 'Error', description: 'Failed to update request.', variant: 'destructive' });
+      toast({ title: 'Operation Failed', description: 'Failed to update request state.', variant: 'destructive' });
     } finally {
       setIsProcessing(false);
     }
@@ -135,8 +157,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogTitle className="sr-only">Form Request Review</DialogTitle>
+      <DialogContent className="max-w-7xl h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         {isLoading ? (
             <div className="flex h-full items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>
         ) : request ? (
@@ -146,11 +167,15 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                         <div className="space-y-1">
                             <div className="flex items-center gap-2 text-primary mb-1">
                                 <Gavel className="h-5 w-5" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Oversight Panel</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Oversight panel</span>
                             </div>
-                            <h2 className="text-xl font-bold uppercase tracking-tight">Reviewing Request: {request.id.substring(0, 8).toUpperCase()}</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-xl font-bold uppercase tracking-tight">Form Registration Review</h2>
+                                {request.isDraft && <Badge className="bg-blue-600 text-white border-none h-5 px-2 text-[9px] font-black uppercase shadow-sm">DRAFT CHECK</Badge>}
+                            </div>
+                            <p className="text-[10px] font-black font-mono text-muted-foreground tracking-tighter uppercase">{request.controlNumber || `REQ-${request.id.substring(0,8)}`}</p>
                         </div>
-                        <Badge className="h-7 px-4 font-black uppercase text-[10px] tracking-widest bg-primary text-white border-none shadow-sm">{request.status}</Badge>
+                        <Badge className="h-8 px-5 font-black uppercase text-[10px] tracking-widest bg-primary text-white border-none shadow-md">{request.status}</Badge>
                     </div>
                 </DialogHeader>
 
@@ -158,80 +183,66 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                     <div className="flex-1 border-r flex flex-col min-w-0">
                         <ScrollArea className="flex-1">
                             <div className="p-8 space-y-10">
-                                <section className="space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
-                                        <Building2 className="h-4 w-4" /> Submitter & Origin
-                                    </h4>
-                                    <div className="grid grid-cols-2 gap-6 bg-muted/20 p-4 rounded-xl">
-                                        <div>
-                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">Executing Unit</p>
-                                            <p className="text-sm font-black text-slate-800">{request.unitName}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">Request Submitter</p>
-                                            <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                                                <User className="h-3.5 w-3.5 text-primary" />
-                                                {request.submitterName}
-                                            </div>
-                                        </div>
+                                <section className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-5 rounded-2xl border border-primary/5">
+                                    <div>
+                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Requesting Unit</p>
+                                        <p className="text-sm font-black text-slate-800 uppercase flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-primary opacity-40" />{request.unitName}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Institutional Submitter</p>
+                                        <p className="text-sm font-bold text-slate-800 flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary opacity-40" />{request.submitterName}</p>
                                     </div>
                                 </section>
 
-                                {/* 1. Scanned Evidence (DRF) - Moved Up */}
+                                {/* PART 1: Evidence Review */}
                                 <section className="space-y-4">
                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
-                                        <ShieldCheck className="h-4 w-4" /> 1. Scanned Evidence (Signed DRF)
+                                        <ShieldCheck className="h-4 w-4" /> 1. Registration Evidence (Signed DRF)
                                     </h4>
-                                    <div className="aspect-video w-full rounded-2xl border bg-muted overflow-hidden shadow-inner relative opacity-90">
+                                    <div className="aspect-video w-full rounded-2xl border-2 border-slate-100 bg-muted overflow-hidden shadow-inner relative group">
                                         <iframe 
                                             src={getEmbedUrl(request.scannedRegistrationFormLink)} 
-                                            className="absolute inset-0 w-full h-full border-none"
+                                            className="absolute inset-0 w-full h-full border-none bg-white"
                                             allow="autoplay"
                                             title="DRF Evidence Preview"
                                         />
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button size="sm" className="h-8 font-black uppercase text-[9px] shadow-lg" asChild>
+                                                <a href={request.scannedRegistrationFormLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Full Source</a>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </section>
 
                                 <Separator />
 
-                                {/* 2. Individual Roster Items */}
+                                {/* PART 2: Individual Items Analysis */}
                                 <section className="space-y-4">
                                     <div className="flex items-center justify-between border-b pb-2">
                                         <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                            <FileText className="h-4 w-4" /> 2. Individual Roster Items
+                                            <FileText className="h-4 w-4" /> 2. Individual Form Analysis
                                         </h4>
-                                        <p className="text-[9px] font-bold text-muted-foreground italic">Click code to preview specific form</p>
+                                        <p className="text-[9px] font-bold text-muted-foreground italic">Click code to inspect specific form content</p>
                                     </div>
-                                    <div className="border rounded-xl overflow-hidden shadow-sm">
+                                    <div className="border rounded-2xl overflow-hidden shadow-md">
                                         <Table>
                                             <TableHeader className="bg-slate-50">
                                                 <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase">Form Code</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase w-[150px] pl-6">Code</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Rev.</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Source</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-center w-[80px]">Rev.</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6 w-[80px]">Action</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {request.requestedForms.map((f, i) => (
-                                                    <TableRow key={i} className={cn("transition-colors", activeFormPreview?.link === f.link ? "bg-primary/5" : "hover:bg-muted/20")}>
-                                                        <TableCell>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => setActiveFormPreview({ name: f.name, link: f.link })}
-                                                                className={cn(
-                                                                    "font-mono text-xs font-black uppercase transition-all hover:scale-105 active:scale-95",
-                                                                    activeFormPreview?.link === f.link ? "text-primary scale-105" : "text-slate-600 hover:text-primary"
-                                                                )}
-                                                            >
-                                                                {f.code}
-                                                            </button>
-                                                        </TableCell>
-                                                        <TableCell className="text-xs font-bold">{f.name}</TableCell>
-                                                        <TableCell><Badge variant="outline" className="h-4 text-[9px] font-bold">Rev {f.revision}</Badge></TableCell>
+                                                    <TableRow key={i} className={cn("transition-colors cursor-pointer group", activeFormPreview?.link === f.link ? "bg-primary/5" : "hover:bg-muted/20")} onClick={() => setActiveFormPreview({ name: f.name, link: f.link })}>
+                                                        <TableCell className="pl-6"><span className="font-mono text-[10px] font-black text-primary uppercase group-hover:underline underline-offset-4 decoration-primary/30">{f.code}</span></TableCell>
+                                                        <TableCell className="text-[11px] font-bold text-slate-700">{f.name}</TableCell>
+                                                        <TableCell className="text-center"><Badge variant="outline" className="h-4 text-[8px] font-black border-primary/20 bg-white">Rev {f.revision}</Badge></TableCell>
                                                         <TableCell className="text-right pr-6">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
-                                                                <a href={f.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" asChild onClick={(e) => e.stopPropagation()}>
+                                                                <a href={f.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>
@@ -241,22 +252,23 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                     </div>
                                 </section>
 
-                                {/* 3. Dynamic Form Preview */}
+                                {/* PART 3: Dynamic Visual Inspection */}
                                 {activeFormPreview && (
                                     <section className="space-y-4 animate-in slide-in-from-top-4 duration-500">
                                         <div className="flex items-center justify-between border-b pb-2">
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
-                                                <FileSearch className="h-4 w-4" /> 3. Specific Form Preview: {activeFormPreview.name}
-                                            </h4>
-                                            <Button variant="ghost" size="sm" onClick={() => setActiveFormPreview(null)} className="h-6 text-[9px] font-black uppercase text-muted-foreground">Clear Preview</Button>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Detailed Visual Inspection: {activeFormPreview.name}</h4>
+                                            </div>
+                                            <Button variant="ghost" size="sm" onClick={() => setActiveFormPreview(null)} className="h-6 text-[9px] font-black uppercase text-muted-foreground hover:bg-rose-50 hover:text-rose-600 transition-colors">Dismiss Viewer</Button>
                                         </div>
-                                        <div className="aspect-[16/10] w-full rounded-2xl border-2 border-emerald-100 bg-muted overflow-hidden shadow-xl relative">
-                                            <iframe 
-                                                src={getEmbedUrl(activeFormPreview.link)} 
-                                                className="absolute inset-0 w-full h-full border-none bg-white"
-                                                allow="autoplay"
-                                                title="Form Content Preview"
-                                            />
+                                        <div className="aspect-[16/10] w-full rounded-2xl border-4 border-emerald-50 bg-muted overflow-hidden shadow-2xl relative group">
+                                            <iframe src={getEmbedUrl(activeFormPreview.link)} className="absolute inset-0 w-full h-full border-none bg-white" allow="autoplay" />
+                                            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button size="sm" className="h-8 bg-emerald-600 font-black uppercase text-[9px]" asChild>
+                                                    <a href={activeFormPreview.link} target="_blank" rel="noopener noreferrer">Inspect in GDrive</a>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </section>
                                 )}
@@ -264,105 +276,112 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                         </ScrollArea>
                     </div>
 
-                    <div className="w-[350px] flex flex-col bg-slate-50/50 shrink-0">
-                        <div className="p-4 border-b font-black text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
-                            <MessageSquare className="h-4 w-4" /> Feedback & History
-                        </div>
-                        <ScrollArea className="flex-1">
-                            <div className="p-6 space-y-6">
-                                {request.comments && request.comments.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {request.comments.map((c, i) => (
-                                            <div key={i} className="bg-white p-4 rounded-xl border shadow-sm space-y-2">
-                                                <div className="flex items-center justify-between gap-2 border-b pb-2 mb-2">
-                                                    <span className="text-[10px] font-black uppercase text-primary">{c.authorName}</span>
-                                                    <span className="text-[9px] text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : c.createdAt.toDate(), 'MMM dd, p')}</span>
+                    {/* SIDE PANEL: Admin Controls & History */}
+                    <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
+                        <Tabs defaultValue="actions" className="flex-1 flex flex-col min-h-0">
+                            <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
+                                <TabsTrigger value="actions" className="text-[10px] font-black uppercase tracking-widest gap-2"><CheckCircle2 className="h-4 w-4" /> Review Actions</TabsTrigger>
+                                <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2"><HistoryIcon className="h-4 w-4" /> Discussion</TabsTrigger>
+                            </TabsList>
+
+                            <div className="flex-1 overflow-hidden">
+                                <TabsContent value="actions" className="h-full m-0 flex flex-col">
+                                    <ScrollArea className="flex-1">
+                                        <div className="p-6 space-y-8">
+                                            {!request.isDraft ? (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <ShieldCheck className="h-4 w-4 text-primary" />
+                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Compliance Checklist</h4>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {adminChecklistItems.map(item => (
+                                                            <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl border bg-white shadow-sm transition-all hover:border-primary/30 cursor-pointer" onClick={() => handleToggleChecklist(item.id)}>
+                                                                <Checkbox id={`check-${item.id}`} checked={adminChecklist[item.id] || false} onCheckedChange={() => handleToggleChecklist(item.id)} />
+                                                                <Label htmlFor={`check-${item.id}`} className="text-xs font-medium leading-relaxed cursor-pointer">{item.label}</Label>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                <p className="text-xs text-slate-700 italic leading-relaxed">"{c.text}"</p>
+                                            ) : (
+                                                <Alert className="bg-blue-50 border-blue-200">
+                                                    <LayoutList className="h-4 w-4 text-blue-600" />
+                                                    <AlertTitle className="text-[11px] font-black uppercase text-blue-800">Draft Content Check</AlertTitle>
+                                                    <AlertDescription className="text-[10px] text-blue-700 leading-relaxed font-medium">Verify form content and layout. Strict compliance checklist is bypassed for draft sessions.</AlertDescription>
+                                                </Alert>
+                                            )}
+
+                                            <div className="space-y-4 pt-4 border-t">
+                                                <div className="flex items-center gap-2">
+                                                    <MessageSquare className="h-4 w-4 text-primary" />
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Findings / Comments</h4>
+                                                </div>
+                                                <Form {...form}>
+                                                    <form className="space-y-4">
+                                                        <FormField control={form.control} name="comment" render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormControl><Textarea {...field} placeholder="Enter review notes or required changes..." rows={4} className="text-xs italic bg-white shadow-inner" /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
+                                                            <Button type="button" variant="outline" className="h-10 font-black text-[10px] uppercase gap-1.5" onClick={() => { handleUpdateStatus('QA Review', form.getValues('comment') || 'Moved to active QA validation stage.'); }} disabled={isProcessing}><ShieldCheck className="h-3.5 w-3.5" /> START QA</Button>
+                                                        </div>
+                                                        <Separator />
+                                                        <div className="space-y-2">
+                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Awaiting Presidential Approval', 'Review complete. Endorsed for executive registration.')} disabled={isProcessing || !isChecklistComplete}><ArrowRightCircle className="h-4 w-4" /> Endorse for Final Approval</Button>
+                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" onClick={() => handleUpdateStatus('Approved & Registered', 'Verification complete. Forms now enrolled in institutional roster.')} disabled={isProcessing || !isChecklistComplete}><Check className="h-4 w-4" /> {request.isDraft ? 'Clear Draft as Satisfactory' : 'Register All Forms'}</Button>
+                                                        </div>
+                                                    </form>
+                                                </Form>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="py-12 text-center opacity-20 flex flex-col items-center gap-2">
-                                        <MessageSquare className="h-8 w-8" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">No comments logged</p>
-                                    </div>
-                                )}
-                            </div>
-                        </ScrollArea>
-                        
-                        {isAdmin && (
-                            <div className="p-6 border-t bg-white space-y-4">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Institutional Controls</h4>
-                                <Form {...form}>
-                                    <form className="space-y-4">
-                                        <FormField control={form.control} name="comment" render={({ field }) => (
-                                            <FormItem>
-                                                <FormControl><Textarea {...field} placeholder="Enter internal feedback or correction notes..." rows={3} className="text-xs bg-slate-50 border-slate-200" /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="text-destructive h-9 font-black text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5"
-                                                onClick={() => {
-                                                    const comment = form.getValues('comment');
-                                                    if (!comment) { form.setError('comment', { type: 'manual', message: 'Feedback is required to return a request.' }); return; }
-                                                    handleUpdateStatus('Returned for Correction', comment);
-                                                }}
-                                                disabled={isProcessing}
-                                            >
-                                                <Undo2 className="h-3 w-3" /> RETURN
-                                            </Button>
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="h-9 font-black text-[10px] uppercase gap-1.5"
-                                                onClick={() => {
-                                                    const comment = form.getValues('comment');
-                                                    handleUpdateStatus('QA Review', comment || 'Undergoing initial QA validation.');
-                                                }}
-                                                disabled={isProcessing}
-                                            >
-                                                <ShieldCheck className="h-3 w-3" /> QA START
-                                            </Button>
                                         </div>
-                                        <Separator />
-                                        <div className="space-y-2">
-                                            <Button 
-                                                type="button" 
-                                                className="w-full h-10 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2"
-                                                onClick={() => handleUpdateStatus('Awaiting Presidential Approval', 'QA Review complete. Endorsed for final approval.')}
-                                                disabled={isProcessing}
-                                            >
-                                                <ArrowRightCircle className="h-4 w-4" /> Endorse to President
-                                            </Button>
-                                            <Button 
-                                                type="button" 
-                                                className="w-full h-10 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-lg shadow-emerald-200"
-                                                onClick={() => handleUpdateStatus('Approved & Registered', 'Institutional approval confirmed. Documents now enrolled in unit roster.')}
-                                                disabled={isProcessing}
-                                            >
-                                                <Check className="h-4 w-4" /> Confirm & Register
-                                            </Button>
+                                    </ScrollArea>
+                                </TabsContent>
+
+                                <TabsContent value="history" className="h-full m-0">
+                                    <ScrollArea className="h-full">
+                                        <div className="p-6 space-y-4">
+                                            {request.comments?.length ? (
+                                                <div className="space-y-4">
+                                                    {request.comments.map((c, i) => (
+                                                        <div key={i} className="bg-white p-4 rounded-xl border border-primary/5 shadow-sm space-y-2 transition-all hover:border-primary/20">
+                                                            <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
+                                                                <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
+                                                                <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : c.createdAt.toDate(), 'MMM dd, p')}</span>
+                                                            </div>
+                                                            <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
+                                                            <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                                                    <MessageSquare className="h-12 w-12" />
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    </form>
-                                </Form>
+                                    </ScrollArea>
+                                </TabsContent>
                             </div>
-                        )}
+                        </Tabs>
                     </div>
                 </div>
 
                 <DialogFooter className="p-4 border-t bg-slate-50 shrink-0">
-                    <Button variant="ghost" size="sm" className="font-bold text-[10px] uppercase tracking-widest" onClick={() => onOpenChange(false)}>Close View</Button>
+                    <Button variant="ghost" size="sm" className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => onOpenChange(false)}>Close Oversight Workspace</Button>
                 </DialogFooter>
             </>
         ) : null}
       </DialogContent>
     </Dialog>
   );
+}
+
+function ArrowRightCircle(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M16 12H8"/><path d="m12 8 4 4-4 4"/></svg>
+  )
 }

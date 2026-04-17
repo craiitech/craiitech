@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +36,8 @@ import {
     Info,
     AlertTriangle,
     FilePlus,
-    RefreshCw
+    RefreshCw,
+    LayoutList
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +45,9 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import type { UnitFormRequest } from '@/lib/types';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
+import { getOfficialServerTime } from '@/lib/actions';
 
 interface FormRegistrationDialogProps {
   isOpen: boolean;
@@ -52,7 +57,8 @@ interface FormRegistrationDialogProps {
 }
 
 const formRequestSchema = z.object({
-  scannedRegistrationFormLink: z.string().url('Please provide a valid Google Drive link for the signed DRF.'),
+  scannedRegistrationFormLink: z.string().url('Please provide a valid Google Drive link for the DRF.'),
+  isDraft: z.boolean().default(false),
   requestedForms: z.array(z.object({
     name: z.string().min(1, 'Title is required'),
     code: z.string().min(1, 'Code is required'),
@@ -62,7 +68,7 @@ const formRequestSchema = z.object({
 });
 
 export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: FormRegistrationDialogProps) {
-  const { userProfile } = useUser();
+  const { userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +78,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     resolver: zodResolver(formRequestSchema),
     defaultValues: {
       scannedRegistrationFormLink: '',
+      isDraft: false,
       requestedForms: [{ name: '', code: '', link: '', revision: '00' }],
     }
   });
@@ -80,6 +87,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     if (isOpen && request) {
         form.reset({
             scannedRegistrationFormLink: request.scannedRegistrationFormLink,
+            isDraft: request.isDraft ?? false,
             requestedForms: request.requestedForms.map(f => ({
                 name: f.name,
                 code: f.code,
@@ -87,10 +95,11 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                 revision: f.revision
             }))
         });
-        setStep(2); // Start at step 2 for resubmission
+        setStep(2); 
     } else if (isOpen && !request) {
         form.reset({
             scannedRegistrationFormLink: '',
+            isDraft: false,
             requestedForms: [{ name: '', code: '', link: '', revision: '00' }],
         });
         setStep(1);
@@ -106,17 +115,20 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     try {
+      const serverTime = await getOfficialServerTime();
+      const phDate = new Date(serverTime.iso);
+      
+      const controlNumber = `RSU-DRF-${unit.isShared ? 'ACAD' : unit.id.toUpperCase()}-${format(phDate, 'yyyyMMdd-HHmm')}`;
+
       if (request) {
-          // RESUBMISSION LOGIC
           const requestRef = doc(firestore, 'unitFormRequests', request.id);
           await updateDoc(requestRef, {
               ...values,
-              status: 'Submitted', // Reset status to alert Admin
+              status: 'Submitted',
               updatedAt: serverTimestamp(),
           });
-          toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged and sent back for review.' });
+          toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged.' });
       } else {
-          // NEW SUBMISSION LOGIC
           const requestData = {
             ...values,
             unitId: unit.isShared ? 'academic-shared' : unit.id,
@@ -125,13 +137,14 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
             submitterId: userProfile.id,
             submitterName: `${userProfile.firstName} ${userProfile.lastName}`,
             status: 'Submitted',
+            controlNumber,
             comments: [],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
 
           await addDoc(collection(firestore, 'unitFormRequests'), requestData);
-          toast({ title: 'Request Logged', description: 'Your registration request has been sent to QA for institutional review.' });
+          toast({ title: 'Request Logged', description: `DRF request ${controlNumber} has been sent for review.` });
       }
       
       onOpenChange(false);
@@ -145,9 +158,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     }
   };
 
-  const nextStep = () => {
-      setStep(prev => prev + 1);
-  };
+  const nextStep = () => setStep(prev => prev + 1);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -161,7 +172,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
             {request ? 'Edit & Resubmit Request' : 'Form Registration Request'}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            {request ? 'Update your application based on the review feedback provided.' : 'Submit new or revised controlled forms for QA validation and Presidential approval.'}
+            {request ? 'Update your application based on review feedback.' : 'Register new or revised controlled forms.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -169,11 +180,11 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
             <div className="flex items-center gap-4">
                 {[1, 2, 3].map(s => (
                     <div key={s} className="flex items-center gap-2">
-                        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-50 text-white" : "bg-slate-200 text-slate-500")}>
+                        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
                             {step > s ? <CheckCircle2 className="h-3 w-3" /> : s}
                         </div>
                         <span className={cn("text-[9px] font-black uppercase tracking-widest", step === s ? "text-primary" : "text-muted-foreground")}>
-                            {s === 1 ? 'Step 1: Prep' : s === 2 ? 'Step 2: Roster' : 'Step 3: Review'}
+                            {s === 1 ? 'Step 1: Prep' : s === 2 ? 'Step 2: Upload' : 'Step 3: Review'}
                         </span>
                         {s < 3 && <ChevronRight className="h-3 w-3 opacity-20" />}
                     </div>
@@ -192,119 +203,119 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                         <div className="space-y-4">
                             <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Download className="h-4 w-4" /></div>
-                                1. Download & Prepare Document Registration Form (DRF)
+                                1. Prepare Document Registration Form (DRF)
                             </h3>
                             <p className="text-sm text-muted-foreground leading-relaxed pl-11 font-medium">
-                                Download the official DRF template below. You must fill it out with all necessary information regarding the forms you wish to enroll in the system.
+                                Obtain the official DRF template. For **Final** submissions, ensure it is signed by the Unit Head. For **Draft** submissions, signatures are not required.
                             </p>
                             <Card className="border-primary/20 bg-primary/5 shadow-none ml-11">
                                 <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                                    <div className="space-y-1 text-center md:text-left">
+                                    <div className="space-y-1">
                                         <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Official DRF Template</p>
-                                        <p className="text-[10px] text-muted-foreground font-medium italic">Required Evidence for ISO 21001:2018 Clause 7.5.3</p>
+                                        <p className="text-[10px] text-muted-foreground font-medium italic">Standardized Institutional Form</p>
                                     </div>
-                                    <Button type="button" variant="default" className="shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6 h-10" asChild>
+                                    <Button type="button" variant="default" size="sm" className="font-black uppercase text-[10px] tracking-widest h-9" asChild>
                                         <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">
-                                            <Download className="mr-2 h-4 w-4" /> Download DRF File
+                                            <Download className="mr-2 h-4 w-4" /> Download Template
                                         </a>
                                     </Button>
                                 </CardContent>
                             </Card>
                         </div>
-
-                        <div className="ml-11 p-6 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
-                            <div className="flex items-center gap-2 text-amber-700">
-                                <AlertTriangle className="h-5 w-5" />
-                                <h4 className="text-xs font-black uppercase tracking-widest">Mandatory Compliance Note</h4>
-                            </div>
-                            <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
-                                Ensure that each form being registered is explicitly based on your unit's current <strong>Procedure Manual</strong>. If a form is not yet part of your manual, you must first apply for a <strong>Revision of the Process Manual</strong> before proceeding with this registration.
+                        <div className="ml-11 p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-4">
+                            <Info className="h-5 w-5 text-blue-600 mt-1 shrink-0" />
+                            <p className="text-[11px] text-blue-800 leading-relaxed font-medium">
+                                <strong>Draft vs Final:</strong> Use Draft mode to get preliminary feedback on your form's layout and codes. Use Final mode for official registration into the university roster.
                             </p>
                         </div>
                     </div>
                   )}
 
                   {step === 2 && (
-                    <div className="space-y-10 animate-in fade-in zoom-in duration-500">
-                        {request && (
-                            <div className="ml-11 p-4 rounded-xl bg-rose-50 border border-rose-100 flex items-start gap-4">
-                                <HistoryIcon className="h-5 w-5 text-rose-600 shrink-0 mt-1" />
-                                <div className="space-y-1">
-                                    <p className="text-xs font-black uppercase text-rose-800">Review Feedback Integration</p>
-                                    <p className="text-[11px] text-rose-700 leading-relaxed font-medium italic">
-                                        You are currently editing a returned request. Please update the fields below to address the comments left by the QA Office.
-                                    </p>
-                                </div>
+                    <div className="space-y-10 animate-in fade-in duration-500">
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Send className="h-4 w-4" /></div>
+                                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">2. Submission Type & Evidence</h3>
                             </div>
-                        )}
-                        <section className="space-y-4">
-                            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><ClipboardCheck className="h-4 w-4" /></div>
-                                2. Upload Scanned Signed Evidence
-                            </h3>
-                            <FormField control={form.control} name="scannedRegistrationFormLink" render={({ field }) => (
-                                <FormItem className="pl-11">
-                                    <FormLabel className="text-xs font-black uppercase text-slate-700">Signed DRF Google Drive Link (PDF)</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
-                                            <Input {...field} placeholder="https://drive.google.com/..." className="pl-9 h-11 border-primary/20 shadow-sm" />
-                                        </div>
-                                    </FormControl>
-                                    <FormDescription className="text-[10px]">Paste the link to the scanned and signed DRF from Step 1. Ensure sharing is set to "Anyone with the link can view".</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                            
+                            <div className="pl-11 space-y-6">
+                                <FormField control={form.control} name="isDraft" render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel className="text-[10px] font-black uppercase text-primary">Registration Type</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup onValueChange={(v) => field.onChange(v === 'true')} value={field.value ? 'true' : 'false'} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
+                                                    <RadioGroupItem value="true" id="drf-draft" />
+                                                    <Label htmlFor="drf-draft" className="flex-1 cursor-pointer">
+                                                        <p className="text-sm font-bold flex items-center gap-2"><LayoutList className="h-4 w-4 text-blue-600" /> Preliminary Draft</p>
+                                                        <p className="text-[10px] text-muted-foreground">For content checking. No signatures needed.</p>
+                                                    </Label>
+                                                </div>
+                                                <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm")}>
+                                                    <RadioGroupItem value="false" id="drf-final" />
+                                                    <Label htmlFor="drf-final" className="flex-1 cursor-pointer">
+                                                        <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final Registration</p>
+                                                        <p className="text-[10px] text-muted-foreground">Signed PDF for official enrollment.</p>
+                                                    </Label>
+                                                </div>
+                                            </RadioGroup>
+                                        </FormControl>
+                                    </FormItem>
+                                )} />
+
+                                <FormField control={form.control} name="scannedRegistrationFormLink" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black uppercase text-slate-700">Google Drive Link: DRF Document</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
+                                                <Input {...field} placeholder="https://drive.google.com/..." className="pl-9 h-11 border-primary/20 bg-slate-50 shadow-inner" />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
                         </section>
 
                         <Separator className="ml-11" />
 
                         <section className="space-y-6">
                             <div className="flex items-center justify-between pl-11">
-                                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+                                <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><FilePlus className="h-4 w-4" /></div>
-                                    3. Individual Form Roster
-                                </h3>
-                                <Button type="button" size="sm" onClick={() => append({ name: '', code: '', link: '', revision: '00' })} className="h-8 gap-1 font-black text-[10px] uppercase shadow-sm">
-                                    <PlusCircle className="h-3.5 w-3.5" /> Add Individual Form
+                                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">3. Individual Forms Roster</h3>
+                                </div>
+                                <Button type="button" size="sm" onClick={() => append({ name: '', code: '', link: '', revision: '00' })} className="h-8 font-black text-[10px] uppercase gap-1.5 shadow-sm">
+                                    <PlusCircle className="h-3.5 w-3.5" /> Add Form
                                 </Button>
                             </div>
                             
-                            <div className="p-4 ml-11 bg-blue-50 border border-blue-100 rounded-lg flex gap-3">
-                                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-blue-800 font-bold uppercase leading-relaxed">
-                                    They have to add each form to be registered, by saving it to the units google drive, then sharing the actual google file link.
-                                </p>
-                            </div>
-
-                            <div className="space-y-4 ml-11">
+                            <div className="space-y-3 ml-11">
                                 {fields.map((field, index) => (
-                                    <Card key={field.id} className="relative overflow-hidden group border-primary/10 shadow-sm hover:border-primary/30 transition-all">
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(index)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                        <CardContent className="pt-6 p-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                                <div className="md:col-span-3">
-                                                    <FormField control={form.control} name={`requestedForms.${index}.code`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Form Code</FormLabel><FormControl><Input {...inputField} placeholder="QAO-01-001" className="h-9 text-xs font-mono font-bold" /></FormControl></FormItem>
-                                                    )} />
-                                                </div>
-                                                <div className="md:col-span-5">
-                                                    <FormField control={form.control} name={`requestedForms.${index}.name`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Official Form Title</FormLabel><FormControl><Input {...inputField} placeholder="e.g. Daily Service Log" className="h-9 text-xs" /></FormControl></FormItem>
-                                                    )} />
-                                                </div>
-                                                <div className="md:col-span-2">
-                                                    <FormField control={form.control} name={`requestedForms.${index}.revision`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Rev No.</FormLabel><FormControl><Input {...inputField} placeholder="00" className="h-9 text-xs font-mono" /></FormControl></FormItem>
-                                                    )} />
-                                                </div>
-                                                <div className="md:col-span-2">
-                                                    <FormField control={form.control} name={`requestedForms.${index}.link`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Drive Link</FormLabel><FormControl><Input {...inputField} placeholder="File URL" className="h-9 text-xs" /></FormControl></FormItem>
-                                                    )} />
-                                                </div>
+                                    <Card key={field.id} className="relative group border-primary/10 hover:border-primary/30 transition-all bg-muted/5">
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(index)} disabled={fields.length === 1}><Trash2 className="h-4 w-4" /></Button>
+                                        <CardContent className="p-4 pt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                            <div className="md:col-span-3">
+                                                <FormField control={form.control} name={`requestedForms.${index}.code`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Form Code</FormLabel><FormControl><Input {...inputField} placeholder="QAO-01-001" className="h-8 text-[10px] bg-white font-mono" /></FormControl></FormItem>
+                                                )} />
+                                            </div>
+                                            <div className="md:col-span-5">
+                                                <FormField control={form.control} name={`requestedForms.${index}.name`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Official Title</FormLabel><FormControl><Input {...inputField} placeholder="e.g. Daily Activity Log" className="h-8 text-[10px] bg-white" /></FormControl></FormItem>
+                                                )} />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <FormField control={form.control} name={`requestedForms.${index}.revision`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Rev No.</FormLabel><FormControl><Input {...inputField} placeholder="00" className="h-8 text-[10px] bg-white" /></FormControl></FormItem>
+                                                )} />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <FormField control={form.control} name={`requestedForms.${index}.link`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">File Link</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px] bg-white" /></FormControl></FormItem>
+                                                )} />
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -316,58 +327,51 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
 
                   {step === 3 && (
                     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-                        <div className="text-center space-y-3 pb-6 border-b">
-                            <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                                <Send className="h-8 w-8 text-emerald-600" />
+                        <div className="text-center space-y-3 pb-8 border-b">
+                            <div className="mx-auto h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+                                <Send className="h-10 w-10" />
                             </div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">
-                                {request ? 'Ready for Resubmission' : 'Verification Readiness'}
-                            </h3>
-                            <p className="text-sm text-muted-foreground max-sm mx-auto font-medium">Please review the summary below. All forms must be accessible to the QA Office for validation.</p>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Institutional Review Prep</h3>
+                            <p className="text-sm text-muted-foreground max-w-lg mx-auto font-medium">Please verify the summary below. All links must be accessible to the Quality Assurance Office.</p>
                         </div>
 
                         <div className="space-y-6">
-                            <div className="p-4 bg-muted/20 rounded-xl border border-dashed flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <FileText className="h-5 w-5 text-primary opacity-40" />
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Signed DRF Source</p>
-                                        <p className="text-xs font-bold text-primary truncate max-w-[400px]">{form.getValues('scannedRegistrationFormLink')}</p>
+                            <div className="p-5 rounded-2xl border bg-muted/20 flex items-center justify-between shadow-inner">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-xl bg-white border border-primary/10 flex items-center justify-center">
+                                        {form.getValues('isDraft') ? <LayoutList className="h-6 w-6 text-blue-600" /> : <FileText className="h-6 w-6 text-green-600" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">DRF Evidence Status</p>
+                                        <p className="text-sm font-bold text-slate-900">{form.getValues('isDraft') ? 'PRELIMINARY DRAFT' : 'FINAL SIGNED DOCUMENT'}</p>
                                     </div>
                                 </div>
-                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                             </div>
 
                             <div className="space-y-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Roster for Enrollment ({fields.length} Items)</p>
-                                <div className="border rounded-xl overflow-hidden shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Roster Summary ({fields.length} Items)</p>
+                                <div className="border rounded-2xl overflow-hidden shadow-lg">
                                     <Table>
                                         <TableHeader className="bg-slate-50">
                                             <TableRow>
-                                                <TableHead className="text-[9px] font-black uppercase py-2 pl-6">Code</TableHead>
-                                                <TableHead className="text-[9px] font-black uppercase py-2">Title</TableHead>
-                                                <TableHead className="text-right text-[9px] font-black uppercase py-2 pr-6">Status</TableHead>
+                                                <TableHead className="text-[10px] font-black uppercase py-3 pl-6">Code</TableHead>
+                                                <TableHead className="text-[10px] font-black uppercase py-3">Official Title</TableHead>
+                                                <TableHead className="text-right text-[10px] font-black uppercase py-3 pr-6">Status</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {fields.map((f, i) => (
                                                 <TableRow key={i}>
-                                                    <TableCell className="font-mono text-[10px] font-bold py-3 pl-6">{f.code || 'TBA'}</TableCell>
-                                                    <TableCell className="text-[11px] font-bold text-slate-700">{f.name || 'Untitled Form'}</TableCell>
-                                                    <TableCell className="text-right pr-6"><Badge variant="secondary" className="h-4 text-[8px] font-black uppercase bg-primary/5 text-primary border-none">Ready for Review</Badge></TableCell>
+                                                    <TableCell className="font-mono text-[11px] font-black py-4 pl-6 text-primary">{f.code || 'TBA'}</TableCell>
+                                                    <TableCell className="text-xs font-bold text-slate-700">{f.name || 'Untitled Form'}</TableCell>
+                                                    <TableCell className="text-right pr-6"><Badge variant="secondary" className="h-5 text-[8px] font-black uppercase bg-primary/5 text-primary">READY</Badge></TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="p-6 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
-                            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-blue-800 leading-relaxed font-medium italic">
-                                Institutional quality assurance requires that all forms are version-controlled. Any changes to approved forms must follow the same registration cycle to ensure university-wide documentation parity.
-                            </p>
                         </div>
                     </div>
                   )}
@@ -376,21 +380,15 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
 
               <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
                 <div className="flex w-full items-center justify-between">
-                    <button type="button" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-slate-900 transition-colors" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Discard Request</button>
+                    <button type="button" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-rose-600 transition-colors" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Discard Request</button>
                     <div className="flex gap-2">
-                        {step > 1 && (
-                            <Button type="button" variant="outline" className="font-black text-[10px] uppercase tracking-widest h-10 px-6" onClick={() => setStep(prev => prev - 1)} disabled={isSubmitting}>
-                                Previous Stage
-                            </Button>
-                        )}
+                        {step > 1 && <Button type="button" variant="outline" className="font-black text-[10px] uppercase h-10 px-6" onClick={() => setStep(prev => prev - 1)} disabled={isSubmitting}>Back</Button>}
                         {step < 3 ? (
-                            <Button type="button" onClick={nextStep} className="font-black text-[10px] uppercase tracking-widest h-10 px-8">
-                                Next Stage <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
+                            <Button type="button" onClick={nextStep} className="font-black text-[10px] uppercase h-10 px-8 shadow-md">Next Stage <ChevronRight className="ml-1.5 h-4 w-4" /></Button>
                         ) : (
-                            <Button type="submit" form="reg-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-10">
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : request ? <RefreshCw className="mr-2 h-4 w-4 mr-1.5" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
-                                {request ? 'Resubmit Corrections' : 'Submit Registration'}
+                            <Button type="submit" form="reg-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10">
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
+                                Submit Application
                             </Button>
                         )}
                     </div>
