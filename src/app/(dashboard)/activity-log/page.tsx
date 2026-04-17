@@ -86,7 +86,8 @@ export default function EmployeeActivityLogPage() {
   // Defer default date to mount to avoid hydration mismatch
   useEffect(() => {
     const now = new Date();
-    setDateFilter(format(now, 'yyyy-MM-dd'));
+    // Default: Show all tasks for the month, don't restrict to a single day
+    setDateFilter(''); 
     setMonthFilter(format(now, 'yyyy-MM'));
   }, []);
 
@@ -126,13 +127,19 @@ export default function EmployeeActivityLogPage() {
   const filteredActivities = useMemo(() => {
     if (!rawActivities) return [];
     return rawActivities.filter(activity => {
-        const matchesSearch = activity.activityParticular.toLowerCase().includes(searchTerm.toLowerCase()) || (activity.output || '').toLowerCase().includes(searchTerm.toLowerCase()) || (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = activity.activityParticular.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (activity.output || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || activity.status === statusFilter;
         const aDate = activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date);
+        
+        // Scoping: Month is the primary filter, specific date is optional
+        const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
         const matchesDate = !dateFilter || format(aDate, 'yyyy-MM-dd') === dateFilter;
-        return matchesSearch && matchesStatus && matchesDate;
+        
+        return matchesSearch && matchesStatus && matchesMonth && matchesDate;
     }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
-  }, [rawActivities, searchTerm, statusFilter, dateFilter]);
+  }, [rawActivities, searchTerm, statusFilter, dateFilter, monthFilter]);
 
   const filteredWfhActivities = useMemo(() => {
     if (!rawWfhActivities) return [];
@@ -143,7 +150,6 @@ export default function EmployeeActivityLogPage() {
         
         const aDate = activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date);
         
-        // Use monthFilter for WFH activities instead of dateFilter
         const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
         
         return matchesSearch && matchesMonth;
@@ -173,7 +179,7 @@ export default function EmployeeActivityLogPage() {
   const handlePrintDaily = () => {
     if (!userProfile || !rawActivities) return;
     const itemsToPrint = filteredActivities.filter(a => a.isApproved || a.userId === user?.uid);
-    const periodLabel = dateFilter ? format(new Date(dateFilter), 'PPPP') : 'Selected Date';
+    const periodLabel = dateFilter ? format(new Date(dateFilter), 'PPPP') : monthFilter ? format(new Date(monthFilter), 'MMMM yyyy') : 'All Selected Records';
 
     if (itemsToPrint.length === 0) {
         toast({ title: 'No data to print', variant: 'destructive' });
@@ -188,7 +194,7 @@ export default function EmployeeActivityLogPage() {
             periodLabel={periodLabel}
         />
     );
-    triggerPrint(reportHtml, `Accomplishment_Report_${dateFilter}`);
+    triggerPrint(reportHtml, `Accomplishment_Report_${dateFilter || monthFilter}`);
   };
 
   const handlePrintMonthly = () => {
@@ -306,11 +312,18 @@ export default function EmployeeActivityLogPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input placeholder="Search activities..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 text-xs bg-white" />
                     </div>
-                    <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="h-10 w-40 text-xs bg-white" />
+                    <div className="flex items-center gap-1">
+                        <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="h-10 w-40 text-xs bg-white" />
+                        {dateFilter && (
+                            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" onClick={() => setDateFilter('')}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={handlePrintDaily} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
-                        <Printer className="h-4 w-4" /> Daily Report
+                        <Printer className="h-4 w-4" /> Print Current List
                     </Button>
                     <Button variant="outline" size="sm" onClick={handlePrintMonthly} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
                         <Download className="h-4 w-4" /> Monthly Log
