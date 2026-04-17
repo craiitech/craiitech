@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -50,6 +49,7 @@ import {
     TableHeader, 
     TableRow 
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { UnitFormRequest, UnitFormRequestStatus, Comment } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -196,7 +196,6 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                 </div>
                             </section>
 
-                            {/* PART 1: Evidence Review */}
                             <section className="space-y-4">
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
                                     <ShieldCheck className="h-4 w-4" /> 1. Registration Evidence (Signed DRF)
@@ -218,7 +217,6 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
 
                             <Separator />
 
-                            {/* PART 2: Individual Items Analysis */}
                             <section className="space-y-4">
                                 <div className="flex items-center justify-between border-b pb-2">
                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
@@ -254,7 +252,6 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                 </div>
                             </section>
 
-                            {/* PART 3: Dynamic Visual Inspection */}
                             {activeFormPreview && (
                                 <section className="space-y-4 animate-in slide-in-from-top-4 duration-500">
                                     <div className="flex items-center justify-between border-b pb-2">
@@ -265,7 +262,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                         <button onClick={() => setActiveFormPreview(null)} className="text-[9px] font-black uppercase text-muted-foreground hover:text-rose-600 transition-colors">Dismiss Viewer</button>
                                     </div>
                                     <div className="aspect-[16/10] w-full rounded-2xl border-4 border-emerald-50 bg-muted overflow-hidden shadow-2xl relative group">
-                                        <iframe src={getEmbedUrl(activeFormPreview.link)} className="absolute inset-0 w-full h-full border-none bg-white" allow="autoplay" />
+                                        <iframe src={getEmbedUrl(activeFormPreview.link)} className="absolute inset-0 w-full h-full border-none bg-white" allow="autoplay" title="Form Preview" />
                                         <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button size="sm" className="h-8 bg-emerald-600 font-black uppercase text-[9px]" asChild>
                                                 <a href={activeFormPreview.link} target="_blank" rel="noopener noreferrer">Inspect in GDrive</a>
