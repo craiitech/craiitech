@@ -37,7 +37,10 @@ import {
     Edit,
     LayoutList,
     PanelLeftClose,
-    PanelLeftOpen
+    PanelLeftOpen,
+    AlertTriangle,
+    Clock,
+    CheckCircle2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -59,6 +62,11 @@ const statusColors: Record<string, string> = {
     'Returned for Correction': 'bg-rose-100 text-rose-700',
     'Awaiting Presidential Approval': 'bg-amber-100 text-amber-700',
     'Approved & Registered': 'bg-emerald-100 text-emerald-700',
+    // Extended Labels
+    'NEEDS ATTENTION': 'bg-rose-100 text-rose-700 border-rose-200 animate-pulse',
+    'NEW APPLICATION': 'bg-blue-100 text-blue-700 border-blue-200',
+    'ONGOING REVIEW': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'PENDING ENDORSEMENT': 'bg-amber-100 text-amber-700 border-amber-200',
 };
 
 export default function UnitFormsPage() {
@@ -223,7 +231,7 @@ export default function UnitFormsPage() {
 
   const handleSaveAdminLinks = async () => {
       if (!firestore) return;
-      setIsSavingLinks(true);
+      setIsSubmitting(true);
       try {
           const links = { 
               formsDriveLink: editRosterLink, 
@@ -460,7 +468,7 @@ export default function UnitFormsPage() {
                                                     <Button 
                                                         size="sm" 
                                                         onClick={handleSaveAdminLinks} 
-                                                        disabled={isSavingLinks} 
+                                                        disabled={isSubmitting} 
                                                         className="w-full h-9 font-black uppercase text-[10px] tracking-widest shadow-md"
                                                     >
                                                         {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
@@ -720,48 +728,71 @@ export default function UnitFormsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {allRequests?.map((req) => (
-                                <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group">
-                                    <TableCell className="pl-6 py-4 font-mono text-xs font-bold text-slate-600">
-                                        {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : 'TBA'}
-                                    </TableCell>
-                                    <TableCell className="py-4">
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
-                                                {req.isDraft && <Badge className="bg-blue-600 text-white h-4 px-1.5 text-[8px] font-black uppercase">DRAFT</Badge>}
+                            {allRequests?.map((req) => {
+                                // Determine the descriptive status for admin
+                                let displayStatus = req.status;
+                                let statusIcon = <Clock className="h-2.5 w-2.5 mr-1" />;
+                                
+                                if (req.status === 'Submitted') {
+                                    if (req.comments && req.comments.length > 0) {
+                                        displayStatus = 'NEEDS ATTENTION';
+                                        statusIcon = <AlertTriangle className="h-2.5 w-2.5 mr-1" />;
+                                    } else {
+                                        displayStatus = 'NEW APPLICATION';
+                                        statusIcon = <PlusCircle className="h-2.5 w-2.5 mr-1" />;
+                                    }
+                                } else if (req.status === 'QA Review') {
+                                    displayStatus = 'ONGOING REVIEW';
+                                    statusIcon = <Activity className="h-2.5 w-2.5 mr-1" />;
+                                } else if (req.status === 'Awaiting Presidential Approval') {
+                                    displayStatus = 'PENDING ENDORSEMENT';
+                                    statusIcon = <ShieldCheck className="h-2.5 w-2.5 mr-1" />;
+                                }
+
+                                return (
+                                    <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group">
+                                        <TableCell className="pl-6 py-4 font-mono text-xs font-bold text-slate-600">
+                                            {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : 'TBA'}
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
+                                                    {req.isDraft && <Badge className="bg-blue-600 text-white h-4 px-1.5 text-[8px] font-black uppercase">DRAFT</Badge>}
+                                                </div>
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
                                             </div>
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium">
-                                            <User className="h-3.5 w-3.5 opacity-40" />
-                                            {req.submitterName}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center py-4">
-                                        <Badge variant="secondary" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-none">
-                                            {req.requestedForms.length} FORMS
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center py-4">
-                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2 h-5", statusColors[req.status])}>
-                                            {req.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6 whitespace-nowrap">
-                                        <Button 
-                                            size="sm" 
-                                            variant="default" 
-                                            onClick={() => setReviewRequestId(req.id)}
-                                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
-                                        >
-                                            Review Application
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="flex items-center gap-2 text-xs font-medium">
+                                                <User className="h-3.5 w-3.5 opacity-40" />
+                                                {req.submitterName}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center py-4">
+                                            <Badge variant="secondary" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-none">
+                                                {req.requestedForms.length} FORMS
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center py-4">
+                                            <Badge className={cn("text-[9px] font-black uppercase px-2 h-6 flex items-center justify-center border", statusColors[displayStatus])}>
+                                                {statusIcon}
+                                                {displayStatus}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6 whitespace-nowrap">
+                                            <Button 
+                                                size="sm" 
+                                                variant="default" 
+                                                onClick={() => setReviewRequestId(req.id)}
+                                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
+                                            >
+                                                Review Application
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                             {allRequests?.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
@@ -769,9 +800,8 @@ export default function UnitFormsPage() {
                                             <Inbox className="h-10 w-10" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Inbox is currently empty</p>
                                         </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
+                                    </TableRow>
+                                )}
                         </TableBody>
                     </Table>
                 )}
@@ -781,7 +811,7 @@ export default function UnitFormsPage() {
             <div className="flex items-start gap-3">
                 <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                 <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    <strong>Admin Tip:</strong> Reviewing a request allows you to RETURN it for correction or APPROVE it, which automatically enrolls the individual forms into the target unit's active roster.
+                    <strong>Admin Oversight:</strong> Requests marked as "NEEDS ATTENTION" have been updated by the unit after a previous rejection. Prioritize these items to maintain registration velocity.
                 </p>
             </div>
         </CardFooter>
