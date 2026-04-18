@@ -289,7 +289,7 @@ export default function CompleteRegistrationPage() {
                   <FormItem>
                     <FormLabel>Sex Identification (GAD Standard)</FormLabel>
                     <Select 
-                      key={field.value || 'sex-selector'}
+                      key={field.value || 'sex-selector-initial'}
                       onValueChange={field.onChange} 
                       value={field.value || ''}
                     >

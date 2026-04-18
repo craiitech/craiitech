@@ -147,7 +147,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
-  const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor/i.test(userRole));
+  const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor|quality assurance/i.test(userRole));
+  const canPrintRegistry = isAdmin || userRole === 'Quality Assurance Office';
 
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
@@ -305,7 +306,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         }
     } catch (err) {
         console.error("Print error:", err);
-        toast({ title: "Print Failed", description: "Could not generate printable form.", variant: "destructive" });
     }
   };
 
@@ -324,35 +324,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>CAR Control Register - ${yearFilter}</title>
-                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                        <style>
-                            @media print { 
-                                @page { size: landscape; margin: 0.5in; }
-                                body { margin: 0; padding: 0; background: white; } 
-                                .no-print { display: none !important; }
-                            }
-                            body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="no-print" style="padding: 20px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: center;">
-                            <button onclick="window.print()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                                Click to Print Matrix
-                            </button>
-                        </div>
-                        ${html}
-                    </body>
-                </html>
-            `);
+            printWindow.document.open();
+            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
-        console.error("Print error:", err);
-        toast({ title: "Print Failed", description: "Could not generate control register.", variant: "destructive" });
+        console.error("Print registry error:", err);
     }
   };
 
@@ -590,15 +567,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           </div>
         </div>
         <div className="flex items-center gap-2 pt-5">
-            <Button 
-                variant="outline" 
-                onClick={handlePrintRegistry} 
-                disabled={processedCars.length === 0}
-                className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
-            >
-                <TableProperties className="h-4 w-4" />
-                Print Control Register
-            </Button>
+            {canPrintRegistry && (
+                <Button 
+                    variant="outline" 
+                    onClick={handlePrintRegistry} 
+                    disabled={processedCars.length === 0}
+                    className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
+                >
+                    <TableProperties className="h-4 w-4" />
+                    Print Control Register
+                </Button>
+            )}
             {isInstitutionalViewer && (
                 <Button onClick={() => {
                     setEditingCar(null);

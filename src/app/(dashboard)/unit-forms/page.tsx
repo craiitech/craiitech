@@ -386,7 +386,7 @@ export default function UnitFormsPage() {
                                               </div>
                                           </CardHeader>
                                           <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
-                                              {activeMasterlistData.link ? <iframe src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} className="absolute inset-0 w-full h-full border-none bg-white" allow="autoplay" title="Unit Masterlist Preview" /> : <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3"><FileText className="h-16 w-16" /><p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p></div>}
+                                              {activeMasterlistData.link ? <iframe src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} className="absolute inset-0 h-full w-full border-none bg-white" allow="autoplay" title="Unit Masterlist Preview" /> : <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3"><FileText className="h-16 w-16" /><p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p></div>}
                                           </CardContent>
                                       </Card>
 
@@ -452,7 +452,15 @@ export default function UnitFormsPage() {
                               <CardHeader className="bg-primary/5 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Form Registration Inbox</CardTitle></CardHeader>
                               <CardContent className="p-0">
                                   <Table>
-                                      <TableHeader className="bg-muted/30"><TableRow><TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead><TableHead className="text-[10px] font-black uppercase">Unit</TableHead><TableHead className="text-[10px] font-black uppercase">Submitter</TableHead><TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead><TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead></TableRow></TableHeader>
+                                      <TableHeader className="bg-muted/30">
+                                        <TableRow>
+                                          <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
+                                          <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>
+                                          <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                          <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                                          <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
                                       <TableBody>
                                           {allRequests?.map(req => (
                                               <TableRow key={req.id} className="hover:bg-muted/20">

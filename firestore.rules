@@ -37,7 +37,7 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} {
-      allow get, list, create, update: if isSignedIn();
+      allow read, create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
@@ -78,7 +78,7 @@ service cloud.firestore {
     }
 
     match /programCompliances/{id} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
 
@@ -199,7 +199,8 @@ service cloud.firestore {
 
     // Final catch-all for anything else
     match /{path=**} {
-      allow read, write: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }
