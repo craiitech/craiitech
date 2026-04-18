@@ -209,7 +209,7 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Campus</FormLabel>
-                    <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
+                    <Select key={field.value || 'campus-selector'} onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your campus" />
@@ -233,7 +233,7 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
+                    <Select key={field.value || 'role-selector'} onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your role" />
@@ -259,7 +259,7 @@ export default function CompleteRegistrationPage() {
                     <FormItem>
                         <FormLabel>Unit</FormLabel>
                         <Select 
-                            key={field.value}
+                            key={field.value || 'unit-selector'}
                             onValueChange={field.onChange} 
                             value={field.value || ""} 
                             disabled={!selectedCampusId}

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, serverTimestamp, orderBy, updateDoc, addDoc } from 'firebase/firestore';
 import type { Unit, UnitForm, CampusSetting, UnitFormRequest, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -258,6 +258,133 @@ export default function UnitFormsPage() {
           setIsSavingLinks(false);
       }
   };
+
+  const renderAdminInbox = () => (
+    <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col h-[calc(100vh-20rem)]">
+        <CardHeader className="bg-primary/5 border-b py-4">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary mb-1">
+                        <Inbox className="h-5 w-5 text-primary" />
+                        <span className="text-[10px] font-black uppercase tracking-tight">Form Registration Management Inbox</span>
+                    </div>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Application Inbox</CardTitle>
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                        Review and approve institutional form registration applications from all university units.
+                    </CardDescription>
+                </div>
+                <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary uppercase">
+                    {adminPendingCount} PENDING ACTION
+                </Badge>
+            </div>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+                {isLoadingAllRequests ? (
+                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                ) : (
+                    <Table>
+                        <TableHeader className="bg-muted/30 sticky top-0 z-10 shadow-sm">
+                            <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Submit Date</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Originating Unit</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase text-center">Items</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase text-center">Workflow Status</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {allRequests?.map((req) => {
+                                // Determine the descriptive status for admin
+                                let displayStatus = req.status;
+                                let statusIcon = <Clock className="h-2.5 w-2.5 mr-1" />;
+                                
+                                if (req.status === 'Submitted') {
+                                    if (req.comments && req.comments.length > 0) {
+                                        displayStatus = 'NEEDS ATTENTION';
+                                        statusIcon = <AlertTriangle className="h-2.5 w-2.5 mr-1" />;
+                                    } else {
+                                        displayStatus = 'NEW APPLICATION';
+                                        statusIcon = <PlusCircle className="h-2.5 w-2.5 mr-1" />;
+                                    }
+                                } else if (req.status === 'QA Review') {
+                                    displayStatus = 'ONGOING REVIEW';
+                                    statusIcon = <Activity className="h-2.5 w-2.5 mr-1" />;
+                                } else if (req.status === 'Awaiting Presidential Approval') {
+                                    displayStatus = 'PENDING ENDORSEMENT';
+                                    statusIcon = <ShieldCheck className="h-2.5 w-2.5 mr-1" />;
+                                }
+
+                                return (
+                                    <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group">
+                                        <TableCell className="pl-6 py-4 font-mono text-xs font-bold text-slate-600">
+                                            {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : 'TBA'}
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
+                                                    {req.isDraft && <Badge className="bg-blue-600 text-white h-4 px-1.5 text-[8px] font-black uppercase">DRAFT</Badge>}
+                                                </div>
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="flex items-center gap-2 text-xs font-medium">
+                                                <User className="h-3.5 w-3.5 opacity-40" />
+                                                {req.submitterName}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center py-4">
+                                            <Badge variant="secondary" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-none">
+                                                {req.requestedForms.length} FORMS
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center py-4">
+                                            <Badge className={cn("text-[9px] font-black uppercase px-2 h-6 flex items-center justify-center border", statusColors[displayStatus])}>
+                                                {statusIcon}
+                                                {displayStatus}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6 whitespace-nowrap">
+                                            <Button 
+                                                size="sm" 
+                                                variant="default" 
+                                                onClick={() => setReviewRequestId(req.id)}
+                                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
+                                            >
+                                                Review Application
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                            {allRequests?.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center gap-2 opacity-20">
+                                            <Inbox className="h-10 w-10" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Inbox is currently empty</p>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
+            </ScrollArea>
+        </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                    <strong>Admin Oversight:</strong> Requests marked as "NEEDS ATTENTION" have been updated by the unit after a previous rejection. Prioritize these items to maintain registration velocity.
+                </p>
+            </div>
+        </CardFooter>
+    </Card>
+  );
 
   const renderRegistryWorkspace = () => (
     <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-20rem)]">
@@ -694,133 +821,6 @@ export default function UnitFormsPage() {
           )}
         </div>
     </div>
-  );
-
-  const renderAdminInbox = () => (
-    <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col h-[calc(100vh-20rem)]">
-        <CardHeader className="bg-primary/5 border-b py-4">
-            <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary mb-1">
-                        <Inbox className="h-5 w-5 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-tight">Form Registration Management Inbox</span>
-                    </div>
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Application Inbox</CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                        Review and approve institutional form registration applications from all university units.
-                    </CardDescription>
-                </div>
-                <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary uppercase">
-                    {adminPendingCount} PENDING ACTION
-                </Badge>
-            </div>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
-                {isLoadingAllRequests ? (
-                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-                ) : (
-                    <Table>
-                        <TableHeader className="bg-muted/30 sticky top-0 z-10 shadow-sm">
-                            <TableRow>
-                                <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Submit Date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase">Originating Unit</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center">Items</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center">Workflow Status</TableHead>
-                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {allRequests?.map((req) => {
-                                // Determine the descriptive status for admin
-                                let displayStatus = req.status;
-                                let statusIcon = <Clock className="h-2.5 w-2.5 mr-1" />;
-                                
-                                if (req.status === 'Submitted') {
-                                    if (req.comments && req.comments.length > 0) {
-                                        displayStatus = 'NEEDS ATTENTION';
-                                        statusIcon = <AlertTriangle className="h-2.5 w-2.5 mr-1" />;
-                                    } else {
-                                        displayStatus = 'NEW APPLICATION';
-                                        statusIcon = <PlusCircle className="h-2.5 w-2.5 mr-1" />;
-                                    }
-                                } else if (req.status === 'QA Review') {
-                                    displayStatus = 'ONGOING REVIEW';
-                                    statusIcon = <Activity className="h-2.5 w-2.5 mr-1" />;
-                                } else if (req.status === 'Awaiting Presidential Approval') {
-                                    displayStatus = 'PENDING ENDORSEMENT';
-                                    statusIcon = <ShieldCheck className="h-2.5 w-2.5 mr-1" />;
-                                }
-
-                                return (
-                                    <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group">
-                                        <TableCell className="pl-6 py-4 font-mono text-xs font-bold text-slate-600">
-                                            {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : 'TBA'}
-                                        </TableCell>
-                                        <TableCell className="py-4">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
-                                                    {req.isDraft && <Badge className="bg-blue-600 text-white h-4 px-1.5 text-[8px] font-black uppercase">DRAFT</Badge>}
-                                                </div>
-                                                <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="py-4">
-                                            <div className="flex items-center gap-2 text-xs font-medium">
-                                                <User className="h-3.5 w-3.5 opacity-40" />
-                                                {req.submitterName}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center py-4">
-                                            <Badge variant="secondary" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-none">
-                                                {req.requestedForms.length} FORMS
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center py-4">
-                                            <Badge className={cn("text-[9px] font-black uppercase px-2 h-6 flex items-center justify-center border", statusColors[displayStatus])}>
-                                                {statusIcon}
-                                                {displayStatus}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right pr-6 whitespace-nowrap">
-                                            <Button 
-                                                size="sm" 
-                                                variant="default" 
-                                                onClick={() => setReviewRequestId(req.id)}
-                                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
-                                            >
-                                                Review Application
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                            {allRequests?.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                                        <div className="flex flex-col items-center gap-2 opacity-20">
-                                            <Inbox className="h-10 w-10" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Inbox is currently empty</p>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                )}
-            </ScrollArea>
-        </CardContent>
-        <CardFooter className="bg-muted/5 border-t py-3 px-6">
-            <div className="flex items-start gap-3">
-                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    <strong>Admin Oversight:</strong> Requests marked as "NEEDS ATTENTION" have been updated by the unit after a previous rejection. Prioritize these items to maintain registration velocity.
-                </p>
-            </div>
-        </CardFooter>
-    </Card>
   );
 
   return (
