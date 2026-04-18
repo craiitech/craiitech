@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp, where } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -344,9 +344,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 Click to Print Matrix
                             </button>
                         </div>
-                        <div id="print-content">
-                            ${reportHtml}
-                        </div>
+                        ${reportHtml}
                     </body>
                 </html>
             `);
@@ -1030,7 +1028,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           </div>
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setIsMrDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
+            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
             <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}

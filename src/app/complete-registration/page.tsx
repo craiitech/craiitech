@@ -141,7 +141,6 @@ export default function CompleteRegistrationPage() {
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      // CRITICAL: Preserve current verified status from userProfile
       const currentVerified = userProfile?.verified || false;
       const currentNda = userProfile?.ndaAccepted || false;
 
