@@ -90,7 +90,6 @@ export default function UnitFormsPage() {
   const [editMasterlistRevision, setEditMasterlistRevision] = useState('');
   const [editMasterlistDate, setEditMasterlistDate] = useState('');
   
-  const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
@@ -742,7 +741,7 @@ export default function UnitFormsPage() {
                 requestId: 'system',
                 createdAt: new Date()
             } as any}
-            unitId={selectedUnitId}
+            unitId: selectedUnitId,
             isOpen={isRosterLogOpen}
             onOpenChange={setIsRosterLogOpen}
           />
