@@ -823,7 +823,7 @@ export default function UnitFormsPage() {
       </div>
 
       {isAdmin && (
-          <Tabs defaultValue="management" className="space-y-6">
+          <Tabs defaultValue="inbox" className="space-y-6">
               <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
                   <TabsTrigger value="management" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                       <Layers className="h-3.5 w-3.5" /> Registry Management

@@ -73,17 +73,17 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /academicPrograms/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin() || isSupervisor();
     }
 
     match /programCompliances/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /unitMonitoringRecords/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSupervisor() || isAdmin();
     }
 
@@ -92,7 +92,7 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /gadInitiatives/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
@@ -105,42 +105,42 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /auditPlans/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /auditSchedules/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /auditFindings/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /correctiveActionRequests/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /managementReviews/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /managementReviewOutputs/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /qaAuditReports/{id} { 
-      allow read: if isSignedIn(); 
+      allow get, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
     match /qaAdvisories/{id} { 
-      allow read: if isSignedIn(); 
+      allow get, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
