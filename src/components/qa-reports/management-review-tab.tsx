@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -80,6 +80,7 @@ const ALL_REDI_ID = 'all-redi-units';
 const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
 export function ManagementReviewTab({ campuses, units, canManage }: ManagementReviewTabProps) {
+  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedMr, setSelectedMr] = useState<ManagementReview | null>(null);
@@ -99,7 +100,49 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     () => (firestore && selectedMr ? query(collection(firestore, 'managementReviewOutputs'), where('mrId', '==', selectedMr.id)) : null),
     [firestore, selectedMr]
   );
-  const { data: outputs, isLoading: isLoadingOutputs } = useCollection<ManagementReviewOutput>(outputsQuery);
+  const { data: rawOutputs, isLoading: isLoadingOutputs } = useCollection<ManagementReviewOutput>(outputsQuery);
+
+  const myUnit = useMemo(() => {
+    if (!userProfile?.unitId || !units) return null;
+    return units.find(u => u.id === userProfile.unitId);
+  }, [userProfile?.unitId, units]);
+
+  /**
+   * VISIBILITY LOGIC FOR UNIT COORDINATORS & ODIMOS
+   * Filters the outputs of a selected MR based on user's authorized scope.
+   */
+  const processedOutputs = useMemo(() => {
+    if (!rawOutputs || !userProfile) return [];
+    
+    const isInstitutionalViewer = isAdmin || isAuditor;
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+    const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+
+    return rawOutputs.filter(output => {
+        if (isInstitutionalViewer) return true;
+
+        const visibleAssignments = (output.assignments || []).filter(a => {
+            const isInstitutionalTarget = a.campusId === UNIVERSITY_WIDE_ID;
+            const isMyCampus = a.campusId === userProfile.campusId;
+
+            if (isCampusSupervisor) {
+                return isInstitutionalTarget || isMyCampus;
+            }
+
+            if (isUnitLevel) {
+                if (!isInstitutionalTarget && !isMyCampus) return false;
+                if (a.unitId === ALL_UNITS_ID) return true;
+                if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
+                if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
+                if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
+                if (a.unitId === userProfile.unitId) return true;
+            }
+            return false;
+        });
+
+        return visibleAssignments.length > 0;
+    });
+  }, [rawOutputs, userProfile, isAdmin, isAuditor, userRole, myUnit]);
 
   const mrForm = useForm<z.infer<typeof mrSchema>>({
     resolver: zodResolver(mrSchema),
@@ -387,7 +430,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {outputs?.map((output, index) => (
+                                                        {processedOutputs?.map((output, index) => (
                                                             <TableRow key={output.id} className="hover:bg-muted/20 transition-colors">
                                                                 <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
                                                                 <TableCell className="max-w-xs py-4">
@@ -438,7 +481,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                         className={cn(
                                                                             "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
                                                                             output.status === 'Open' ? "bg-rose-600 text-white" : 
-                                                                            output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                                                            output.status === 'On-going' ? "bg-amber-50 text-amber-950" : 
                                                                             output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white animate-pulse" :
                                                                             "bg-emerald-600 text-white"
                                                                         )}
@@ -458,12 +501,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))}
-                                                        {outputs?.length === 0 && (
+                                                        {processedOutputs?.length === 0 && (
                                                             <TableRow>
                                                                 <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                                                                     <div className="flex flex-col items-center gap-2 opacity-20">
                                                                         <Presentation className="h-10 w-10" />
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged for your scope</p>
                                                                     </div>
                                                                 </TableCell>
                                                             </TableRow>
