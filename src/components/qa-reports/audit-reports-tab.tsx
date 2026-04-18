@@ -1,15 +1,14 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
 import type { QaAuditReport, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck, Calendar, BookOpen, Info } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck, Calendar, BookOpen, Info, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,11 +38,13 @@ const reportSchema = z.object({
 const UNIVERSITY_WIDE_ID = 'university-wide';
 
 export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabProps) {
+  const { isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewReport, setPreviewDoc] = useState<QaAuditReport | null>(null);
+  const [editingReport, setEditingReport] = useState<QaAuditReport | null>(null);
 
   const reportsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'qaAuditReports'), where('type', '==', type)) : null),
@@ -80,10 +81,10 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       const dataToSave: any = {
         ...values,
         type,
-        campusIds: [UNIVERSITY_WIDE_ID], // Defaulting to University-Wide
+        campusIds: [UNIVERSITY_WIDE_ID],
         startDate: Timestamp.fromDate(new Date(values.startDate)),
         endDate: Timestamp.fromDate(new Date(values.endDate)),
-        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
       if (type === 'IQA') {
@@ -91,13 +92,23 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
           delete dataToSave.certifyingBody;
       }
 
-      await addDoc(collection(firestore, 'qaAuditReports'), dataToSave);
-      toast({ title: 'Success', description: 'Report uploaded successfully.' });
+      if (editingReport) {
+          await updateDoc(doc(firestore, 'qaAuditReports', editingReport.id), dataToSave);
+          toast({ title: 'Report Updated', description: 'Institutional documentation revised.' });
+      } else {
+          await addDoc(collection(firestore, 'qaAuditReports'), {
+            ...dataToSave,
+            createdAt: serverTimestamp(),
+          });
+          toast({ title: 'Success', description: 'Report uploaded successfully.' });
+      }
+
       setIsDialogOpen(false);
+      setEditingReport(null);
       form.reset();
     } catch (error) {
       console.error(error);
-      toast({ title: 'Error', description: 'Failed to upload report.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to save report.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -111,6 +122,22 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
     }
+  };
+
+  const handleEdit = (report: QaAuditReport) => {
+    setEditingReport(report);
+    const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : '');
+    
+    form.reset({
+        title: report.title,
+        startDate: safeDate(report.startDate),
+        endDate: safeDate(report.endDate),
+        googleDriveLink: report.googleDriveLink,
+        eqaCategory: report.eqaCategory || 'Certification / Re-Certification Audit',
+        certifyingBody: report.certifyingBody || '',
+        standard: report.standard || 'ISO 21001:2018'
+    });
+    setIsDialogOpen(true);
   };
 
   const campusMap = useMemo(() => {
@@ -129,7 +156,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
             <p className="text-xs text-muted-foreground">Official repository for institutional {type} records.</p>
         </div>
         {canManage && (
-          <Button onClick={() => setIsDialogOpen(true)} size="sm" className="shadow-lg shadow-primary/20">
+          <Button onClick={() => { setEditingReport(null); form.reset(); setIsDialogOpen(true); }} size="sm" className="shadow-lg shadow-primary/20">
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Report
           </Button>
         )}
@@ -164,10 +191,10 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                 </TableHeader>
                 <TableBody>
                     {reports?.map((report) => (
-                    <TableRow key={report.id} className="hover:bg-muted/30">
+                    <TableRow key={report.id} className="hover:bg-muted/30 transition-colors group">
                         <TableCell>
                         <div className="flex flex-col">
-                            <span className="font-bold text-sm text-slate-900">{report.title}</span>
+                            <span className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{report.title}</span>
                             <div className="flex items-center gap-2 mt-1">
                                 {report.standard && (
                                     <Badge variant="secondary" className="text-[9px] h-4 bg-primary/5 text-primary font-black border-none">{report.standard}</Badge>
@@ -218,16 +245,23 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                         <Button variant="outline" size="sm" onClick={() => setPreviewDoc(report)} className="h-8 text-[10px] font-bold">
                             PREVIEW
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
-                            <a href={report.googleDriveLink} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                            </a>
-                        </Button>
-                        {canManage && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(report.id)}>
-                            <Trash2 className="h-4 w-4" />
+                        <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isAdmin && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/5" onClick={() => handleEdit(report)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
+                                <a href={report.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                                </a>
                             </Button>
-                        )}
+                            {canManage && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(report.id)}>
+                                <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
                         </TableCell>
                     </TableRow>
                     ))}
@@ -248,10 +282,10 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingReport(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add {type} Record</DialogTitle>
+            <DialogTitle>{editingReport ? 'Edit' : 'Add'} {type} Record</DialogTitle>
             <DialogDescription>Capture documentation parameters and external file reference.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -318,8 +352,8 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                  Submit to Vault
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {editingReport ? 'Save Changes' : 'Submit to Vault'}
                 </Button>
               </DialogFooter>
             </form>

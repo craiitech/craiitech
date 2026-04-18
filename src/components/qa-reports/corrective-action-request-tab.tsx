@@ -325,7 +325,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; margin: 1cm; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
@@ -567,7 +567,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           </div>
         </div>
         <div className="flex items-center gap-2 pt-5">
-            {canPrintRegistry && (
+            {(isAdmin || userRole === 'Quality Assurance Office') && (
                 <Button 
                     variant="outline" 
                     onClick={handlePrintRegistry} 

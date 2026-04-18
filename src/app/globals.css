@@ -203,8 +203,8 @@
         background-color: transparent;
       }
       50% {
-        border-color: #000000;
-        background-color: #e5e7eb; /* tailwind gray-200 */
+        border: 2px solid #000000;
+        background-color: #e5e7eb;
       }
     }
 
