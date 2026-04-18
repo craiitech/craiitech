@@ -1,10 +1,10 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { ContextualHelp } from './contextual-help';
 
 interface HeaderProps {
     notificationCount: number;
@@ -46,7 +46,10 @@ export function Header({ notificationCount }: HeaderProps) {
             <SidebarTrigger className="md:hidden shrink-0" />
             <h1 className="font-semibold text-lg truncate pr-2">{getPageTitle(pathname)}</h1>
         </div>
-        <UserNav user={user} userProfile={userProfile} notificationCount={notificationCount} />
+        <div className="flex items-center gap-2 sm:gap-4">
+            <ContextualHelp />
+            <UserNav user={user} userProfile={userProfile} notificationCount={notificationCount} />
+        </div>
     </header>
   );
 }
