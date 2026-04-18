@@ -94,7 +94,6 @@ export default function UnitFormsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  // LAZY LOADING FOR REQUESTS TO PREVENT PERMISSION ERRORS ON INITIAL LOAD
   const allRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin && isHistoryActive ? query(collection(firestore, 'unitFormRequests'), orderBy('createdAt', 'desc')) : null),
     [firestore, isAdmin, isHistoryActive]
@@ -456,7 +455,13 @@ export default function UnitFormsPage() {
                                       <TableHeader className="bg-muted/30"><TableRow><TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead><TableHead className="text-[10px] font-black uppercase">Unit</TableHead><TableHead className="text-[10px] font-black uppercase">Submitter</TableHead><TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead><TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead></TableRow></TableHeader>
                                       <TableBody>
                                           {allRequests?.map(req => (
-                                              <TableRow key={req.id} className="hover:bg-muted/20"><TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell><TableCell className="font-bold text-xs uppercase">{req.unitName}</TableCell><TableCell className="text-xs">{req.submitterName}</TableCell><TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell><TableCell className="text-right pr-6"><Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">Review</Button></TableCell></TableRow>
+                                              <TableRow key={req.id} className="hover:bg-muted/20">
+                                                  <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
+                                                  <TableCell className="font-bold text-xs uppercase">{req.unitName}</TableCell>
+                                                  <TableCell className="text-xs">{req.submitterName}</TableCell>
+                                                  <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
+                                                  <TableCell className="text-right pr-6"><Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">Review</Button></TableCell>
+                                              </TableRow>
                                           ))}
                                       </TableBody>
                                   </Table>
