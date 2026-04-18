@@ -199,19 +199,17 @@
 
     @keyframes tab-highlight {
       0%, 100% {
-        box-shadow: 0 0 0 0 rgba(var(--primary), 0);
         border-color: transparent;
         background-color: transparent;
       }
       50% {
-        box-shadow: 0 0 20px 2px hsla(var(--primary), 0.15);
-        border-color: hsla(var(--primary), 0.3);
-        background-color: hsla(var(--primary), 0.05);
+        border-color: #000000;
+        background-color: #e5e7eb; /* tailwind gray-200 */
       }
     }
 
     .animate-tab-highlight {
-      animation: tab-highlight 3s infinite ease-in-out;
-      border: 1px solid transparent;
+      animation: tab-highlight 2.5s infinite ease-in-out;
+      border: 2px solid transparent;
     }
 }
