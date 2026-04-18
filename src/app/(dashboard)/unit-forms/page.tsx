@@ -287,20 +287,21 @@ export default function UnitFormsPage() {
                 <ScrollArea className="h-full">
                   <div className="flex flex-col">
                     {sidebarUnits.map(unit => (
-                      <Button
+                      <button
                         key={unit.id}
-                        variant="ghost"
                         onClick={() => setSelectedUnitId(unit.id)}
                         className={cn(
-                          "w-full justify-start text-left h-auto py-2.5 px-4 text-xs rounded-none border-l-2 transition-all",
+                          "w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all",
                           selectedUnitId === unit.id 
                             ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
-                            : "border-transparent text-muted-foreground"
+                            : "border-transparent text-muted-foreground hover:bg-muted/30"
                         )}
                       >
-                        {unit.isShared ? <Layers className="mr-3 h-3 w-3 flex-shrink-0 text-primary" /> : <Building className="mr-3 h-3 w-3 flex-shrink-0 opacity-40" />}
-                        <span className={cn("truncate text-xs", unit.isShared && "font-black")}>{unit.name}</span>
-                      </Button>
+                        <div className="flex items-center gap-3">
+                            {unit.isShared ? <Layers className="h-3.5 w-3.5 shrink-0 text-primary" /> : <Building className="h-3.5 w-3.5 shrink-0 opacity-40" />}
+                            <span className={cn("truncate", unit.isShared && "font-black uppercase tracking-tighter")}>{unit.name}</span>
+                        </div>
+                      </button>
                     ))}
                   </div>
                 </ScrollArea>
