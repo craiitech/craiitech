@@ -78,8 +78,7 @@ service cloud.firestore {
     }
 
     match /programCompliances/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /unitMonitoringRecords/{id} {
@@ -195,6 +194,11 @@ service cloud.firestore {
       allow create: if true;
       allow get, list: if isSignedIn();
       allow update, delete: if isAdmin();
+    }
+
+    // Explicit Catch-all for Form Applications to resolve recurring permission issues
+    match /unitFormRequests/{allPaths=**} {
+      allow read: if isSignedIn();
     }
 
     // Final catch-all for anything else
