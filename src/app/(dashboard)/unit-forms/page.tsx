@@ -62,7 +62,6 @@ const statusColors: Record<string, string> = {
     'Returned for Correction': 'bg-rose-100 text-rose-700',
     'Awaiting Presidential Approval': 'bg-amber-100 text-amber-700',
     'Approved & Registered': 'bg-emerald-100 text-emerald-700',
-    // Extended Labels
     'NEEDS ATTENTION': 'bg-rose-100 text-rose-700 border-rose-200 animate-pulse',
     'NEW APPLICATION': 'bg-blue-100 text-blue-700 border-blue-200',
     'ONGOING REVIEW': 'bg-indigo-100 text-indigo-700 border-indigo-200',
@@ -81,6 +80,7 @@ export default function UnitFormsPage() {
   const [isRegOpen, setIsRegOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<UnitFormRequest | null>(null);
   const [isSavingLinks, setIsSavingLinks] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [editRosterLink, setEditRosterLink] = useState('');
   const [editRosterRevision, setEditRosterRevision] = useState('');
@@ -232,6 +232,7 @@ export default function UnitFormsPage() {
   const handleSaveAdminLinks = async () => {
       if (!firestore) return;
       setIsSubmitting(true);
+      setIsSavingLinks(true);
       try {
           const links = { 
               formsDriveLink: editRosterLink, 
@@ -252,6 +253,7 @@ export default function UnitFormsPage() {
           console.error("Save Link Error:", e);
           toast({ title: 'Error', description: 'Failed to update links.', variant: 'destructive' });
       } finally {
+          setIsSubmitting(false);
           setIsSavingLinks(false);
       }
   };
@@ -570,7 +572,7 @@ export default function UnitFormsPage() {
                                                 <Button 
                                                     size="sm" 
                                                     onClick={handleSaveAdminLinks} 
-                                                    disabled={isSavingLinks} 
+                                                    disabled={isSubmitting} 
                                                     className="w-full h-9 font-black uppercase text-[10px] tracking-widest bg-slate-800 hover:bg-slate-900"
                                                 >
                                                     {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
@@ -800,8 +802,9 @@ export default function UnitFormsPage() {
                                             <Inbox className="h-10 w-10" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Inbox is currently empty</p>
                                         </div>
-                                    </TableRow>
-                                )}
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 )}
