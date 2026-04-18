@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -38,19 +37,19 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /unitForms/{id} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /submissions/{id} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
     
     match /risks/{id} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     match /employeeActivities/{id} {
@@ -72,17 +71,17 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /academicPrograms/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin() || isSupervisor();
     }
 
     match /programCompliances/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /unitMonitoringRecords/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSupervisor();
     }
 
@@ -91,12 +90,12 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /gadInitiatives/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /gadMainstreaming/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
@@ -105,42 +104,42 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /auditPlans/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /auditSchedules/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /auditFindings/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /correctiveActionRequests/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /managementReviews/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /managementReviewOutputs/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /qaAuditReports/{id} { 
-      allow read: if isSignedIn(); 
+      allow get, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
     match /qaAdvisories/{id} { 
-      allow read: if isSignedIn(); 
+      allow get, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
@@ -149,59 +148,59 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       allow delete: if isAdmin();
     }
     
     match /roles_admin/{userId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    match /campuses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /units/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /roles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /cycles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /isoClauses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /campuses/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /units/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /roles/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /cycles/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /isoClauses/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
 
     match /system/{docId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /campusSettings/{id} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /activityLogs/{id} {
       allow create: if isSignedIn();
-      allow read: if isAdmin();
+      allow get, list: if isAdmin();
     }
 
     match /errorReports/{id} {
       allow create: if true;
-      allow read: if isAdmin();
+      allow get, list: if isAdmin();
     }
 
     match /appFeedbacks/{id} {
       allow create: if isSignedIn();
-      allow read: if isAdmin();
+      allow get, list: if isAdmin();
     }
 
     match /softwareEvaluations/{id} {
       allow create: if true;
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow update, delete: if isAdmin();
     }
 
     // Final catch-all for anything else
     match /{path=**} {
-      allow read, write: if isAdmin();
+      allow get, list, write: if isAdmin();
     }
   }
 }

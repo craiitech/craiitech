@@ -528,7 +528,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p>
-            </CardHeader>
+            </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
         </Card>
 
@@ -966,7 +966,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase">Date of Follow-up</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>
                                                     )} />
                                                 </div>
-                                                {isInstitutionalViewer && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFollowUp(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                                                {isInstitutionalViewer && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFollowUp(index)}><Trash2 className="h-4 w-4" /></Button>}
                                             </div>
                                         ))}
                                     </div>
