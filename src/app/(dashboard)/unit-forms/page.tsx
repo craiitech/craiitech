@@ -258,457 +258,402 @@ export default function UnitFormsPage() {
       }
   };
 
-  const renderAdminInbox = () => (
-    <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col h-[calc(100vh-20rem)]">
-        <CardHeader className="bg-primary/5 border-b py-4">
-            <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary mb-1">
-                        <Inbox className="h-5 w-5 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-tight">Form Registration Management Inbox</span>
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
+            <p className="text-muted-foreground text-sm">
+                Access official operating forms for verified university units.
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="lg:hidden" 
+            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+          >
+            {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
+            {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+          </Button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100vh-20rem)]">
+            <div className={cn(
+            "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
+            isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-ml-6"
+            )}>
+                <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
+                    <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
+                    <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unit Selection</CardTitle>
+                    <div className="relative pt-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                        placeholder="Search units..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-9 text-xs bg-white"
+                        />
                     </div>
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Application Inbox</CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                        Review and approve institutional form registration applications from all university units.
-                    </CardDescription>
-                </div>
-                <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary uppercase">
-                    {adminPendingCount} PENDING ACTION
-                </Badge>
-            </div>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
-                {isLoadingAllRequests ? (
-                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-                ) : (
-                    <Table>
-                        <TableHeader className="bg-muted/30 sticky top-0 z-10 shadow-sm">
-                            <TableRow>
-                                <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Submit Date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase">Originating Unit</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center">Items</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center">Workflow Status</TableHead>
-                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {allRequests?.map((req) => {
-                                let displayStatus = req.status;
-                                let statusIcon = <Clock className="h-2.5 w-2.5 mr-1" />;
-                                
-                                if (req.status === 'Submitted') {
-                                    if (req.comments && req.comments.length > 0) {
-                                        displayStatus = 'NEEDS ATTENTION';
-                                        statusIcon = <AlertTriangle className="h-2.5 w-2.5 mr-1" />;
-                                    } else {
-                                        displayStatus = 'NEW APPLICATION';
-                                        statusIcon = <PlusCircle className="h-2.5 w-2.5 mr-1" />;
-                                    }
-                                } else if (req.status === 'QA Review') {
-                                    displayStatus = 'ONGOING REVIEW';
-                                    statusIcon = <Activity className="h-2.5 w-2.5 mr-1" />;
-                                } else if (req.status === 'Awaiting Presidential Approval') {
-                                    displayStatus = 'PENDING ENDORSEMENT';
-                                    statusIcon = <ShieldCheck className="h-2.5 w-2.5 mr-1" />;
-                                }
-
-                                return (
-                                    <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group">
-                                        <TableCell className="pl-6 py-4 font-mono text-xs font-bold text-slate-600">
-                                            {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : 'TBA'}
-                                        </TableCell>
-                                        <TableCell className="py-4">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-sm text-slate-900 leading-tight">{req.unitName}</span>
-                                                    {req.isDraft && <Badge className="bg-blue-600 text-white h-4 px-1.5 text-[8px] font-black uppercase">DRAFT</Badge>}
-                                                </div>
-                                                <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">{campusMap.get(req.campusId) || 'Unknown Site'}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="py-4">
-                                            <div className="flex items-center gap-2 text-xs font-medium">
-                                                <User className="h-3.5 w-3.5 opacity-40" />
-                                                {req.submitterName}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center py-4">
-                                            <Badge variant="secondary" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-none">
-                                                {req.requestedForms.length} FORMS
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center py-4">
-                                            <Badge className={cn("text-[9px] font-black uppercase px-2 h-6 flex items-center justify-center border", statusColors[displayStatus])}>
-                                                {statusIcon}
-                                                {displayStatus}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right pr-6 whitespace-nowrap">
-                                            <Button 
-                                                size="sm" 
-                                                variant="default" 
-                                                onClick={() => setReviewRequestId(req.id)}
-                                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
-                                            >
-                                                Review Application
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                            {allRequests?.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                                        <div className="flex flex-col items-center gap-2 opacity-20">
-                                            <Inbox className="h-10 w-10" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Inbox is currently empty</p>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                )}
-            </ScrollArea>
-        </CardContent>
-    </Card>
-  );
-
-  const renderRegistryWorkspace = () => (
-    <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-20rem)]">
-        <div className={cn(
-          "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
-          isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-ml-6"
-        )}>
-          <Card className="flex flex-col h-[400px] md:h-full shadow-sm border-primary/10">
-            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unit Selection</CardTitle>
-              <div className="relative pt-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search units..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9 text-xs bg-white"
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-hidden">
-              {isLoadingUnits ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                </div>
-              ) : (
-                <ScrollArea className="h-full">
-                  <div className="flex flex-col">
-                    {sidebarUnits.map(unit => (
-                      <button
-                        key={unit.id}
-                        onClick={() => setSelectedUnitId(unit.id)}
-                        className={cn(
-                          "w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all",
-                          selectedUnitId === unit.id 
-                            ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
-                            : "border-transparent text-muted-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                            {unit.isShared ? <Layers className="h-3.5 w-3.5 shrink-0 text-primary" /> : <Building className="h-3.5 w-3.5 shrink-0 opacity-40" />}
-                            <span className={cn("truncate", unit.isShared && "font-black uppercase tracking-tighter")}>{unit.name}</span>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-hidden">
+                    {isLoadingUnits ? (
+                        <div className="flex h-full items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
+                    ) : (
+                        <ScrollArea className="h-full">
+                        <div className="flex flex-col">
+                            {sidebarUnits.map(unit => (
+                            <button
+                                key={unit.id}
+                                onClick={() => setSelectedUnitId(unit.id)}
+                                className={cn(
+                                "w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all",
+                                selectedUnitId === unit.id 
+                                    ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
+                                    : "border-transparent text-muted-foreground hover:bg-muted/30"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {unit.isShared ? <Layers className="h-3.5 w-3.5 shrink-0 text-primary" /> : <Building className="h-3.5 w-3.5 shrink-0 opacity-40" />}
+                                    <span className={cn("truncate", unit.isShared && "font-black uppercase tracking-tighter")}>{unit.name}</span>
+                                </div>
+                            </button>
+                            ))}
+                        </div>
+                        </ScrollArea>
+                    )}
+                    </CardContent>
+                </Card>
 
-          {!isAdmin && (
-              <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
-                <CardHeader className="pb-3 border-b py-4">
-                    <div className="flex items-center gap-2">
-                        <History className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800">My Requests</CardTitle>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0 flex-1 overflow-hidden">
-                    <ScrollArea className="h-full">
-                        {isLoadingUnitRequests ? (
-                            <div className="p-10 text-center"><Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" /></div>
-                        ) : unitRequests && unitRequests.length > 0 ? (
-                            <div className="divide-y divide-primary/5">
-                                {unitRequests.map(req => (
-                                    <div key={req.id} className="p-3 hover:bg-white transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
-                                        <div className="flex justify-between items-start gap-2 mb-1.5">
-                                            <div className="flex gap-1 items-center">
-                                                <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
-                                                {req.isDraft && <Badge className="bg-blue-600 text-white h-3.5 px-1 text-[7px] font-black uppercase">DRAFT</Badge>}
+                {!isAdmin && (
+                    <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
+                        <CardHeader className="pb-3 border-b py-4">
+                            <div className="flex items-center gap-2">
+                                <History className="h-4 w-4 text-primary" />
+                                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800">My Requests</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1 overflow-hidden">
+                            <ScrollArea className="h-full">
+                                {isLoadingUnitRequests ? (
+                                    <div className="p-10 text-center"><Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" /></div>
+                                ) : unitRequests && unitRequests.length > 0 ? (
+                                    <div className="divide-y divide-primary/5">
+                                        {unitRequests.map(req => (
+                                            <div key={req.id} className="p-3 hover:bg-white transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
+                                                <div className="flex justify-between items-start gap-2 mb-1.5">
+                                                    <div className="flex gap-1 items-center">
+                                                        <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
+                                                        {req.isDraft && <Badge className="bg-blue-600 text-white h-3.5 px-1 text-[7px] font-black uppercase">DRAFT</Badge>}
+                                                    </div>
+                                                    <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
+                                                </div>
+                                                <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
+                                                <div className="mt-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <span className="text-[8.5px] font-black text-primary flex items-center gap-1">VIEW DETAILS <ChevronRight className="h-2 w-2" /></span>
+                                                    {req.status === 'Returned for Correction' && (
+                                                        <Button variant="default" size="sm" className="h-5 text-[8px] font-black bg-rose-600 hover:bg-rose-700 p-0 px-2" onClick={(e) => { e.stopPropagation(); setEditingRequest(req); setIsRegOpen(true); }}>RESUBMIT</Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">No history</div>
+                                )}
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            <div className="flex-1 min-0 flex flex-col relative">
+                <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
+                    onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                    title={isSidebarVisible ? "Hide Unit Directory" : "Show Unit Directory"}
+                >
+                    {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
+
+                {selectedUnit ? (
+                    <Tabs defaultValue="roster" className="flex-1 flex flex-col min-h-0">
+                        <div className="bg-background flex flex-col sm:flex-row items-center justify-between border-b pb-2 shrink-0 gap-2">
+                            <TabsList className="bg-muted p-1 h-10 w-full sm:w-auto">
+                                <TabsTrigger value="roster" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                                    <ListChecks className="h-3.5 w-3.5" /> Unit Forms
+                                </TabsTrigger>
+                                <TabsTrigger value="register" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                                    <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
+                                </TabsTrigger>
+                            </TabsList>
+                            <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate">{selectedUnit.name}</Badge>
+                        </div>
+
+                        <div className="flex-1 overflow-hidden pt-4">
+                            <TabsContent value="roster" className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300">
+                                <ScrollArea className="h-full pr-4">
+                                    <div className="space-y-8 pb-10">
+                                        <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
+                                            <CardHeader className="bg-primary/10 border-b py-4">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <FolderKanban className="h-5 w-5 text-primary" />
+                                                        <CardTitle className="text-sm font-black uppercase tracking-tight">#1 Official Roster of Forms Access</CardTitle>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-white/50">
+                                                            Rev {activeRosterData.rev}
+                                                        </Badge>
+                                                        <Badge variant="outline" className="h-5 text-[9px] font-bold border-primary/20 bg-white">
+                                                            {activeRosterData.date}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-6 space-y-6">
+                                                <div className="flex flex-col xl:flex-row items-start justify-between gap-6">
+                                                    <div className="space-y-4 flex-1 w-full">
+                                                        <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
+                                                            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                                                            <div className="space-y-1">
+                                                                <p className="text-xs font-black uppercase text-slate-800">Operational Continuity</p>
+                                                                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                                                                    This folder contains the complete roster of forms for <strong>{selectedUnit.name}</strong>.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {activeRosterData.link ? (
+                                                            <Button 
+                                                                onClick={() => setIsRosterLogOpen(true)}
+                                                                className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                                                            >
+                                                                <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
+                                                            </Button>
+                                                        ) : (
+                                                            <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
+                                                                <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                                                <p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {isAdmin && (
+                                                        <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4">
+                                                            <div className="flex items-center gap-2 border-b pb-2 mb-2">
+                                                                <PlusCircle className="h-4 w-4 text-primary" />
+                                                                <h4 className="text-[10px] font-black uppercase text-slate-900">Log New Roster Revision</h4>
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-[9px] font-black uppercase text-primary">Folder Link</Label>
+                                                                    <Input value={editRosterLink} onChange={(e) => setEditRosterLink(e.target.value)} className="h-8 text-[10px]" />
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[9px] font-black uppercase text-primary">Rev No.</Label>
+                                                                        <Input value={editRosterRevision} onChange={(e) => setEditRosterRevision(e.target.value)} className="h-8 text-[10px]" />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[9px] font-black uppercase text-primary">Effective</Label>
+                                                                        <Input type="date" value={editRosterDate} onChange={(e) => setEditRosterDate(e.target.value)} className="h-8 text-[10px]" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <Button size="sm" onClick={handleSaveAdminLinks} disabled={isSubmitting} className="w-full h-9 font-black uppercase text-[10px]">
+                                                                {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
+                                                                Commit Update
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        <Card className="shadow-lg border-primary/10 overflow-hidden">
+                                            <CardHeader className="bg-muted/10 border-b py-4">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Eye className="h-5 w-5 text-primary" />
+                                                        <CardTitle className="text-sm font-black uppercase tracking-tight">#2 Unit Masterlist Preview</CardTitle>
+                                                    </div>
+                                                    <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-primary/5 text-primary">
+                                                        Rev {activeMasterlistData.rev}
+                                                    </Badge>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
+                                                {activeMasterlistData.link ? (
+                                                    <iframe 
+                                                        src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} 
+                                                        className="absolute inset-0 w-full h-full border-none bg-white"
+                                                        allow="autoplay"
+                                                        title="Unit Masterlist Preview"
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3">
+                                                        <FileText className="h-16 w-16" />
+                                                        <p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+
+                                        <Card className="shadow-sm border-primary/10 overflow-hidden">
+                                            <CardHeader className="bg-muted/10 border-b py-4">
+                                                <CardTitle className="text-xs font-black uppercase tracking-tight">Enrolled Controlled Forms Log</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="p-0">
+                                                <Table>
+                                                    <TableHeader className="bg-muted/30">
+                                                        <TableRow>
+                                                            <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
+                                                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {isLoadingForms ? (
+                                                            <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
+                                                        ) : forms?.length ? (
+                                                            forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
+                                                                <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
+                                                                    <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
+                                                                    <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
+                                                                    <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
+                                                                    <TableCell className="text-right pr-6">
+                                                                        <Button variant="default" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5" onClick={() => setDownloadingForm(form)}>
+                                                                            <Download className="h-3 w-3" /> Request Download
+                                                                        </Button>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))
+                                                        ) : (
+                                                            <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled.</TableCell></TableRow>
+                                                        )}
+                                                    </TableBody>
+                                                </Table>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </ScrollArea>
+                            </TabsContent>
+
+                            <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                                <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
+                                    <div className="p-6 space-y-8">
+                                        <div className="space-y-2">
+                                            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3>
+                                            <p className="text-xs text-muted-foreground font-medium">Submit evidence for new or revised controlled forms.</p>
                                         </div>
-                                        <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
-                                        <div className="mt-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="text-[8.5px] font-black text-primary flex items-center gap-1">VIEW DETAILS <ChevronRight className="h-2 w-2" /></span>
-                                            {req.status === 'Returned for Correction' && (
-                                                <Button variant="default" size="sm" className="h-5 text-[8px] font-black bg-rose-600 hover:bg-rose-700 p-0 px-2" onClick={(e) => { e.stopPropagation(); setEditingRequest(req); setIsRegOpen(true); }}>RESUBMIT</Button>
-                                            )}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <Card className="bg-primary/5 border-primary/10">
+                                                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                                                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white"><Download className="h-6 w-6" /></div>
+                                                    <p className="text-xs font-black uppercase text-slate-800">1. Download Template</p>
+                                                    <Button type="button" size="sm" className="w-full font-black text-[10px] uppercase" asChild>
+                                                        <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank">Access DRF Template</a>
+                                                    </Button>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="bg-indigo-50 border-indigo-100">
+                                                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                                                    <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-white"><Send className="h-6 w-6" /></div>
+                                                    <p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p>
+                                                    <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Wizard</Button>
+                                                </CardContent>
+                                            </Card>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">No history</div>
-                        )}
-                    </ScrollArea>
-                </CardContent>
-              </Card>
-          )}
+                                </ScrollArea>
+                            </TabsContent>
+                        </div>
+                    </Tabs>
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
+                        <Building className="h-12 w-12 opacity-10 mb-4" />
+                        <h4 className="font-black text-xs uppercase tracking-[0.2em]">Form Control Hub</h4>
+                        <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">Select a unit from the directory to access its quality forms registry.</p>
+                    </div>
+                )}
+            </div>
         </div>
 
-        <div className="flex-1 min-0 flex flex-col relative">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
-            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            title={isSidebarVisible ? "Hide Unit Directory" : "Show Unit Directory"}
-          >
-            {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
-
-          {selectedUnit ? (
-            <Tabs defaultValue="roster" className="flex-1 flex flex-col min-h-0">
-                <div className="bg-background flex flex-col sm:flex-row items-center justify-between border-b pb-2 shrink-0 gap-2">
-                    <TabsList className="bg-muted p-1 h-10 w-full sm:w-auto">
-                        <TabsTrigger value="roster" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <ListChecks className="h-3.5 w-3.5" /> Unit Forms
+        {isAdmin && (
+            <div className="mt-8">
+                <Tabs defaultValue="inbox" className="space-y-6">
+                    <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
+                        <TabsTrigger value="management" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <Layers className="h-3.5 w-3.5" /> Registry Management
                         </TabsTrigger>
-                        <TabsTrigger value="register" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
+                        <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
+                            {adminPendingCount > 0 && (
+                                <Badge className="ml-2 bg-primary text-white border-none h-4 px-1 text-[8px] font-black">{adminPendingCount}</Badge>
+                            )}
                         </TabsTrigger>
                     </TabsList>
-                    <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate">{selectedUnit.name}</Badge>
-                </div>
 
-                <div className="flex-1 overflow-hidden pt-4">
-                    <TabsContent value="roster" className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                        <ScrollArea className="h-full pr-4">
-                            <div className="space-y-8 pb-10">
-                                <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
-                                    <CardHeader className="bg-primary/10 border-b py-4">
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <FolderKanban className="h-5 w-5 text-primary" />
-                                                <CardTitle className="text-sm font-black uppercase tracking-tight">#1 Official Roster of Forms Access</CardTitle>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-white/50">
-                                                    Rev {activeRosterData.rev}
-                                                </Badge>
-                                                <Badge variant="outline" className="h-5 text-[9px] font-bold border-primary/20 bg-white">
-                                                    {activeRosterData.date}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-6 space-y-6">
-                                        <div className="flex flex-col xl:flex-row items-start justify-between gap-6">
-                                            <div className="space-y-4 flex-1 w-full">
-                                                <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
-                                                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-black uppercase text-slate-800">Operational Continuity</p>
-                                                        <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                                            This folder contains the complete roster of forms for <strong>{selectedUnit.name}</strong>.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                
-                                                {activeRosterData.link ? (
-                                                    <Button 
-                                                        onClick={() => setIsRosterLogOpen(true)}
-                                                        className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
-                                                    >
-                                                        <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
-                                                    </Button>
-                                                ) : (
-                                                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
-                                                        <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                                        <p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup</p>
-                                                    </div>
-                                                )}
-                                            </div>
+                    <TabsContent value="management" className="animate-in fade-in duration-500">
+                        {/* Recursive Sidebar Call Removed to avoid loop - Using current UI structure */}
+                        <div className="p-8 text-center text-muted-foreground border-dashed border rounded-xl">
+                            <p className="text-xs font-bold uppercase tracking-widest">Select a unit from the directory to manage its institutional repository.</p>
+                        </div>
+                    </TabsContent>
 
-                                            {isAdmin && (
-                                                <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4">
-                                                    <div className="flex items-center gap-2 border-b pb-2 mb-2">
-                                                        <PlusCircle className="h-4 w-4 text-primary" />
-                                                        <h4 className="text-[10px] font-black uppercase text-slate-900">Log New Roster Revision</h4>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[9px] font-black uppercase text-primary">Folder Link</Label>
-                                                            <Input value={editRosterLink} onChange={(e) => setEditRosterLink(e.target.value)} className="h-8 text-[10px]" />
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div className="space-y-1">
-                                                                <Label className="text-[9px] font-black uppercase text-primary">Rev No.</Label>
-                                                                <Input value={editRosterRevision} onChange={(e) => setEditRosterRevision(e.target.value)} className="h-8 text-[10px]" />
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label className="text-[9px] font-black uppercase text-primary">Effective</Label>
-                                                                <Input type="date" value={editRosterDate} onChange={(e) => setEditRosterDate(e.target.value)} className="h-8 text-[10px]" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <Button size="sm" onClick={handleSaveAdminLinks} disabled={isSubmitting} className="w-full h-9 font-black uppercase text-[10px]">
-                                                        {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
-                                                        Commit Update
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="shadow-lg border-primary/10 overflow-hidden">
-                                    <CardHeader className="bg-muted/10 border-b py-4">
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <Eye className="h-5 w-5 text-primary" />
-                                                <CardTitle className="text-sm font-black uppercase tracking-tight">#2 Unit Masterlist Preview</CardTitle>
-                                            </div>
-                                            <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-primary/5 text-primary">
-                                                Rev {activeMasterlistData.rev}
-                                            </Badge>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
-                                        {activeMasterlistData.link ? (
-                                            <iframe 
-                                                src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} 
-                                                className="absolute inset-0 w-full h-full border-none bg-white"
-                                                allow="autoplay"
-                                                title="Unit Masterlist Preview"
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3">
-                                                <FileText className="h-16 w-16" />
-                                                <p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p>
-                                            </div>
+                    <TabsContent value="inbox" className="animate-in fade-in duration-500">
+                        <Card className="shadow-md border-primary/10 overflow-hidden">
+                            <CardHeader className="bg-primary/5 border-b py-4">
+                                <CardTitle className="text-sm font-black uppercase tracking-tight">Form Registration Inbox</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader className="bg-muted/30">
+                                        <TableRow>
+                                            <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {allRequests?.map(req => (
+                                            <TableRow key={req.id} className="hover:bg-muted/20">
+                                                <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
+                                                <TableCell className="font-bold text-xs uppercase">{req.unitName}</TableCell>
+                                                <TableCell className="text-xs">{req.submitterName}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-6">
+                                                    <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">Review</Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {allRequests?.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">
+                                                    No pending applications.
+                                                </TableCell>
+                                            </TableRow>
                                         )}
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="shadow-sm border-primary/10 overflow-hidden">
-                                    <CardHeader className="bg-muted/10 border-b py-4">
-                                        <CardTitle className="text-xs font-black uppercase tracking-tight">Enrolled Controlled Forms Log</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-0">
-                                        <Table>
-                                            <TableHeader className="bg-muted/30">
-                                                <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {isLoadingForms ? (
-                                                    <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                                                ) : forms?.length ? (
-                                                    forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
-                                                        <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
-                                                            <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
-                                                            <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
-                                                            <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
-                                                            <TableCell className="text-right pr-6">
-                                                                <Button variant="default" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5" onClick={() => setDownloadingForm(form)}>
-                                                                    <Download className="h-3 w-3" /> Request Download
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                ) : (
-                                                    <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled.</TableCell></TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </ScrollArea>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
-
-                    <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
-                        <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
-                            <div className="p-6 space-y-8">
-                                <div className="space-y-2">
-                                    <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3>
-                                    <p className="text-xs text-muted-foreground font-medium">Submit evidence for new or revised controlled forms.</p>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Card className="bg-primary/5 border-primary/10">
-                                        <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                                            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white"><Download className="h-6 w-6" /></div>
-                                            <p className="text-xs font-black uppercase text-slate-800">1. Download Template</p>
-                                            <Button type="button" size="sm" className="w-full font-black text-[10px] uppercase" asChild>
-                                                <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank">Access DRF Template</a>
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                    <Card className="bg-indigo-50 border-indigo-100">
-                                        <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                                            <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-white"><Send className="h-6 w-6" /></div>
-                                            <p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p>
-                                            <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Wizard</Button>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                        </ScrollArea>
-                    </TabsContent>
-                </div>
-            </Tabs>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
-                <Building className="h-12 w-12 opacity-10 mb-4" />
-                <h4 className="font-black text-xs uppercase tracking-[0.2em]">Form Control Hub</h4>
-                <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">Select a unit from the directory to access its quality forms registry.</p>
+                </Tabs>
             </div>
-          )}
-        </div>
+        )}
       </div>
-
-      {isAdmin && (
-          <div className="mt-8">
-              <Tabs defaultValue="inbox" className="space-y-6">
-                <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
-                    <TabsTrigger value="management" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <Layers className="h-3.5 w-3.5" /> Registry Management
-                    </TabsTrigger>
-                    <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
-                        {adminPendingCount > 0 && (
-                            <Badge className="ml-2 bg-primary text-white border-none h-4 px-1 text-[8px] font-black">{adminPendingCount}</Badge>
-                        )}
-                    </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="management" className="animate-in fade-in duration-500">
-                    {renderRegistryWorkspace()}
-                </TabsContent>
-
-                <TabsContent value="inbox" className="animate-in fade-in duration-500">
-                    {renderAdminInbox()}
-                </TabsContent>
-              </Tabs>
-          </div>
-      )}
 
       {selectedUnit && (
           <FormRegistrationDialog 
@@ -741,7 +686,7 @@ export default function UnitFormsPage() {
                 requestId: 'system',
                 createdAt: new Date()
             } as any}
-            unitId: selectedUnitId,
+            unitId={selectedUnitId}
             isOpen={isRosterLogOpen}
             onOpenChange={setIsRosterLogOpen}
           />
