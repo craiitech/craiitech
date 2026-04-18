@@ -568,8 +568,8 @@ export default function ProfilePage() {
                         If you need to change your assigned Unit or Role, please contact the Quality Assurance Office directly as these details are locked for audit integrity.
                     </p>
                 </CardContent>
-            </div>
-          </div>
+            </Card>
+        </div>
       </div>
     </div>
   );

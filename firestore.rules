@@ -42,7 +42,8 @@ service cloud.firestore {
     }
 
     match /unitForms/{id} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     match /submissions/{id} {
