@@ -51,17 +51,19 @@ export function ContextualHelp() {
             <Lightbulb className="h-5 w-5 animate-pulse" />
             <AlertDialogTitle className="text-sm font-black uppercase tracking-[0.2em]">{currentHelp.title}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="pt-2">
-            <ScrollArea className="max-h-[300px] pr-4">
-                <div className="space-y-5">
-                    {currentHelp.content.map((item, i) => (
-                    <div key={i} className="flex gap-4 items-start group">
-                        <div className="h-2 w-2 rounded-full bg-primary/20 mt-1.5 shrink-0 group-hover:bg-primary transition-colors" />
-                        <p className="text-xs text-slate-700 leading-relaxed font-bold italic">"{item}"</p>
+          <AlertDialogDescription asChild>
+            <div className="text-sm text-muted-foreground pt-2">
+                <ScrollArea className="max-h-[300px] pr-4">
+                    <div className="space-y-5">
+                        {currentHelp.content.map((item, i) => (
+                        <div key={i} className="flex gap-4 items-start group">
+                            <div className="h-2 w-2 rounded-full bg-primary/20 mt-1.5 shrink-0 group-hover:bg-primary transition-colors" />
+                            <p className="text-xs text-slate-700 leading-relaxed font-bold italic">"{item}"</p>
+                        </div>
+                        ))}
                     </div>
-                    ))}
-                </div>
-            </ScrollArea>
+                </ScrollArea>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="border-t pt-4 mt-2">
