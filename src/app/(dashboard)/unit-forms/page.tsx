@@ -820,19 +820,9 @@ export default function UnitFormsPage() {
             </div>
           )}
         </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
-          <p className="text-muted-foreground text-sm">Registry of official controlled forms and repository management.</p>
-        </div>
       </div>
 
-      {isAdmin ? (
+      {isAdmin && (
           <Tabs defaultValue="management" className="space-y-6">
               <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
                   <TabsTrigger value="management" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
@@ -854,8 +844,6 @@ export default function UnitFormsPage() {
                   {renderAdminInbox()}
               </TabsContent>
           </Tabs>
-      ) : (
-          renderRegistryWorkspace()
       )}
 
       {selectedUnit && (
