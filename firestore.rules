@@ -37,7 +37,8 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} {
-      allow read, write: if isSignedIn();
+      allow get, list, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     match /unitForms/{id} {

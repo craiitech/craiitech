@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -142,7 +141,7 @@ export default function CompleteRegistrationPage() {
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      // Preserve existing verified and nda status to prevent loops
+      // CRITICAL: Preserve current verified status from userProfile
       const currentVerified = userProfile?.verified || false;
       const currentNda = userProfile?.ndaAccepted || false;
 

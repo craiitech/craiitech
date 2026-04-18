@@ -110,7 +110,8 @@ export default function UnitFormsPage() {
   const unitRequestsQuery = useMemoFirebase(
     () => {
         if (!firestore || !userProfile?.unitId || isAdmin) return null;
-        const targetId = (allUnits?.find(u => u.id === userProfile.unitId)?.category === 'Academic') ? SHARED_ACADEMIC_ID : userProfile.unitId;
+        const unitObj = allUnits?.find(u => u.id === userProfile.unitId);
+        const targetId = (unitObj?.category === 'Academic') ? SHARED_ACADEMIC_ID : userProfile.unitId;
         return query(collection(firestore, 'unitFormRequests'), where('unitId', '==', targetId), orderBy('createdAt', 'desc'));
     },
     [firestore, userProfile, isAdmin, allUnits]
