@@ -201,7 +201,7 @@ service cloud.firestore {
 
     // Explicitly allow reading form registration requests to fix permission denied errors
     match /unitFormRequests/{id} {
-      allow read, write: if isSignedIn();
+      allow get, list, write: if isSignedIn();
     }
 
     // Final catch-all for anything else
