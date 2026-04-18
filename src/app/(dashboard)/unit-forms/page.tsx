@@ -282,7 +282,7 @@ export default function UnitFormsPage() {
         <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100vh-20rem)]">
             <div className={cn(
             "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
-            isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-ml-6"
+            isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
             )}>
                 <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
                     <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
@@ -602,7 +602,6 @@ export default function UnitFormsPage() {
                     </TabsList>
 
                     <TabsContent value="management" className="animate-in fade-in duration-500">
-                        {/* Recursive Sidebar Call Removed to avoid loop - Using current UI structure */}
                         <div className="p-8 text-center text-muted-foreground border-dashed border rounded-xl">
                             <p className="text-xs font-bold uppercase tracking-widest">Select a unit from the directory to manage its institutional repository.</p>
                         </div>

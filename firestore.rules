@@ -199,6 +199,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Explicitly allow reading form registration requests to fix permission denied errors
+    match /unitFormRequests/{id} {
+      allow read, write: if isSignedIn();
+    }
+
     // Final catch-all for anything else
     match /{path=**} {
       allow read, write: if isAdmin();
