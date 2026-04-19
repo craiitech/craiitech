@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -463,6 +462,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
+  const isInvestigationComplete = !!(form.watch('rootCauseAnalysis') && form.watch('actionSteps')?.length);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -472,7 +473,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-primary tabular-nums">{carStats.total}</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total CARs Logged</p>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Total CARs Logged</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
         </Card>
@@ -898,7 +899,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
                                                 )} />
                                             </div>
-                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-4 w-4" /></Button>}
+                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)} disabled={fields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (

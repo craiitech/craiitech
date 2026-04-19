@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -243,7 +242,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="p-4">
-              <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all">
+              <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
+                {/* Abstract Loop Background Animation */}
+                <div className="absolute top-0 -left-6 w-24 h-24 bg-primary/20 rounded-full blur-2xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
+                <div className="absolute bottom-0 -right-6 w-20 h-20 bg-accent/20 rounded-full blur-2xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" style={{ animationDelay: '3s' }} />
+                
                 {displayAvatar ? (
                   <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10">
                     <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
