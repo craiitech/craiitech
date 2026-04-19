@@ -243,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="p-4">
-              <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-sidebar-accent/40 border border-sidebar-border shadow-inner group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all">
+              <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all">
                 {displayAvatar ? (
                   <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10">
                     <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
@@ -253,10 +253,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
                 )}
                 <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
-                  <p className="font-bold text-sm leading-tight">{displayName}</p>
+                  <p className="font-bold text-sm leading-tight text-white">{displayName}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-sidebar-primary mt-1">{displayRole}</p>
                   {userLocation && (
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-sidebar-foreground/60 mt-2 italic">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-white/60 mt-2 italic">
                       <Building2 className="h-3 w-3" />
                       <span className="truncate max-w-[120px]">{userLocation}</span>
                     </div>

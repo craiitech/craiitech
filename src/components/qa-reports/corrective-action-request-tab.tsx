@@ -286,8 +286,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
-  const watchRootCause = form.watch('rootCauseAnalysis');
-  const isInvestigationComplete = !!watchRootCause && watchRootCause.trim().length > 10;
+  const safeFormatDateLocal = (date: any) => {
+    if (!date) return 'N/A';
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    return format(d, 'PP');
+  };
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
