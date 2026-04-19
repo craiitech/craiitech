@@ -175,7 +175,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
             </div>
           ) : (
             <div className="overflow-x-auto">

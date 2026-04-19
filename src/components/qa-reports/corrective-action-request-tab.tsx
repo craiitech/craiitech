@@ -268,7 +268,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "followUpLogs"
   });
 
-  const { fields: effectivenessFields, append: appendEffectiveness, remove: removeEffectiveness } = useFieldArray({
+  const { fields: placeholderEffectivenessFields, append: appendEffectiveness, remove: removeEffectiveness } = useFieldArray({
     control: form.control,
     name: "effectivenessAudits"
   });

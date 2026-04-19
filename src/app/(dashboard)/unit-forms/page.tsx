@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -441,10 +440,8 @@ export default function UnitFormsPage() {
           <div className="mt-8">
               <Tabs defaultValue="inbox" className="space-y-6">
                   <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
-                      <TabsTrigger value="management" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Layers className="h-3.5 w-3.5" /> Registry Management</TabsTrigger>
                       <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Inbox className="h-3.5 w-3.5" /> Registration Review Inbox</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="management" className="animate-in fade-in duration-500"><div className="p-8 text-center text-muted-foreground border-dashed border rounded-xl"><p className="text-xs font-bold uppercase tracking-widest">Select a unit from the directory to manage its institutional repository.</p></div></TabsContent>
                   <TabsContent value="inbox" className="animate-in fade-in duration-500">
                       {!isHistoryActive ? (
                           <div className="p-12 text-center bg-white border rounded-2xl shadow-sm"><Button onClick={() => setIsHistoryActive(true)} className="font-black uppercase tracking-widest text-xs">Load Active Inbox & Review History</Button></div>
