@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -148,7 +149,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor|quality assurance/i.test(userRole));
-  const canPrintRegistry = isAdmin || userRole === 'Quality Assurance Office';
 
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];

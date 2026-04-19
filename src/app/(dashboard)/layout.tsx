@@ -242,27 +242,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className={cn("flex min-h-screen w-full", accessibilityClasses)}>
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
-            <SidebarHeader className="items-center justify-center text-center p-4">
-              {displayAvatar ? (
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
-                  <AvatarFallback>{fallbackAvatar}</AvatarFallback>
-                </Avatar>
-              ) : (
-                <Logo className="h-16 w-16" />
-              )}
-              <div className="mt-2 text-center">
-                <p className="font-semibold text-lg">{displayName}</p>
-                <p className="text-sm text-sidebar-primary font-medium">{displayRole}</p>
-                {userLocation && (
-                  <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
-                    <Building2 className="h-4 w-4" />
-                    <span>{userLocation}</span>
-                  </div>
+            <SidebarHeader className="p-4">
+              <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-sidebar-accent/40 border border-sidebar-border shadow-inner group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all">
+                {displayAvatar ? (
+                  <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10">
+                    <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
+                    <AvatarFallback>{fallbackAvatar}</AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
                 )}
+                <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
+                  <p className="font-bold text-sm leading-tight">{displayName}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-sidebar-primary mt-1">{displayRole}</p>
+                  {userLocation && (
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-sidebar-foreground/60 mt-2 italic">
+                      <Building2 className="h-3 w-3" />
+                      <span className="truncate max-w-[120px]">{userLocation}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </SidebarHeader>
-            <SidebarContent className="p-4">
+            <SidebarContent className="p-4 pt-2">
               <SidebarNav notificationCount={notificationCount} />
             </SidebarContent>
           </Sidebar>

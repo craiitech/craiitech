@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -321,7 +322,7 @@ export default function UnitFormsPage() {
               {selectedUnit ? (
                   <Tabs defaultValue="roster" className="flex-1 flex flex-col min-h-0">
                       <div className="bg-background flex flex-col sm:flex-row items-center justify-between border-b pb-2 shrink-0 gap-2">
-                          <TabsList className="bg-muted p-1 h-10 w-full sm:w-auto animate-tab-highlight">
+                          <TabsList className="bg-muted p-1 h-10 w-full sm:w-auto animate-tab-highlight rounded-md">
                               <TabsTrigger value="roster" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Unit Forms</TabsTrigger>
                               <TabsTrigger value="register" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><FilePlus className="h-3.5 w-3.5" /> Apply for New Form</TabsTrigger>
                           </TabsList>
