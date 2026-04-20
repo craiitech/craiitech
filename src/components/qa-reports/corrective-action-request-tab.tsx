@@ -439,7 +439,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
     
     const metadataFields = ['carNumber', 'ncReportNumber', 'source', 'initiator', 'natureOfFinding', 'procedureTitle', 'concerningClause', 'concerningTopManagementName', 'timeLimitForReply', 'unitId', 'campusId', 'unitHead', 'descriptionOfNonconformance', 'requestDate', 'preparedBy', 'approvedBy'];
-  if (metadataFields.includes(fieldName)) {
+    if (metadataFields.includes(fieldName)) {
         return !isInstitutionalViewer;
     }
 
