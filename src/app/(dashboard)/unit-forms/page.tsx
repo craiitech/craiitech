@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp, orderBy, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, serverTimestamp, updateDoc, addDoc } from 'firebase/firestore';
 import type { Unit, UnitForm, CampusSetting, UnitFormRequest, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,22 +94,52 @@ export default function UnitFormsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
+  /**
+   * GLOBAL REQUESTS QUERY (ADMIN)
+   * Note: orderBy is removed from the Firestore query to bypass composite index requirements.
+   * Sorting is performed in memory via sortedAllRequests memo.
+   */
   const allRequestsQuery = useMemoFirebase(
-    () => (firestore && isAdmin && isHistoryActive ? query(collection(firestore, 'unitFormRequests'), orderBy('createdAt', 'desc')) : null),
+    () => (firestore && isAdmin && isHistoryActive ? collection(firestore, 'unitFormRequests') : null),
     [firestore, isAdmin, isHistoryActive]
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
 
+  /**
+   * UNIT-SPECIFIC REQUESTS QUERY
+   * Note: orderBy is removed from the Firestore query to bypass composite index requirements.
+   * Sorting is performed in memory via sortedUnitRequests memo.
+   */
   const unitRequestsQuery = useMemoFirebase(
     () => {
         if (!firestore || !userProfile?.unitId || !isHistoryActive) return null;
         const unitObj = allUnits?.find(u => u.id === userProfile.unitId);
         const targetId = (unitObj?.category === 'Academic') ? SHARED_ACADEMIC_ID : userProfile.unitId;
-        return query(collection(firestore, 'unitFormRequests'), where('unitId', '==', targetId), orderBy('createdAt', 'desc'));
+        return query(collection(firestore, 'unitFormRequests'), where('unitId', '==', targetId));
     },
     [firestore, userProfile?.unitId, allUnits, isHistoryActive]
   );
   const { data: unitRequests, isLoading: isLoadingUnitRequests } = useCollection<UnitFormRequest>(unitRequestsQuery);
+
+  // In-memory sorting for Admin Inbox
+  const sortedAllRequests = useMemo(() => {
+    if (!allRequests) return [];
+    return [...allRequests].sort((a, b) => {
+        const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
+        const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
+        return dateB - dateA;
+    });
+  }, [allRequests]);
+
+  // In-memory sorting for Unit History
+  const sortedUnitRequests = useMemo(() => {
+    if (!unitRequests) return [];
+    return [...unitRequests].sort((a, b) => {
+        const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
+        const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
+        return dateB - dateA;
+    });
+  }, [unitRequests]);
 
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
@@ -292,9 +322,9 @@ export default function UnitFormsPage() {
                       </CardHeader>
                       <CardContent className="p-0 flex-1 overflow-hidden">
                           <ScrollArea className="h-full">
-                              {isLoadingUnitRequests ? <div className="p-10 text-center"><Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" /></div> : unitRequests && unitRequests.length > 0 ? (
+                              {isLoadingUnitRequests ? <div className="p-10 text-center"><Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" /></div> : sortedUnitRequests.length > 0 ? (
                                   <div className="divide-y divide-primary/5">
-                                      {unitRequests.map(req => (
+                                      {sortedUnitRequests.map(req => (
                                           <div key={req.id} className="p-3 hover:bg-white transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
                                               <div className="flex justify-between items-start gap-2 mb-1.5">
                                                   <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
@@ -460,7 +490,7 @@ export default function UnitFormsPage() {
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                          {allRequests?.map(req => (
+                                          {sortedAllRequests.map(req => (
                                               <TableRow key={req.id} className="hover:bg-muted/20">
                                                   <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
                                                   <TableCell className="font-bold text-xs uppercase">{req.unitName}</TableCell>
