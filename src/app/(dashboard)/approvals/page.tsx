@@ -22,7 +22,7 @@ import {
   Tooltip,
   TooltipProvider,
 } from '@/components/ui/tooltip';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   collection,
   query,
@@ -31,10 +31,10 @@ import {
   Timestamp,
   Query,
 } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
-import type { Submission, User as AppUser } from '@/lib/types';
+import { useState, useEffect, useMemo } from 'react';
+import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, ClipboardCheck, LayoutList } from 'lucide-react';
+import { Loader2, ClipboardCheck, LayoutList, User, School, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -62,6 +62,11 @@ export default function ApprovalsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
+
+  // Fetch Campuses for mapping
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
+  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
   const canApprove = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
@@ -203,7 +208,7 @@ export default function ApprovalsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Report Type</TableHead>
-                  <TableHead>Submitter</TableHead>
+                  <TableHead>Submitter Details</TableHead>
                   <TableHead>Submitted At</TableHead>
                   <TableHead>Cycle</TableHead>
                   <TableHead>Year</TableHead>
@@ -224,11 +229,28 @@ export default function ApprovalsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{getUserName(submission.userId)}</TableCell>
+                    <TableCell>
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="font-bold text-sm text-slate-900">{getUserName(submission.userId)}</span>
+                            </div>
+                            <div className="flex flex-col pl-5 gap-0.5">
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-primary/70 uppercase tracking-tighter">
+                                    <Building2 className="h-3 w-3" />
+                                    {submission.unitName}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground italic uppercase">
+                                    <School className="h-3 w-3" />
+                                    {campusMap.get(submission.campusId) || '...'}
+                                </div>
+                            </div>
+                        </div>
+                    </TableCell>
                     <TableCell>
                       {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
                     </TableCell>
-                    <TableCell className="capitalize">
+                    <TableCell className="capitalize text-xs">
                       {submission.cycleId}
                     </TableCell>
                     <TableCell>
