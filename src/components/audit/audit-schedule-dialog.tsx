@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -396,7 +395,12 @@ export function AuditScheduleDialog({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office</FormLabel>
-                                        <Select key={field.value} onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
+                                        <Select 
+                                            key={field.value}
+                                            onValueChange={field.onChange} 
+                                            value={field.value} 
+                                            disabled={!watchCampusId}
+                                        >
                                             <FormControl>
                                                 <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.targetId === watchTargetId && "border-destructive text-destructive")}>
                                                     <SelectValue placeholder={watchCampusId ? "Select Unit" : "Select Campus First"} />

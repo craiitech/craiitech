@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -93,7 +92,7 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-slate-50">
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-slate-950">
         {/* Full-Page Fixed Background */}
         <div className="fixed inset-0 -z-20 h-full w-full">
             <Image
@@ -103,15 +102,15 @@ export default function Home() {
                 priority
                 className="object-cover"
             />
-            {/* Dark overlay to ensure readability */}
-            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px]" />
+            {/* Dark overlay to ensure high contrast for text */}
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
         </div>
 
         {/* Hero Section */}
         <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90vh] px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl animate-in fade-in zoom-in duration-1000">
                 <div className="flex flex-col items-center gap-6">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/80 backdrop-blur-md">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-sm text-white backdrop-blur-md">
                         <ShieldCheck className="h-4 w-4 text-primary" />
                         <span className="font-bold tracking-tight">ISO 21001:2018 Certified Management System</span>
                     </div>
@@ -119,11 +118,11 @@ export default function Home() {
                 
                 <div className="space-y-4">
                     <div className="flex flex-col items-center justify-center gap-4">
-                        <h1 className="text-5xl font-black tracking-tighter sm:text-7xl xl:text-8xl/none uppercase">
+                        <h1 className="text-6xl font-black tracking-tighter sm:text-7xl xl:text-8xl/none uppercase drop-shadow-2xl">
                             RSU EOMS
                         </h1>
                     </div>
-                    <p className="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+                    <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium drop-shadow-md">
                         Educational Organizations Management System Submission and Monitoring Portal. A state-of-the-art digital solution for the Romblon State University - Quality Assurance Office.
                     </p>
                 </div>
@@ -134,7 +133,7 @@ export default function Home() {
                             Access Portal <ArrowRight className="h-5 w-5" />
                         </Link>
                     </Button>
-                    <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg bg-white/5 border-white/20 text-white hover:bg-white/10 font-bold uppercase tracking-widest transition-all">
+                    <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg bg-white/5 border-white/40 text-white hover:bg-white/20 font-bold uppercase tracking-widest transition-all backdrop-blur-sm">
                         <Link href="/register">
                             Create Account
                         </Link>
@@ -149,12 +148,12 @@ export default function Home() {
                 <div className="text-center mb-16 space-y-3">
                     <Badge className="bg-primary text-white px-4 py-1 font-black uppercase text-[10px] tracking-[0.2em]">Platform Capabilities</Badge>
                     <h2 className="text-3xl font-black text-slate-900 sm:text-4xl uppercase tracking-tight">Operational Excellence, Digitized.</h2>
-                    <p className="text-slate-500 max-w-2xl mx-auto font-medium">A comprehensive suite of modules designed to ensure institutional compliance, risk proactivity, and academic quality parity.</p>
+                    <p className="text-slate-600 max-w-2xl mx-auto font-medium">A comprehensive suite of modules designed to ensure institutional compliance, risk proactivity, and academic quality parity.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {features.map((feature, idx) => (
-                        <Card key={idx} className="group border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full bg-white/95 backdrop-blur-xl">
+                        <Card key={idx} className="group border-slate-200 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full bg-white">
                             <CardHeader className="p-8 pb-4">
                                 <div className="flex items-start justify-between">
                                     <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-500">
