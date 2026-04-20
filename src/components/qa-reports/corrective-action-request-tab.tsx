@@ -383,13 +383,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           form.reset();
           setEditingCar(null);
         })
-        .catch(async (error) => {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: docRef.path,
-            operation: 'update',
-            requestResourceData: carData
-          }));
-        })
         .finally(() => setIsSubmitting(false));
     } else {
       const colRef = collection(firestore, 'correctiveActionRequests');
@@ -400,13 +393,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           setIsDialogOpen(false);
           form.reset();
           setEditingCar(null);
-        })
-        .catch(async (error) => {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: colRef.path,
-            operation: 'create',
-            requestResourceData: dataWithTimestamp
-          }));
         })
         .finally(() => setIsSubmitting(false));
     }

@@ -36,12 +36,9 @@ service cloud.firestore {
     // CORE WORKFLOW COLLECTIONS
     // --------------------------------------------------------------------------
     
-    match /unitFormRequests {
-      allow list: if isSignedIn();
-      match /{id} {
-        allow read, create, update: if isSignedIn();
-        allow delete: if isAdmin();
-      }
+    match /unitFormRequests/{id} {
+      allow read, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     match /unitForms/{id} {
