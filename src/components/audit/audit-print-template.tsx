@@ -29,6 +29,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
   const qaoDirectorName = signatories?.qaoDirector || 'Director, Quality Assurance Office';
   const isBlankTemplate = findings.length === 0;
 
+  // Identify the primary auditee name to display
+  const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
+
   return (
     <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
       {/* Institutional Branding Header - Logo Removed */}
@@ -66,7 +69,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
                 <span className="opacity-60 mr-2">AUDITOR:</span> {schedule.auditorName || '________________'}
             </div>
             <div className="p-2 border-r border-black font-bold">
-                <span className="opacity-60 mr-2">AUDITEE:</span> {schedule.officerInCharge || '________________'}
+                <span className="opacity-60 mr-2">AUDITEE:</span> {displayAuditee}
             </div>
             <div className="p-2 font-bold">
                 <span className="opacity-60 mr-2">DATE:</span> {format(conductDate, 'MM/dd/yyyy')}
@@ -168,7 +171,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
         </div>
         <div>
           <div className="border-b border-black font-black text-xs pb-1 mb-1 min-h-[24px] uppercase">
-            {schedule.officerInCharge || '__________________________'}
+            {displayAuditee}
           </div>
           <p className="text-[9px] uppercase font-black text-slate-500">Unit Head / Director</p>
         </div>

@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
@@ -109,7 +110,10 @@ export function ConsolidatedAuditReportTemplate({
                     {commendableList.map((s, i) => (
                         <tr key={s.id}>
                             <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
-                            <td className="border border-black p-2 text-center font-bold uppercase">{s.targetName}</td>
+                            <td className="border border-black p-2 text-center align-top">
+                                <p className="font-black uppercase text-[9px]">{s.targetName}</p>
+                                <p className="text-[8px] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                            </td>
                             <td className="border border-black p-2 align-top">
                                 <div className="flex gap-2">
                                     <span className="font-black">•</span>
@@ -142,7 +146,10 @@ export function ConsolidatedAuditReportTemplate({
                     {ofiList.map((s, i) => (
                         <tr key={s.id}>
                             <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
-                            <td className="border border-black p-2 text-center font-bold uppercase">{s.targetName}</td>
+                            <td className="border border-black p-2 text-center align-top">
+                                <p className="font-black uppercase text-[9px]">{s.targetName}</p>
+                                <p className="text-[8px] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                            </td>
                             <td className="border border-black p-2 align-top whitespace-pre-wrap leading-relaxed italic">
                                 {s.summaryOFI}
                             </td>
@@ -173,7 +180,10 @@ export function ConsolidatedAuditReportTemplate({
                         const ncFindings = findings.filter(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance');
                         return (
                             <tr key={s.id}>
-                                <td className="border border-black p-2 text-center font-black uppercase align-top">{s.targetName}</td>
+                                <td className="border border-black p-2 text-center align-top">
+                                    <p className="font-black uppercase text-[9px]">{s.targetName}</p>
+                                    <p className="text-[8px] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                                </td>
                                 <td className="border border-black p-2 align-top">
                                     <div className="space-y-4">
                                         {s.summaryNC && <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>}
