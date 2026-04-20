@@ -64,8 +64,6 @@ import { Separator } from '@/components/ui/separator';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -118,7 +116,7 @@ type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status' | 'updatedAt';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -147,7 +145,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
-  const isInstitutionalViewer = isAdmin || isAuditor || (userRole && /auditor|quality assurance/i.test(userRole));
+  const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
 
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
@@ -208,7 +206,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, isAuditor, userRole, isInstitutionalViewer]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer]);
 
   const carStats = useMemo(() => {
     const total = processedCars.length;
@@ -268,7 +266,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "followUpLogs"
   });
 
-  const { fields: placeholderEffectivenessFields, append: appendEffectiveness, remove: removeEffectiveness } = useFieldArray({
+  const { fields: effectivenessFields, append: appendEffectiveness, remove: removeEffectiveness } = useFieldArray({
     control: form.control,
     name: "effectivenessAudits"
   });
@@ -480,7 +478,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Outstanding Gaps</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Open Gaps</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div>
@@ -899,7 +897,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
                                                 )} />
                                             </div>
-                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)} disabled={fields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
+                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (

@@ -201,6 +201,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
     }
 
+    // Admin-specific override for Form Roster Management
+    match /unitForms/{allPaths=**} {
+        allow write: if isAdmin();
+    }
+
     // Final catch-all for anything else
     match /{path=**} {
       allow read: if isSignedIn();
