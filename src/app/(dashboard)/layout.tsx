@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -247,18 +246,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="font-bold text-sm leading-tight text-white">{displayName}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-sidebar-primary mt-1">{displayRole}</p>
                   
-                  {userProfile?.unitId && (
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-white/90 mt-2 font-bold uppercase tracking-tight">
-                        <Building2 className="h-3 w-3 text-sidebar-primary" />
-                        <span className="truncate max-w-[150px]">{allUnits?.find(u => u.id === userProfile.unitId)?.name || '...'}</span>
-                    </div>
-                  )}
-                  {userProfile?.campusId && (
-                    <div className="flex items-center justify-center gap-1 text-[9px] text-white/60 mt-1 italic">
-                        <School className="h-3 w-3" />
-                        <span className="truncate max-w-[150px]">{allCampuses?.find(c => c.id === userProfile.campusId)?.name || '...'}</span>
-                    </div>
-                  )}
+                  <div className="mt-2 space-y-1">
+                    {userProfile?.unitId && (
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-white/90 font-bold uppercase tracking-tight">
+                          <Building2 className="h-3 w-3 text-sidebar-primary shrink-0" />
+                          <span className="truncate max-w-[150px]">{allUnits?.find(u => u.id === userProfile.unitId)?.name || 'Loading Unit...'}</span>
+                      </div>
+                    )}
+                    {userProfile?.campusId && (
+                      <div className="flex items-center justify-center gap-1.5 text-[9px] text-white/60 italic font-medium">
+                          <School className="h-3 w-3 shrink-0" />
+                          <span className="truncate max-w-[150px]">{allCampuses?.find(c => c.id === userProfile.campusId)?.name || 'Loading Site...'}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </SidebarHeader>

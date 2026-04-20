@@ -38,7 +38,7 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} {
-      allow read, create, update: if isSignedIn();
+      allow get, list, create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
@@ -192,7 +192,7 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
 
-    // NEW: Explicit list permission for form registration tracking
+    // Explicit list permission for form registration tracking
     match /unitFormRequests {
         allow list: if isSignedIn();
     }
