@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -159,20 +160,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return notifications.length;
   }, [notifications, userProfile, isAdmin, isSupervisor]);
 
-
-  const userLocation = useMemo(() => {
-    if (!userProfile || !allCampuses || !allUnits) return '';
-    const campusName = allCampuses.find(c => c.id === userProfile.campusId)?.name;
-    const unitName = allUnits.find(u => u.id === userProfile.unitId)?.name;
-    
-    let location = campusName || '';
-    
-    if (unitName) {
-        location = campusName ? `${campusName} / ${unitName}` : unitName;
-    }
-    
-    return location;
-  }, [userProfile, allCampuses, allUnits]);
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;

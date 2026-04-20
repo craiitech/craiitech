@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -439,7 +440,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
     
     const metadataFields = ['carNumber', 'ncReportNumber', 'source', 'initiator', 'natureOfFinding', 'procedureTitle', 'concerningClause', 'concerningTopManagementName', 'timeLimitForReply', 'unitId', 'campusId', 'unitHead', 'descriptionOfNonconformance', 'requestDate', 'preparedBy', 'approvedBy'];
-    if (metadataFields.includes(fieldName)) {
+  if (metadataFields.includes(fieldName)) {
         return !isInstitutionalViewer;
     }
 
@@ -996,7 +997,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
