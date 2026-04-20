@@ -164,12 +164,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!userProfile || !allCampuses || !allUnits) return '';
     const campusName = allCampuses.find(c => c.id === userProfile.campusId)?.name;
     const unitName = allUnits.find(u => u.id === userProfile.unitId)?.name;
+    
     let location = campusName || '';
     
-    const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isAdmin || userRole?.toLowerCase().includes('vice president');
-    if (unitName && !isCampusLevel && userRole !== 'Auditor') location += ` / ${unitName}`;
+    // Always include the Unit in the location string to satisfy institutional identity requirements
+    if (unitName) {
+        location = campusName ? `${campusName} / ${unitName}` : unitName;
+    }
+    
     return location;
-  }, [userProfile, allCampuses, allUnits, userRole, isAdmin]);
+  }, [userProfile, allCampuses, allUnits]);
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
