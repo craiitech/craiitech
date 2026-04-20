@@ -15,7 +15,7 @@ import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import type { Campus, Unit, Submission } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Building2 } from 'lucide-react';
+import { Building2, School } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
@@ -167,7 +167,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     
     let location = campusName || '';
     
-    // Always include the Unit in the location string to satisfy institutional identity requirements
     if (unitName) {
         location = campusName ? `${campusName} / ${unitName}` : unitName;
     }
@@ -189,7 +188,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isAdmin) return;
     
     if (userProfile) {
-        // First check for verification to avoid redirect loop
         if (!userProfile.verified) { 
             router.push('/awaiting-verification'); 
             return; 
@@ -246,9 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="p-4">
-              {/* Profile Card with Solid Background and Abstract Animation */}
               <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#3949ab] border border-white/10 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
-                {/* Abstract Loop Background Animation (Opaque blobs on solid field) */}
                 <div className="absolute top-0 -left-6 w-24 h-24 bg-primary/20 rounded-full blur-2xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
                 <div className="absolute bottom-0 -right-6 w-20 h-20 bg-accent/20 rounded-full blur-2xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" style={{ animationDelay: '3s' }} />
                 
@@ -263,10 +259,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
                   <p className="font-bold text-sm leading-tight text-white">{displayName}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-sidebar-primary mt-1">{displayRole}</p>
-                  {userLocation && (
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-white/70 mt-2 italic">
-                      <Building2 className="h-3 w-3" />
-                      <span className="truncate max-w-[120px]">{userLocation}</span>
+                  
+                  {userProfile?.unitId && (
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-white/90 mt-2 font-bold uppercase tracking-tight">
+                        <Building2 className="h-3 w-3 text-sidebar-primary" />
+                        <span className="truncate max-w-[150px]">{allUnits?.find(u => u.id === userProfile.unitId)?.name || '...'}</span>
+                    </div>
+                  )}
+                  {userProfile?.campusId && (
+                    <div className="flex items-center justify-center gap-1 text-[9px] text-white/60 mt-1 italic">
+                        <School className="h-3 w-3" />
+                        <span className="truncate max-w-[150px]">{allCampuses?.find(c => c.id === userProfile.campusId)?.name || '...'}</span>
                     </div>
                   )}
                 </div>

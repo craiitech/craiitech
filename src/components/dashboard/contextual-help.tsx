@@ -59,7 +59,7 @@ export function ContextualHelp() {
                         {currentHelp.content.map((item, i) => (
                         <div key={i} className="flex gap-4 items-start group">
                             <div className="h-2 w-2 rounded-full bg-primary/20 mt-1.5 shrink-0 group-hover:bg-primary transition-colors" />
-                            <p className="text-xs text-slate-700 leading-relaxed font-bold italic">"{item}"</p>
+                            <div className="text-xs text-slate-700 leading-relaxed font-bold italic">"{item}"</div>
                         </div>
                         ))}
                     </div>
