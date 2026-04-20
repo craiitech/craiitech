@@ -313,7 +313,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                           <FormItem>
                               <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Category</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger></FormControl>
+                                  <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
                                   <SelectContent>
                                       <SelectItem value="Certification / Re-Certification Audit">Certification / Re-Certification Audit</SelectItem>
                                       <SelectItem value="Surveillance Audit">Surveillance Audit</SelectItem>

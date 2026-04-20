@@ -196,9 +196,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Explicit Catch-all for Form Applications to resolve recurring permission issues
-    match /unitFormRequests/{allPaths=**} {
-      allow read: if isSignedIn();
+    // Explicit catch-all for collection queries on unitFormRequests to solve permission issues
+    match /unitFormRequests {
+      allow list: if isSignedIn();
     }
 
     // Admin-specific override for Form Roster Management
