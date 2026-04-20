@@ -93,7 +93,7 @@ const features = [
 export default function Home() {
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-slate-950">
-        {/* Full-Page Fixed Background */}
+        {/* Full-Page Fixed Background - Reinforced rsupage.png usage */}
         <div className="fixed inset-0 -z-20 h-full w-full">
             <Image
                 src="/rsupage.png"
