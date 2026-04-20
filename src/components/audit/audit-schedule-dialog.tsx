@@ -30,7 +30,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -179,37 +179,39 @@ export function AuditScheduleDialog({
   }, [watchDate, watchStart, watchEnd, watchTargetId, watchAuditorId, allSchedules, schedule]);
 
   useEffect(() => {
-    if (schedule && isOpen) {
-        const start = schedule.scheduledDate?.toDate?.() || new Date();
-        const end = schedule.endScheduledDate?.toDate?.() || new Date();
-        
-        form.reset({
-            campusId: schedule.campusId || '',
-            targetId: schedule.targetId,
-            auditeeHeadName: schedule.auditeeHeadName || '',
-            processCategory: schedule.processCategory || 'Operation Processes',
-            scheduledDate: format(start, 'MM/dd/yyyy'),
-            startTime: format(start, 'HH:mm'),
-            endTime: format(end, 'HH:mm'),
-            procedureDescription: schedule.procedureDescription || '',
-            isoClausesToAudit: schedule.isoClausesToAudit || [],
-            auditorId: schedule.auditorId || '',
-        });
-    } else if (!schedule && isOpen) {
-        form.reset({
-            campusId: plan.campusId === 'university-wide' ? '' : plan.campusId,
-            targetId: '',
-            auditeeHeadName: '',
-            processCategory: 'Operation Processes',
-            scheduledDate: '',
-            isoClausesToAudit: [],
-            startTime: '09:00',
-            endTime: '12:00',
-            procedureDescription: '',
-            auditorId: '',
-        });
+    if (isOpen) {
+        if (schedule) {
+            const start = schedule.scheduledDate?.toDate?.() || new Date();
+            const end = schedule.endScheduledDate?.toDate?.() || new Date();
+            
+            form.reset({
+                campusId: schedule.campusId || (plan.campusId === 'university-wide' ? '' : plan.campusId),
+                targetId: schedule.targetId,
+                auditeeHeadName: schedule.auditeeHeadName || '',
+                processCategory: (schedule.processCategory as any) || 'Operation Processes',
+                scheduledDate: format(start, 'MM/dd/yyyy'),
+                startTime: format(start, 'HH:mm'),
+                endTime: format(end, 'HH:mm'),
+                procedureDescription: schedule.procedureDescription || '',
+                isoClausesToAudit: schedule.isoClausesToAudit || [],
+                auditorId: schedule.auditorId || '',
+            });
+        } else {
+            form.reset({
+                campusId: plan.campusId === 'university-wide' ? '' : plan.campusId,
+                targetId: '',
+                auditeeHeadName: '',
+                processCategory: 'Operation Processes',
+                scheduledDate: '',
+                isoClausesToAudit: [],
+                startTime: '09:00',
+                endTime: '12:00',
+                procedureDescription: '',
+                auditorId: '',
+            });
+        }
     }
-  }, [schedule, isOpen, form, plan.campusId]);
+  }, [schedule, isOpen, form, plan.campusId, plan.id]);
 
   const handleLoadPresets = () => {
       if (!plan.groupClauseMapping || !watchCategory) return;
@@ -366,6 +368,7 @@ export function AuditScheduleDialog({
                                     <FormItem>
                                         <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
                                         <Select 
+                                            key={field.value}
                                             onValueChange={(val) => { field.onChange(val); form.setValue('targetId', ''); }} 
                                             value={field.value || ''}
                                             disabled={!isPlanUniversityWide}
@@ -393,7 +396,7 @@ export function AuditScheduleDialog({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
+                                        <Select key={field.value} onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
                                             <FormControl>
                                                 <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.targetId === watchTargetId && "border-destructive text-destructive")}>
                                                     <SelectValue placeholder={watchCampusId ? "Select Unit" : "Select Campus First"} />
@@ -578,7 +581,7 @@ export function AuditScheduleDialog({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Assign Auditor</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
                                         <FormControl>
                                             <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.auditorId === watchAuditorId && watchAuditorId !== 'unassigned' && "border-destructive text-destructive")}>
                                                 <SelectValue placeholder="Select Auditor for this session" />

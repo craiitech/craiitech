@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -153,7 +154,7 @@ export default function Home() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {features.map((feature, idx) => (
-                        <Card key={idx} className="group border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full">
+                        <Card key={idx} className="group border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full bg-white/95 backdrop-blur-xl">
                             <CardHeader className="p-8 pb-4">
                                 <div className="flex items-start justify-between">
                                     <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-500">
