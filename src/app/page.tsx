@@ -92,9 +92,9 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-slate-950">
-        {/* Full-Page Fixed Background - Reinforced rsupage.png usage */}
-        <div className="fixed inset-0 -z-20 h-full w-full">
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden">
+        {/* Full-Page Fixed Background - Optimized for visibility */}
+        <div className="fixed inset-0 -z-20 h-full w-full bg-slate-950">
             <Image
                 src="/rsupage.png"
                 alt="Romblon State University Background"
