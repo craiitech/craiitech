@@ -4,7 +4,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -70,6 +70,12 @@ export default function AuditExecutionPage() {
   );
   const { data: schedule, isLoading: isLoadingSchedule } = useDoc<AuditSchedule>(scheduleDocRef);
 
+  const planRef = useMemoFirebase(
+    () => (firestore && schedule?.auditPlanId ? doc(firestore, 'auditPlans', schedule.auditPlanId) : null),
+    [firestore, schedule?.auditPlanId]
+  );
+  const { data: plan } = useDoc<AuditPlan>(planRef);
+
   const findingsQuery = useMemoFirebase(
     () => (firestore && scheduleId ? query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', scheduleId)) : null),
     [firestore, scheduleId]
@@ -88,12 +94,6 @@ export default function AuditExecutionPage() {
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  /**
-   * COMPLIANCE HISTORY FETCHING
-   * Broadened scoping: Fetches ALL Corrective Action Requests (CARs) for the target unit ID.
-   * We remove the strict campusId filter here because unit history is vital regardless of 
-   * the campus context of the current audit session (especially for institutional units).
-   */
   const unitCarsQuery = useMemoFirebase(() => {
     if (!firestore || !schedule?.targetId) return null;
     
@@ -217,6 +217,7 @@ export default function AuditExecutionPage() {
                 findings={findings}
                 clauses={clausesInScope}
                 signatories={signatories || undefined}
+                leadAuditorName={plan?.leadAuditorName}
             />
         );
 

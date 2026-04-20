@@ -55,6 +55,7 @@ import {
   Timestamp,
   orderBy,
   limit,
+  getDoc,
 } from 'firebase/firestore';
 import type { 
     Submission, 
@@ -232,10 +233,6 @@ export default function HomePage() {
   }, [firestore, userProfile, selectedYear]);
   const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
-  /**
-   * CORRECTIVE ACTION REQUESTS FETCHING
-   * Strictly scoped to site context for non-admin users.
-   */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
@@ -457,9 +454,18 @@ export default function HomePage() {
     } catch (e) { console.error(e); }
   };
 
-  const handlePrintAuditTemplate = (schedule: AuditSchedule) => {
-    if (!isoClauses) return;
+  const handlePrintAuditTemplate = async (schedule: AuditSchedule) => {
+    if (!isoClauses || !firestore) return;
     const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+    
+    // Fetch plan for leadAuditorName
+    let leadAuditorName = '';
+    try {
+        const planSnap = await getDoc(doc(firestore, 'auditPlans', schedule.auditPlanId));
+        if (planSnap.exists()) {
+            leadAuditorName = planSnap.data()?.leadAuditorName || '';
+        }
+    } catch(e) {}
 
     try {
         const reportHtml = renderToStaticMarkup(
@@ -468,6 +474,7 @@ export default function HomePage() {
                 findings={[]} 
                 clauses={clausesInScope}
                 signatories={signatories || undefined}
+                leadAuditorName={leadAuditorName}
             />
         );
 
@@ -1050,7 +1057,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
         <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />

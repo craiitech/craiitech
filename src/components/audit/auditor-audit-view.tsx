@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
-import type { AuditSchedule, Campus, Unit, ISOClause, Signatories } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
@@ -26,6 +27,9 @@ export function AuditorAuditView() {
   }, [firestore]);
   
   const { data: allSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(allSchedulesQuery);
+
+  const plansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
+  const { data: plans } = useCollection<AuditPlan>(plansQuery);
 
   const campusesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'campuses')) : null, [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
@@ -144,6 +148,7 @@ export function AuditorAuditView() {
                     <TabsContent value="my-audits" className="animate-in fade-in slide-in-from-left-2 duration-300">
                         <AuditorScheduleList 
                             schedules={mySchedules}
+                            plans={plans || []}
                             campuses={campuses || []}
                             units={units || []}
                             isoClauses={isoClauses || []}
@@ -155,6 +160,7 @@ export function AuditorAuditView() {
                     <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300">
                          <AuditorScheduleList 
                             schedules={availableSchedules}
+                            plans={plans || []}
                             campuses={campuses || []}
                             units={units || []}
                             isoClauses={isoClauses || []}

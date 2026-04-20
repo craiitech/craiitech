@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { AuditSchedule, Campus, Unit, ISOClause, Signatories } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan } from '@/lib/types';
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,6 +21,7 @@ import { AuditPrintTemplate } from './audit-print-template';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
+    plans: AuditPlan[];
     campuses: Campus[];
     units: Unit[];
     isoClauses: ISOClause[];
@@ -31,6 +32,7 @@ interface AuditorScheduleListProps {
 
 export function AuditorScheduleList({ 
     schedules, 
+    plans,
     campuses, 
     units, 
     isoClauses, 
@@ -56,6 +58,7 @@ export function AuditorScheduleList({
 
   const handlePrintTemplate = (schedule: AuditSchedule) => {
     const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+    const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
 
     try {
         const reportHtml = renderToStaticMarkup(
@@ -64,6 +67,7 @@ export function AuditorScheduleList({
                 findings={[]} // Pass empty findings for blank template
                 clauses={clausesInScope}
                 signatories={signatories}
+                leadAuditorName={parentPlan?.leadAuditorName}
             />
         );
 

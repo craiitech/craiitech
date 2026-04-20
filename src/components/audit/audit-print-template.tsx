@@ -14,9 +14,10 @@ interface AuditPrintTemplateProps {
   findings: AuditFinding[];
   clauses: ISOClause[];
   signatories?: Signatories;
+  leadAuditorName?: string;
 }
 
-export function AuditPrintTemplate({ schedule, findings, clauses, signatories }: AuditPrintTemplateProps) {
+export function AuditPrintTemplate({ schedule, findings, clauses, signatories, leadAuditorName }: AuditPrintTemplateProps) {
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
     : (schedule.scheduledDate ? new Date(schedule.scheduledDate) : new Date());
@@ -186,7 +187,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
       <div className="mt-10 pt-4 border-t border-slate-200 flex justify-between items-center text-[8px] text-slate-400 italic uppercase tracking-widest">
         <span>RSU-QAO-IQA-LOG | REV 02-2025</span>
         <span className="font-bold">Page 1 of 1</span>
-        <span>Issued by: {qaoDirectorName}</span>
+        <span>Issued by: {leadAuditorName || qaoDirectorName}</span>
       </div>
     </div>
   );

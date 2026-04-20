@@ -169,6 +169,7 @@ function PlanItineraryRegistry({
                     findings={[]} 
                     clauses={clausesInScope}
                     signatories={signatories}
+                    leadAuditorName={plan.leadAuditorName}
                 />
             );
 
