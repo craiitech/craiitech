@@ -36,9 +36,12 @@ service cloud.firestore {
     // CORE WORKFLOW COLLECTIONS
     // --------------------------------------------------------------------------
     
-    match /unitFormRequests/{id} {
-      allow read, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+    match /unitFormRequests {
+      allow list: if isSignedIn();
+      match /{id} {
+        allow read, create, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
     }
 
     match /unitForms/{id} {
@@ -194,11 +197,6 @@ service cloud.firestore {
       allow create: if true;
       allow get, list: if isSignedIn();
       allow update, delete: if isAdmin();
-    }
-
-    // Explicit catch-all for collection queries on unitFormRequests to solve permission issues
-    match /unitFormRequests {
-      allow list: if isSignedIn();
     }
 
     // Admin-specific override for Form Roster Management
