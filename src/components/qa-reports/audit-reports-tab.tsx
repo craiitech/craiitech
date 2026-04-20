@@ -272,7 +272,8 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                                 <FileText className="h-8 w-8 opacity-10" />
                                 <p className="text-xs italic font-medium">No reports found in this vault.</p>
                             </div>
-                        </TableRow>
+                        </TableCell>
+                    </TableRow>
                     )}
                 </TableBody>
                 </Table>
