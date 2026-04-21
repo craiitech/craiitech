@@ -450,7 +450,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Issued Requests</CardTitle>
@@ -497,11 +497,22 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Resolved Ratio</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.closed} / {carStats.total}</div>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Total Resolved Items</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
+        </Card>
+
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Items</p>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Success Score</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-emerald-600" /></div>
         </Card>
@@ -883,7 +894,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
                                                 )} />
                                             </div>
-                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
+                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (
