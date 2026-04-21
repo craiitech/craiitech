@@ -243,7 +243,7 @@ export default function SubmissionsPage() {
         filtered = filtered.filter(s => 
             s.reportType.toLowerCase().includes(lowerSearch) ||
             (s.unitName || '').toLowerCase().includes(lowerSearch) ||
-            s.controlNumber.toLowerCase().includes(lowerSearch) ||
+            (s.controlNumber || '').toLowerCase().includes(lowerSearch) ||
             (userMap.get(s.userId) || '').toLowerCase().includes(lowerSearch)
         );
     }
@@ -545,7 +545,7 @@ export default function SubmissionsPage() {
                                                                         )}
                                                                     </div>
                                                                     <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
-                                                                        {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
+                                                                        {sub.cycleId} Cycle {sub.year} & bull; {sub.controlNumber}
                                                                     </span>
                                                                 </div>
                                                             </TableCell>
@@ -663,7 +663,7 @@ export default function SubmissionsPage() {
             </div>
             <AlertDialogFooter>
                 <AlertDialogCancel>Abort</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
+                <AlertDialogAction handleConfirmDelete onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
                     {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Record
                 </AlertDialogAction>
             </AlertDialogFooter>
