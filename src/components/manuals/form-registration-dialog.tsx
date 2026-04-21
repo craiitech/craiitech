@@ -9,9 +9,9 @@ import {
     Dialog, 
     DialogContent, 
     DialogDescription, 
+    DialogFooter, 
     DialogHeader, 
-    DialogTitle, 
-    DialogFooter 
+    DialogTitle 
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -29,14 +29,10 @@ import {
     Link as LinkIcon, 
     FileText, 
     Send,
-    ArrowRight,
     ChevronRight,
-    ClipboardCheck,
     CheckCircle2,
     Info,
-    AlertTriangle,
     FilePlus,
-    RefreshCw,
     LayoutList
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,10 +40,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import type { UnitFormRequest } from '@/lib/types';
+import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { getOfficialServerTime } from '@/lib/actions';
+import { format } from 'date-fns';
 
 interface FormRegistrationDialogProps {
   isOpen: boolean;
@@ -112,31 +109,50 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
   });
 
   const onSubmit = async (values: z.infer<typeof formRequestSchema>) => {
-    if (!firestore || !userProfile) return;
+    if (!firestore || !userProfile || !unit) return;
     setIsSubmitting(true);
     try {
-      const serverTime = await getOfficialServerTime();
-      const phDate = new Date(serverTime.iso);
+      // Fetch official Philippine time with a local fallback for robustness
+      let phDate: Date;
+      try {
+        const serverTime = await getOfficialServerTime();
+        phDate = new Date(serverTime.iso);
+      } catch (e) {
+        phDate = new Date();
+      }
       
-      const controlNumber = `RSU-DRF-${unit.isShared ? 'ACAD' : unit.id.toUpperCase()}-${format(phDate, 'yyyyMMdd-HHmm')}`;
+      const unitCode = unit.isShared ? 'ACAD' : (unit.id ? unit.id.substring(0, 8).toUpperCase() : 'UNIT');
+      const controlNumber = `RSU-DRF-${unitCode}-${format(phDate, 'yyyyMMdd-HHmm')}`;
+
+      // Sanitize requested forms to remove potential react-hook-form internal properties
+      const sanitizedForms = values.requestedForms.map(f => ({
+          name: f.name,
+          code: f.code,
+          link: f.link,
+          revision: f.revision
+      }));
 
       if (request) {
           const requestRef = doc(firestore, 'unitFormRequests', request.id);
           await updateDoc(requestRef, {
-              ...values,
-              status: 'Submitted',
+              scannedRegistrationFormLink: values.scannedRegistrationFormLink,
+              isDraft: values.isDraft,
+              requestedForms: sanitizedForms,
+              status: 'Submitted' as UnitFormRequestStatus,
               updatedAt: serverTimestamp(),
           });
           toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged.' });
       } else {
           const requestData = {
-            ...values,
+            scannedRegistrationFormLink: values.scannedRegistrationFormLink,
+            isDraft: values.isDraft,
+            requestedForms: sanitizedForms,
             unitId: unit.isShared ? 'academic-shared' : unit.id,
             unitName: unit.name,
-            campusId: userProfile.campusId,
+            campusId: userProfile.campusId || '',
             submitterId: userProfile.id,
             submitterName: `${userProfile.firstName} ${userProfile.lastName}`,
-            status: 'Submitted',
+            status: 'Submitted' as UnitFormRequestStatus,
             controlNumber,
             comments: [],
             createdAt: serverTimestamp(),
@@ -151,7 +167,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
       form.reset();
       setStep(1);
     } catch (error) {
-      console.error(error);
+      console.error("Form Registration Error:", error);
       toast({ title: 'Submission Failed', description: 'Could not process the registration request.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -295,7 +311,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                             <div className="space-y-3 ml-11">
                                 {fields.map((field, index) => (
                                     <Card key={field.id} className="relative group border-primary/10 hover:border-primary/30 transition-all bg-muted/5">
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(index)} disabled={fields.length === 1}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => remove(index)} disabled={fields.length === 1}><Trash2 className="h-4 w-4" /></Button>
                                         <CardContent className="p-4 pt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                                             <div className="md:col-span-3">
                                                 <FormField control={form.control} name={`requestedForms.${index}.code`} render={({ field: inputField }) => (
@@ -387,7 +403,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                             <Button type="button" onClick={nextStep} className="font-black text-[10px] uppercase h-10 px-8 shadow-md">Next Stage <ChevronRight className="ml-1.5 h-4 w-4" /></Button>
                         ) : (
                             <Button type="submit" form="reg-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10">
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
                                 Submit Application
                             </Button>
                         )}
