@@ -42,7 +42,8 @@ import {
     Scale,
     Printer,
     ListChecks,
-    Check
+    Check,
+    Monitor
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -63,7 +64,7 @@ import {
     Legend
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -73,8 +74,6 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, where, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { AccreditationRecommendationReport } from './recommendation-print-template';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -260,6 +259,26 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
     const nextScheduleDate = program.isNewProgram ? 'NEW PROGRAM' : (latestAccreditation?.statusValidityDate || 'TBA');
 
+    // 7. Collect Evidence Links
+    const evidenceRegistry: { title: string, url: string, category: string }[] = [];
+    if (record.ched?.copcLink) evidenceRegistry.push({ title: 'CHED COPC Certificate', url: record.ched.copcLink, category: 'Regulatory' });
+    if (record.ched?.programCmoLink) evidenceRegistry.push({ title: 'CHED Memorandum Order (CMO)', url: record.ched.programCmoLink, category: 'Regulatory' });
+    if (record.ched?.boardApprovalLink) evidenceRegistry.push({ title: 'Board Approval (BOR Resolution)', url: record.ched.boardApprovalLink, category: 'Governance' });
+    if (record.ched?.majorBoardApprovals) {
+        record.ched.majorBoardApprovals.forEach((a: any) => {
+            if (a.link) evidenceRegistry.push({ title: `BOR Resolution: ${program.specializations?.find(s => s.id === a.majorId)?.name || 'Major'}`, url: a.link, category: 'Governance' });
+        });
+    }
+    if (record.ched?.closureResolutionLink) evidenceRegistry.push({ title: 'Program Closure Authority', url: record.ched.closureResolutionLink, category: 'Regulatory' });
+    
+    milestones.forEach(m => {
+        if (m.certificateLink) evidenceRegistry.push({ title: `${m.level} Accreditation Certificate`, url: m.certificateLink, category: 'Quality' });
+    });
+
+    curriculumRecords.forEach(c => {
+        if (c.notationProofLink) evidenceRegistry.push({ title: `CHED Notation: ${program.specializations?.find(s => s.id === c.majorId)?.name || 'General'}`, url: c.notationProofLink, category: 'Curriculum' });
+    });
+
     return { 
         enrollmentData, 
         alignmentRate, 
@@ -276,7 +295,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         overallScore, 
         pillarScores, 
         radarData,
-        gaps 
+        gaps,
+        evidenceRegistry
     };
   }, [record, program]);
 
@@ -290,47 +310,82 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     );
   }
 
+  const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* DIGITAL EVIDENCE VAULT */}
           <Card className="border-primary/10 shadow-lg overflow-hidden flex flex-col">
               <CardHeader className="bg-primary/5 border-b py-4">
-                  <div className="flex items-center gap-2">
-                      <ListChecks className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Recommendations Status</CardTitle>
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                          <Monitor className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Digital Evidence Vault</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="bg-white text-primary border-primary/20 h-5 px-2 font-black text-[9px] uppercase">
+                          {analyticsData.evidenceRegistry.length} DOCUMENTS LINKED
+                      </Badge>
                   </div>
               </CardHeader>
               <CardContent className="p-0 flex-1 overflow-hidden">
                   <ScrollArea className="h-[400px]">
                       <div className="divide-y">
-                          {(record.accreditationRecords || []).flatMap(milestone => 
-                              (milestone.recommendations || []).map((reco, rIdx) => (
-                                  <div key={`${milestone.id}-${rIdx}`} className="p-4 hover:bg-muted/20 transition-colors">
-                                      <div className="flex items-start gap-4">
-                                          <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-1", reco.type === 'Mandatory' ? "bg-rose-100 text-rose-600" : "bg-blue-100 text-blue-600")}>
-                                              {reco.type === 'Mandatory' ? <ShieldAlert className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+                          {analyticsData.evidenceRegistry.map((doc, idx) => (
+                              <div key={idx} className="p-4 hover:bg-muted/20 transition-colors group">
+                                  <div className="flex items-center justify-between gap-4">
+                                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                                          <div className={cn(
+                                              "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                                              doc.category === 'Regulatory' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                              doc.category === 'Governance' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
+                                              doc.category === 'Quality' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                              "bg-blue-50 border-blue-100 text-blue-600"
+                                          )}>
+                                              <FileText className="h-5 w-5" />
                                           </div>
-                                          <div className="flex-1 min-w-0 space-y-2">
-                                              <div className="flex items-center justify-between">
-                                                  <Badge variant="secondary" className="h-4 text-[8px] font-black uppercase">{milestone.level} &bull; {reco.type}</Badge>
-                                                  <Badge className={cn("h-4 text-[8px] font-black uppercase", reco.status === 'Closed' ? "bg-emerald-600" : "bg-amber-50")}>{reco.status}</Badge>
+                                          <div className="min-w-0 space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{doc.category}</span>
+                                                  <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase bg-emerald-100 text-emerald-700 border-none">
+                                                      <Check className="h-2 w-2 mr-0.5" /> VERIFIED
+                                                  </Badge>
                                               </div>
-                                              <p className="text-xs font-bold text-slate-800 leading-relaxed italic">"{reco.text}"</p>
+                                              <p className="text-xs font-bold text-slate-800 truncate leading-tight">{doc.title}</p>
                                           </div>
                                       </div>
+                                      <div className="flex gap-2">
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-8 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm"
+                                            onClick={() => setPreviewDoc({ title: doc.title, url: getEmbedUrl(doc.url) })}
+                                          >
+                                              <Eye className="h-3.5 w-3.5 mr-1.5" /> Preview
+                                          </Button>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
+                                              <a href={doc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                                          </Button>
+                                      </div>
                                   </div>
-                              ))
-                          )}
-                          {!(record.accreditationRecords?.some(m => m.recommendations?.length)) && (
-                              <div className="py-20 text-center opacity-20">
-                                  <Activity className="h-10 w-10 mx-auto" />
-                                  <p className="text-[10px] font-black uppercase mt-2">Registry is Empty</p>
+                              </div>
+                          ))}
+                          {analyticsData.evidenceRegistry.length === 0 && (
+                              <div className="py-20 text-center opacity-20 flex flex-col items-center gap-2">
+                                  <FileX className="h-10 w-10" />
+                                  <p className="text-xs font-black uppercase tracking-widest">Vault is empty</p>
+                                  <p className="text-[10px] max-w-[200px] italic">Upload certificates and resolutions in the compliance modules to populate this vault.</p>
                               </div>
                           )}
                       </div>
                   </ScrollArea>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-2 px-6">
+                <p className="text-[9px] text-muted-foreground italic font-medium leading-relaxed">
+                    Institutional evidence integrity is maintained via unit-managed Google Drive repositories.
+                </p>
+              </CardFooter>
           </Card>
 
           <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5">
@@ -476,11 +531,14 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         </Card>
       </div>
 
-      <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
+      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
         <DialogContent className="max-w-6xl h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
             <DialogHeader className="p-5 border-b bg-slate-50 shrink-0">
                 <div className="flex items-center justify-between">
-                    <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title}</DialogTitle>
+                    <div className="space-y-0.5">
+                        <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title}</DialogTitle>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Independent Document Verification Preview</p>
+                    </div>
                     <Badge variant="secondary" className="h-5 text-[9px] font-bold">AY {selectedYear}</Badge>
                 </div>
             </DialogHeader>
