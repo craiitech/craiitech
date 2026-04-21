@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, CorrectiveActionRequest } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, CorrectiveActionRequest, ManagementReviewOutput, AuditFinding } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,8 @@ import {
     Printer,
     ListChecks,
     Check,
-    Monitor
+    Monitor,
+    Eye
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -119,10 +120,21 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
   }, [firestore, record?.unitId, record?.campusId]);
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
+  const findingsQuery = useMemoFirebase(() => {
+    if (!firestore || !record?.unitId) return null;
+    return collection(firestore, 'auditFindings'); 
+  }, [firestore, record?.unitId]);
+  const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
+
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !record?.unitId || !record?.campusId) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, record?.unitId, record?.campusId]);
+  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
+
   const analyticsData = useMemo(() => {
     if (!record) return null;
 
-    // 1. Enrollment Dynamics (Multi-series Bar) - Aggregating all major-specific logs
     const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
     const levelLabels: Record<string, string> = { firstYear: '1st Yr', secondYear: '2nd Yr', thirdYear: '3rd Yr', fourthYear: '4th Yr' };
 
@@ -140,7 +152,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 totalSem2 += (Number(s2?.male) || 0) + (Number(s2?.female) || 0);
             });
         } else {
-            // Fallback to legacy single stats structure
             const s1 = record.stats.enrollment?.firstSemester?.[level];
             const s2 = record.stats.enrollment?.secondSemester?.[level];
             totalSem1 = (Number(s1?.male) || 0) + (Number(s1?.female) || 0);
@@ -154,7 +165,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         };
     });
 
-    // 2. Faculty Alignment Analysis
     let totalFaculty = 0;
     let alignedFaculty = 0;
     let othersFaculty = 0;
@@ -184,7 +194,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         { name: 'Needs Correction', value: Math.max(0, totalFaculty - alignedFaculty - othersFaculty), fill: COLORS['Needs Correction'] }
     ].filter(d => d.value > 0);
 
-    // 3. Outcomes
     const latestBoard = record.boardPerformance && record.boardPerformance.length > 0 
         ? record.boardPerformance[record.boardPerformance.length - 1] 
         : null;
@@ -194,7 +203,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         { name: 'National', rate: latestBoard.nationalPassingRate, fill: 'hsl(var(--muted-foreground))' }
     ] : [];
 
-    // 4. Major-Specific Contexts
     const milestones = record.accreditationRecords || [];
     const currentAccreditationByMajor: Record<string, AccreditationRecord> = {};
     milestones.filter(m => m.lifecycleStatus === 'Current').forEach(m => {
@@ -214,10 +222,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         curriculaByMajor[c.majorId] = c;
     });
 
-    const now = new Date();
-    const currentYearNum = now.getFullYear();
+    const currentYearNum = new Date().getFullYear();
 
-    // 5. Pillar Analysis
     const pillarScores = {
         ched: record.ched?.copcStatus === 'With COPC' ? 20 : (record.ched?.copcStatus === 'In Progress' ? 10 : 0),
         accreditation: program.isNewProgram ? 20 : ((latestAccreditation?.level && latestAccreditation.level !== 'Non Accredited') ? 20 : 0),
@@ -236,7 +242,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
     const overallScore = Math.round(Object.values(pillarScores).reduce((a, b) => a + b, 0));
 
-    // 6. Gaps
     const gaps = [];
     if (record.ched?.copcStatus !== 'With COPC') gaps.push({ type: 'Institutional Authority', msg: 'Program is operating without an active COPC.', priority: 'High', target: 'ched' });
     
@@ -259,7 +264,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
     const nextScheduleDate = program.isNewProgram ? 'NEW PROGRAM' : (latestAccreditation?.statusValidityDate || 'TBA');
 
-    // 7. Collect Evidence Links
     const evidenceRegistry: { title: string, url: string, category: string }[] = [];
     if (record.ched?.copcLink) evidenceRegistry.push({ title: 'CHED COPC Certificate', url: record.ched.copcLink, category: 'Regulatory' });
     if (record.ched?.programCmoLink) evidenceRegistry.push({ title: 'CHED Memorandum Order (CMO)', url: record.ched.programCmoLink, category: 'Regulatory' });
@@ -314,9 +318,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* DIGITAL EVIDENCE VAULT */}
           <Card className="border-primary/10 shadow-lg overflow-hidden flex flex-col">
               <CardHeader className="bg-primary/5 border-b py-4">
                   <div className="flex items-center justify-between">
@@ -375,17 +377,11 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                               <div className="py-20 text-center opacity-20 flex flex-col items-center gap-2">
                                   <FileX className="h-10 w-10" />
                                   <p className="text-xs font-black uppercase tracking-widest">Vault is empty</p>
-                                  <p className="text-[10px] max-w-[200px] italic">Upload certificates and resolutions in the compliance modules to populate this vault.</p>
                               </div>
                           )}
                       </div>
                   </ScrollArea>
               </CardContent>
-              <CardFooter className="bg-muted/5 border-t py-2 px-6">
-                <p className="text-[9px] text-muted-foreground italic font-medium leading-relaxed">
-                    Institutional evidence integrity is maintained via unit-managed Google Drive repositories.
-                </p>
-              </CardFooter>
           </Card>
 
           <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5">
@@ -469,82 +465,20 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-primary/10 shadow-lg overflow-hidden">
-            <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Strategic Quality Radar</CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                    <div className="md:col-span-3 h-[300px]">
-                        <ChartContainer config={{}} className="h-full w-full">
-                            <ResponsiveContainer>
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={analyticsData.radarData}>
-                                    <PolarGrid strokeOpacity={0.1} />
-                                    <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                    <RechartsTooltip content={<ChartTooltipContent />} />
-                                    <Radar name="Program Maturity" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4} />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </div>
-                    <div className="md:col-span-2 flex flex-col justify-center space-y-4 pr-4">
-                        {analyticsData.radarData.map((d, i) => (
-                            <div key={i} className="space-y-1.5">
-                                <div className="flex justify-between items-end">
-                                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{d.pillar}</span>
-                                    <span className="text-xs font-black tabular-nums">{Math.round(d.score)}%</span>
-                                </div>
-                                <Progress value={d.score} className="h-1" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1 border-primary/10 shadow-lg overflow-hidden flex flex-col">
-            <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Disaggregated Enrollment Dynamics</CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent className="pt-6 flex-1">
-                <ChartContainer config={{}} className="h-[300px] w-full">
-                    <ResponsiveContainer>
-                        <BarChart data={analyticsData.enrollmentData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                            <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', paddingBottom: '10px' }} />
-                            <Bar dataKey="1st Sem" fill="hsl(var(--chart-1))" radius={[2, 2, 0, 0]} />
-                            <Bar dataKey="2nd Sem" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-      </div>
-
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
         <DialogContent className="max-w-6xl h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
             <DialogHeader className="p-5 border-b bg-slate-50 shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                         <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title}</DialogTitle>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Independent Document Verification Preview</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Document Verification Preview</p>
                     </div>
                     <Badge variant="secondary" className="h-5 text-[9px] font-bold">AY {selectedYear}</Badge>
                 </div>
             </DialogHeader>
             <div className="flex-1 bg-muted relative group">
                 {previewDoc && (
-                    <iframe src={previewDoc.url} className="absolute inset-0 w-full h-full border-none bg-white z-10" allow="autoplay" />
+                    <iframe src={previewDoc.url} className="absolute inset-0 w-full h-full border-none bg-white z-10" allow="autoplay" title={previewDoc.title} />
                 )}
             </div>
             <div className="p-4 border-t flex justify-between items-center bg-card shrink-0 px-8">
