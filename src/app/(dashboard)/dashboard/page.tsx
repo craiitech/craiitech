@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -316,6 +315,15 @@ export default function HomePage() {
     [firestore]
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  /**
+   * AUDIT PLANS FETCHING (Required for dashboard printing)
+   */
+  const auditPlansQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, 'auditPlans');
+  }, [firestore]);
+  const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
 
   /**
    * IQA SCHEDULE FETCHING FOR DASHBOARD
@@ -768,7 +776,7 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
-        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
+        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
 
         {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
             <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -1010,7 +1018,14 @@ export default function HomePage() {
                                 <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
                 )}
                 
-                <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
+                <UnitAuditSchedule 
+                    schedules={sortedDashboardSchedules} 
+                    isLoading={isLoadingSchedules} 
+                    isSupervisor={isSupervisor || isAdmin}
+                    plans={allAuditPlans || []}
+                    signatories={signatories || undefined}
+                    campusName={campusMap.get(userProfile?.campusId || '')}
+                />
 
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                     {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
@@ -1084,7 +1099,14 @@ export default function HomePage() {
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
         
-        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
+        <UnitAuditSchedule 
+            schedules={sortedDashboardSchedules} 
+            isLoading={isLoadingSchedules} 
+            isSupervisor={isSupervisor || isAdmin}
+            plans={allAuditPlans || []}
+            signatories={signatories || undefined}
+            campusName="Institutional"
+        />
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
