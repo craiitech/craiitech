@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -54,7 +53,8 @@ import {
     ListChecks,
     Check,
     Monitor,
-    Eye
+    Eye,
+    ClipboardCheck
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -199,7 +199,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     });
 
     const curriculumRecords = record.curriculumRecords || [];
-    const currentYearNum = new Date().getFullYear();
 
     const pillarScores = {
         ched: record.ched?.copcStatus === 'With COPC' ? 20 : (record.ched?.copcStatus === 'In Progress' ? 10 : 0),
@@ -471,7 +470,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
           </div>
       </div>
 
-      {/* 3. ACCREDITOR'S RECOMMENDATIONS REGISTRY */}
+      {/* 3. ACCREDITATION RECOMMENDATIONS REGISTRY */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-6">
               <div className="flex items-center justify-between">
@@ -663,4 +662,3 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     </div>
   );
 }
-
