@@ -105,6 +105,7 @@ export default function SubmissionsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
+  const [searchTerm, setSearchTerm] = useState('');
   const [activeDetailedTab, setActiveDetailedTab] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -235,6 +236,18 @@ export default function SubmissionsPage() {
   const tableSubmissionsData = useMemo(() => {
     if (!normalizedSubmissions) return [];
     let filtered = [...normalizedSubmissions];
+
+    // Search Logic
+    if (searchTerm) {
+        const lowerSearch = searchTerm.toLowerCase();
+        filtered = filtered.filter(s => 
+            s.reportType.toLowerCase().includes(lowerSearch) ||
+            (s.unitName || '').toLowerCase().includes(lowerSearch) ||
+            s.controlNumber.toLowerCase().includes(lowerSearch) ||
+            (userMap.get(s.userId) || '').toLowerCase().includes(lowerSearch)
+        );
+    }
+
     if (yearFilter !== 'all') filtered = filtered.filter(s => String(s.year) === yearFilter);
     if (campusFilter !== 'all') filtered = filtered.filter(s => s.campusId === campusFilter);
     if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
@@ -254,7 +267,7 @@ export default function SubmissionsPage() {
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder, modeFilter]);
+  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder, modeFilter, searchTerm, userMap]);
 
   const isRiskRegistered = (unitId: string, year: number) => {
     if (!allRisks) return false;
@@ -330,68 +343,79 @@ export default function SubmissionsPage() {
         </div>
 
         <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <School className="h-2.5 w-2.5" /> Campus Site
-                    </label>
-                    <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Campuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {isInstitutionalViewer && <SelectItem value="all">All Campuses</SelectItem>}
-                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+            <CardContent className="p-4 space-y-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by document type, unit, or control number..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
+                    />
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <School className="h-2.5 w-2.5" /> Campus Site
+                        </label>
+                        <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <SelectValue placeholder="All Campuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {isInstitutionalViewer && <SelectItem value="all">All Campuses</SelectItem>}
+                                {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Building className="h-2.5 w-2.5" /> Unit / Office
-                    </label>
-                    <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isInstitutionalViewer && (!isSupervisor || userRole === 'Unit ODIMO')}>
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Units" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
-                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <Building className="h-2.5 w-2.5" /> Unit / Office
+                        </label>
+                        <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isInstitutionalViewer && (!isSupervisor || userRole === 'Unit ODIMO')}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <SelectValue placeholder="All Units" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
+                                {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Filter className="h-2.5 w-2.5" /> Workflow Status
-                    </label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Statuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            <SelectItem value="submitted">Awaiting Approval</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <Filter className="h-2.5 w-2.5" /> Workflow Status
+                        </label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <SelectValue placeholder="All Statuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="submitted">Awaiting Approval</SelectItem>
+                                <SelectItem value="approved">Approved</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <LayoutList className="h-2.5 w-2.5" /> Document Version
-                    </label>
-                    <Select value={modeFilter} onValueChange={(val: any) => setModeFilter(val)}>
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Versions" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All (Drafts & Finals)</SelectItem>
-                            <SelectItem value="draft">Drafts Only</SelectItem>
-                            <SelectItem value="final">Final Records Only</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <LayoutList className="h-2.5 w-2.5" /> Document Version
+                        </label>
+                        <Select value={modeFilter} onValueChange={(val: any) => setModeFilter(val)}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <SelectValue placeholder="All Versions" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All (Drafts & Finals)</SelectItem>
+                                <SelectItem value="draft">Drafts Only</SelectItem>
+                                <SelectItem value="final">Final Records Only</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </CardContent>
         </Card>
