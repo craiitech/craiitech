@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -13,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import type { AcademicProgram } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface ChedComplianceModuleProps {
   canEdit: boolean;
@@ -171,7 +171,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-3 shadow-sm">
                                     <div className="flex items-center justify-between"><span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{spec.name}</span>{majorApprovals[idx]?.link && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 text-[8px] font-black">LINKED</Badge>}</div>
                                     <FormField control={control} name={`ched.majorBoardApprovals.${idx}.link`} render={({ field: inputField }) => (
-                                        <FormItem><FormControl><div className="relative"><LinkIcon className="absolute left-2.5 top-2.5 h-3 w-3 text-muted-foreground" /><Input {...inputField} value={inputField.value || ''} placeholder="Paste Resolution Link..." className="pl-8 h-8 text-[10px] bg-white border-primary/10" disabled={!canEdit} /></div></FormControl></FormItem>
+                                        <FormItem><FormControl><div className="relative"><LinkIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input {...inputField} value={inputField.value || ''} placeholder="Paste Resolution Link..." className="pl-8 h-8 text-[10px] bg-white border-primary/10" disabled={!canEdit} /></div></FormControl></FormItem>
                                     )} />
                                     <GDrivePreview url={majorApprovals[idx]?.link} title={`BOR: ${spec.name}`} />
                                 </div>
