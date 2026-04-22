@@ -44,7 +44,8 @@ import {
     Cloud,
     FileSignature,
     CheckCircle,
-    LayoutList
+    LayoutList,
+    School
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -98,7 +99,7 @@ export default function UnitFormsPage() {
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const allRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin && isHistoryActive ? collection(firestore, 'unitFormRequests') : null),
@@ -189,6 +190,8 @@ export default function UnitFormsPage() {
 
   const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
   const { data: sharedSettings } = useDoc<CampusSetting>(academicSharedRef);
+
+  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
   const activeRosterData = useMemo(() => {
       if (selectedUnitId === SHARED_ACADEMIC_ID) return { 
@@ -559,7 +562,7 @@ export default function UnitFormsPage() {
                                       <TableHeader className="bg-muted/30">
                                         <TableRow>
                                           <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
-                                          <TableHead className="text-[10px] font-black uppercase">Unit & Type</TableHead>
+                                          <TableHead className="text-[10px] font-black uppercase">Unit, Site & Type</TableHead>
                                           <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
                                           <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
                                           <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
@@ -570,13 +573,19 @@ export default function UnitFormsPage() {
                                               <TableRow key={req.id} className="hover:bg-muted/20">
                                                   <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
                                                   <TableCell>
-                                                      <div className="flex items-center gap-2">
-                                                          <span className="font-bold text-xs uppercase">{req.unitName}</span>
-                                                          {req.isDraft && (
-                                                              <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
-                                                                  <LayoutList className="h-2.5 w-2.5" /> DRAFT
-                                                              </Badge>
-                                                          )}
+                                                      <div className="flex flex-col">
+                                                          <div className="flex items-center gap-2">
+                                                              <span className="font-bold text-xs uppercase">{req.unitName}</span>
+                                                              {req.isDraft && (
+                                                                  <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
+                                                                      <LayoutList className="h-2.5 w-2.5" /> DRAFT
+                                                                  </Badge>
+                                                              )}
+                                                          </div>
+                                                          <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                                                              <School className="h-2.5 w-2.5" />
+                                                              {campusMap.get(req.campusId) || 'Site Context'}
+                                                          </span>
                                                       </div>
                                                   </TableCell>
                                                   <TableCell className="text-xs">{req.submitterName}</TableCell>
