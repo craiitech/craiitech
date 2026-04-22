@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,7 +35,9 @@ import {
     ChevronRight,
     CheckCircle2,
     Monitor,
-    LayoutList
+    LayoutList,
+    AlertTriangle,
+    Link as LinkIcon
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -48,11 +51,13 @@ import {
     TableRow 
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { UnitFormRequest, UnitFormRequestStatus, Comment } from '@/lib/types';
+import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface FormRequestReviewDialogProps {
   requestId: string;
@@ -78,6 +83,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeFormPreview, setActiveFormPreview] = useState<{ name: string; link: string } | null>(null);
   const [adminChecklist, setAdminChecklist] = useState<Record<string, boolean>>({});
+  const [presidentialLink, setPresidentialLink] = useState('');
 
   const requestRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'unitFormRequests', requestId) : null),
@@ -89,6 +95,14 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
     resolver: zodResolver(commentSchema),
     defaultValues: { comment: '' }
   });
+
+  useEffect(() => {
+    if (request?.presidentialApprovalLink) {
+        setPresidentialLink(request.presidentialApprovalLink);
+    } else {
+        setPresidentialLink('');
+    }
+  }, [request]);
 
   const isChecklistComplete = useMemo(() => {
     if (!request) return false;
@@ -122,6 +136,11 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
           });
       }
 
+      // If finalizing, attach the presidential link
+      if (newStatus === 'Approved & Registered' && presidentialLink) {
+          updateData.presidentialApprovalLink = presidentialLink;
+      }
+
       batch.update(reqDocRef, updateData);
 
       if (newStatus === 'Approved & Registered') {
@@ -151,6 +170,8 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
   };
 
   const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
+
+  const isAwaitingPresident = request?.status === 'Awaiting Presidential Approval';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -284,7 +305,54 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                             <TabsContent value="actions" className="h-full m-0 flex flex-col">
                                 <ScrollArea className="flex-1">
                                     <div className="p-6 space-y-8">
-                                        {!request.isDraft ? (
+                                        {isAwaitingPresident ? (
+                                            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                                                <Alert className="bg-amber-50 border-amber-200 shadow-sm">
+                                                    <Gavel className="h-4 w-4 text-amber-600" />
+                                                    <AlertTitle className="text-xs font-black uppercase tracking-tight text-amber-800">Final Executive Action Required</AlertTitle>
+                                                    <AlertDescription className="text-[11px] leading-relaxed font-medium text-amber-700">
+                                                        This application has passed QA review. To complete the **Official Registration**, please provide the Google Drive link of the scanned/signed copy of the President's approval.
+                                                    </AlertDescription>
+                                                </Alert>
+
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                                            <LinkIcon className="h-3 w-3" /> Scanned Presidential Approval Link
+                                                        </Label>
+                                                        <Input 
+                                                            value={presidentialLink} 
+                                                            onChange={(e) => setPresidentialLink(e.target.value)} 
+                                                            placeholder="https://drive.google.com/..." 
+                                                            className="bg-white border-primary/20 h-11 font-bold shadow-inner"
+                                                        />
+                                                        <p className="text-[9px] text-muted-foreground italic">Provide the evidence of executive authority to finalize enrollment.</p>
+                                                    </div>
+
+                                                    <GDrivePreview url={presidentialLink} title="Presidential Approval Proof" />
+
+                                                    <div className="pt-4 space-y-2">
+                                                        <Button 
+                                                            type="button" 
+                                                            className="w-full h-12 font-black text-xs uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" 
+                                                            onClick={() => handleUpdateStatus('Approved & Registered', 'Presidential approval verified. Forms officially enrolled in unit roster.')} 
+                                                            disabled={isProcessing || !presidentialLink.startsWith('https://drive.google.com/')}
+                                                        >
+                                                            <ShieldCheck className="h-5 w-5" /> Finalize & Register All Forms
+                                                        </Button>
+                                                        <Button 
+                                                            type="button" 
+                                                            variant="outline"
+                                                            className="w-full h-10 font-bold text-[10px] uppercase border-destructive/20 text-destructive hover:bg-destructive/5" 
+                                                            onClick={() => handleUpdateStatus('Returned for Correction', 'Reverted from executive stage for corrective action.')} 
+                                                            disabled={isProcessing}
+                                                        >
+                                                            <Undo2 className="h-3.5 w-3.5 mr-2" /> Revert to Unit
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : !request.isDraft ? (
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2">
                                                     <ShieldCheck className="h-4 w-4 text-primary" />
@@ -309,31 +377,36 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                             </div>
                                         )}
 
-                                        <div className="space-y-4 pt-4 border-t">
-                                            <div className="flex items-center gap-2">
-                                                <MessageSquare className="h-4 w-4 text-primary" />
-                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Findings / Comments</h4>
+                                        {!isAwaitingPresident && (
+                                            <div className="space-y-4 pt-4 border-t">
+                                                <div className="flex items-center gap-2">
+                                                    <MessageSquare className="h-4 w-4 text-primary" />
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Findings / Comments</h4>
+                                                </div>
+                                                <Form {...form}>
+                                                    <form className="space-y-4">
+                                                        <FormField control={form.control} name="comment" render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormControl><Textarea {...field} placeholder="Enter review notes or required changes..." rows={4} className="text-xs italic bg-white shadow-inner" /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required for rejection.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
+                                                            <Button type="button" variant="outline" className="h-10 font-black text-[10px] uppercase gap-1.5" onClick={() => { handleUpdateStatus('QA Review', form.getValues('comment') || 'Moved to active QA validation stage.'); }} disabled={isProcessing}><ShieldCheck className="h-3.5 w-3.5" /> START QA</Button>
+                                                        </div>
+                                                        <Separator />
+                                                        <div className="space-y-2">
+                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Awaiting Presidential Approval', 'Review complete. Endorsed for executive registration.')} disabled={isProcessing || !isChecklistComplete}><Monitor className="h-4 w-4" /> Endorse for Final Approval</Button>
+                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" onClick={() => handleUpdateStatus('Approved & Registered', 'Verification complete. Forms now enrolled in institutional roster.')} disabled={isProcessing || !isChecklistComplete || !request.isDraft}><Check className="h-4 w-4" /> {request.isDraft ? 'Clear Draft as Satisfactory' : 'Register All Forms'}</Button>
+                                                        </div>
+                                                        {!request.isDraft && (
+                                                            <p className="text-[9px] text-muted-foreground italic text-center">Note: Final registration for non-drafts requires Presidential Approval Link at the next stage.</p>
+                                                        )}
+                                                    </form>
+                                                </Form>
                                             </div>
-                                            <Form {...form}>
-                                                <form className="space-y-4">
-                                                    <FormField control={form.control} name="comment" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl><Textarea {...field} placeholder="Enter review notes or required changes..." rows={4} className="text-xs italic bg-white shadow-inner" /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required for rejection.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
-                                                        <Button type="button" variant="outline" className="h-10 font-black text-[10px] uppercase gap-1.5" onClick={() => { handleUpdateStatus('QA Review', form.getValues('comment') || 'Moved to active QA validation stage.'); }} disabled={isProcessing}><ShieldCheck className="h-3.5 w-3.5" /> START QA</Button>
-                                                    </div>
-                                                    <Separator />
-                                                    <div className="space-y-2">
-                                                        <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Awaiting Presidential Approval', 'Review complete. Endorsed for executive registration.')} disabled={isProcessing || !isChecklistComplete}><Monitor className="h-4 w-4" /> Endorse for Final Approval</Button>
-                                                        <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" onClick={() => handleUpdateStatus('Approved & Registered', 'Verification complete. Forms now enrolled in institutional roster.')} disabled={isProcessing || !isChecklistComplete}><Check className="h-4 w-4" /> {request.isDraft ? 'Clear Draft as Satisfactory' : 'Register All Forms'}</Button>
-                                                    </div>
-                                                </form>
-                                            </Form>
-                                        </div>
+                                        )}
                                     </div>
                                 </ScrollArea>
                             </TabsContent>

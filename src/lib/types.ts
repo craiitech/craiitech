@@ -436,6 +436,7 @@ export type UnitFormRequest = {
     submitterId: string;
     submitterName: string;
     scannedRegistrationFormLink: string; 
+    presidentialApprovalLink?: string; // Final evidence of authority
     isDraft?: boolean; // New: Draft flag for preliminary content check
     controlNumber?: string; // New: Standardized control number for the request
     requestedForms: {
