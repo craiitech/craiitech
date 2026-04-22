@@ -37,7 +37,8 @@ import {
     Monitor,
     LayoutList,
     AlertTriangle,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Eye
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +59,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 interface FormRequestReviewDialogProps {
   requestId: string;
@@ -75,6 +77,36 @@ const adminChecklistItems = [
     { id: 'link-access', label: 'Are all individual form links public/viewable?' },
     { id: 'rev-correct', label: 'Is the revision history sequence accurate?' },
 ];
+
+function GDrivePreview({ url, title }: { url?: string; title: string }) {
+  if (!url || !url.startsWith('https://drive.google.com/')) return null;
+  const embedUrl = url.replace('/view', '/preview').replace('?usp=sharing', '');
+  return (
+    <Card className="col-span-full border-primary/10 shadow-md overflow-hidden bg-muted/5 animate-in fade-in slide-in-from-top-4 duration-500">
+      <CardHeader className="py-3 px-4 border-b bg-white flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-primary" />
+          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">
+            Document Evidence Preview: {title}
+          </CardTitle>
+        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </Button>
+      </CardHeader>
+      <CardContent className="p-0 relative aspect-video bg-white shadow-inner">
+        <iframe 
+          src={embedUrl} 
+          className="absolute inset-0 w-full h-full border-none"
+          allow="autoplay"
+          title={`${title} Preview`}
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: FormRequestReviewDialogProps) {
   const { userProfile, isAdmin, userRole } = useUser();
@@ -136,7 +168,6 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
           });
       }
 
-      // If finalizing, attach the presidential link
       if (newStatus === 'Approved & Registered' && presidentialLink) {
           updateData.presidentialApprovalLink = presidentialLink;
       }
