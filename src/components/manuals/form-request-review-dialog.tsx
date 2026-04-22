@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -174,7 +173,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
 
       batch.update(reqDocRef, updateData);
 
-      if (newStatus === 'Approved & Registered') {
+      if (newStatus === 'Approved & Registered' && !request.isDraft) {
           request.requestedForms.forEach(f => {
               const formDocRef = doc(collection(firestore, 'unitForms'));
               batch.set(formDocRef, {
@@ -216,9 +215,9 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                     </div>
                     <div className="flex items-center gap-3">
                         <DialogTitle className="text-xl font-bold uppercase tracking-tight">
-                            {isLoading ? 'Loading Application Registry...' : 'Form Registration Review'}
+                            {request?.isDraft ? 'Preliminary Draft Content Audit' : 'Final Form Registration Verification'}
                         </DialogTitle>
-                        {request?.isDraft && <Badge className="bg-blue-600 text-white border-none h-5 px-2 text-[9px] font-black uppercase shadow-sm">DRAFT CHECK</Badge>}
+                        {request?.isDraft && <Badge className="bg-blue-600 text-white border-none h-5 px-2 text-[9px] font-black uppercase shadow-sm">DRAFT REVIEW MODE</Badge>}
                     </div>
                     <p className="text-[10px] font-black font-mono text-muted-foreground tracking-tighter uppercase">
                         {request?.controlNumber || (isLoading ? '...' : `REQ-${requestId.substring(0,8)}`)}
@@ -402,9 +401,9 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                             <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl space-y-2">
                                                 <div className="flex items-center gap-2 text-blue-800">
                                                     <LayoutList className="h-4 w-4" />
-                                                    <p className="text-[11px] font-black uppercase">Draft Content Check</p>
+                                                    <p className="text-[11px] font-black uppercase">Draft Content Audit Mode</p>
                                                 </div>
-                                                <p className="text-[10px] text-blue-700 leading-relaxed font-medium">Verify form content and layout. Strict compliance checklist is bypassed for draft sessions.</p>
+                                                <p className="text-[10px] text-blue-700 leading-relaxed font-medium">Verify form content, layout, and coding accuracy. Strict compliance checklists and presidential approvals are bypassed for preliminary draft review.</p>
                                             </div>
                                         )}
 
@@ -428,8 +427,13 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                                         </div>
                                                         <Separator />
                                                         <div className="space-y-2">
-                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Awaiting Presidential Approval', 'Review complete. Endorsed for executive registration.')} disabled={isProcessing || !isChecklistComplete}><Monitor className="h-4 w-4" /> Endorse for Final Approval</Button>
-                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" onClick={() => handleUpdateStatus('Approved & Registered', 'Verification complete. Forms now enrolled in institutional roster.')} disabled={isProcessing || !isChecklistComplete || !request.isDraft}><Check className="h-4 w-4" /> {request.isDraft ? 'Clear Draft as Satisfactory' : 'Register All Forms'}</Button>
+                                                            {!request.isDraft && (
+                                                                <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Awaiting Presidential Approval', 'Review complete. Endorsed for executive registration.')} disabled={isProcessing || !isChecklistComplete}><Monitor className="h-4 w-4" /> Endorse for Final Approval</Button>
+                                                            )}
+                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" onClick={() => handleUpdateStatus('Approved & Registered', 'Verification complete. Forms now enrolled in institutional roster.')} disabled={isProcessing || !isChecklistComplete}>
+                                                                <Check className="h-4 w-4" /> 
+                                                                {request.isDraft ? 'Clear Draft as Satisfactory' : 'Register All Forms'}
+                                                            </Button>
                                                         </div>
                                                         {!request.isDraft && (
                                                             <p className="text-[9px] text-muted-foreground italic text-center">Note: Final registration for non-drafts requires Presidential Approval Link at the next stage.</p>

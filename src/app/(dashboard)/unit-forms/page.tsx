@@ -43,7 +43,8 @@ import {
     Gavel,
     Cloud,
     FileSignature,
-    CheckCircle
+    CheckCircle,
+    LayoutList
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -161,7 +162,7 @@ export default function UnitFormsPage() {
         const canSeeAcademic = isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic';
         
         if (canSeeAcademic) {
-            items.unshift({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
+            items.push({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
         }
     }
 
@@ -558,7 +559,7 @@ export default function UnitFormsPage() {
                                       <TableHeader className="bg-muted/30">
                                         <TableRow>
                                           <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
-                                          <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>
+                                          <TableHead className="text-[10px] font-black uppercase">Unit & Type</TableHead>
                                           <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
                                           <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
                                           <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
@@ -568,7 +569,16 @@ export default function UnitFormsPage() {
                                           {sortedAllRequests.map(req => (
                                               <TableRow key={req.id} className="hover:bg-muted/20">
                                                   <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
-                                                  <TableCell className="font-bold text-xs uppercase">{req.unitName}</TableCell>
+                                                  <TableCell>
+                                                      <div className="flex items-center gap-2">
+                                                          <span className="font-bold text-xs uppercase">{req.unitName}</span>
+                                                          {req.isDraft && (
+                                                              <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
+                                                                  <LayoutList className="h-2.5 w-2.5" /> DRAFT
+                                                              </Badge>
+                                                          )}
+                                                      </div>
+                                                  </TableCell>
                                                   <TableCell className="text-xs">{req.submitterName}</TableCell>
                                                   <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
                                                   <TableCell className="text-right pr-6"><Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">Review</Button></TableCell>
