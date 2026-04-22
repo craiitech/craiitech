@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -107,7 +107,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
       if (step === 1) return true; // Step 1 is choice + instruction
       if (step === 2) {
           // Check DRF link
-          const isDrfValid = drfLink.startsWith('https://drive.google.com/');
+          const isDrfValid = drfLink && drfLink.startsWith('https://drive.google.com/');
           // Check if at least one form is complete
           const isFormsComplete = formsList.every(f => f.name && f.code && f.link.startsWith('https://drive.google.com/') && f.revision);
           return isDrfValid && isFormsComplete && formsList.length > 0;
