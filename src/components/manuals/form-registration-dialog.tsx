@@ -33,7 +33,9 @@ import {
     CheckCircle2,
     Info,
     FilePlus,
-    LayoutList
+    LayoutList,
+    AlertCircle,
+    Gavel
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +82,8 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     }
   });
 
+  const isDraftValue = form.watch('isDraft');
+
   useEffect(() => {
     if (isOpen && request) {
         form.reset({
@@ -112,7 +116,6 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     if (!firestore || !userProfile || !unit) return;
     setIsSubmitting(true);
     try {
-      // Fetch official Philippine time with a local fallback for robustness
       let phDate: Date;
       try {
         const serverTime = await getOfficialServerTime();
@@ -124,7 +127,6 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
       const unitCode = unit.isShared ? 'ACAD' : (unit.id ? unit.id.substring(0, 8).toUpperCase() : 'UNIT');
       const controlNumber = `RSU-DRF-${unitCode}-${format(phDate, 'yyyyMMdd-HHmm')}`;
 
-      // Sanitize requested forms to remove potential react-hook-form internal properties
       const sanitizedForms = values.requestedForms.map(f => ({
           name: f.name,
           code: f.code,
@@ -176,6 +178,58 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
 
   const nextStep = () => setStep(prev => prev + 1);
 
+  const StepGuidance = ({ step, isDraft }: { step: number, isDraft: boolean }) => {
+    let content = null;
+    
+    if (step === 1) {
+      content = isDraft ? (
+        <div className="space-y-1">
+          <p className="font-black text-blue-800 uppercase text-[10px] tracking-widest">Draft Protocol: Preparation</p>
+          <p className="text-[11px] text-blue-700 leading-relaxed">Download the template and define your intended form codes and titles. <strong>Signatures are NOT required</strong> for preliminary content audits.</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Final Protocol: Preparation</p>
+          <p className="text-[11px] text-slate-600 leading-relaxed">Secure official signatures from the Unit Head on the printed DRF. <strong>All signatures must be visible</strong> on the scanned copy to qualify for registration.</p>
+        </div>
+      );
+    } else if (step === 2) {
+      content = isDraft ? (
+        <div className="space-y-1">
+          <p className="font-black text-blue-800 uppercase text-[10px] tracking-widest">Draft Protocol: Uploading</p>
+          <p className="text-[11px] text-blue-700 leading-relaxed">Paste the links to your working documents. Ensure the Quality Assurance Office has "Editor" or "Viewer" access to suggest corrections directly.</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Final Protocol: Uploading</p>
+          <p className="text-[11px] text-slate-600 leading-relaxed">Upload the signed DRF (PDF) and the final versions of your forms. Ensure links are set to <strong>"Anyone with the link can view"</strong> for institutional verification.</p>
+        </div>
+      );
+    } else if (step === 3) {
+      content = isDraft ? (
+        <div className="space-y-1">
+          <p className="font-black text-blue-800 uppercase text-[10px] tracking-widest">Draft Protocol: Final Review</p>
+          <p className="text-[11px] text-blue-700 leading-relaxed">Confirm that you are submitting a <strong>Preliminary Draft</strong>. This will trigger a content check. Forms will NOT be enrolled in the roster until a Final submission is made.</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Final Protocol: Final Review</p>
+          <p className="text-[11px] text-slate-600 leading-relaxed">Confirm that all signatures are present and all links are accessible. Approval of this request will <strong>officially enroll these forms</strong> into your unit's controlled roster.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn(
+        "mt-10 p-4 rounded-xl border flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500",
+        isDraft ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-200"
+      )}>
+        {isDraft ? <LayoutList className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" /> : <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />}
+        {content}
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
@@ -213,7 +267,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
           <Form {...form}>
             <form id="reg-form" onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
               <ScrollArea className="flex-1">
-                <div className="p-8 pb-20">
+                <div className="p-8 pb-12">
                   {step === 1 && (
                     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
                         <div className="space-y-4">
@@ -237,12 +291,6 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                                     </Button>
                                 </CardContent>
                             </Card>
-                        </div>
-                        <div className="ml-11 p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-4">
-                            <Info className="h-5 w-5 text-blue-600 mt-1 shrink-0" />
-                            <p className="text-[11px] text-blue-800 leading-relaxed font-medium">
-                                <strong>Draft vs Final:</strong> Use Draft mode to get preliminary feedback on your form's layout and codes. Use Final mode for official registration into the university roster.
-                            </p>
                         </div>
                     </div>
                   )}
@@ -355,11 +403,11 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                             <div className="p-5 rounded-2xl border bg-muted/20 flex items-center justify-between shadow-inner">
                                 <div className="flex items-center gap-4">
                                     <div className="h-12 w-12 rounded-xl bg-white border border-primary/10 flex items-center justify-center">
-                                        {form.getValues('isDraft') ? <LayoutList className="h-6 w-6 text-blue-600" /> : <FileText className="h-6 w-6 text-green-600" />}
+                                        {isDraftValue ? <LayoutList className="h-6 w-6 text-blue-600" /> : <FileText className="h-6 w-6 text-green-600" />}
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">DRF Evidence Status</p>
-                                        <p className="text-sm font-bold text-slate-900">{form.getValues('isDraft') ? 'PRELIMINARY DRAFT' : 'FINAL SIGNED DOCUMENT'}</p>
+                                        <p className="text-sm font-bold text-slate-900">{isDraftValue ? 'PRELIMINARY DRAFT' : 'FINAL SIGNED DOCUMENT'}</p>
                                     </div>
                                 </div>
                                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
@@ -391,6 +439,11 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                         </div>
                     </div>
                   )}
+
+                  {/* STEP GUIDANCE SECTION */}
+                  <div className="px-1">
+                      <StepGuidance step={step} isDraft={isDraftValue} />
+                  </div>
                 </div>
               </ScrollArea>
 
