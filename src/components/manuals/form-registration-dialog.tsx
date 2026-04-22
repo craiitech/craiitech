@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
@@ -98,21 +98,29 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     name: "requestedForms"
   });
 
-  const isDraftValue = form.watch('isDraft');
-  const drfLink = form.watch('scannedRegistrationFormLink');
-  const formsList = form.watch('requestedForms');
+  // Reactive field watching for step-based validation
+  const isDraftValue = useWatch({ control: form.control, name: 'isDraft' });
+  const drfLink = useWatch({ control: form.control, name: 'scannedRegistrationFormLink' });
+  const formsList = useWatch({ control: form.control, name: 'requestedForms' });
 
-  // Step Validation Logic
+  // Step Validation Logic - Highly Reactive to change
   const canProceed = useMemo(() => {
       if (step === 1) return true; // Step 1 is choice + instruction
       if (step === 2) {
           // Check DRF link
-          const isDrfValid = drfLink && drfLink.startsWith('https://drive.google.com/');
-          // Check if at least one form is complete
-          const isFormsComplete = formsList.every(f => f.name && f.code && f.link.startsWith('https://drive.google.com/') && f.revision);
-          return isDrfValid && isFormsComplete && formsList.length > 0;
+          const isDrfValid = !!drfLink && drfLink.startsWith('https://drive.google.com/');
+          
+          // Check individual forms
+          const isFormsComplete = formsList && formsList.length > 0 && formsList.every(f => 
+            f.name?.trim().length > 0 && 
+            f.code?.trim().length > 0 && 
+            !!f.link && f.link.startsWith('https://drive.google.com/') &&
+            f.revision?.trim().length > 0
+          );
+
+          return !!isDrfValid && !!isFormsComplete;
       }
-      return true; // Step 3 is just review
+      return true; // Step 3 is just review summary
   }, [step, drfLink, formsList]);
 
   useEffect(() => {
@@ -158,16 +166,16 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
       const controlNumber = `RSU-DRF-${unitCode}-${format(phDate, 'yyyyMMdd-HHmm')}`;
 
       const sanitizedForms = values.requestedForms.map(f => ({
-          name: f.name,
-          code: f.code,
-          link: f.link,
-          revision: f.revision
+          name: f.name.trim(),
+          code: f.code.trim(),
+          link: f.link.trim(),
+          revision: f.revision.trim()
       }));
 
       if (request) {
           const requestRef = doc(firestore, 'unitFormRequests', request.id);
           await updateDoc(requestRef, {
-              scannedRegistrationFormLink: values.scannedRegistrationFormLink,
+              scannedRegistrationFormLink: values.scannedRegistrationFormLink.trim(),
               isDraft: values.isDraft,
               requestedForms: sanitizedForms,
               status: 'Submitted' as UnitFormRequestStatus,
@@ -176,7 +184,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
           toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged.' });
       } else {
           const requestData = {
-            scannedRegistrationFormLink: values.scannedRegistrationFormLink,
+            scannedRegistrationFormLink: values.scannedRegistrationFormLink.trim(),
             isDraft: values.isDraft,
             requestedForms: sanitizedForms,
             unitId: unit.isShared ? 'academic-shared' : unit.id,
@@ -283,21 +291,18 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-muted/30 px-6 py-2 border-b flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-4">
-                {[1, 2, 3].map(s => (
-                    <div key={s} className="flex items-center gap-2">
-                        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
-                            {step > s ? <CheckCircle2 className="h-3 w-3" /> : s}
-                        </div>
-                        <span className={cn("text-[9px] font-black uppercase tracking-widest", step === s ? "text-primary" : "text-muted-foreground")}>
-                            {s === 1 ? 'Step 1: Prep' : s === 2 ? 'Step 2: Upload' : 'Step 3: Review'}
-                        </span>
-                        {s < 3 && <ChevronRight className="h-3 w-3 opacity-20" />}
+        <div className="bg-muted/30 px-6 py-2 border-b flex items-center gap-4 shrink-0">
+            {[1, 2, 3].map(s => (
+                <div key={s} className="flex items-center gap-2">
+                    <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
+                        {step > s ? <CheckCircle2 className="h-3 w-3" /> : s}
                     </div>
-                ))}
-            </div>
-            <Badge variant="outline" className="h-5 text-[9px] font-black border-primary/20 text-primary bg-white uppercase">{unit.name}</Badge>
+                    <span className={cn("text-[9px] font-black uppercase tracking-widest", step === s ? "text-primary" : "text-muted-foreground")}>
+                        {s === 1 ? 'Step 1: Prep' : s === 2 ? 'Step 2: Upload' : 'Step 3: Review'}
+                    </span>
+                    {s < 3 && <ChevronRight className="h-3 w-3 opacity-20" />}
+                </div>
+            ))}
         </div>
 
         <div className="flex-1 overflow-hidden bg-white">
