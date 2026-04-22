@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +34,8 @@ import {
     FilePlus,
     LayoutList,
     AlertCircle,
-    Gavel
+    Gavel,
+    ClipboardCheck
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,16 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { getOfficialServerTime } from '@/lib/actions';
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface FormRegistrationDialogProps {
   isOpen: boolean;
@@ -72,6 +82,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formRequestSchema>>({
     resolver: zodResolver(formRequestSchema),
@@ -82,7 +93,27 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     }
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "requestedForms"
+  });
+
   const isDraftValue = form.watch('isDraft');
+  const drfLink = form.watch('scannedRegistrationFormLink');
+  const formsList = form.watch('requestedForms');
+
+  // Step Validation Logic
+  const canProceed = useMemo(() => {
+      if (step === 1) return true; // Step 1 is choice + instruction
+      if (step === 2) {
+          // Check DRF link
+          const isDrfValid = drfLink.startsWith('https://drive.google.com/');
+          // Check if at least one form is complete
+          const isFormsComplete = formsList.every(f => f.name && f.code && f.link.startsWith('https://drive.google.com/') && f.revision);
+          return isDrfValid && isFormsComplete && formsList.length > 0;
+      }
+      return true; // Step 3 is just review
+  }, [step, drfLink, formsList]);
 
   useEffect(() => {
     if (isOpen && request) {
@@ -107,14 +138,13 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     }
   }, [isOpen, request, form]);
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "requestedForms"
-  });
-
-  const onSubmit = async (values: z.infer<typeof formRequestSchema>) => {
+  const handleFinalSubmit = async () => {
+    const values = form.getValues();
     if (!firestore || !userProfile || !unit) return;
+    
     setIsSubmitting(true);
+    setIsConfirmOpen(false);
+    
     try {
       let phDate: Date;
       try {
@@ -176,7 +206,13 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
     }
   };
 
-  const nextStep = () => setStep(prev => prev + 1);
+  const nextStep = () => {
+    if (canProceed) {
+        setStep(prev => prev + 1);
+    } else {
+        toast({ title: 'Step Incomplete', description: 'Please fill out all required fields and provide valid Google Drive links.', variant: 'destructive' });
+    }
+  };
 
   const StepGuidance = ({ step, isDraft }: { step: number, isDraft: boolean }) => {
     let content = null;
@@ -231,6 +267,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
@@ -265,7 +302,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
 
         <div className="flex-1 overflow-hidden bg-white">
           <Form {...form}>
-            <form id="reg-form" onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
+            <form id="reg-form" onSubmit={(e) => e.preventDefault()} className="h-full flex flex-col">
               <ScrollArea className="flex-1">
                 <div className="p-8 pb-12">
                   {step === 1 && (
@@ -440,7 +477,6 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                     </div>
                   )}
 
-                  {/* STEP GUIDANCE SECTION */}
                   <div className="px-1">
                       <StepGuidance step={step} isDraft={isDraftValue} />
                   </div>
@@ -453,9 +489,24 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
                     <div className="flex gap-2">
                         {step > 1 && <Button type="button" variant="outline" className="font-black text-[10px] uppercase h-10 px-6" onClick={() => setStep(prev => prev - 1)} disabled={isSubmitting}>Back</Button>}
                         {step < 3 ? (
-                            <Button type="button" onClick={nextStep} className="font-black text-[10px] uppercase h-10 px-8 shadow-md">Next Stage <ChevronRight className="ml-1.5 h-4 w-4" /></Button>
+                            <Button 
+                                type="button" 
+                                onClick={nextStep} 
+                                disabled={!canProceed}
+                                className={cn(
+                                    "font-black text-[10px] uppercase h-10 px-8 shadow-md",
+                                    !canProceed && "opacity-50 grayscale cursor-not-allowed"
+                                )}
+                            >
+                                Next Stage <ChevronRight className="ml-1.5 h-4 w-4" />
+                            </Button>
                         ) : (
-                            <Button type="submit" form="reg-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10">
+                            <Button 
+                                type="button"
+                                onClick={() => setIsConfirmOpen(true)}
+                                disabled={isSubmitting} 
+                                className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10"
+                            >
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4 mr-1.5" />}
                                 Submit Application
                             </Button>
@@ -468,5 +519,29 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit, request }: 
         </div>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <div className="flex items-center gap-2 text-primary mb-2">
+                    <ClipboardCheck className="h-6 w-6" />
+                    <AlertDialogTitle className="font-black uppercase tracking-tight">Institutional Verification</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-sm font-medium leading-relaxed">
+                    By submitting this application, you certify that:<br/><br/>
+                    1. All Google Drive links are set to <strong>"Anyone with the link can view"</strong>.<br/>
+                    2. The DRF is {isDraftValue ? 'the latest working copy' : 'the signed and scanned official evidence'}.<br/>
+                    3. All form codes and titles are accurate as per the Procedure Manual.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel className="font-bold text-[10px] uppercase">Review Again</AlertDialogCancel>
+                <AlertDialogAction onClick={handleFinalSubmit} className="bg-primary font-black text-[10px] uppercase shadow-lg shadow-primary/20 px-8">
+                    Confirm & Submit Application
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
