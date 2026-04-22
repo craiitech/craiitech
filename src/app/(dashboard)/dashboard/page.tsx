@@ -37,7 +37,8 @@ import {
   XCircle,
   Settings,
   Building2,
-  Award
+  Award,
+  Loader2
 } from 'lucide-react';
 import {
   useUser,
@@ -66,13 +67,13 @@ import type {
     ManagementReviewOutput, 
     AuditPlan, 
     QaAdvisory, 
-    UnitMonitoringRecord,
-    ProgramComplianceRecord,
-    AuditFinding,
-    CorrectiveActionRequest,
-    AuditSchedule,
-    Signatories,
-    ISOClause
+    UnitMonitoringRecord, 
+    ProgramComplianceRecord, 
+    AuditFinding, 
+    CorrectiveActionRequest, 
+    AuditSchedule, 
+    Signatories, 
+    ISOClause 
 } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
@@ -137,6 +138,50 @@ const statusVariant: Record<
   'awaiting approval': 'outline',
 };
 
+/**
+ * DASHBOARD SKELETON LOADER
+ * Displays a realistic mockup of the dashboard layout during synchronization.
+ */
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+        </div>
+        <Skeleton className="h-10 w-32" />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <Skeleton className="h-28 rounded-2xl" />
+        <Skeleton className="h-28 rounded-2xl" />
+        <Skeleton className="h-28 rounded-2xl" />
+      </div>
+
+      <Skeleton className="h-40 w-full rounded-2xl" />
+
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+        <div className="lg:col-span-4 space-y-6">
+          <Skeleton className="h-96 rounded-2xl" />
+          <Skeleton className="h-64 rounded-2xl" />
+        </div>
+        <div className="lg:col-span-3 space-y-6">
+          <Skeleton className="h-[400px] rounded-2xl" />
+          <Skeleton className="h-64 rounded-2xl" />
+        </div>
+      </div>
+
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/20 backdrop-blur-[2px]">
+        <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white shadow-2xl border border-primary/10">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Synchronizing Institutional Data...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp } = useUser();
   const firestore = useFirestore();
@@ -150,12 +195,10 @@ export default function HomePage() {
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
-  // Identify Campus vs Unit Level for dashboard routing and querying
   const roleLower = userRole?.toLowerCase() || '';
   const isCampusLevel = isAdmin || isVp || roleLower.includes('campus director') || roleLower.includes('campus odimo');
   const isCampusSupervisor = isSupervisor && !isAdmin && isCampusLevel;
 
-  // Fetch submissions based on role
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'submissions');
@@ -192,7 +235,6 @@ export default function HomePage() {
     });
   }, [rawSubmissions]);
   
-   // Fetch risks based on role
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRisksQuery = collection(firestore, 'risks');
@@ -209,14 +251,11 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-  // Fetch monitoring records
   const monitoringQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'unitMonitoringRecords');
     if (isAdmin) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    
-    // For Unit Level: Strictly filter by Unit AND Site to prevent cross-campus leakage
     return query(baseRef, 
         where('unitId', '==', userProfile.unitId),
         where('campusId', '==', userProfile.campusId)
@@ -224,7 +263,6 @@ export default function HomePage() {
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
   const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
-  // Fetch performance data
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
@@ -237,8 +275,6 @@ export default function HomePage() {
     const baseRef = collection(firestore, 'correctiveActionRequests');
     if (isAdmin) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    
-    // For Unit Coordinators: Strictly bound to unit AND site
     return query(baseRef, 
         where('unitId', '==', userProfile.unitId),
         where('campusId', '==', userProfile.campusId)
@@ -316,31 +352,21 @@ export default function HomePage() {
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  /**
-   * AUDIT PLANS FETCHING (Required for dashboard printing)
-   */
   const auditPlansQuery = useMemoFirebase(() => {
       if (!firestore) return null;
       return collection(firestore, 'auditPlans');
   }, [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
 
-  /**
-   * IQA SCHEDULE FETCHING FOR DASHBOARD
-   */
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
     const activeStatuses = ['Scheduled', 'In Progress'];
     
     if (isAdmin) return query(baseRef, where('status', 'in', activeStatuses));
-    
-    // Campus-level oversight (Directors/ODIMOs) see all audits for their campus
     if (isCampusLevel && userProfile.campusId) {
         return query(baseRef, where('campusId', '==', userProfile.campusId), where('status', 'in', activeStatuses));
     }
-    
-    // Unit-level roles see audits specifically for their unit AND site context to prevent leakage
     if (userProfile.unitId && userProfile.campusId) {
         return query(baseRef, 
             where('targetId', '==', userProfile.unitId), 
@@ -348,7 +374,6 @@ export default function HomePage() {
             where('status', 'in', activeStatuses)
         );
     }
-    
     return null;
   }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading]);
 
@@ -466,7 +491,6 @@ export default function HomePage() {
     if (!isoClauses || !firestore) return;
     const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
     
-    // Fetch plan for leadAuditorName
     let leadAuditorName = '';
     try {
         const planSnap = await getDoc(doc(firestore, 'auditPlans', schedule.auditPlanId));
@@ -524,7 +548,8 @@ export default function HomePage() {
     isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
-    isLoadingUsers;
+    isLoadingUsers ||
+    isLoadingSchedules;
 
 
   const stats = useMemo(() => {
@@ -1072,7 +1097,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
         <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
@@ -1156,7 +1181,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
@@ -1170,61 +1195,63 @@ export default function HomePage() {
     </Tabs>
   );
 
-  const renderHomeContent = () => {
-    if (isLoading) return (<div className="space-y-4"><div className="grid gap-4 grid-cols-1 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div><div className="grid gap-4 grid-cols-1 lg:grid-cols-7"><Skeleton className="col-span-4 h-80" /><Skeleton className="col-span-3 h-80" /></div></div>);
-    if (isAdmin) return renderAdminHome();
-    if (userRole === 'Auditor') return renderAuditorHome();
-    if (isCampusSupervisor) return renderSupervisorHome();
-    return renderUnitUserHome();
-  };
-  
   const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
 
   return (
     <div className="space-y-4">
-       <div className="flex flex-col gap-4">
-        <div className='flex flex-col sm:flex-row justify-between items-start gap-4'>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-            <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
-          </div>
-           <div className="w-full sm:w-[150px] space-y-1">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                        <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
-        
-        {showAnnouncements && (
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare />Communications Board</CardTitle><CardDescription>Important announcements from campus and system administrators.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /> <AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
-              {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} /></Alert>)}
-            </CardContent>
-          </Card>
-        )}
+       {isLoading ? (
+           <DashboardSkeleton />
+       ) : (
+           <div className="animate-in fade-in duration-700 space-y-6">
+               <div className="flex flex-col gap-4">
+                <div className='flex flex-col sm:flex-row justify-between items-start gap-4'>
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Home</h2>
+                    <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
+                  </div>
+                   <div className="w-full sm:w-[150px] space-y-1">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                            <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                                <SelectValue placeholder="Select Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                
+                {showAnnouncements && (
+                  <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare />Communications Board</CardTitle><CardDescription>Important announcements from campus and system administrators.</CardDescription></CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                      {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /> <AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
+                      {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} /></Alert>)}
+                    </CardContent>
+                  </Card>
+                )}
 
-        {!isLoading && latestAdvisory && (
-            <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4 duration-500">
-                <Megaphone className="h-5 w-5 text-primary" />
-                <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
-                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-                    <span className="text-sm font-medium text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
-                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-                        <Link href="/advisories">Open Advisory Vault</Link>
-                    </Button>
-                </AlertDescription>
-            </Alert>
-        )}
-      </div>
-      {renderHomeContent()}
+                {!isLoading && latestAdvisory && (
+                    <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4 duration-500">
+                        <Megaphone className="h-5 w-5 text-primary" />
+                        <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
+                        <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+                            <span className="text-sm font-medium text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
+                            <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
+                                <Link href="/advisories">Open Advisory Vault</Link>
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                )}
+              </div>
+              
+              {isAdmin ? renderAdminHome() : 
+               userRole === 'Auditor' ? renderAuditorHome() : 
+               isCampusSupervisor ? renderSupervisorHome() : 
+               renderUnitUserHome()}
+           </div>
+       )}
     </div>
   );
 }
