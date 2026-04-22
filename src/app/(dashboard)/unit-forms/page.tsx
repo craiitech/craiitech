@@ -38,7 +38,12 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Clock,
-    CheckCircle2
+    CheckCircle2,
+    BookOpen,
+    Gavel,
+    Cloud,
+    FileSignature,
+    CheckCircle
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -94,22 +99,12 @@ export default function UnitFormsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  /**
-   * GLOBAL REQUESTS QUERY (ADMIN)
-   * Note: orderBy is removed from the Firestore query to bypass composite index requirements.
-   * Sorting is performed in memory via sortedAllRequests memo.
-   */
   const allRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin && isHistoryActive ? collection(firestore, 'unitFormRequests') : null),
     [firestore, isAdmin, isHistoryActive]
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
 
-  /**
-   * UNIT-SPECIFIC REQUESTS QUERY
-   * Note: orderBy is removed from the Firestore query to bypass composite index requirements.
-   * Sorting is performed in memory via sortedUnitRequests memo.
-   */
   const unitRequestsQuery = useMemoFirebase(
     () => {
         if (!firestore || !userProfile?.unitId || !isHistoryActive) return null;
@@ -451,11 +446,91 @@ export default function UnitFormsPage() {
 
                           <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
                               <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
-                                  <div className="p-6 space-y-8">
-                                      <div className="space-y-2"><h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3><p className="text-xs text-muted-foreground font-medium">Submit evidence for new or revised controlled forms.</p></div>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <Card className="bg-primary/5 border-primary/10"><CardContent className="p-6 flex flex-col items-center text-center gap-4"><div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white"><Download className="h-6 w-6" /></div><p className="text-xs font-black uppercase text-slate-800">1. Download Template</p><Button type="button" size="sm" className="w-full font-black text-[10px] uppercase" asChild><a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">Access DRF Template</a></Button></CardContent></Card>
-                                          <Card className="bg-indigo-50 border-indigo-100"><CardContent className="p-6 flex flex-col items-center text-center gap-4"><div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-white"><Send className="h-6 w-6" /></div><p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p><Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Wizard</Button></CardContent></Card>
+                                  <div className="p-6 space-y-12">
+                                      <div className="space-y-4">
+                                          <div className="flex items-center gap-3">
+                                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-sm"><FilePlus className="h-5 w-5" /></div>
+                                              <div>
+                                                <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3>
+                                                <p className="text-sm text-muted-foreground font-medium">Standard workflow for enrolling or revising controlled university forms.</p>
+                                              </div>
+                                          </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                          <div className="space-y-6">
+                                              <div className="flex items-center gap-2 border-b pb-2">
+                                                  <ListChecks className="h-4 w-4 text-primary" />
+                                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">4-Step Registration Protocol</h4>
+                                              </div>
+                                              <div className="space-y-4">
+                                                  {[
+                                                      { step: '1', title: 'Procurement', desc: 'Download the official DRF (Document Registration Form) template from the primary repository.', icon: <Download className="h-4 w-4" /> },
+                                                      { step: '2', title: 'Authorization', desc: 'Secure necessary signatures. For Final registration, Unit Head approval is mandatory.', icon: <FileSignature className="h-4 w-4" /> },
+                                                      { step: '3', title: 'Digital Hosting', desc: 'Upload the signed DRF and new forms to Google Drive. Set sharing to "Anyone with the link can view".', icon: <Cloud className="h-4 w-4" /> },
+                                                      { step: '4', title: 'Execution', desc: 'Launch the wizard below and paste the links. Your request will enter the QA Review queue.', icon: <Send className="h-4 w-4" /> }
+                                                  ].map((s, idx) => (
+                                                      <div key={idx} className="flex gap-4 group">
+                                                          <div className="flex flex-col items-center">
+                                                              <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>
+                                                              {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                                          </div>
+                                                          <div className="space-y-1 pb-4">
+                                                              <p className="text-sm font-black uppercase tracking-tight text-slate-800">{s.title}</p>
+                                                              <p className="text-xs text-muted-foreground leading-relaxed italic">{s.desc}</p>
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                                <Button type="button" variant="default" className="flex-1 h-11 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20" asChild>
+                                                    <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+                                                        <Download className="mr-2 h-4 w-4" /> Access DRF Template
+                                                    </a>
+                                                </Button>
+                                                <Button size="lg" variant="outline" className="flex-1 h-11 bg-white font-black text-[10px] uppercase border-primary/20 text-primary shadow-sm hover:bg-primary/5" onClick={() => setIsRegOpen(true)}>
+                                                    <Send className="mr-2 h-4 w-4" /> Launch Wizard
+                                                </Button>
+                                              </div>
+                                          </div>
+
+                                          <div className="space-y-6">
+                                              <div className="flex items-center gap-2 border-b pb-2">
+                                                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700">ISO 21001:2018 Alignment</h4>
+                                              </div>
+                                              <Card className="bg-emerald-50/30 border-emerald-100 shadow-none">
+                                                  <CardContent className="p-6 space-y-6">
+                                                      <div className="flex items-start gap-4">
+                                                          <BookOpen className="h-5 w-5 text-emerald-600 shrink-0 mt-1" />
+                                                          <div className="space-y-2">
+                                                              <p className="text-xs font-black uppercase text-emerald-900 tracking-tight">Clause 7.5: Documented Information</p>
+                                                              <p className="text-xs text-emerald-800/80 leading-relaxed font-medium">
+                                                                  Our EOMS requires that all forms and records used for monitoring student performance, administrative efficiency, and institutional quality must be <strong>Controlled</strong>.
+                                                              </p>
+                                                          </div>
+                                                      </div>
+                                                      <div className="space-y-4 pl-9 border-l border-emerald-200">
+                                                          <div className="space-y-1">
+                                                              <p className="text-[10px] font-black uppercase text-emerald-700">1. Integrity & Suitability (7.5.3.1)</p>
+                                                              <p className="text-[10px] text-emerald-600 italic">"Documented information shall be available and suitable for use, where and when it is needed." Registration ensures every office has access to the latest approved tools.</p>
+                                                          </div>
+                                                          <div className="space-y-1">
+                                                              <p className="text-[10px] font-black uppercase text-emerald-700">2. Description & Identification (7.5.2)</p>
+                                                              <p className="text-[10px] text-emerald-600 italic">"When creating and updating documented information, the organization shall ensure appropriate identification." Codes like QAO-01-018 prevent record duplication and naming conflicts.</p>
+                                                          </div>
+                                                          <div className="space-y-1">
+                                                              <p className="text-[10px] font-black uppercase text-emerald-700">3. Consistency of Outcome (4.4)</p>
+                                                              <p className="text-[10px] text-emerald-600 italic">Standardized forms ensure that even when personnel change, the method of capturing quality evidence remains institutionally aligned.</p>
+                                                          </div>
+                                                      </div>
+                                                      <div className="p-4 rounded-xl bg-white border border-emerald-100 flex items-center gap-3 shadow-sm">
+                                                          <CheckCircle className="h-5 w-5 text-emerald-500" />
+                                                          <p className="text-[10px] font-bold text-emerald-900 uppercase">Registered forms are the bedrock of a verifiable Quality System.</p>
+                                                      </div>
+                                                  </CardContent>
+                                              </Card>
+                                          </div>
                                       </div>
                                   </div>
                               </ScrollArea>
