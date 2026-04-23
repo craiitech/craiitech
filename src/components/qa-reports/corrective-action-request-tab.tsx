@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -46,7 +45,8 @@ import {
     Save,
     Undo2,
     Check,
-    Building2
+    Building2,
+    Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -502,11 +502,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Resolved Ratio</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Resolution Rate</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.closed} / {carStats.total}</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Total Resolved Items</p>
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%</div>
+                <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase tracking-tighter">Effectiveness Score</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
         </Card>
@@ -1071,7 +1071,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
+            <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
