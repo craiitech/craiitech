@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -72,6 +71,7 @@ import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { Label } from '../ui/label';
 import { getOfficialServerTime } from '@/lib/actions';
+import { DecisionAnalytics } from './decision-analytics';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -289,6 +289,35 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "effectivenessAudits"
   });
 
+  const handleEdit = (car: CorrectiveActionRequest) => {
+    setEditingCar(car);
+    const safeDate = (d: any) => {
+        if (!d) return '';
+        const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+        if (isNaN(date.getTime())) return '';
+        return format(date, 'yyyy-MM-dd');
+    };
+    
+    form.reset({
+        ...car,
+        timeLimitForReply: safeDate(car.timeLimitForReply),
+        requestDate: safeDate(car.requestDate),
+        actionSteps: (car.actionSteps || []).map(step => ({
+            ...step,
+            completionDate: safeDate(step.completionDate)
+        })),
+        followUpLogs: (car.followUpLogs || []).map(log => ({
+            ...log,
+            date: safeDate(log.date)
+        })),
+        effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({
+            ...audit,
+            date: safeDate(audit.date)
+        }))
+    });
+    setIsDialogOpen(true);
+  };
+
   const handlePrint = (car: CorrectiveActionRequest) => {
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
@@ -476,16 +505,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+        case 'Open': return <AlertCircle className="h-4 w-4 mr-2" />;
+        case 'In Progress': return <Clock className="h-4 w-4 mr-2" />;
+        case 'Closed': return <CheckCircle2 className="h-4 w-4 mr-2" />;
+        default: return null;
     }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
   return (
@@ -677,7 +703,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 ) : (
                     <div className="overflow-x-auto">
                         <Table>
-                        <TableHeader className="bg-muted/50">
+                        <TableHeader className="bg-muted/30">
                             <TableRow>
                             <TableHead className="py-4 pl-6">
                                 <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
