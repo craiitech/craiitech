@@ -57,12 +57,12 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -289,6 +289,102 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "effectivenessAudits"
   });
 
+  const handlePrint = (car: CorrectiveActionRequest) => {
+    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
+    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <CARPrintTemplate 
+                car={car} 
+                unitName={uName} 
+                campusName={cName} 
+                signatories={signatories || undefined} 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>CAR - ${car.carNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", variant: "destructive" });
+    }
+  };
+
+  const handlePrintRegistry = () => {
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <CARControlRegisterTemplate 
+                cars={processedCars} 
+                unitMap={unitMap} 
+                campusMap={campusMap} 
+                year={yearFilter} 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>CAR Control Register - AY ${yearFilter}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            @page { size: landscape; margin: 0.5in; }
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Control Register</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", variant: "destructive" });
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
@@ -354,30 +450,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
   };
 
-  const handleEdit = (car: CorrectiveActionRequest) => {
-    setEditingCar(car);
-    const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : '');
-    
-    form.reset({
-      ...car,
-      requestDate: safeDate(car.requestDate),
-      timeLimitForReply: safeDate(car.timeLimitForReply),
-      actionSteps: (car.actionSteps || []).map(step => ({
-          ...step,
-          completionDate: safeDate(step.completionDate)
-      })),
-      followUpLogs: (car.followUpLogs || []).map(log => ({
-          ...log,
-          date: safeDate(log.date)
-      })),
-      effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({
-          ...audit,
-          date: safeDate(audit.date)
-      })),
-    } as any);
-    setIsDialogOpen(true);
-  };
-
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     
@@ -403,6 +475,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   };
 
   const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
 
   return (
     <div className="space-y-6">
@@ -589,7 +673,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <Card className="shadow-md border-primary/10 overflow-hidden">
                 <CardContent className="p-0">
                 {isLoading ? (
-                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : (
                     <div className="overflow-x-auto">
                         <Table>
@@ -1158,4 +1242,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
