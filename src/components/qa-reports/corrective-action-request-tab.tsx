@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -209,15 +210,25 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer]);
 
   const carStats = useMemo(() => {
-    const total = processedCars.length;
-    const open = processedCars.filter(c => c.status === 'Open').length;
-    const inProgress = processedCars.filter(c => c.status === 'In Progress').length;
-    const closed = processedCars.filter(c => c.status === 'Closed').length;
-    const needsVerification = processedCars.filter(c => c.needsVerification).length;
+    if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
+    
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+
+    const filteredForScope = rawCars.filter(car => {
+        if (isInstitutionalViewer) return true;
+        if (isCampusSupervisor) return car.campusId === userProfile.campusId;
+        return car.unitId === userProfile.unitId;
+    });
+
+    const total = filteredForScope.length;
+    const open = filteredForScope.filter(c => c.status === 'Open').length;
+    const inProgress = filteredForScope.filter(c => c.status === 'In Progress').length;
+    const closed = filteredForScope.filter(c => c.status === 'Closed').length;
+    const needsVerification = filteredForScope.filter(c => c.needsVerification).length;
     const successRate = total > 0 ? Math.round((closed / total) * 100) : 100;
 
     return { total, open, inProgress, closed, needsVerification, successRate };
-  }, [processedCars]);
+  }, [rawCars, userProfile, isAdmin, userRole, isInstitutionalViewer]);
 
   const years = useMemo(() => {
     if (!rawCars) return [];
@@ -283,12 +294,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
-  const safeFormatDateLocal = (date: any) => {
-    if (!date) return 'N/A';
-    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
-    return format(d, 'PP');
-  };
-
   const handlePrint = (car: CorrectiveActionRequest) => {
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
@@ -325,7 +330,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; margin: 1cm; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; margin: 1cm; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
@@ -446,7 +451,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
-  // REFINED: Investigation is considered "started" if RCA text is present.
   const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
 
   return (
@@ -630,7 +634,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             )}
         </TabsList>
 
-        <TabsContent value="all" className="animate-in fade-in slide-in-from-left-2 duration-300">
+        <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">
             <Card className="shadow-md border-primary/10 overflow-hidden">
                 <CardContent className="p-0">
                 {isLoading ? (
@@ -729,6 +733,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </TableRow>
                             );
                             })}
+                            {!isLoading && processedCars.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                                    <div className="flex flex-col items-center gap-2 opacity-20">
+                                        <ListChecks className="h-10 w-10" />
+                                        <p className="text-xs font-bold uppercase tracking-widest">
+                                            {searchTerm || statusFilter !== 'all' ? "No results match your search filters" : "No assignments found"}
+                                        </p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                            )}
                         </TableBody>
                         </Table>
                     </div>
