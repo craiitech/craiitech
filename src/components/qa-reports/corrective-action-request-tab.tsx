@@ -446,7 +446,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
-  const isInvestigationComplete = !!(form.watch('rootCauseAnalysis') && form.watch('actionSteps')?.length);
+  // REFINED: Investigation is considered "started" if RCA text is present.
+  const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
 
   return (
     <div className="space-y-6">
@@ -637,7 +638,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 ) : (
                     <div className="overflow-x-auto">
                         <Table>
-                        <TableHeader className="bg-muted/30">
+                        <TableHeader className="bg-muted/50">
                             <TableRow>
                             <TableHead className="py-4 pl-6">
                                 <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
@@ -874,7 +875,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     )} />
                                 </div>
 
-                                <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationComplete && "opacity-50 pointer-events-none grayscale")}>
+                                <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationStarted && "opacity-50 pointer-events-none grayscale")}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <ListChecks className="h-5 w-5 text-primary" />
