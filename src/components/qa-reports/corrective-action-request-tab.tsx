@@ -330,7 +330,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; margin: 1cm; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; margin: 1cm; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
@@ -1005,19 +1005,66 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </ScrollArea>
             </div>
 
-            <div className="hidden lg:flex w-[380px] flex-col bg-muted/10 shrink-0 border-l p-6 space-y-6">
-                <div className="space-y-2">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Process Standard Registry</h4>
-                    <p className="text-[11px] text-slate-600 leading-relaxed italic">
-                        All corrective actions must be supported by objective evidence logged in the RSU Digital repository.
-                    </p>
+            <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
+                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
+                    <Info className="h-4 w-4" /> Response Protocol & Guidance
                 </div>
-                <Separator />
-                <div className="space-y-4">
-                    <Badge variant="outline" className="h-5 text-[9px] font-black uppercase bg-white">Standard: ISO 21001:2018</Badge>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                        Administrators use Part III and IV to close the verification loop. Follow-ups ensure unit progression, while the final Effectiveness Audit determines if the NC can be formally closed.
-                    </p>
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-8">
+                        <section className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                <Building2 className="h-4 w-4" /> Unit Responsibilities
+                            </h4>
+                            <div className="space-y-4">
+                                {[
+                                    { step: '1', title: 'Investigation', desc: 'Perform a root cause analysis to identify why the non-conformance occurred. Focus on systemic issues rather than individual errors.', icon: <Search className="h-4 w-4" /> },
+                                    { step: '2', title: 'Correction', desc: 'Identify immediate steps taken to fix the current issue and mitigate further impact.', icon: <CheckCircle2 className="h-4 w-4" /> },
+                                    { step: '3', title: 'Action Plan', desc: 'Define long-term corrective actions designed to prevent the recurrence of the findings.', icon: <ListChecks className="h-4 w-4" /> },
+                                    { step: '4', title: 'Submit', desc: 'Once documented, notify the Quality Assurance Office for follow-up and final verification.', icon: <Send className="h-4 w-4" /> }
+                                ].map((s, idx) => (
+                                    <div key={idx} className="flex gap-4 group">
+                                        <div className="flex flex-col items-center">
+                                            <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>
+                                            {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                        </div>
+                                        <div className="space-y-1 pb-4">
+                                            <p className="text-xs font-black uppercase tracking-tight text-slate-800">{s.title}</p>
+                                            <p className="text-[10px] text-muted-foreground leading-relaxed italic">{s.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        <Separator />
+
+                        <section className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2">
+                                <Gavel className="h-4 w-4" /> Institutional Oversight
+                            </h4>
+                            <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-3">
+                                <p className="text-[10px] text-indigo-800 leading-relaxed font-medium">
+                                    <strong>Part III & IV:</strong> These sections are reserved for the Quality Assurance Office. Once your unit submits its plan, an auditor will conduct follow-up visits to verify the effectiveness of the actions taken.
+                                </p>
+                                <div className="flex items-center gap-2 text-[9px] font-black uppercase text-indigo-600">
+                                    <CheckCircle2 className="h-3 w-3" /> Standard: ISO 21001 Clause 10.1
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="p-4 rounded-xl border-dashed border-2 border-slate-200 bg-white space-y-2">
+                            <div className="flex items-center gap-2 text-slate-500">
+                                <BookOpen className="h-4 w-4" />
+                                <span className="text-[9px] font-black uppercase">Document Integrity</span>
+                            </div>
+                            <p className="text-[9px] text-slate-400 italic leading-relaxed">
+                                Corrective Action Requests are formal quality records. Ensure all entries are accurate, objective, and supported by digital evidence in the institutional repository.
+                            </p>
+                        </section>
+                    </div>
+                </ScrollArea>
+                <div className="p-4 bg-muted/10 border-t mt-auto">
+                    <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest text-center">RSU EOMS Portal v2.5.0</p>
                 </div>
             </div>
           </div>
