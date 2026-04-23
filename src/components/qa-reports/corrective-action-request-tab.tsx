@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -47,7 +48,10 @@ import {
     Check,
     Building2,
     Send,
-    X
+    X,
+    ThumbsUp,
+    ThumbsDown,
+    RefreshCcw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -67,6 +71,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { Label } from '../ui/label';
+import { getOfficialServerTime } from '@/lib/actions';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -283,62 +288,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     control: form.control,
     name: "effectivenessAudits"
   });
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
-
-  const handlePrint = (car: CorrectiveActionRequest) => {
-    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
-    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
-
-    try {
-        const reportHtml = renderToStaticMarkup(
-            <CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />
-        );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official CAR Form</button></div><div id="print-content">${reportHtml}</div></body></html>`);
-            printWindow.document.close();
-        }
-    } catch (err) {
-        console.error("Print error:", err);
-    }
-  };
-
-  const handlePrintRegistry = () => {
-    if (!processedCars.length) return;
-
-    try {
-        const reportHtml = renderToStaticMarkup(
-            <CARControlRegisterTemplate 
-                cars={processedCars} 
-                unitMap={unitMap} 
-                campusMap={campusMap}
-                year={yearFilter} 
-            />
-        );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } @page { size: landscape; margin: 1cm; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">Print Control Registry Matrix</button></div><div id="print-content">${reportHtml}</div></body></html>`);
-            printWindow.document.close();
-        }
-    } catch (err) {
-        console.error("Print registry error:", err);
-    }
-  };
 
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile) return;
@@ -735,18 +684,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </TableRow>
                             );
                             })}
-                            {!isLoading && processedCars.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                                    <div className="flex flex-col items-center gap-2 opacity-20">
-                                        <ListChecks className="h-10 w-10" />
-                                        <p className="text-xs font-bold uppercase tracking-widest">
-                                            {searchTerm || statusFilter !== 'all' ? "No results match your search filters" : "No assignments found"}
-                                        </p>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                            )}
                         </TableBody>
                         </Table>
                     </div>
@@ -995,7 +932,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                     <div className="flex gap-2 shrink-0">
                                                                         {step.evidenceLink && (
                                                                             <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[9px] font-black uppercase gap-1.5 bg-white border-blue-200 text-blue-700" asChild>
-                                                                                <a href={step.evidenceLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3"/> Evidence</a>
+                                                                                <a href={step.evidenceLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3"/> View Evidence</a>
                                                                             </Button>
                                                                         )}
                                                                         <Button 
@@ -1005,11 +942,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none gap-1"
                                                                             onClick={() => {
                                                                                 const current = form.getValues(`followUpLogs.${index}.result`) || '';
-                                                                                const update = `${current}${current ? '\n' : ''}[VERIFIED]: ${step.description} (IMPLEMENTED)`;
+                                                                                const update = `${current}${current ? '\n' : ''}[VERIFIED/IMPLEMENTED]: ${step.description}`;
                                                                                 form.setValue(`followUpLogs.${index}.result`, update);
                                                                             }}
                                                                         >
-                                                                            <Check className="h-3 w-3" /> Verify
+                                                                            <Check className="h-3 w-3" /> Verified
                                                                         </Button>
                                                                         <Button 
                                                                             type="button" 
@@ -1018,11 +955,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             className="h-7 px-3 text-[9px] font-black uppercase bg-rose-100 text-rose-700 hover:bg-rose-200 border-none gap-1"
                                                                             onClick={() => {
                                                                                 const current = form.getValues(`followUpLogs.${index}.result`) || '';
-                                                                                const update = `${current}${current ? '\n' : ''}[GAP]: ${step.description} (NOT IMPLEMENTED)`;
+                                                                                const update = `${current}${current ? '\n' : ''}[NOT IMPLEMENTED]: ${step.description}`;
                                                                                 form.setValue(`followUpLogs.${index}.result`, update);
                                                                             }}
                                                                         >
-                                                                            <X className="h-3 w-3" /> Fail
+                                                                            <X className="h-3 w-3" /> Failed
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -1082,7 +1019,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none gap-1"
                                                                             onClick={() => {
                                                                                 const current = form.getValues(`effectivenessAudits.${index}.result`) || '';
-                                                                                const update = `${current}${current ? '\n' : ''}[VERIFIED]: ${step.description} is EFFECTIVE.`;
+                                                                                const update = `${current}${current ? '\n' : ''}[VERIFIED/EFFECTIVE]: ${step.description}`;
                                                                                 form.setValue(`effectivenessAudits.${index}.result`, update);
                                                                             }}
                                                                         >
@@ -1095,11 +1032,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             className="h-7 px-3 text-[9px] font-black uppercase bg-rose-100 text-rose-700 hover:bg-rose-200 border-none gap-1"
                                                                             onClick={() => {
                                                                                 const current = form.getValues(`effectivenessAudits.${index}.result`) || '';
-                                                                                const update = `${current}${current ? '\n' : ''}[GAP]: ${step.description} lacks evidence of effectiveness.`;
+                                                                                const update = `${current}${current ? '\n' : ''}[NOT EFFECTIVE]: ${step.description}`;
                                                                                 form.setValue(`effectivenessAudits.${index}.result`, update);
                                                                             }}
                                                                         >
-                                                                            <X className="h-3 w-3" /> Ineffective
+                                                                            <X className="h-3 w-3" /> Failed
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -1221,3 +1158,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+
