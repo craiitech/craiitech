@@ -393,7 +393,7 @@ export type CorrectiveActionRequest = {
     followUpLogs?: CARFollowUpLog[];
     effectivenessAudits?: CAREffectivenessAudit[];
     
-    status: 'Open' | 'In Progress' | 'Closed';
+    status: 'Open' | 'In Progress' | 'For Final Verification' | 'Closed';
     needsVerification?: boolean; // New flag for tracking unit updates
     createdAt: any;
     updatedAt: any;
