@@ -50,7 +50,9 @@ import {
     X,
     ThumbsUp,
     ThumbsDown,
-    RefreshCcw
+    RefreshCcw,
+    PanelLeftClose,
+    PanelLeftOpen
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -119,9 +121,6 @@ const carSchema = z.object({
   })).optional(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
 });
-
-type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status' | 'updatedAt';
-type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
   const { userProfile, isAdmin, userRole } = useUser();
@@ -700,9 +699,23 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><ListChecks className="h-4 w-4" /> Action Verification Workspace</p>
                                                     <div className="space-y-2">
                                                         {form.getValues('actionSteps')?.map((step, sIdx) => (
-                                                            <div key={sIdx} className="flex items-center justify-between gap-3 p-2 rounded hover:bg-slate-50 transition-all">
-                                                                <span className="font-bold text-[11px] text-slate-800 truncate flex-1">{step.description}</span>
-                                                                <div className="flex gap-2 shrink-0"><Button type="button" variant="secondary" size="sm" className="h-7 text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 gap-1" onClick={() => { const cur = form.getValues(`followUpLogs.${index}.result`) || ''; form.setValue(`followUpLogs.${index}.result`, `${cur}${cur ? '\n' : ''}[VERIFIED]: ${step.description}`); }}><Check className="h-3 w-3" /> Verified</Button><Button type="button" variant="secondary" size="sm" className="h-7 text-[9px] font-black uppercase bg-rose-100 text-rose-700 gap-1" onClick={() => { const cur = form.getValues(`followUpLogs.${index}.result`) || ''; form.setValue(`followUpLogs.${index}.result`, `${cur}${cur ? '\n' : ''}[GAP]: ${step.description}`); }}><X className="h-3 w-3" /> Not Met</Button></div>
+                                                            <div key={sIdx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-2 rounded hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
+                                                                <span className="md:col-span-6 font-bold text-[11px] text-slate-800 truncate" title={step.description}>{step.description}</span>
+                                                                <div className="md:col-span-6 flex gap-1.5 justify-end">
+                                                                    {step.evidenceLink && (
+                                                                        <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[8px] font-black uppercase bg-white border-blue-200 text-blue-700 gap-1" asChild>
+                                                                            <a href={step.evidenceLink} target="_blank" rel="noopener noreferrer">
+                                                                                <Eye className="h-2.5 w-2.5" /> VIEW
+                                                                            </a>
+                                                                        </Button>
+                                                                    )}
+                                                                    <Button type="button" variant="secondary" size="sm" className="h-7 px-2 text-[8px] font-black uppercase bg-emerald-100 text-emerald-700 gap-1" onClick={() => { const cur = form.getValues(`followUpLogs.${index}.result`) || ''; form.setValue(`followUpLogs.${index}.result`, `${cur}${cur ? '\n' : ''}[VERIFIED]: ${step.description}`); }}>
+                                                                        <Check className="h-2.5 w-2.5" /> VERIFY
+                                                                    </Button>
+                                                                    <Button type="button" variant="secondary" size="sm" className="h-7 px-2 text-[8px] font-black uppercase bg-rose-100 text-rose-700 gap-1" onClick={() => { const cur = form.getValues(`followUpLogs.${index}.result`) || ''; form.setValue(`followUpLogs.${index}.result`, `${cur}${cur ? '\n' : ''}[GAP]: ${step.description}`); }}>
+                                                                        <X className="h-2.5 w-2.5" /> NOT MET
+                                                                    </Button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -720,7 +733,34 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <h5 className="text-[10px] font-black uppercase text-indigo-700 tracking-widest border-b pb-1">IV. Verification of Effectiveness Audit</h5>
                                     {effectivenessFields.map((field, index) => (
                                         <div key={field.id} className="p-6 rounded-2xl border-2 border-indigo-100 bg-indigo-50/20 relative group space-y-6">
-                                            <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Determination & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>)} />
+                                            {isAdmin && (
+                                                <div className="space-y-3 p-4 rounded-xl border border-indigo-200 bg-white shadow-sm animate-in slide-in-from-top-2 duration-300">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2"><ClipboardCheck className="h-4 w-4" /> Final Evidence Audit Workspace</p>
+                                                    <div className="space-y-2">
+                                                        {form.getValues('actionSteps')?.map((step, sIdx) => (
+                                                            <div key={sIdx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-2 rounded hover:bg-slate-50 transition-all border border-transparent hover:border-indigo-50">
+                                                                <span className="md:col-span-6 font-bold text-[11px] text-slate-800 truncate" title={step.description}>{step.description}</span>
+                                                                <div className="md:col-span-6 flex gap-1.5 justify-end">
+                                                                    {step.evidenceLink && (
+                                                                        <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[8px] font-black uppercase bg-white border-blue-200 text-blue-700 gap-1" asChild>
+                                                                            <a href={step.evidenceLink} target="_blank" rel="noopener noreferrer">
+                                                                                <Eye className="h-2.5 w-2.5" /> VIEW
+                                                                            </a>
+                                                                        </Button>
+                                                                    )}
+                                                                    <Button type="button" variant="secondary" size="sm" className="h-7 px-2 text-[8px] font-black uppercase bg-emerald-100 text-emerald-700 gap-1" onClick={() => { const cur = form.getValues(`effectivenessAudits.${index}.result`) || ''; form.setValue(`effectivenessAudits.${index}.result`, `${cur}${cur ? '\n' : ''}[EFFECTIVE]: ${step.description}`); }}>
+                                                                        <Check className="h-2.5 w-2.5" /> EFFECTIVE
+                                                                    </Button>
+                                                                    <Button type="button" variant="secondary" size="sm" className="h-7 px-2 text-[8px] font-black uppercase bg-rose-100 text-rose-700 gap-1" onClick={() => { const cur = form.getValues(`effectivenessAudits.${index}.result`) || ''; form.setValue(`effectivenessAudits.${index}.result`, `${cur}${cur ? '\n' : ''}[INEFFECTIVE]: ${step.description}`); }}>
+                                                                        <X className="h-2.5 w-2.5" /> INEFFECTIVE
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Determination & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>)} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <FormField control={form.control} name={`effectivenessAudits.${index}.action`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-primary">Final Verification Action</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly(`effectivenessAudits.${index}.action`)}><FormControl><SelectTrigger className="bg-white font-black h-11"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Close the NC" className="font-black text-emerald-600">1. Close the NC</SelectItem><SelectItem value="Continue Monitoring the NC">2. Continue Monitoring</SelectItem><SelectItem value="Provide More Actions to Address the NC">3. Provide More Actions</SelectItem></SelectContent></Select></FormItem>)} />
                                                 <FormField control={form.control} name={`effectivenessAudits.${index}.verifiedBy`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${index}.verifiedBy`)} /></FormControl></FormItem>)} />
