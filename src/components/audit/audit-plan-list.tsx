@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -525,6 +524,70 @@ export function AuditPlanList({
     }
   };
 
+  const handlePrintAllEvidenceLogs = (plan: AuditPlan) => {
+    const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
+    if (!planSchedules.length) {
+        toast({ title: "No itineraries", description: "This plan has no scheduled sessions yet.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        const logsHtml = planSchedules.map(schedule => {
+            const scheduleFindings = findings.filter(f => f.auditScheduleId === schedule.id);
+            const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+            
+            return renderToStaticMarkup(
+                <div key={schedule.id} className="print-page-break mb-12">
+                    <AuditPrintTemplate 
+                        schedule={schedule}
+                        findings={scheduleFindings}
+                        clauses={clausesInScope}
+                        signatories={signatories || undefined}
+                        leadAuditorName={plan.leadAuditorName}
+                    />
+                </div>
+            );
+        }).join('');
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Batch Evidence Logs - ${plan.auditNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            .print-page-break { page-break-after: always; }
+                            .print-page-break:last-child { page-break-after: auto; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-primary text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Print Full Evidence Registry</button>
+                    </div>
+                    <div id="print-content">
+                        ${logsHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        console.error(e);
+        toast({ title: "Print error", variant: "destructive" });
+    }
+  };
+
   const handlePrintConsolidatedReport = (plan: AuditPlan) => {
     const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
     const scheduleIds = new Set(planSchedules.map(s => s.id));
@@ -713,7 +776,7 @@ export function AuditPlanList({
                         <ListChecks className="h-5 w-5 text-primary" />
                         <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Audit Itinerary Entries</h4>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <Button 
                             variant="outline" 
                             size="sm" 
@@ -721,6 +784,14 @@ export function AuditPlanList({
                             className="h-9 text-[10px] font-black uppercase tracking-widest bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 gap-2"
                         >
                             <FileText className="h-3.5 w-3.5"/> Consolidate Report
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); handlePrintAllEvidenceLogs(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 gap-2"
+                        >
+                            <Printer className="h-3.5 w-3.5"/> Print All Evidence Logs
                         </Button>
                         <Button 
                             variant="outline" 
