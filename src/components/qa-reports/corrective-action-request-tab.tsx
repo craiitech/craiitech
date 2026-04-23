@@ -46,7 +46,8 @@ import {
     Undo2,
     Check,
     Building2,
-    Send
+    Send,
+    X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -65,6 +66,7 @@ import { Separator } from '@/components/ui/separator';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
+import { Label } from '../ui/label';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -457,6 +459,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Issued Requests</CardTitle>
             </CardHeader>
@@ -464,10 +467,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="text-3xl font-black text-primary tabular-nums">{carStats.total}</div>
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Total CARs Logged</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
         </Card>
 
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Open Gaps</CardTitle>
             </CardHeader>
@@ -475,10 +478,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div>
                 <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Status</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
         </Card>
 
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><Clock className="h-12 w-12 text-amber-600" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In-Progress</CardTitle>
             </CardHeader>
@@ -486,10 +489,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><Clock className="h-12 w-12 text-amber-600" /></div>
         </Card>
 
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Verification Pending</CardTitle>
             </CardHeader>
@@ -497,10 +500,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12 text-blue-600" /></div>
         </Card>
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Resolution Rate</CardTitle>
             </CardHeader>
@@ -508,10 +511,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%</div>
                 <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase tracking-tighter">Effectiveness Score</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
         </Card>
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-emerald-600" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle>
             </CardHeader>
@@ -519,7 +522,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div>
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Success Score</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-emerald-600" /></div>
         </Card>
       </div>
 
@@ -924,7 +926,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                 <LinkIcon className="h-2 w-2" /> Google Drive Evidence Link
                                                             </FormLabel>
                                                             <FormControl>
-                                                                <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-blue-50/30 border-blue-100" disabled={isFieldReadOnly('actionSteps')} />
+                                                                <div className="flex gap-2">
+                                                                    <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-blue-50/30 border-blue-100 flex-1" disabled={isFieldReadOnly('actionSteps')} />
+                                                                    {inputField.value && inputField.value.startsWith('https://drive.google.com/') && (
+                                                                        <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-[9px] font-black uppercase bg-white gap-1.5" asChild>
+                                                                            <a href={inputField.value} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /> View</a>
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </FormControl>
                                                         </FormItem>
                                                     )} />
@@ -953,23 +962,81 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         </div>
                                         {isInstitutionalViewer && (
                                             <div className="flex gap-2">
-                                                <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}>
+                                                <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}>
                                                     <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up Log
                                                 </Button>
-                                                <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Continue Monitoring the NC', remarks: '' })}>
+                                                <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Continue Monitoring the NC', remarks: '' })}>
                                                     <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Conduct Final Verification
                                                 </Button>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
                                         <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">III. Follow-up Result Registry</h5>
                                         {followUpFields.map((field, index) => (
-                                            <div key={field.id} className="p-5 rounded-2xl border bg-slate-50/50 relative group">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
+                                                {isAdmin && (
+                                                    <div className="space-y-3 p-4 rounded-xl border-2 border-primary/20 bg-white shadow-sm animate-in slide-in-from-top-2 duration-300">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                                                <ListChecks className="h-4 w-4" /> Action Verification Workspace
+                                                            </p>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {form.getValues('actionSteps')?.map((step, sIdx) => (
+                                                                <div key={sIdx} className="flex items-center justify-between gap-3 p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-bold text-[11px] text-slate-800 truncate">{step.description}</span>
+                                                                            <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase px-1 border-none">{step.type === 'Immediate Correction' ? 'IMM' : 'L-T'}</Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-2 shrink-0">
+                                                                        {step.evidenceLink && (
+                                                                            <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[9px] font-black uppercase gap-1.5 bg-white border-blue-200 text-blue-700" asChild>
+                                                                                <a href={step.evidenceLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3"/> Evidence</a>
+                                                                            </Button>
+                                                                        )}
+                                                                        <Button 
+                                                                            type="button" 
+                                                                            variant="secondary" 
+                                                                            size="sm" 
+                                                                            className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none gap-1"
+                                                                            onClick={() => {
+                                                                                const current = form.getValues(`followUpLogs.${index}.result`) || '';
+                                                                                const update = `${current}${current ? '\n' : ''}[VERIFIED]: ${step.description} (IMPLEMENTED)`;
+                                                                                form.setValue(`followUpLogs.${index}.result`, update);
+                                                                            }}
+                                                                        >
+                                                                            <Check className="h-3 w-3" /> Verify
+                                                                        </Button>
+                                                                        <Button 
+                                                                            type="button" 
+                                                                            variant="secondary" 
+                                                                            size="sm" 
+                                                                            className="h-7 px-3 text-[9px] font-black uppercase bg-rose-100 text-rose-700 hover:bg-rose-200 border-none gap-1"
+                                                                            onClick={() => {
+                                                                                const current = form.getValues(`followUpLogs.${index}.result`) || '';
+                                                                                const update = `${current}${current ? '\n' : ''}[GAP]: ${step.description} (NOT IMPLEMENTED)`;
+                                                                                form.setValue(`followUpLogs.${index}.result`, update);
+                                                                            }}
+                                                                        >
+                                                                            <X className="h-3 w-3" /> Fail
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: inputField }) => (
-                                                        <FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Follow-up Observation</FormLabel><FormControl><Textarea {...inputField} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>
+                                                        <FormItem className="md:col-span-2">
+                                                            <FormLabel className="text-[9px] font-black uppercase">Official Auditor Observation</FormLabel>
+                                                            <FormControl><Textarea {...inputField} rows={4} placeholder="Describe your findings after reviewing the unit's actions..." className="bg-white text-xs italic border-primary/10 shadow-inner" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl>
+                                                        </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: inputField }) => (
                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>
@@ -983,24 +1050,78 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         ))}
                                     </div>
 
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
                                         <h5 className="text-[10px] font-black uppercase text-indigo-700 tracking-widest border-b pb-1">IV. Verification of Effectiveness Audit</h5>
                                         {effectivenessFields.map((field, index) => (
                                             <div key={field.id} className="p-6 rounded-2xl border-2 border-indigo-100 bg-indigo-50/20 relative group space-y-6">
+                                                {isAdmin && (
+                                                    <div className="space-y-3 p-4 rounded-xl border-2 border-indigo-200 bg-white shadow-sm animate-in slide-in-from-top-2 duration-300">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-700 flex items-center gap-2">
+                                                                <ShieldCheck className="h-4 w-4" /> Effectiveness Verification Workspace
+                                                            </p>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {form.getValues('actionSteps')?.map((step, sIdx) => (
+                                                                <div key={sIdx} className="flex items-center justify-between gap-3 p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-bold text-[11px] text-slate-800 truncate">{step.description}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-2 shrink-0">
+                                                                        {step.evidenceLink && (
+                                                                            <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[9px] font-black uppercase gap-1.5 bg-white border-blue-200 text-blue-700" asChild>
+                                                                                <a href={step.evidenceLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3"/> View Evidence</a>
+                                                                            </Button>
+                                                                        )}
+                                                                        <Button 
+                                                                            type="button" 
+                                                                            variant="secondary" 
+                                                                            size="sm" 
+                                                                            className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none gap-1"
+                                                                            onClick={() => {
+                                                                                const current = form.getValues(`effectivenessAudits.${index}.result`) || '';
+                                                                                const update = `${current}${current ? '\n' : ''}[VERIFIED]: ${step.description} is EFFECTIVE.`;
+                                                                                form.setValue(`effectivenessAudits.${index}.result`, update);
+                                                                            }}
+                                                                        >
+                                                                            <Check className="h-3 w-3" /> Effective
+                                                                        </Button>
+                                                                        <Button 
+                                                                            type="button" 
+                                                                            variant="secondary" 
+                                                                            size="sm" 
+                                                                            className="h-7 px-3 text-[9px] font-black uppercase bg-rose-100 text-rose-700 hover:bg-rose-200 border-none gap-1"
+                                                                            onClick={() => {
+                                                                                const current = form.getValues(`effectivenessAudits.${index}.result`) || '';
+                                                                                const update = `${current}${current ? '\n' : ''}[GAP]: ${step.description} lacks evidence of effectiveness.`;
+                                                                                form.setValue(`effectivenessAudits.${index}.result`, update);
+                                                                            }}
+                                                                        >
+                                                                            <X className="h-3 w-3" /> Ineffective
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (
-                                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Verification Result & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 italic text-sm" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>
+                                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Verification Determination & Audit Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 italic text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>
                                                 )} />
                                                 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <FormField control={form.control} name={`effectivenessAudits.${index}.action`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-2">
-                                                            <FormLabel className="text-[10px] font-black uppercase text-primary">Verification Determination (Action)</FormLabel>
+                                                            <FormLabel className="text-[10px] font-black uppercase text-primary">Final Verification Action</FormLabel>
                                                             <Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly(`effectivenessAudits.${index}.action`)}>
-                                                                <FormControl><SelectTrigger className="bg-white font-bold h-11 border-primary/20"><SelectValue /></SelectTrigger></FormControl>
+                                                                <FormControl><SelectTrigger className="bg-white font-black h-11 border-primary/20"><SelectValue /></SelectTrigger></FormControl>
                                                                 <SelectContent>
-                                                                    <SelectItem value="Close the NC" className="font-black text-emerald-600">1. Close the NC (Full Compliance Verified)</SelectItem>
-                                                                    <SelectItem value="Continue Monitoring the NC" className="font-bold">2. Continue Monitoring the NC</SelectItem>
-                                                                    <SelectItem value="Provide More Actions to Address the NC" className="font-bold text-rose-600">3. Provide More Actions to Address the NC</SelectItem>
+                                                                    <SelectItem value="Close the NC" className="font-black text-emerald-600 uppercase">1. Close the NC (Full Compliance Verified)</SelectItem>
+                                                                    <SelectItem value="Continue Monitoring the NC" className="font-bold uppercase">2. Continue Monitoring the NC</SelectItem>
+                                                                    <SelectItem value="Provide More Actions to Address the NC" className="font-bold text-rose-600 uppercase">3. Provide More Actions to Address the NC</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                             <FormDescription className="text-[9px] font-medium text-slate-500 italic">Only "Close the NC" will formally set this CAR to Closed status.</FormDescription>
