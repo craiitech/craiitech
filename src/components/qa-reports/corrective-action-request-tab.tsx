@@ -505,7 +505,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Resolution Rate</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%</div>
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%</div>
                 <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase tracking-tighter">Effectiveness Score</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
@@ -900,22 +900,41 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     </div>
                                     {actionFields.map((field, index) => (
                                         <div key={field.id} className="space-y-4 p-4 rounded-lg border bg-muted/5 relative group">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                                <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
-                                                    <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
-                                                )} />
-                                                <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
-                                                    <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
-                                                )} />
-                                                <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
-                                                    <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
-                                                )} />
+                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                                <div className="md:col-span-3">
+                                                    <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
+                                                    )} />
+                                                </div>
+                                                <div className="md:col-span-6">
+                                                    <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
+                                                    )} />
+                                                </div>
+                                                <div className="md:col-span-3">
+                                                    <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
+                                                    )} />
+                                                </div>
+                                                
+                                                <div className="md:col-span-12 mt-2">
+                                                    <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: inputField }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[9px] font-black uppercase text-blue-600 flex items-center gap-1">
+                                                                <LinkIcon className="h-2 w-2" /> Google Drive Evidence Link
+                                                            </FormLabel>
+                                                            <FormControl>
+                                                                <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-blue-50/30 border-blue-100" disabled={isFieldReadOnly('actionSteps')} />
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
                                             </div>
                                             {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (
-                                        <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2">
                                             <PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step
                                         </Button>
                                     )}
@@ -1071,7 +1090,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
