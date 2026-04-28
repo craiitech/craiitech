@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -140,7 +139,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
