@@ -394,7 +394,7 @@ export type CorrectiveActionRequest = {
     effectivenessAudits?: CAREffectivenessAudit[];
     comments?: Comment[];
     
-    status: 'Open' | 'In Progress' | 'For Final Verification' | 'Closed';
+    status: 'Open' | 'In Progress' | 'Awaiting Response/Update' | 'For Final Verification' | 'Closed';
     needsVerification?: boolean; // New flag for tracking unit updates
     createdAt: any;
     updatedAt: any;

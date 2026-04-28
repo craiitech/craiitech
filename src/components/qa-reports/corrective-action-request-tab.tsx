@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -123,7 +124,7 @@ const carSchema = z.object({
     action: z.enum(['Close the NC', 'Continue Monitoring the NC', 'Provide More Actions to Address the NC']),
     remarks: z.string().optional(),
   })).optional(),
-  status: z.enum(['Open', 'In Progress', 'For Final Verification', 'Closed']),
+  status: z.enum(['Open', 'In Progress', 'Awaiting Response/Update', 'For Final Verification', 'Closed']),
 });
 
 type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
@@ -236,7 +237,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
     const total = filteredForScope.length;
     const open = filteredForScope.filter(c => c.status === 'Open').length;
-    const inProgress = filteredForScope.filter(c => c.status === 'In Progress' || c.status === 'For Final Verification').length;
+    const inProgress = filteredForScope.filter(c => c.status === 'In Progress' || c.status === 'For Final Verification' || c.status === 'Awaiting Response/Update').length;
     const closed = filteredForScope.filter(c => c.status === 'Closed').length;
     const needsVerification = filteredForScope.filter(c => c.needsVerification).length;
     const successRate = total > 0 ? Math.round((closed / total) * 100) : 100;
@@ -443,20 +444,30 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     let nextStatus = values.status;
     let needsVerification = editingCar?.needsVerification || false;
 
-    const finalAudit = values.effectivenessAudits?.[values.effectivenessAudits.length - 1];
-    if (finalAudit && finalAudit.action === 'Close the NC') {
-        nextStatus = 'Closed';
-        needsVerification = false;
-    } else if (finalAudit) {
-        nextStatus = 'In Progress';
-        needsVerification = false;
-    } else if (isUnitResponding) {
+    // Logic Refinement for Status Transitions
+    if (isAdmin) {
+        const hasVerificationData = (values.followUpLogs?.length || 0) > 0 || (values.effectivenessAudits?.length || 0) > 0;
+        
+        if (hasVerificationData) {
+            nextStatus = 'For Final Verification';
+        }
+
+        // feedback takes precedence if the submission is still not ok
+        if (values.adminFeedback?.trim()) {
+            nextStatus = 'Awaiting Response/Update';
+        }
+    }
+
+    if (isUnitResponding) {
         nextStatus = 'In Progress';
         needsVerification = true;
     }
 
-    if (isAdmin && editingCar && editingCar.status === 'In Progress') {
-        nextStatus = 'For Final Verification';
+    // Final check for closure from auditors
+    const finalAudit = values.effectivenessAudits?.[values.effectivenessAudits.length - 1];
+    if (finalAudit && finalAudit.action === 'Close the NC') {
+        nextStatus = 'Closed';
+        needsVerification = false;
     }
 
     const updatedComments = editingCar?.comments ? [...editingCar.comments] : [];
@@ -556,7 +567,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
                         <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-1">
-                                <Badge className={cn("text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", car.status === 'Open' ? "bg-rose-600 text-white" : car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : "bg-emerald-600 text-white")}>{car.status}</Badge>
+                                <Badge className={cn(
+                                    "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", 
+                                    car.status === 'Open' ? "bg-rose-600 text-white" : 
+                                    car.status === 'Awaiting Response/Update' ? "bg-indigo-600 text-white" :
+                                    car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
+                                    car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : 
+                                    "bg-emerald-600 text-white"
+                                )}>{car.status}</Badge>
                                 {latestComment && (
                                     <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
                                         "{latestComment.text.replace('[ADMIN FEEDBACK]: ', '')}"
@@ -743,7 +761,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                 <FormControl><div className="flex gap-2"><Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-blue-50/30 border-blue-100 flex-1" disabled={isFieldReadOnly('actionSteps')} />{inputField.value?.startsWith('https://drive.google.com/') && <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-[9px] font-black bg-white gap-1.5" asChild><a href={inputField.value} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /> VIEW</a></Button>}</div></FormControl>
                                             </FormItem>
                                         )} />
-                                        {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
+                                        {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                     </div>
                                 ))}
                                 {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2"><PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step</Button>}
