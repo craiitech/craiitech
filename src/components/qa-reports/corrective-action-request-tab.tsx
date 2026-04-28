@@ -143,6 +143,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -220,7 +221,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer, campusMap]);
 
   const carStats = useMemo(() => {
     if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
@@ -523,6 +524,70 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
 
+  const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
+    <Card className="shadow-md border-primary/10 overflow-hidden">
+        <CardContent className="p-0">
+        {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : (
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader className="bg-muted/30">
+                    <TableRow>
+                    <TableHead className="py-4 pl-6"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>CAR Number & Unit {getSortIcon('carNumber')}</Button></TableHead>
+                    <TableHead className="py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsible Office {getSortIcon('unit')}</Button></TableHead>
+                    <TableHead className="py-4"><div className="text-[10px] font-black uppercase">Procedure / Context</div></TableHead>
+                    <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Deadline {getSortIcon('deadline')}</Button></TableHead>
+                    <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status & Guidance {getSortIcon('status')}</Button></TableHead>
+                    <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {data.map((car, index) => {
+                        const latestComment = car.comments?.length ? car.comments[car.comments.length - 1] : null;
+                        return (
+                        <TableRow key={car.id} className={cn("transition-colors group", car.needsVerification && "bg-blue-50/30")}>
+                        <TableCell className="pl-6 py-4">
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2"><span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>{car.needsVerification && <Badge variant="outline" className="h-4 text-[7px] font-black border-blue-200 text-blue-700 bg-white animate-pulse">UNIT RESPONDED</Badge>}</div>
+                                <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest"><HistoryIcon className="h-2.5 w-2.5" />Logged: {format(car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate), 'MM/dd/yy')}</div>
+                            </div>
+                        </TableCell>
+                        <TableCell><div className="flex flex-col gap-1"><span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span></div></TableCell>
+                        <TableCell className="max-w-xs font-bold text-xs"><p className="truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</p><p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p></TableCell>
+                        <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
+                        <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-1">
+                                <Badge className={cn("text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", car.status === 'Open' ? "bg-rose-600 text-white" : car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : "bg-emerald-600 text-white")}>{car.status}</Badge>
+                                {latestComment && (
+                                    <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
+                                        "{latestComment.text.replace('[ADMIN FEEDBACK]: ', '')}"
+                                    </p>
+                                )}
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                            <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
+                            <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
+                        </TableCell>
+                        </TableRow>
+                    )})}
+                    {!isLoading && data.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 opacity-20">
+                                <ListChecks className="h-10 w-10" />
+                                <p className="text-xs font-bold uppercase tracking-widest">No results found</p>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </div>
+        )}
+        </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -586,64 +651,23 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </TabsList>
 
         <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
-            <Card className="shadow-md border-primary/10 overflow-hidden">
-                <CardContent className="p-0">
-                {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : (
-                    <div className="overflow-x-auto">
-                        <Table>
-                        <TableHeader className="bg-muted/30">
-                            <TableRow>
-                            <TableHead className="py-4 pl-6"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>CAR Number & Unit {getSortIcon('carNumber')}</Button></TableHead>
-                            <TableHead className="py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsible Office {getSortIcon('unit')}</Button></TableHead>
-                            <TableHead className="py-4"><div className="text-[10px] font-black uppercase">Procedure / Context</div></TableHead>
-                            <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Deadline {getSortIcon('deadline')}</Button></TableHead>
-                            <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status & Guidance {getSortIcon('status')}</Button></TableHead>
-                            <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {processedCars.map((car, index) => {
-                                const latestComment = car.comments?.length ? car.comments[car.comments.length - 1] : null;
-                                return (
-                                <TableRow key={car.id} className={cn("transition-colors group", car.needsVerification && "bg-blue-50/30")}>
-                                <TableCell className="pl-6 py-4">
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2"><span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>{car.needsVerification && <Badge variant="outline" className="h-4 text-[7px] font-black border-blue-200 text-blue-700 bg-white animate-pulse">UNIT RESPONDED</Badge>}</div>
-                                        <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest"><HistoryIcon className="h-2.5 w-2.5" />Logged: {format(car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate), 'MM/dd/yy')}</div>
-                                    </div>
-                                </TableCell>
-                                <TableCell><div className="flex flex-col gap-1"><span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span></div></TableCell>
-                                <TableCell className="max-w-xs font-bold text-xs"><p className="truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</p><p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p></TableCell>
-                                <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
-                                <TableCell className="text-center">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", car.status === 'Open' ? "bg-rose-600 text-white" : car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : "bg-emerald-600 text-white")}>{car.status}</Badge>
-                                        {latestComment && (
-                                            <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
-                                                "{latestComment.text.replace('[ADMIN FEEDBACK]: ', '')}"
-                                            </p>
-                                        )}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                                    <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
-                                    <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
-                                </TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                        </Table>
-                    </div>
-                )}
-                </CardContent>
-            </Card>
+            {renderRegistryTable(processedCars)}
+        </TabsContent>
+        <TabsContent value="verification" className="mt-0 animate-in fade-in duration-500">
+            {renderRegistryTable(processedCars.filter(c => c.needsVerification))}
+        </TabsContent>
+        <TabsContent value="my-unit" className="mt-0 animate-in fade-in duration-500">
+            {renderRegistryTable(processedCars.filter(c => c.unitId === userProfile?.unitId))}
         </TabsContent>
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
+                {editingCar && <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white border-none">{editingCar.status}</Badge>}
+            </div>
             <DialogTitle>{editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
           </DialogHeader>
           

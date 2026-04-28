@@ -22,7 +22,9 @@ import {
     ShieldAlert, 
     Info, 
     Eye, 
-    Image as ImageIcon 
+    Image as ImageIcon,
+    LayoutList,
+    FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -483,6 +485,17 @@ export default function NewSubmissionPage() {
                             <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form.
                         </div>
                     </div>
+                    <div className="flex items-start gap-3">
+                        <LayoutList className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
+                        <div>
+                            <span className="font-semibold">5. Select Submission Type:</span> Please select the appropriate submission type for your document: 
+                            <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-black uppercase">DRAFT (CONTENT CHECKING)</Badge>
+                                <span className="text-muted-foreground text-[10px] font-bold">OR</span>
+                                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-[10px] font-black uppercase">FINAL (OFFICIAL FILING)</Badge>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* DYNAMIC TEMPLATE VISUAL GUIDE */}
                     <div className="pt-4 border-t space-y-4">
@@ -546,7 +559,7 @@ export default function NewSubmissionPage() {
                     <Card className="lg:sticky top-20 border-destructive/50">
                         <CardHeader className="bg-destructive/5">
                             <CardTitle className="flex items-center gap-2 text-destructive">
-                                <ShieldAlert className="h-5 w-5" />
+                                <ShieldAlert className="h-5 w-5 text-destructive" />
                                 First Cycle Requirement Block
                             </CardTitle>
                             <CardDescription>
