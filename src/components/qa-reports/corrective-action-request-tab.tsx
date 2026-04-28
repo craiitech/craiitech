@@ -3,8 +3,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp, where } from 'firebase/firestore';
-import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
+import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp, where, arrayUnion } from 'firebase/firestore';
+import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +53,9 @@ import {
     ThumbsDown,
     RefreshCcw,
     PanelLeftClose,
-    PanelLeftOpen
+    PanelLeftOpen,
+    MessageSquare,
+    ClipboardList
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -75,6 +77,7 @@ import { CARControlRegisterTemplate } from './car-control-register-template';
 import { Label } from '../ui/label';
 import { getOfficialServerTime } from '@/lib/actions';
 import { Checkbox } from '../ui/checkbox';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -100,6 +103,7 @@ const carSchema = z.object({
   preparedBy: z.string().min(1, 'Prepared by is required'),
   approvedBy: z.string().min(1, 'Approved by is required'),
   rootCauseAnalysis: z.string().optional().or(z.literal('')),
+  adminFeedback: z.string().optional().or(z.literal('')),
   actionSteps: z.array(z.object({
     description: z.string().min(1, 'Description is required'),
     type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
@@ -217,7 +221,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer, myUnit]);
 
   const carStats = useMemo(() => {
     if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
@@ -267,6 +271,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         unitHead: '',
         descriptionOfNonconformance: '',
         rootCauseAnalysis: '',
+        adminFeedback: '',
         preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
         approvedBy: signatories?.qaoDirector || '',
         status: 'Open',
@@ -315,6 +320,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     
     form.reset({
         ...car,
+        adminFeedback: '', // Always reset feedback input
         timeLimitForReply: safeDate(car.timeLimitForReply),
         requestDate: safeDate(car.requestDate),
         actionSteps: (car.actionSteps || []).map(step => ({
@@ -449,16 +455,28 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         needsVerification = true;
     }
 
-    // AUTOMATED TRANSITION FOR ADMINS
-    // If an Admin is updating and the status is "In Progress", move to "For Final Verification"
     if (isAdmin && editingCar && editingCar.status === 'In Progress') {
         nextStatus = 'For Final Verification';
+    }
+
+    // Process Admin Feedback into the comments array
+    const updatedComments = editingCar?.comments ? [...editingCar.comments] : [];
+    if (isAdmin && values.adminFeedback?.trim()) {
+        const feedbackComment: Comment = {
+            text: `[ADMIN FEEDBACK]: ${values.adminFeedback.trim()}`,
+            authorId: userProfile.id,
+            authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+            authorRole: userRole || 'Admin',
+            createdAt: new Date(),
+        };
+        updatedComments.push(feedbackComment);
     }
 
     const carData: any = {
       ...values,
       status: nextStatus,
       needsVerification,
+      comments: updatedComments,
       timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
       requestDate: Timestamp.fromDate(new Date(values.requestDate)),
       actionSteps: (values.actionSteps || []).map(step => ({
@@ -581,12 +599,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             <TableHead className="py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsible Office {getSortIcon('unit')}</Button></TableHead>
                             <TableHead className="py-4"><div className="text-[10px] font-black uppercase">Procedure / Context</div></TableHead>
                             <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Deadline {getSortIcon('deadline')}</Button></TableHead>
-                            <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status {getSortIcon('status')}</Button></TableHead>
+                            <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status & Guidance {getSortIcon('status')}</Button></TableHead>
                             <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {processedCars.map((car, index) => (
+                            {processedCars.map((car, index) => {
+                                const latestComment = car.comments?.length ? car.comments[car.comments.length - 1] : null;
+                                return (
                                 <TableRow key={car.id} className={cn("transition-colors group", car.needsVerification && "bg-blue-50/30")}>
                                 <TableCell className="pl-6 py-4">
                                     <div className="flex flex-col gap-1">
@@ -597,13 +617,22 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <TableCell><div className="flex flex-col gap-1"><span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span></div></TableCell>
                                 <TableCell className="max-w-xs font-bold text-xs"><p className="truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</p><p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p></TableCell>
                                 <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
-                                <TableCell className="text-center"><Badge className={cn("text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", car.status === 'Open' ? "bg-rose-600 text-white" : car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : "bg-emerald-600 text-white")}>{car.status}</Badge></TableCell>
+                                <TableCell className="text-center">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", car.status === 'Open' ? "bg-rose-600 text-white" : car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : "bg-emerald-600 text-white")}>{car.status}</Badge>
+                                        {latestComment && (
+                                            <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
+                                                "{latestComment.text.replace('[ADMIN FEEDBACK]: ', '')}"
+                                            </p>
+                                        )}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
                                     <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
                                     <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{isInstitutionalViewer || car.unitId === userProfile?.unitId ? 'MANAGE' : 'VIEW'}</Button>
                                 </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                         </Table>
                     </div>
@@ -616,7 +645,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-widest">Institutional Document Control</span></div>
+            <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
             <DialogTitle>{editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
           </DialogHeader>
           
@@ -639,7 +668,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent></Select></FormItem>
                                 )} />
                                 <FormField control={form.control} name="initiator" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormMessage></FormItem>
                                 )} />
                                 <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent></Select></FormItem>
@@ -700,6 +729,22 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
                             <div className="space-y-10 pt-10 border-t border-dashed">
                                 <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div><div className="space-y-0.5"><h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Oversight & Verification</h4><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Internal Auditor / Quality Assurance Office Use Only</p></div></div>{isInstitutionalViewer && <div className="flex gap-2"><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up Log</Button><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Continue Monitoring the NC', remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Final Verification</Button></div>}</div>
+                                
+                                {isAdmin && (
+                                    <section className="bg-primary/5 p-6 rounded-2xl border border-primary/20 space-y-4 animate-in slide-in-from-top-4 duration-500">
+                                        <div className="flex items-center gap-2 text-primary">
+                                            <MessageSquare className="h-5 w-5" />
+                                            <h4 className="text-xs font-black uppercase tracking-widest">QA Office Feedback to Unit</h4>
+                                        </div>
+                                        <FormField control={form.control} name="adminFeedback" render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl><Textarea {...field} rows={3} placeholder="Provide guidance or requests for further detail to the unit coordinator..." className="bg-white border-primary/10 italic text-xs leading-relaxed" /></FormControl>
+                                                <FormDescription className="text-[9px]">This feedback will be visible to the unit in the main registry and discussion log.</FormDescription>
+                                            </FormItem>
+                                        )} />
+                                    </section>
+                                )}
+
                                 <div className="space-y-6">
                                     <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">III. Follow-up Result Registry</h5>
                                     {followUpFields.map((field, index) => {
@@ -729,8 +774,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             type="button" 
                                                                             variant="secondary" 
                                                                             size="sm" 
-                                                                            disabled={isAlreadyVerified}
-                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", isAlreadyVerified ? "opacity-50 grayscale" : "bg-emerald-100 text-emerald-700")} 
+                                                                            disabled={isAlreadyVerified || isAlreadyGap}
+                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", (isAlreadyVerified || isAlreadyGap) ? "opacity-50 grayscale" : "bg-emerald-100 text-emerald-700")} 
                                                                             onClick={() => { const cur = form.getValues(`followUpLogs.${index}.result`) || ''; form.setValue(`followUpLogs.${index}.result`, `${cur}${cur ? '\n' : ''}[VERIFIED]: ${step.description}`); }}
                                                                         >
                                                                             <Check className="h-2.5 w-2.5" /> {isAlreadyVerified ? 'DONE' : 'VERIFY'}
@@ -739,8 +784,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             type="button" 
                                                                             variant="secondary" 
                                                                             size="sm" 
-                                                                            disabled={isAlreadyGap}
-                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", isAlreadyGap ? "opacity-50 grayscale" : "bg-rose-100 text-rose-700")} 
+                                                                            disabled={isAlreadyGap || isAlreadyVerified}
+                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", (isAlreadyGap || isAlreadyVerified) ? "opacity-50 grayscale" : "bg-rose-100 text-rose-700")} 
                                                                             onClick={() => { const cur = form.getValues(`followUpLogs.${index}.result`) || ''; form.setValue(`followUpLogs.${index}.result`, `${cur}${cur ? '\n' : ''}[GAP]: ${step.description}`); }}
                                                                         >
                                                                             <X className="h-2.5 w-2.5" /> {isAlreadyGap ? 'RECO' : 'NOT MET'}
@@ -789,8 +834,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             type="button" 
                                                                             variant="secondary" 
                                                                             size="sm" 
-                                                                            disabled={isAlreadyVerified}
-                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", isAlreadyVerified ? "opacity-50 grayscale" : "bg-emerald-100 text-emerald-700")} 
+                                                                            disabled={isAlreadyVerified || isAlreadyGap}
+                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", (isAlreadyVerified || isAlreadyGap) ? "opacity-50 grayscale" : "bg-emerald-100 text-emerald-700")} 
                                                                             onClick={() => { const cur = form.getValues(`effectivenessAudits.${index}.result`) || ''; form.setValue(`effectivenessAudits.${index}.result`, `${cur}${cur ? '\n' : ''}[EFFECTIVE]: ${step.description}`); }}
                                                                         >
                                                                             <Check className="h-2.5 w-2.5" /> {isAlreadyVerified ? 'DONE' : 'EFFECTIVE'}
@@ -799,8 +844,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                                             type="button" 
                                                                             variant="secondary" 
                                                                             size="sm" 
-                                                                            disabled={isAlreadyGap}
-                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", isAlreadyGap ? "opacity-50 grayscale" : "bg-rose-100 text-rose-700")} 
+                                                                            disabled={isAlreadyGap || isAlreadyVerified}
+                                                                            className={cn("h-7 px-2 text-[8px] font-black uppercase gap-1", (isAlreadyGap || isAlreadyVerified) ? "opacity-50 grayscale" : "bg-rose-100 text-rose-700")} 
                                                                             onClick={() => { const cur = form.getValues(`effectivenessAudits.${index}.result`) || ''; form.setValue(`effectivenessAudits.${index}.result`, `${cur}${cur ? '\n' : ''}[INEFFECTIVE]: ${step.description}`); }}
                                                                         >
                                                                             <X className="h-2.5 w-2.5" /> {isAlreadyGap ? 'NOT MET' : 'INEFFECTIVE'}
@@ -828,30 +873,66 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
 
             <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
-                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white"><Info className="h-4 w-4" /> Response Protocol & Guidance</div>
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-8">
-                        <section className="space-y-4">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2"><Building2 className="h-4 w-4" /> Unit Responsibilities</h4>
-                            <div className="space-y-4">
-                                {[
-                                    { step: '1', title: 'Investigation', desc: 'Perform a root cause analysis to identify systematic failures.', icon: <Search className="h-4 w-4" /> },
-                                    { step: '2', title: 'Correction', desc: 'Identify immediate steps taken to fix the current issue and mitigate further impact.', icon: <CheckCircle2 className="h-4 w-4" /> },
-                                    { step: '3', title: 'Action Plan', desc: 'Define long-term corrective actions designed to prevent the recurrence of the findings.', icon: <ListChecks className="h-4 w-4" /> },
-                                    { step: '4', title: 'Submit', desc: 'Once documented, notify the Quality Assurance Office for follow-up and final verification.', icon: <Send className="h-4 w-4" /> }
-                                ].map((s, idx) => (
-                                    <div key={idx} className="flex gap-4 group"><div className="flex flex-col items-center"><div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>{idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}</div><div className="space-y-1 pb-4"><p className="text-xs font-black uppercase tracking-tight text-slate-800">{s.title}</p><p className="text-[10px] text-muted-foreground leading-relaxed italic">{s.desc}</p></div></div>
-                                ))}
-                            </div>
-                        </section>
-                        <Separator />
-                        <section className="space-y-4">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
-                            <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2"><p className="text-[10px] text-indigo-800 leading-relaxed font-medium">Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence.</p></div>
-                        </section>
+                <Tabs defaultValue="guidance" className="flex-1 flex flex-col min-h-0">
+                    <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
+                        <TabsTrigger value="guidance" className="text-[10px] font-black uppercase tracking-widest gap-2"><Info className="h-4 w-4" /> Protocol</TabsTrigger>
+                        <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2"><HistoryIcon className="h-4 w-4" /> Discussion</TabsTrigger>
+                    </TabsList>
+                    
+                    <div className="flex-1 overflow-hidden">
+                        <TabsContent value="guidance" className="h-full m-0 flex flex-col">
+                            <ScrollArea className="flex-1">
+                                <div className="p-6 space-y-8">
+                                    <section className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2"><Building2 className="h-4 w-4" /> Unit Responsibilities</h4>
+                                        <div className="space-y-4">
+                                            {[
+                                                { step: '1', title: 'Investigation', desc: 'Perform a root cause analysis to identify systematic failures.', icon: <Search className="h-4 w-4" /> },
+                                                { step: '2', title: 'Correction', desc: 'Identify immediate steps taken to fix the current issue and mitigate further impact.', icon: <CheckCircle2 className="h-4 w-4" /> },
+                                                { step: '3', title: 'Action Plan', desc: 'Define long-term corrective actions designed to prevent the recurrence of the findings.', icon: <ListChecks className="h-4 w-4" /> },
+                                                { step: '4', title: 'Submit', desc: 'Once documented, notify the Quality Assurance Office for follow-up and final verification.', icon: <Send className="h-4 w-4" /> }
+                                            ].map((s, idx) => (
+                                                <div key={idx} className="flex gap-4 group"><div className="flex flex-col items-center"><div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>{idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}</div><div className="space-y-1 pb-4"><p className="text-xs font-black uppercase tracking-tight text-slate-800">{s.title}</p><p className="text-[10px] text-muted-foreground leading-relaxed italic">{s.desc}</p></div></div>
+                                            ))}
+                                        </div>
+                                    </section>
+                                    <Separator />
+                                    <section className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
+                                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2"><p className="text-[10px] text-indigo-800 leading-relaxed font-medium">Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence.</p></div>
+                                    </section>
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+
+                        <TabsContent value="history" className="h-full m-0 flex flex-col">
+                            <ScrollArea className="flex-1">
+                                <div className="p-6 space-y-4">
+                                    {editingCar?.comments?.length ? (
+                                        <div className="space-y-4">
+                                            {editingCar.comments.slice().sort((a,b) => (a.createdAt as any)?.toMillis?.() - (b.createdAt as any)?.toMillis?.()).map((c, i) => (
+                                                <div key={i} className="bg-white p-4 rounded-xl border border-primary/10 shadow-sm space-y-2 transition-all hover:border-primary/30">
+                                                    <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
+                                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{c.authorName}</span>
+                                                        <span className="text-[8px] font-mono text-muted-foreground">{c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : '--'}</span>
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
+                                                    <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                                            <MessageSquare className="h-12 w-12" />
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
                     </div>
-                </ScrollArea>
-                <div className="p-4 bg-muted/10 border-t mt-auto"><p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest text-center">RSU EOMS Portal v2.5.0</p></div>
+                    <div className="p-4 bg-muted/10 border-t mt-auto"><p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest text-center">RSU EOMS Portal v2.5.0</p></div>
+                </Tabs>
             </div>
           </div>
 

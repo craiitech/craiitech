@@ -392,6 +392,7 @@ export type CorrectiveActionRequest = {
     // Decoupled Oversight Sections
     followUpLogs?: CARFollowUpLog[];
     effectivenessAudits?: CAREffectivenessAudit[];
+    comments?: Comment[];
     
     status: 'Open' | 'In Progress' | 'For Final Verification' | 'Closed';
     needsVerification?: boolean; // New flag for tracking unit updates
