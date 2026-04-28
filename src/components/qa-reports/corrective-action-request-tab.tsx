@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -140,7 +139,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
@@ -221,7 +220,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer, myUnit]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer]);
 
   const carStats = useMemo(() => {
     if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
@@ -297,18 +296,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "effectivenessAudits"
   });
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
-
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => {
@@ -320,7 +307,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     
     form.reset({
         ...car,
-        adminFeedback: '', // Always reset feedback input
+        adminFeedback: '',
         timeLimitForReply: safeDate(car.timeLimitForReply),
         requestDate: safeDate(car.requestDate),
         actionSteps: (car.actionSteps || []).map(step => ({
@@ -435,6 +422,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
   };
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
@@ -459,7 +458,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         nextStatus = 'For Final Verification';
     }
 
-    // Process Admin Feedback into the comments array
     const updatedComments = editingCar?.comments ? [...editingCar.comments] : [];
     if (isAdmin && values.adminFeedback?.trim()) {
         const feedbackComment: Comment = {
@@ -518,7 +516,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     if (isAdmin) return false;
     if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits')) return !isInstitutionalViewer;
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
-    if (responderFields.includes(fieldName)) return userProfile?.unitId !== form.getValues('unitId');
+    if (responderFields.some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
     if (fieldName === 'status') return !isInstitutionalViewer;
     return true; 
   };
@@ -587,7 +585,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             {!isAdmin && <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">
+        <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
             <Card className="shadow-md border-primary/10 overflow-hidden">
                 <CardContent className="p-0">
                 {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : (
@@ -629,7 +627,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </TableCell>
                                 <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
                                     <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
-                                    <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{isInstitutionalViewer || car.unitId === userProfile?.unitId ? 'MANAGE' : 'VIEW'}</Button>
+                                    <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
                                 </TableCell>
                                 </TableRow>
                             )})}
@@ -668,7 +666,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent></Select></FormItem>
                                 )} />
                                 <FormField control={form.control} name="initiator" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormMessage></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent></Select></FormItem>
@@ -913,7 +911,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             {editingCar.comments.slice().sort((a,b) => (a.createdAt as any)?.toMillis?.() - (b.createdAt as any)?.toMillis?.()).map((c, i) => (
                                                 <div key={i} className="bg-white p-4 rounded-xl border border-primary/10 shadow-sm space-y-2 transition-all hover:border-primary/30">
                                                     <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
-                                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{c.authorName}</span>
+                                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
                                                         <span className="text-[8px] font-mono text-muted-foreground">{c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : '--'}</span>
                                                     </div>
                                                     <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
@@ -931,7 +929,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             </ScrollArea>
                         </TabsContent>
                     </div>
-                    <div className="p-4 bg-muted/10 border-t mt-auto"><p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest text-center">RSU EOMS Portal v2.5.0</p></div>
                 </Tabs>
             </div>
           </div>
