@@ -474,7 +474,7 @@ export default function NewSubmissionPage() {
                      <div className="flex items-start gap-3">
                         <Scan className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
-                            <span className="font-semibold">3. Upload and Share:</span> Scan the signed, final document and upload it to your unit's Google Drive. Set the sharing permission to "Anyone with the link can view".
+                            <span className="font-semibold">3. Upload and Share:</span> Scan the signed, final document as make sure to save as PDF before uploading it to your unit's Google Drive. Set the sharing permission to "Anyone with the link can view".
                         </div>
                     </div>
                      <div className="flex items-start gap-3">
