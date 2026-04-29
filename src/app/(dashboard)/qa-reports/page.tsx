@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Campus, Unit } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, FileText, Users, ClipboardCheck, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
@@ -15,7 +16,17 @@ import { ActionableDecisionsTab } from '@/components/qa-reports/actionable-decis
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [activeTab, setActiveTab] = useState('overview');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentTab = searchParams.get('tab') || 'overview';
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const canManage = isAdmin || userRole === 'Auditor';
 
@@ -49,7 +60,7 @@ export default function QaReportsPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-6 h-auto p-1 animate-tab-highlight rounded-md">
           <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <BarChart3 className="h-3.5 w-3.5" /> Overview

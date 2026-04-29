@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, Timestamp, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { EmployeeActivity, Unit, WfhActivity, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,12 @@ export default function EmployeeActivityLogPage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   
+  const currentTab = searchParams.get('tab') || 'daily';
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isWfhFormOpen, setIsWfhFormOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<EmployeeActivity | null>(null);
@@ -82,6 +88,12 @@ export default function EmployeeActivityLogPage() {
   const [wfhDeptChair, setWfhDeptChair] = useState('');
   const [wfhDeanDirector, setWfhDeanDirector] = useState('');
   const [wfhImmediateHead, setWfhImmediateHead] = useState('');
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Defer default date to mount to avoid hydration mismatch
   useEffect(() => {
@@ -295,7 +307,7 @@ export default function EmployeeActivityLogPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="daily" className="space-y-6">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
             <TabsTrigger value="daily" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <Briefcase className="h-3.5 w-3.5" /> Employee Activity Log

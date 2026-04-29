@@ -11,7 +11,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
+import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'react';
 import type { Campus, Unit, Submission } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -276,10 +276,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 {/* 
                    Persistent Page Guidance Column
-                   The PageGuidance component handles its own sticky and scroll logic internally
-                   to provide an isolated scroll experience for help documentation.
+                   Wrapped in Suspense to handle useSearchParams hook in independent client component.
                 */}
-                <PageGuidance />
+                <Suspense fallback={<div className="w-80 shrink-0" />}>
+                  <PageGuidance />
+                </Suspense>
             </main>
             <Chatbot />
           </SidebarInset>

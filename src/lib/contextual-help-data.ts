@@ -1,6 +1,6 @@
-
 /**
  * @fileOverview Rich step-by-step guidance data for RSU EOMS Portal modules.
+ * Updated to support tab-specific guidance via query parameters.
  */
 
 export interface PageHelp {
@@ -27,20 +27,48 @@ export const helpContent: Record<string, PageHelp> = {
     nextStep: 'Ensure your current year\'s Risk Register is populated before submitting your first cycle reports.'
   },
   '/activity-log': {
-    title: 'Activity Registry Protocol',
+    title: 'Activity Registry Hub',
     description: 'Official logbook for recording daily institutional tasks and WFH accomplishments.',
     steps: [
-      { title: 'Select Log Type', desc: 'Use "Employee Activity" for office work or "WFH" for remote tasks.' },
-      { title: 'Log Task', desc: 'Click "Log Task" and provide specific details including start/end times and outputs.' },
-      { title: 'Attach Evidence', desc: 'Paste a Google Drive link to the document or photo verifying the work performed.' },
-      { title: 'Generate Report', desc: 'Once verified by your head, click "Print" to generate the official summary.' }
+      { title: 'Select Log Type', desc: 'Use the sub-tabs to switch between standard Office work and remote WFH sheets.' },
+      { title: 'Log Activity', desc: 'Click the primary action button to record a new task with its corresponding output.' },
+      { title: 'Verify Records', desc: 'Heads: Use the "Verify" buttons to authenticate unit accomplishments for the month.' }
     ],
     buttons: [
       { label: 'Log Task', labelShort: 'Log', action: 'Opens the entry form for daily office activities.' },
-      { label: 'Print Report', labelShort: 'Print', action: 'Generates a PDF Accomplishment Report for your file.' },
-      { label: 'Verify', labelShort: 'Verify', action: 'For Heads: Authenticates a subordinate\'s task log.' }
+      { label: 'Generate Sheet', labelShort: 'Form', action: 'Launches the report wizard for WFH signatories.' }
     ],
     nextStep: 'Log your tasks daily to ensure your Monthly Accomplishment Report is accurate for payroll or audit.'
+  },
+  '/activity-log?tab=daily': {
+    title: 'Employee Activity Log',
+    description: 'Daily registry for recording office-based tasks and standard duty accomplishments.',
+    steps: [
+      { title: 'Log Task', desc: 'Click "Log Task" to record a specific activity performed during office hours.' },
+      { title: 'Describe Work', desc: 'Provide a clear "Activity Particular" and define the "Output" achieved.' },
+      { title: 'Evidence Link', desc: 'Paste a Google Drive link to verify the work (e.g. signed minutes, reports).' },
+      { title: 'Verification', desc: 'Once logged, your immediate supervisor will review and verify the entry.' }
+    ],
+    buttons: [
+      { label: 'Log Task', labelShort: 'Log', action: 'Opens the office activity entry form.' },
+      { label: 'Print Current', labelShort: 'Print', action: 'Generates a PDF summary of the filtered list.' },
+      { label: 'Monthly Log', labelShort: 'XLSX', action: 'Downloads your complete log for the selected month.' }
+    ],
+    nextStep: 'Use the "Verify" button (if supervisor) to authenticate your staff\'s daily accomplishments.'
+  },
+  '/activity-log?tab=wfh': {
+    title: 'Work From Home (WFH)',
+    description: 'Specialized monitoring sheet for remote work accomplishments and deliverables.',
+    steps: [
+      { title: 'Log WFH Task', desc: 'Record deliverables approved by your head for remote execution.' },
+      { title: 'Appointment Details', desc: 'Ensure your nature of appointment and teaching load (if faculty) are correct.' },
+      { title: 'Monitoring Sheet', desc: 'Click "Generate Monitoring Sheet" to produce the official RSU WFH form.' }
+    ],
+    buttons: [
+      { label: 'Log WFH Task', labelShort: 'Home', action: 'Opens the specialized remote work entry form.' },
+      { label: 'Generate Monitoring Sheet', labelShort: 'Form', action: 'Launches the report wizard for WFH signatories.' }
+    ],
+    nextStep: 'Submit your signed WFH Monitoring Sheet to your department head for final validation.'
   },
   '/submissions': {
     title: 'EOMS Submission Hub',
@@ -91,51 +119,177 @@ export const helpContent: Record<string, PageHelp> = {
     nextStep: 'Always use the forms from this Roster to ensure you are using the latest approved revision.'
   },
   '/audit': {
-    title: 'IQA Conduct Workspace',
-    description: 'Digital workspace for internal auditors to log evidence and finalize quality reports.',
+    title: 'IQA Strategic Hub',
+    description: 'The primary command center for internal quality audit planning and performance analysis.',
     steps: [
-      { title: 'Claim Itinerary', desc: 'Auditors: Browse the "Available Pool" and claim a session to conduct.' },
-      { title: 'Log Evidence', desc: 'During the audit, verify each ISO clause and record objective observations.' },
-      { title: 'Sync Results', desc: 'Mark each clause as C (Compliance), NC (Gap), or OFI (Improvement).' },
-      { title: 'Finalize Report', desc: 'Summarize your findings and commit the record to the institutional registry.' }
+      { title: 'Audit Intelligence', desc: 'Use the analytics tab to monitor institutional maturity and auditor workloads.' },
+      { title: 'Itinerary Management', desc: 'Switch to the registry tab to provision individual audit sessions for units.' },
+      { title: 'Execute Audit', desc: 'Auditors: Click "Open Evidence Log" on your assigned session to begin the ISO 21001 checklist.' }
     ],
     buttons: [
-      { label: 'Open Evidence Log', labelShort: 'Audit', action: 'Launches the interactive ISO 21001:2018 checklist.' },
-      { label: 'Print Template', labelShort: 'Template', action: 'Prints a blank log for taking notes during site inspections.' },
-      { label: 'Claim Audit', labelShort: 'Claim', action: 'Assigns the itinerary entry to your auditor account.' }
+      { label: 'New Audit Plan', labelShort: 'Plan', action: 'Creates a new institutional framework for the year.' },
+      { label: 'Claim Audit', labelShort: 'Claim', action: 'Assigns an itinerary entry to your auditor account.' }
     ],
-    nextStep: 'Once an audit is finalized, any NC findings will automatically appear in the unit\'s Corrective Action registry.'
+    nextStep: 'Check the "Itinerary Management" tab to schedule your first session.'
+  },
+  '/audit?tab=analytics': {
+    title: 'Audit Intelligence',
+    description: 'Institutional performance analytics and auditor workload oversight.',
+    steps: [
+      { title: 'Monitor KPIs', desc: 'Track total scheduled sessions vs finalized evidence logs.' },
+      { title: 'Evaluate SWOT', desc: 'Review strengths and gaps derived from institutional audit data.' },
+      { title: 'Check Coverage', desc: 'Analyze which ISO clauses are receiving the most scrutiny in recent audits.' },
+      { title: 'Auditor Workload', desc: 'Verify the distribution of sessions among internal auditors to ensure parity.' }
+    ],
+    buttons: [
+      { label: 'Print Assignments', labelShort: 'Print', action: 'Generates a PDF summary of auditor schedules for filing.' },
+      { label: 'Year Filter', labelShort: 'Year', action: 'Switches the analytics context between different fiscal cycles.' }
+    ],
+    nextStep: 'Use these analytics to prepare the Audit Summary for the next Management Review (MR) session.'
+  },
+  '/audit?tab=registry': {
+    title: 'Itinerary Management',
+    description: 'The master log of all internal quality audit sessions and schedules.',
+    steps: [
+      { title: 'Add Entry', desc: 'Click "Add Entry" to provision a new audit session for a specific unit or office.' },
+      { title: 'Assign Auditor', desc: 'Modify an entry to assign a specific auditor or leave it unassigned for claiming.' },
+      { title: 'Consolidate', desc: 'Use "Consolidate Report" to aggregate all findings into a master institutional record.' },
+      { title: 'Clone Plan', desc: 'Quickly replicate successful audit frameworks across different campuses.' }
+    ],
+    buttons: [
+      { label: 'Add Entry', labelShort: 'Add', action: 'Opens the session provisioning form.' },
+      { label: 'Consolidate Report', labelShort: 'CAR', action: 'Generates a consolidated institutional audit summary.' },
+      { label: 'Clone Plan', labelShort: 'Clone', action: 'Duplicates the plan and itinerary for another site.' }
+    ],
+    nextStep: 'Once a session is "Completed", click "Open Evidence Log" to review the detailed findings.'
   },
   '/qa-reports': {
-    title: 'QA Reports & CAR Registry',
-    description: 'The institutional vault for audit summaries and non-conformance tracking.',
+    title: 'Institutional QA Vault',
+    description: 'Centralized repository for CARs, Management Reviews, and Audit Summary reports.',
     steps: [
-      { title: 'Monitor CARs', desc: 'Units: Check the registry for any Corrective Action Requests issued to your office.' },
-      { title: 'Perform RCA', desc: 'Analyze the "Root Cause" of any identified gaps before proposing an action plan.' },
-      { title: 'Update Progress', desc: 'Regularly update your action steps and attach evidence links to close findings.' },
-      { title: 'MR Follow-up', desc: 'Provide updates on actionable decisions assigned from Management Reviews.' }
+      { title: 'CAR Tracking', desc: 'Monitor the resolution status of institutional non-conformances.' },
+      { title: 'Review MRs', desc: 'Access the minutes and actionable decisions from top management sessions.' },
+      { title: 'Audit Archive', desc: 'Retrieve historical IQA and EQA reports for accreditor verification.' }
     ],
     buttons: [
-      { label: 'Manage', labelShort: 'Edit', action: 'Opens the RCA and Action Plan workspace for a specific CAR.' },
-      { label: 'Update Status', labelShort: 'Sync', action: 'Submits your unit\'s implementation update for QA review.' },
-      { label: 'Print Registry', labelShort: 'Print', action: 'Generates the official CAR Control Register (CCR) for the site.' }
+      { label: 'Issue CAR', labelShort: 'Issue', action: 'Opens the formal non-conformance logging form.' },
+      { label: 'Log MR Output', labelShort: 'MR', action: 'Records a management decision into the action registry.' }
     ],
-    nextStep: 'Ensure all CARs are moved to "Closed" status before the next external quality audit (EQA).'
+    nextStep: 'Switch to the "Actionable Decisions" tab to see tasks assigned to your specific unit.'
+  },
+  '/qa-reports?tab=overview': {
+    title: 'QA Institutional Overview',
+    description: 'Aggregate analytics for the university corrective action and audit lifecycle.',
+    steps: [
+      { title: 'Review KPIs', desc: 'Monitor the Resolution Rate and Effectiveness Score for all logged CARs.' },
+      { title: 'Track Implementation', desc: 'Analyze the trend of management decisions moving from Open to Closed.' },
+      { title: 'Maturity Profile', desc: 'See the real-time distribution of quality findings across the university.' }
+    ],
+    buttons: [
+      { label: 'Decision Volume', labelShort: 'Dec.', action: 'Total number of actionable decisions logged in MR.' },
+      { label: 'Resolution Rate', labelShort: 'Res.', action: 'Percentage of closed items vs total findings.' }
+    ],
+    nextStep: 'Check the "CAR Registry" tab to see specific units with outstanding non-conformances.'
+  },
+  '/qa-reports?tab=decisions': {
+    title: 'Actionable Decisions',
+    description: 'Tracking the implementation of strategic directives assigned during Management Reviews.',
+    steps: [
+      { title: 'Monitor Deadlines', desc: 'Check the "Follow-up Date" for each decision assigned to your unit or campus.' },
+      { title: 'Update Progress', desc: 'Click "UPDATE" to log actions taken, attach evidence, and move items to Verification.' },
+      { title: 'Close Items', desc: 'Admins will verify your updates and formally close the decision entry.' }
+    ],
+    buttons: [
+      { label: 'UPDATE', labelShort: 'Edit', action: 'Opens the progress reporting form for a specific decision.' },
+      { label: 'All Sessions', labelShort: 'Year', action: 'Filter decisions by the year of the Management Review session.' }
+    ],
+    nextStep: 'Ensure all "Verification Pending" items are reviewed by the QA Office before the next EQA.'
+  },
+  '/qa-reports?tab=car': {
+    title: 'CAR Registry (CCR)',
+    description: 'The formal record of Corrective Action Requests issued for standard non-conformances.',
+    steps: [
+      { title: 'Issue CAR', desc: 'Admins: Click "Issue New CAR" to record a formal gap identified in an audit.' },
+      { title: 'Root Cause (RCA)', desc: 'Units: Perform an investigation into why the gap occurred before proposing actions.' },
+      { title: 'Track Action', desc: 'Monitor the transition from "In Progress" to "Closed" once mitigation is verified.' }
+    ],
+    buttons: [
+      { label: 'Issue New CAR', labelShort: 'Issue', action: 'Opens the formal non-conformance logging form.' },
+      { label: 'Print Register', labelShort: 'Print', action: 'Generates the official CAR Control Register (CCR) PDF.' },
+      { label: 'MANAGE', labelShort: 'Edit', action: 'Enters the RCA and Action Plan workspace.' }
+    ],
+    nextStep: 'Units must provide a "Time Limit for Reply" compliant response within the period stated in the CAR.'
   },
   '/academic-programs': {
-    title: 'Program Compliance Registry',
+    title: 'CHED Program Monitoring',
     description: 'Central registry for tracking the 5 quality pillars of university degree offerings.',
     steps: [
       { title: 'Manage Workspace', desc: 'Click "Workspace" to update specific program data for the current year.' },
-      { title: 'Verify COPC', desc: 'Under CHED tab, ensure the Award Date and Certificate link are updated.' },
-      { title: 'Log Milestones', desc: 'Under Accreditation, record survey results and track assigned recommendations.' },
-      { title: 'Batch Hub', desc: 'Use the Batch Hub for rapid headcount entry for multiple programs.' }
+      { title: 'Batch Data Entry', desc: 'Use the "Batch Data Hub" for rapid headcount and outcomes logging.' },
+      { title: 'Quality Strength', desc: 'Review the SWOT derivation to see high-performance program benchmarks.' }
     ],
     buttons: [
       { label: 'Workspace', labelShort: 'Open', action: 'Enters the comprehensive 5-module compliance dashboard.' },
-      { label: 'Batch Data Hub', labelShort: 'Batch', action: 'Fast-entry mode for Enrollment, Graduation, and Board stats.' },
-      { label: 'Quality Profile', labelShort: 'SWOT', action: 'Analyzes program health across all monitored modules.' }
+      { label: 'Batch Data Hub', labelShort: 'Batch', action: 'Fast-entry mode for Enrollment, Graduation, and Board stats.' }
     ],
     nextStep: 'Maintain a 100% "Data Integrity Rate" to ensure the university survey roadmap remains accurate.'
-  }
+  },
+  '/academic-programs?tab=analytics': {
+    title: 'Decision Support (Analytics)',
+    description: 'High-level strategic overview of academic quality and accreditation status.',
+    steps: [
+      { title: 'Maturity Profile', desc: 'Evaluate program health across the 5 quality pillars (Authority, Accreditation, etc.).' },
+      { title: 'Survey Pipeline', desc: 'Review the chronological roadmap of upcoming AACCUP accreditation visits.' },
+      { title: 'Accountability', desc: 'Monitor pending accreditor recommendations and their assigned responsible units.' }
+    ],
+    buttons: [
+      { label: 'Print Registry', labelShort: 'Print', action: 'Generates the institutional accountability report for accreditor recos.' },
+      { label: 'Compliance Year', labelShort: 'Year', action: 'Filters the roadmap and analytics to a specific academic year.' }
+    ],
+    nextStep: 'Check the "Gaps Registry" to identify programs requiring immediate documentation updates.'
+  },
+  '/academic-programs?tab=batch-hub': {
+    title: 'Batch Data Hub',
+    description: 'Rapid-entry workspace for institutional student and faculty statistics.',
+    steps: [
+      { title: 'Select Mode', desc: 'Choose between Enrollment, Graduation, Board Exam, or Tracer Study data entry.' },
+      { title: 'Identify Program', desc: 'Locate the academic offering in the registry and click "Update" or "Start Log".' },
+      { title: 'Sync Data', desc: 'Fill out the disaggregated headcount and click "Apply & Sync" to save.' }
+    ],
+    buttons: [
+      { label: 'Enrollment', labelShort: 'Users', action: 'Switch to student headcount entry mode.' },
+      { label: 'Graduation', labelShort: 'Grad', action: 'Switch to degree completion entry mode.' },
+      { label: 'Update', labelShort: 'Edit', action: 'Launches the rapid-entry wizard for the selected program.' }
+    ],
+    nextStep: 'Maintain a 100% "Data Integrity Rate" to ensure university-wide analytics are accurate.'
+  },
+  '/academic-programs?tab=registry': {
+    title: 'Program Registry',
+    description: 'The master directory of all degree offerings and their base compliance parameters.',
+    steps: [
+      { title: 'Register Program', desc: 'Admins can click "Register Program" to add a new offering to the university scope.' },
+      { title: 'Manage Status', desc: 'Track COPC status, current accreditation levels, and faculty pool totals.' },
+      { title: 'Workspace', desc: 'Click "Workspace" to enter the detailed 5-module compliance dashboard for a specific program.' }
+    ],
+    buttons: [
+      { label: 'Register Program', labelShort: 'New', action: 'Opens the form to add a new academic degree to the system.' },
+      { label: 'Workspace', labelShort: 'Open', action: 'Enters the comprehensive compliance management area.' },
+      { label: 'Edit', labelShort: 'Edit', action: 'Modify the base parameters (Majors, Campus, Level) of a program.' }
+    ],
+    nextStep: 'Use the "Workspace" button to upload COPC certificates or accreditation results.'
+  },
+  '/academic-programs?tab=strengths': {
+    title: 'Quality Profile (SWOT)',
+    description: 'Automated derivation of institutional strengths and gaps based on verified evidence.',
+    steps: [
+      { title: 'Review Strengths', desc: 'See verified high-performance areas (e.g. Level IV accreditation or full COPC parity).' },
+      { title: 'Monitor Gaps', desc: 'Identify critical documentation deficiencies that impact the institutional maturity index.' },
+      { title: 'Strategic Action', desc: 'Prioritize resource allocation to units flagged in the "Gaps Registry".' }
+    ],
+    buttons: [
+      { label: 'Impact', labelShort: 'Zap', action: 'Explains the strategic importance of the identified strength or gap.' },
+      { label: 'Category', labelShort: 'Tag', action: 'Categorizes the insight (e.g. Accreditation, Regulatory, Resources).' }
+    ],
+    nextStep: 'Present these strengths during the next Management Review to promote institutional best practices.'
+  },
 };

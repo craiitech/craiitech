@@ -3,10 +3,11 @@
 /**
  * @fileOverview A responsive guidance column that provides contextual help for dashboard pages.
  * Updated: Implemented independent scrolling and sticky positioning for desktop.
+ * Updated: Implemented tab-reactive guidance via URL search parameters.
  */
 
 import { useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { helpContent } from '@/lib/contextual-help-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -30,11 +31,21 @@ interface PageGuidanceProps {
 
 export function PageGuidance({ className }: PageGuidanceProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get('tab');
 
-  // Find help content based on current path
+  // Find help content based on current path and active tab
   const help = useMemo(() => {
+    // 1. Try exact match with tab query param
+    if (activeTab) {
+        const pathWithTab = `${pathname}?tab=${activeTab}`;
+        if (helpContent[pathWithTab]) return helpContent[pathWithTab];
+    }
+
+    // 2. Exact match on path
     if (helpContent[pathname]) return helpContent[pathname];
     
+    // 3. Fallbacks for dynamic segments
     const segments = pathname.split('/');
     const parentPath = `/${segments[1]}`;
     const dynamicPath = `/${segments[1]}/${segments[2]}`;
@@ -43,7 +54,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
     if (helpContent[parentPath]) return helpContent[parentPath];
 
     return null;
-  }, [pathname]);
+  }, [pathname, activeTab]);
 
   if (!help) return null;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '../ui/badge';
@@ -8,6 +8,7 @@ import { Skeleton } from '../ui/skeleton';
 import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
@@ -37,7 +38,12 @@ const yearsList = Array.from({ length: 5 }, (_, i) => currentYear - i);
 export function AdminAuditView() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   
+  const currentTab = searchParams.get('tab') || 'analytics';
+
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
   const [isPlanDialogOpenState, setIsPlanDialogOpenState] = useState(false);
@@ -76,6 +82,12 @@ export function AdminAuditView() {
 
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const handleNewPlan = () => {
     setEditingPlan(null);
@@ -199,7 +211,7 @@ export function AdminAuditView() {
           </Alert>
       )}
 
-      <Tabs defaultValue="analytics" className="space-y-6">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
             <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <BarChart3 className="h-3.5 w-3.5" /> Audit Intelligence

@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,12 @@ export default function AcademicProgramsPage() {
   const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   
+  const currentTab = searchParams.get('tab') || 'analytics';
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
   const [deletingProgram, setDeletingProgram] = useState<AcademicProgram | null>(null);
@@ -62,6 +67,12 @@ export default function AcademicProgramsPage() {
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
   const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator');
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Role-based initial filter setup & strict locking
   useEffect(() => {
@@ -265,7 +276,7 @@ export default function AcademicProgramsPage() {
           </CardContent>
       </Card>
 
-      <Tabs defaultValue="analytics" className="space-y-6">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-fit">
             <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <BarChart3 className="h-4 w-4" /> Decision Support
