@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
 export default function ProcedureManualsPage() {
-  const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
+  const { userProfile, isAdmin, userRole, isUserLoading, isSupervisor } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export default function ProcedureManualsPage() {
   const sidebarItems = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
     
-    // 1. Filter out all individual academic units
+    // 1. Filter out all individual academic units (they use a shared manual)
     let filtered = allUnits.filter(u => u.category !== 'Academic');
     
     // 2. Apply standard scoping (Campus/Unit)
@@ -65,7 +65,14 @@ export default function ProcedureManualsPage() {
     const hasAcademic = allUnits.some(u => u.category === 'Academic');
     if (hasAcademic) {
         const myUnit = allUnits.find(u => u.id === userProfile.unitId);
-        const canSeeAcademic = isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic';
+        
+        /**
+         * ACCESS UPDATE:
+         * Campus Directors and Campus ODIMOs (Supervisors) are now granted access 
+         * to the Shared Academic Manual to ensure they can verify academic procedures 
+         * within their campus jurisdiction.
+         */
+        const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
         
         if (canSeeAcademic) {
             items.unshift({ 
@@ -77,7 +84,7 @@ export default function ProcedureManualsPage() {
     }
 
     return items.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
-  }, [allUnits, userProfile, isAdmin, userRole, isUserLoading, searchTerm]);
+  }, [allUnits, userProfile, isAdmin, isSupervisor, userRole, isUserLoading, searchTerm]);
 
   // Initial selection logic
   useEffect(() => {
