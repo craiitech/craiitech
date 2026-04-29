@@ -1,7 +1,7 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { HelpCircle, Lightbulb, Map } from 'lucide-react';
-import { helpContent } from '@/lib/contextual-help-data';
+import { helpContent, type PageHelp } from '@/lib/contextual-help-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * CONTEXTUAL HELP COMPONENT
@@ -24,15 +25,29 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 export function ContextualHelp() {
   const pathname = usePathname();
 
-  // Find exact match or fallback to navigation guide
-  const currentHelp = helpContent[pathname] || {
-    title: 'Navigation Assistant',
-    content: [
-      'Use the sidebar on the left to navigate between different EOMS modules.',
-      'Your institutional role determines which data and actions are visible to you.',
-      'For technical support, contact the CRAIITech team or use the internal Chatbot agent.',
-    ],
-  };
+  // Find help content based on current path, or use generic fallback
+  const currentHelp = useMemo(() => {
+    // Try exact match first
+    if (helpContent[pathname]) return helpContent[pathname];
+    
+    // Check for dynamic routes (e.g. /submissions/id)
+    const segments = pathname.split('/');
+    const parentPath = `/${segments[1]}`;
+    
+    if (helpContent[parentPath]) return helpContent[parentPath];
+
+    // Fallback consistent with PageHelp interface
+    return {
+        title: 'Navigation Assistant',
+        description: 'Need help navigating this module?',
+        steps: [
+          { title: 'Sidebar Navigation', desc: 'Use the sidebar on the left to move between different EOMS modules.' },
+          { title: 'Role Permissions', desc: 'Your institutional role determines which data and actions are visible to you.' },
+          { title: 'Technical Support', desc: 'For technical issues, contact CRAIITech or use the Chatbot.' }
+        ],
+        buttons: []
+    } as PageHelp;
+  }, [pathname]);
 
   return (
     <AlertDialog>
@@ -52,16 +67,42 @@ export function ContextualHelp() {
             <Lightbulb className="h-5 w-5 animate-pulse" />
             <AlertDialogTitle className="text-sm font-black uppercase tracking-[0.2em]">{currentHelp.title}</AlertDialogTitle>
           </div>
+          <p className="text-[11px] text-muted-foreground font-bold italic mb-4">"{currentHelp.description}"</p>
           <AlertDialogDescription asChild>
             <div className="text-sm text-muted-foreground pt-2">
-                <ScrollArea className="max-h-[300px] pr-4">
-                    <div className="space-y-5">
-                        {currentHelp.content.map((item, i) => (
-                        <div key={i} className="flex gap-4 items-start group">
-                            <div className="h-2 w-2 rounded-full bg-primary/20 mt-1.5 shrink-0 group-hover:bg-primary transition-colors" />
-                            <div className="text-xs text-slate-700 leading-relaxed font-bold italic">"{item}"</div>
+                <ScrollArea className="max-h-[350px] pr-4">
+                    <div className="space-y-6">
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step-by-Step Procedure</h4>
+                            {currentHelp.steps.map((step, i) => (
+                            <div key={i} className="flex gap-4 items-start group">
+                                <div className="h-5 w-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0 mt-0.5">
+                                    {i + 1}
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[11px] font-black uppercase text-slate-800 tracking-tight">{step.title}</p>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{step.desc}"</p>
+                                </div>
+                            </div>
+                            ))}
                         </div>
-                        ))}
+
+                        {currentHelp.buttons.length > 0 && (
+                            <div className="space-y-3 pt-4 border-t">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Control Legend</h4>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {currentHelp.buttons.map((btn, i) => (
+                                        <div key={i} className="p-2.5 rounded-lg border bg-slate-50 flex items-start gap-3">
+                                            <Badge variant="secondary" className="h-4 px-1 text-[7px] font-black uppercase shrink-0 mt-0.5">{btn.labelShort || btn.label}</Badge>
+                                            <div className="space-y-0.5 min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-tight text-slate-700 truncate">{btn.label}</p>
+                                                <p className="text-[10px] text-slate-600 leading-tight font-medium">{btn.action}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
             </div>
