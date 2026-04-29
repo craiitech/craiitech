@@ -2,9 +2,10 @@
 
 /**
  * @fileOverview A responsive guidance column that provides contextual help for dashboard pages.
+ * Updated: Implemented independent scrolling and sticky positioning for desktop.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { helpContent } from '@/lib/contextual-help-data';
@@ -30,15 +31,13 @@ interface PageGuidanceProps {
 export function PageGuidance({ className }: PageGuidanceProps) {
   const pathname = usePathname();
 
-  // Find help content based on current path, or use generic fallback
+  // Find help content based on current path
   const help = useMemo(() => {
-    // Try exact match first
     if (helpContent[pathname]) return helpContent[pathname];
     
-    // Check for dynamic routes (e.g. /submissions/id)
     const segments = pathname.split('/');
     const parentPath = `/${segments[1]}`;
-    const dynamicPath = `/${segments[1]}/${segments[2]}`; // Handle cases like /submissions/[id]
+    const dynamicPath = `/${segments[1]}/${segments[2]}`;
     
     if (helpContent[dynamicPath]) return helpContent[dynamicPath];
     if (helpContent[parentPath]) return helpContent[parentPath];
@@ -49,7 +48,11 @@ export function PageGuidance({ className }: PageGuidanceProps) {
   if (!help) return null;
 
   return (
-    <div className={cn("transition-all duration-300", className)}>
+    <div className={cn(
+      "w-full lg:w-80 shrink-0 transition-all duration-300", 
+      "lg:sticky lg:top-[6rem] lg:h-[calc(100vh-10rem)]", // Fixed height and sticky on desktop
+      className
+    )}>
       <Card className="h-full border-primary/20 shadow-xl bg-white/50 backdrop-blur-sm flex flex-col overflow-hidden">
         <CardHeader className="bg-primary/5 border-b py-4 px-6 shrink-0">
           <div className="flex items-center justify-between">
@@ -66,14 +69,15 @@ export function PageGuidance({ className }: PageGuidanceProps) {
         </CardHeader>
         
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-full">
+          {/* Scroll area captures mouse scroll and isolates it from the main page */}
+          <ScrollArea className="h-full overscroll-contain">
             <div className="p-6 space-y-8 pb-12">
                 
                 {/* STEP BY STEP WORKFLOW */}
                 <section className="space-y-4">
                     <div className="flex items-center gap-2 border-b pb-1">
                         <ListChecks className="h-3.5 w-3.5 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Step-by-Step Procedure</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step-by-Step Procedure</h4>
                     </div>
                     <div className="space-y-4">
                         {help.steps.map((step, idx) => (
@@ -99,7 +103,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
                 <section className="space-y-4">
                     <div className="flex items-center gap-2 border-b pb-1">
                         <MousePointer2 className="h-3.5 w-3.5 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Control Legend</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Control Legend</h4>
                     </div>
                     <div className="grid grid-cols-1 gap-2">
                         {help.buttons.map((btn, idx) => (
@@ -131,7 +135,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
           </ScrollArea>
         </CardContent>
         
-        <CardFooter className="bg-muted/10 border-t py-3 px-6 flex justify-between items-center">
+        <CardFooter className="bg-muted/10 border-t py-3 px-6 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-2 text-muted-foreground">
                 <HelpCircle className="h-3 w-3" />
                 <span className="text-[8px] font-bold uppercase tracking-tighter">RSU Quality Assist v2.5</span>

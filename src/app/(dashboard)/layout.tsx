@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -275,8 +274,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="flex-1 min-w-0">
                     {children}
                 </div>
-                {/* NEW: Persistent Page Guidance Column */}
-                <PageGuidance className="w-full lg:w-80 shrink-0" />
+                {/* 
+                   Persistent Page Guidance Column
+                   The PageGuidance component handles its own sticky and scroll logic internally
+                   to provide an isolated scroll experience for help documentation.
+                */}
+                <PageGuidance />
             </main>
             <Chatbot />
           </SidebarInset>
