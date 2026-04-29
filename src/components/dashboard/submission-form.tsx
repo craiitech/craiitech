@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -142,17 +141,24 @@ export function SubmissionForm({
   const isDraftValue = form.watch('isDraft');
 
   const checklistItems = useMemo(() => {
-    const dynamicBaseItems = [
+    const items = [
       { id: 'correctDoc', label: `Is this the correct "${reportType}" for the ${cycleId} cycle for year ${year}?` },
       ...baseChecklistItems
     ];
-    if (isRorForm && riskRating === 'medium-high') {
-      return [
-        ...dynamicBaseItems,
-        { id: 'actionPlan', label: 'I acknowledge that a "Risk and Opportunity Action Plan" document must also be submitted for Medium/High rated risks.' }
-      ];
+
+    if (isRorForm) {
+      if (cycleId === 'first') {
+        items.push({ id: 'blueColumns', label: 'ALL BLUE COLUMNS HAVE DATA ENTRY IN THE FORM' });
+      } else if (cycleId === 'final') {
+        items.push({ id: 'blueGreenColumns', label: 'BOTH BLUE AND GREEN COLUMNS HAS DATA ENTRY' });
+      }
+
+      if (riskRating === 'medium-high') {
+        items.push({ id: 'actionPlan', label: 'I acknowledge that a "Risk and Opportunity Action Plan" document must also be submitted for Medium/High rated risks.' });
+      }
     }
-    return dynamicBaseItems;
+
+    return items;
   }, [isRorForm, riskRating, reportType, year, cycleId]);
 
 
@@ -543,14 +549,14 @@ export function SubmissionForm({
                                 className="flex flex-col sm:flex-row gap-4"
                                 disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
                             >
-                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200")}>
+                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
                                     <RadioGroupItem value="true" id="is-draft" />
                                     <Label htmlFor="is-draft" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><LayoutList className="h-4 w-4 text-blue-600" /> Draft (Content Check)</p>
                                         <p className="text-[10px] text-muted-foreground">Raw working document for initial review and feedback.</p>
                                     </Label>
                                 </div>
-                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", !field.value && "bg-green-50 border-green-200")}>
+                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm")}>
                                     <RadioGroupItem value="false" id="is-final" />
                                     <Label htmlFor="is-final" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final (Official Filing)</p>
@@ -767,4 +773,3 @@ export function SubmissionForm({
     </>
   );
 }
-
