@@ -1,28 +1,27 @@
-
 'use client';
 
 /**
  * @fileOverview A responsive guidance column that provides contextual help for dashboard pages.
  */
 
+import { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { helpContent, type PageHelp } from '@/lib/contextual-help-data';
+import Link from 'next/link';
+import { helpContent } from '@/lib/contextual-help-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { 
     Info, 
     ListChecks, 
     MousePointer2, 
     ChevronRight, 
     Sparkles, 
-    BookOpen, 
-    HelpCircle,
-    Layout
+    HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 interface PageGuidanceProps {
   className?: string;
@@ -30,7 +29,6 @@ interface PageGuidanceProps {
 
 export function PageGuidance({ className }: PageGuidanceProps) {
   const pathname = usePathname();
-  const [isExpanded, setIsExpanded] = useState(true);
 
   // Find help content based on current path, or use generic fallback
   const help = useMemo(() => {
@@ -40,6 +38,9 @@ export function PageGuidance({ className }: PageGuidanceProps) {
     // Check for dynamic routes (e.g. /submissions/id)
     const segments = pathname.split('/');
     const parentPath = `/${segments[1]}`;
+    const dynamicPath = `/${segments[1]}/${segments[2]}`; // Handle cases like /submissions/[id]
+    
+    if (helpContent[dynamicPath]) return helpContent[dynamicPath];
     if (helpContent[parentPath]) return helpContent[parentPath];
 
     return null;
@@ -143,6 +144,3 @@ export function PageGuidance({ className }: PageGuidanceProps) {
     </div>
   );
 }
-
-import { useMemo } from 'react';
-import Link from 'next/link';
