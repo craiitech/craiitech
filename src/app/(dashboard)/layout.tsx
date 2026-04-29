@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -23,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
 import { Logo } from '@/components/logo';
+import { PageGuidance } from '@/components/dashboard/page-guidance';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; // Current release version
 
@@ -269,7 +271,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Sidebar>
           <SidebarInset>
             <Header notificationCount={notificationCount} />
-            <main className="p-4 lg:p-8 bg-background/90">{children}</main>
+            <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-[calc(100vh-4rem)]">
+                <div className="flex-1 min-w-0">
+                    {children}
+                </div>
+                {/* NEW: Persistent Page Guidance Column */}
+                <PageGuidance className="w-full lg:w-80 shrink-0" />
+            </main>
             <Chatbot />
           </SidebarInset>
         </SidebarProvider>
