@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -19,7 +20,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 /**
  * CONTEXTUAL HELP COMPONENT
  * Detects the current route and provides an AlertDialog with navigation and management guidance.
- * Fixes hydration error by using asChild on AlertDialogDescription to render as div.
  */
 export function ContextualHelp() {
   const pathname = usePathname();
