@@ -1,6 +1,6 @@
 /**
  * @fileOverview Rich step-by-step guidance data for RSU EOMS Portal modules.
- * Updated to support tab-specific guidance via query parameters.
+ * Updated: Added comprehensive Home Dashboard tab-specific guidance.
  */
 
 export interface PageHelp {
@@ -13,7 +13,7 @@ export interface PageHelp {
 
 export const helpContent: Record<string, PageHelp> = {
   '/dashboard': {
-    title: 'Dashboard Overview',
+    title: 'Dashboard: Overview',
     description: 'The central hub for monitoring your quality assurance performance and institutional announcements.',
     steps: [
       { title: 'Check Announcements', desc: 'Read the Communications Board for site-specific directives from your Director.' },
@@ -25,6 +25,60 @@ export const helpContent: Record<string, PageHelp> = {
       { label: 'Register Risk', labelShort: 'Risk', action: 'Direct shortcut to encode identified threats.' }
     ],
     nextStep: 'Ensure your current year\'s Risk Register is populated before submitting your first cycle reports.'
+  },
+  '/dashboard?tab=overview': {
+    title: 'Dashboard: Overview',
+    description: 'Summary of active quality milestones, audit itineraries, and recent documentation activity.',
+    steps: [
+      { title: 'Evaluate SWOT', desc: 'Review the automated Strategic SWOT to see strengths and gaps derived from your data.' },
+      { title: 'Audit Itinerary', desc: 'Check for upcoming Internal Quality Audit (IQA) sessions assigned to your scope.' },
+      { title: 'Recent Activity', desc: 'Monitor the latest document updates and status transitions in real-time.' }
+    ],
+    buttons: [
+      { label: 'Year Selector', labelShort: 'Year', action: 'Switches the data context for all dashboard components.' },
+      { label: 'View Workspace', labelShort: 'Open', action: 'Drills down into specific unit or program compliance details.' }
+    ],
+    nextStep: 'Use the "Analytics" tab for a deeper dive into submission trends and headcount distribution.'
+  },
+  '/dashboard?tab=analytics': {
+    title: 'Dashboard: Analytics',
+    description: 'Data-driven insights into submission schedules, risk posture, and institutional parity.',
+    steps: [
+      { title: 'Submission Schedule', desc: 'Verify official deadlines for the First and Final submission cycles.' },
+      { title: 'Risk Posture', desc: 'Analyze the distribution of High, Medium, and Low risks across your scope.' },
+      { title: 'Parity Heatmap', desc: 'Identify specific units with missing documents using the color-coded matrix.' }
+    ],
+    buttons: [
+      { label: 'Status Legend', labelShort: 'Info', action: 'Explains the color coding used in the compliance heatmaps.' },
+      { label: 'Year Filter', labelShort: 'AY', action: 'Sets the fiscal context for all quantitative charts.' }
+    ],
+    nextStep: 'Switch to the "Strategic" tab to view long-term maturity trends and risk matrices.'
+  },
+  '/dashboard?tab=strategic': {
+    title: 'Dashboard: Strategic',
+    description: 'High-level visualizations of institutional maturity and long-term quality trends.',
+    steps: [
+      { title: 'Maturity Radar', desc: 'Analyze balance across Documentation, Risk Management, and Decision Resolution.' },
+      { title: 'Compliance Trend', desc: 'Track year-over-year improvement in total institutional documentation parity.' },
+      { title: 'Risk Matrix', desc: 'Prioritize intervention based on the Likelihood vs Consequence scatter plot.' },
+      { title: 'Treatment Funnel', desc: 'Monitor the lifecycle of threats moving from Identification to Closure.' }
+    ],
+    buttons: [
+      { label: 'Maturity Radar', labelShort: 'Radar', action: 'Visualizes the "shape" of the current quality system.' },
+      { label: 'Risk Funnel', labelShort: 'Funnel', action: 'Tracks the conversion of threats into controlled factors.' }
+    ],
+    nextStep: 'Present these strategic insights during Management Reviews to drive university-wide improvement.'
+  },
+  '/dashboard?tab=users': {
+    title: 'Dashboard: User Directory',
+    description: 'Personnel mapping and access oversight for the university units.',
+    steps: [
+      { title: 'Verify Registration', desc: 'Ensure all assigned Unit Coordinators have active, verified accounts.' },
+      { title: 'Map Units', desc: 'Cross-reference personnel with their respective academic or administrative offices.' }
+    ],
+    buttons: [
+      { label: 'User Count', labelShort: 'Users', action: 'Total number of registered personnel in the campus.' }
+    ]
   },
   '/activity-log': {
     title: 'Activity Registry Hub',

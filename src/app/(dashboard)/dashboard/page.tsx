@@ -95,7 +95,7 @@ import {
 } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
@@ -186,7 +186,11 @@ export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  const currentTab = searchParams.get('tab') || 'overview';
 
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
@@ -198,6 +202,12 @@ export default function HomePage() {
   const roleLower = userRole?.toLowerCase() || '';
   const isCampusLevel = isAdmin || isVp || roleLower.includes('campus director') || roleLower.includes('campus odimo');
   const isCampusSupervisor = isSupervisor && !isAdmin && isCampusLevel;
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -778,7 +788,7 @@ export default function HomePage() {
     ) || [];
 
     return (
-    <Tabs defaultValue="overview" className="space-y-4">
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
       <ScrollArea className="w-full">
         <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -1026,7 +1036,7 @@ export default function HomePage() {
   );
 
   const renderSupervisorHome = () => (
-    <Tabs defaultValue="overview" className="space-y-4">
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
         <ScrollArea className="w-full">
             <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
                 <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
@@ -1116,7 +1126,7 @@ export default function HomePage() {
   );
 
   const renderAdminHome = () => (
-    <Tabs defaultValue="overview" className="space-y-4">
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
       <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
           <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
           <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
