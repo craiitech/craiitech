@@ -38,7 +38,13 @@ import {
   Settings,
   Building2,
   Award,
-  Loader2
+  Loader2,
+  Sparkles,
+  Search,
+  LayoutList,
+  CheckCircle2,
+  ListChecks,
+  MonitorCheck
 } from 'lucide-react';
 import {
   useUser,
@@ -139,12 +145,12 @@ const statusVariant: Record<
 };
 
 /**
- * DASHBOARD SKELETON LOADER
- * Displays a realistic mockup of the dashboard layout during synchronization.
+ * ENHANCED DASHBOARD SKELETON LOADER
+ * Displays comprehensive innovative guidance while synchronizing data.
  */
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -159,23 +165,105 @@ function DashboardSkeleton() {
         <Skeleton className="h-28 rounded-2xl" />
       </div>
 
-      <Skeleton className="h-40 w-full rounded-2xl" />
+      {/* COMPREHENSIVE GUIDANCE OVERLAY */}
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/90 backdrop-blur-xl overflow-y-auto">
+        <div className="w-full max-w-4xl space-y-12 animate-in zoom-in duration-700">
+            
+            {/* Sync Header */}
+            <div className="flex flex-col items-center gap-4 text-center">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+                    <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
+                </div>
+            </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-        <div className="lg:col-span-4 space-y-6">
-          <Skeleton className="h-96 rounded-2xl" />
-          <Skeleton className="h-64 rounded-2xl" />
-        </div>
-        <div className="lg:col-span-3 space-y-6">
-          <Skeleton className="h-[400px] rounded-2xl" />
-          <Skeleton className="h-64 rounded-2xl" />
-        </div>
-      </div>
+            {/* Innovative Guidance Hub */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* Left Side: System Capabilities */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
+                        <Sparkles className="h-4 w-4 text-amber-500" />
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Quality Hub Capabilities</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-4">
+                        {[
+                            { icon: <ShieldCheck className="text-emerald-600" />, title: "Documentation Control", desc: "Automated ISO 7.5.3 compliance for all evidence logs." },
+                            { icon: <Target className="text-rose-600" />, title: "Risk Proactivity", desc: "Digital identifying factors and treatment velocity tracking." },
+                            { icon: <MonitorCheck className="text-blue-600" />, title: "Site Parity", desc: "Comparative maturity benchmarks across all campuses." },
+                            { icon: <ClipboardCheck className="text-indigo-600" />, title: "Audit Integrity", desc: "Real-time Evidence Log Sheets for institutional IQA." }
+                        ].map((cap, i) => (
+                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all">
+                                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                                    {cap.icon}
+                                </div>
+                                <div className="space-y-0.5">
+                                    <h4 className="text-xs font-black uppercase text-slate-900">{cap.title}</h4>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{cap.desc}"</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/20 backdrop-blur-[2px]">
-        <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white shadow-2xl border border-primary/10">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Synchronizing Institutional Data...</p>
+                {/* Right Side: EOMS Mandate & Guidance */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">EOMS Compliance Framework</h3>
+                    </div>
+
+                    <Card className="bg-primary/5 border-primary/20 shadow-none overflow-hidden group">
+                        <CardHeader className="py-4 border-b border-primary/10 bg-white">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                <ListChecks className="h-3.5 w-3.5" />
+                                6 Core Registry Documents
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 space-y-2">
+                            {submissionTypes.map((type, i) => (
+                                <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-700">
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                    {type}
+                                </div>
+                            ))}
+                        </CardContent>
+                        <CardFooter className="bg-white border-t py-2">
+                            <p className="text-[8px] font-medium text-muted-foreground italic leading-tight">
+                                Mandatory per submission cycle to maintain ISO 21001:2018 Certification.
+                            </p>
+                        </CardFooter>
+                    </Card>
+
+                    <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-start gap-4">
+                        <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                            <p className="text-xs font-black uppercase text-indigo-900">Pro-Tip for Coordinators</p>
+                            <p className="text-[10px] text-indigo-800/80 leading-relaxed italic font-medium">
+                                "Use the <strong>Contextual Operational Guide</strong> in the right sidebar of every module for step-by-step instructions on registration and auditing."
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* System Version Footer */}
+            <div className="pt-8 border-t border-primary/10 flex justify-between items-center opacity-40">
+                <div className="flex items-center gap-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                    <Building2 className="h-3 w-3" />
+                    Romblon State University
+                </div>
+                <div className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                    Digital Excellence Registry v2.5.0
+                </div>
+            </div>
         </div>
       </div>
     </div>
@@ -831,7 +919,7 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
-        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
+        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} !isSupervisor={isSupervisor || isAdmin} />
 
         {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
             <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -919,7 +1007,7 @@ export default function HomePage() {
         )}
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
           <Card className="col-span-1 lg:col-span-4">
             <CardHeader>
@@ -1165,7 +1253,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
         <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
@@ -1269,7 +1357,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
