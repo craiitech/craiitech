@@ -1,4 +1,9 @@
+
 'use client';
+
+/**
+ * @fileOverview Official GAD print templates for GPB and GAD AR.
+ */
 
 import React from 'react';
 import type { GADPlan, GADActivity, Signatories } from '@/lib/types';
@@ -137,11 +142,18 @@ export function GADAccomplishmentReportTemplate({ data, unitName, campusName, ye
                 M: {item.actualMale} | F: {item.actualFemale}
               </td>
               <td className="border border-black p-1 italic text-slate-600 leading-relaxed">
-                {item.varianceBudget !== 0 && `Budget Variance: ₱${Math.abs(item.varianceBudget).toLocaleString()} (${item.varianceBudget < 0 ? 'Over' : 'Under'} spend). `}
+                {item.varianceBudget !== 0 ? (
+                  <span>
+                    Budget Variance: ₱{Math.abs(item.varianceBudget).toLocaleString()} ({item.varianceBudget < 0 ? 'Over' : 'Under'} spend).{' '}
+                  </span>
+                ) : null}
                 {item.varianceAnalysis}
               </td>
             </tr>
           ))}
+          {data.length === 0 && (
+            <tr><td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">No accomplishment data found to process.</td></tr>
+          )}
         </tbody>
       </table>
 

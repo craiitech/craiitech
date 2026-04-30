@@ -1,6 +1,10 @@
 
 'use client';
 
+/**
+ * @fileOverview GAD Plan and Budget (GPB) management tab.
+ */
+
 import { useState, useMemo } from 'react';
 import type { GADPlan, Campus, Unit, GadSettings, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -30,7 +34,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -75,7 +79,10 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const gadSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'gadSettings') : null), [firestore]);
   const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
 
-  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const form = useForm<z.infer<typeof planSchema>>({
@@ -268,7 +275,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
           <CardFooter className="bg-muted/5 border-t py-4 px-8">
                 <div className="flex items-start gap-4">
                     <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                    <p className="text-[11px] text-muted-foreground italic leading-relaxed">
                         <strong>PCW Alignment:</strong> The GAD Plan and Budget (GPB) is the primary instrument used to capture the university's intent to address identified gender issues. All unit plans must be verified against the official Procedure Manual.
                     </p>
                 </div>
@@ -327,8 +334,8 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                                         {gadSettings?.institutionalTotalBudget && (
                                             <FormDescription className="text-[9px] font-bold text-emerald-600 uppercase flex items-center gap-2 mt-1">
                                                 <Calculator className="h-3 w-3" />
-                                                Min Target (5%): ₱{minRequiredBudget.toLocaleString()}
-                                                {watchBudget >= minRequiredBudget ? <Badge className="bg-emerald-600 h-3 text-[7px]">GOAL MET</Badge> : <Badge variant="destructive" className="h-3 text-[7px]">UNDER TARGET</Badge>}
+                                                Min Target (5%): ₱{((gadSettings.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
+                                                {watchBudget >= ((gadSettings.institutionalTotalBudget || 0) * 0.05) ? <Badge className="bg-emerald-600 h-3 text-[7px]">GOAL MET</Badge> : <Badge variant="destructive" className="h-3 text-[7px]">UNDER TARGET</Badge>}
                                             </FormDescription>
                                         )}
                                     </FormItem>
@@ -355,188 +362,16 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => setIsDialogOpen(false)}>Discard</Button>
-                <Button type="submit" form="plan-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-1.5" />}
-                    {editingPlan ? 'Save Changes' : 'Register Plan Entry'}
-                </Button>
+                <div className="flex gap-2">
+                    <Button type="submit" form="plan-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11">
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-1.5" />}
+                        {editingPlan ? 'Save Changes' : 'Register Plan Entry'}
+                    </Button>
+                </div>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-```
-  <change>
-    <file>src/components/gad/gad-print-templates.tsx</file>
-    <content><![CDATA[
-'use client';
-
-import React from 'react';
-import type { GADPlan, GADActivity, Signatories } from '@/lib/types';
-import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
-
-interface GADPlanReportTemplateProps {
-  data: GADPlan[];
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
-interface GADAccomplishmentReportTemplateProps {
-  data: any[]; // Extended with actuals
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
-/**
- * GAD PLAN AND BUDGET (GPB) PRINT TEMPLATE
- * PCW Standard Landscape Format
- */
-export function GADPlanReportTemplate({ data, unitName, campusName, year, signatories }: GADPlanReportTemplateProps) {
-  const directorName = signatories?.qaoDirector || '____________________';
-
-  return (
-    <div className="p-4 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight">
-      <div className="text-center mb-8 border-b-2 border-black pb-4">
-        <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
-        <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD PLAN AND BUDGET (GPB)</h2>
-        <p className="text-sm font-black mt-1">FISCAL YEAR: {year}</p>
-        <p className="text-xs italic mt-2 uppercase">{unitName} - {campusName}</p>
-      </div>
-
-      <table className="w-full border-collapse border-[1.5px] border-black text-[9px]">
-        <thead>
-          <tr className="bg-slate-100 text-center font-black uppercase">
-            <th className="border border-black p-2 w-[15%]">Gender Issue / GAD Mandate</th>
-            <th className="border border-black p-2 w-[15%]">Cause of Gender Issue</th>
-            <th className="border border-black p-2 w-[15%]">GAD Objective</th>
-            <th className="border border-black p-2 w-[15%]">Relevant GAD PAP</th>
-            <th className="border border-black p-2 w-[15%]">Performance Indicators / Targets</th>
-            <th className="border border-black p-2 w-[10%]">GAD Budget</th>
-            <th className="border border-black p-2 w-[15%]">Source of Budget / Office</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, i) => (
-            <tr key={i} className="align-top">
-              <td className="border border-black p-2 font-bold">{item.genderIssue}</td>
-              <td className="border border-black p-2 italic">{item.causeOfIssue}</td>
-              <td className="border border-black p-2">{item.objective}</td>
-              <td className="border border-black p-2 font-black uppercase">{item.pap}</td>
-              <td className="border border-black p-2">
-                <p className="font-bold underline">{item.performanceIndicators}</p>
-                <p className="mt-1 italic">{item.targets}</p>
-              </td>
-              <td className="border border-black p-2 text-right font-black tabular-nums">₱{item.budget.toLocaleString()}</td>
-              <td className="border border-black p-2 text-center font-bold">
-                <p>{item.sourceOfBudget}</p>
-                <p className="mt-2 text-[8px] opacity-60">RESP: {item.responsibleOffice}</p>
-              </td>
-            </tr>
-          ))}
-          {data.length === 0 && (
-            <tr><td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">No plan entries defined for this unit.</td></tr>
-          )}
-        </tbody>
-      </table>
-
-      <div className="mt-12 grid grid-cols-3 gap-16 px-10 text-[10px] font-black uppercase">
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Prepared by:</p>
-              <div className="border-b border-black pb-1">GAD COORDINATOR</div>
-              <p className="mt-1 text-[8px]">Unit Level</p>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Reviewed by:</p>
-              <div className="border-b border-black pb-1">QAO / GAD DIRECTOR</div>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Approved by:</p>
-              <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
-              <p className="mt-1 text-[8px]">UNIVERSITY AUTHORITY</p>
-          </div>
-      </div>
-
-      <div className="mt-12 text-[8px] text-slate-400 italic border-t pt-2 flex justify-between">
-          <span>Official RSU GAD Document | Ref: QAO-GPB-{year}</span>
-          <span>Generated via RSU EOMS Portal</span>
-      </div>
-    </div>
-  );
-}
-
-/**
- * GAD ACCOMPLISHMENT REPORT (GAD AR) PRINT TEMPLATE
- */
-export function GADAccomplishmentReportTemplate({ data, unitName, campusName, year, signatories }: GADAccomplishmentReportTemplateProps) {
-  const directorName = signatories?.qaoDirector || '____________________';
-
-  return (
-    <div className="p-4 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight">
-      <div className="text-center mb-8 border-b-2 border-black pb-4">
-        <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
-        <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD ACCOMPLISHMENT REPORT (GAD AR)</h2>
-        <p className="text-sm font-black mt-1">FISCAL YEAR: {year}</p>
-        <p className="text-xs italic mt-2 uppercase">{unitName} - {campusName}</p>
-      </div>
-
-      <table className="w-full border-collapse border-[1.5px] border-black text-[8px]">
-        <thead>
-          <tr className="bg-slate-100 text-center font-black uppercase">
-            <th className="border border-black p-1 w-[12%]">GAD PAP</th>
-            <th className="border border-black p-1 w-[12%]">Target Output</th>
-            <th className="border border-black p-1 w-[12%]">Actual Accomplishment</th>
-            <th className="border border-black p-1 w-[12%]">Planned Budget</th>
-            <th className="border border-black p-1 w-[12%]">Actual Expenditure</th>
-            <th className="border border-black p-1 w-[15%]">Actual Reach (M/F)</th>
-            <th className="border border-black p-1 w-[25%]">Variance / Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, i) => (
-            <tr key={i} className="align-top">
-              <td className="border border-black p-1 font-black uppercase">{item.pap}</td>
-              <td className="border border-black p-1">{item.targets}</td>
-              <td className="border border-black p-1 font-bold italic">{item.actualOutput || 'Verified Operational'}</td>
-              <td className="border border-black p-1 text-right tabular-nums font-bold">₱{item.budget.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right tabular-nums font-black text-emerald-700">₱{item.actualBudget.toLocaleString()}</td>
-              <td className="border border-black p-1 text-center font-black">
-                M: {item.actualMale} | F: {item.actualFemale}
-              </td>
-              <td className="border border-black p-1 italic text-slate-600 leading-relaxed">
-                {item.varianceBudget !== 0 && `Budget Variance: ₱${Math.abs(item.varianceBudget).toLocaleString()} (${item.varianceBudget < 0 ? 'Over' : 'Under'} spend). `}
-                {item.varianceAnalysis}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="mt-12 grid grid-cols-3 gap-16 px-10 text-[10px] font-black uppercase">
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Prepared by:</p>
-              <div className="border-b border-black pb-1">GAD COORDINATOR</div>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Verified by:</p>
-              <div className="border-b border-black pb-1">GAD OFFICE DIRECTOR</div>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Approved by:</p>
-              <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
-          </div>
-      </div>
-
-      <div className="mt-12 text-[8px] text-slate-400 italic border-t pt-2 flex justify-between">
-          <span>Official RSU GAD Document | Ref: QAO-AR-{year}</span>
-          <span>Generated via RSU EOMS Portal</span>
-      </div>
     </div>
   );
 }
