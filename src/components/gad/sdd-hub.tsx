@@ -11,16 +11,40 @@ import {
     Cell, 
     ResponsiveContainer, 
     Tooltip, 
-    Legend
+    Legend,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon, ShieldCheck, CalendarRange, Briefcase, PlusCircle, Save, Loader2, Target, Smartphone } from 'lucide-react';
+import { 
+    Users, 
+    GraduationCap, 
+    UserCircle, 
+    School, 
+    Info, 
+    Activity, 
+    PieChart as PieIcon, 
+    ShieldCheck, 
+    CalendarRange, 
+    Briefcase, 
+    PlusCircle, 
+    Save, 
+    Loader2, 
+    Target, 
+    Smartphone,
+    LayoutList
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
+import { Label } from '../ui/label';
 
 interface SDDHubProps {
   compliances: ProgramComplianceRecord[];
