@@ -1,13 +1,13 @@
 /**
  * @fileOverview Rich step-by-step guidance data for RSU EOMS Portal modules.
- * Updated: Added comprehensive GAD Corner tab-specific guidance.
+ * This registry powers the PageGuidance sidebar and updates dynamically via route + tab detection.
  */
 
 export interface PageHelp {
   title: string;
   description: string;
   steps: { title: string; desc: string }[];
-  buttons: { label: string; action: string }[];
+  buttons: { label: string; action: string; labelShort?: string }[];
   nextStep?: string;
 }
 
@@ -26,6 +26,8 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     nextStep: 'Ensure your current year\'s Risk Register is populated before submitting your first cycle reports.'
   },
+
+  // --- GAD CORNER ---
   '/gad-corner': {
     title: 'GAD Corner Hub',
     description: 'Consolidated Gender and Development workspace for planning and accomplishment monitoring.',
@@ -110,6 +112,126 @@ export const helpContent: Record<string, PageHelp> = {
       { label: 'Maturity Index', labelShort: '%', action: 'A calculated percentage of implemented mainstreaming criteria.' }
     ]
   },
+
+  // --- UNIT MONITORING ---
+  '/monitoring': {
+    title: 'Unit Monitoring Hub',
+    description: 'On-site verification tool for facility maintenance and physical standard compliance.',
+    steps: [
+      { title: 'Schedule Visit', desc: 'Admins: Record the date and type (Office/Classroom) of the on-site visit.' },
+      { title: 'Verify Checklist', desc: 'Go through the 7S and EOMS documentation items to mark Availability.' },
+      { title: 'Log Findings', desc: 'Add remarks for items marked "For Improvement" or "Not Available".' }
+    ],
+    buttons: [
+        { label: 'New Visit', labelShort: 'New', action: 'Launches the field monitoring digital checklist.' },
+        { label: 'Print Record', labelShort: 'Print', action: 'Generates the official signed Monitoring Report.' }
+    ]
+  },
+  '/monitoring?tab=performance': {
+    title: 'Monitoring: Performance',
+    description: 'Institutional analytics for on-site quality audits.',
+    steps: [
+      { title: 'Review Gaps', desc: 'Identify which monitoring items (e.g. ARTA signages) have the most non-conformities.' },
+      { title: 'Benchmark Sites', desc: 'Compare compliance scores between different campuses and units.' }
+    ],
+    buttons: [
+        { label: 'Export', labelShort: 'XLSX', action: 'Downloads the monitoring raw data to Excel.' }
+    ]
+  },
+
+  // --- ACADEMIC PROGRAMS ---
+  '/academic-programs': {
+    title: 'CHED Program Monitoring',
+    description: 'Decision support system for managing academic program compliance and quality.',
+    steps: [
+      { title: 'Program Selection', desc: 'Search for a degree program to enter its focused compliance workspace.' },
+      { title: 'Check Roadmap', desc: 'Monitor the "Survey Pipeline" for upcoming AACCUP accreditation targets.' }
+    ],
+    buttons: [
+        { label: 'Workspace', labelShort: 'Open', action: 'Enters the 5-module compliance dashboard for a program.' }
+    ]
+  },
+  '/academic-programs?tab=batch-hub': {
+    title: 'Programs: Batch Data Hub',
+    description: 'Rapid entry module for institutional student and outcome statistics.',
+    steps: [
+      { title: 'Select Mode', desc: 'Choose between Enrollment, Graduation, Board Exam, or Tracer data.' },
+      { title: 'Update Records', desc: 'Click "Start Log" to update metrics for a specific program for the selected year.' }
+    ],
+    buttons: [
+        { label: 'Apply & Sync', labelShort: 'Save', action: 'Commits batch updates to the central academic registry.' }
+    ]
+  },
+
+  // --- SUBMISSIONS ---
+  '/submissions': {
+    title: 'EOMS Submission Hub',
+    description: 'The primary workflow for ISO 7.5.3 compliance. Manage the lifecycle of the 6 core EOMS documents.',
+    steps: [
+      { title: 'Identify Cycle', desc: 'Determine if you are submitting for the First or Final cycle based on the university calendar.' },
+      { title: 'New Submission', desc: 'Click the button and select the specific report type (e.g., SWOT, Op Plan).' },
+      { title: 'Select Version', desc: 'Choose "Draft" for content checking or "Final" for signed institutional records.' }
+    ],
+    buttons: [
+      { label: 'New Submission', labelShort: 'New', action: 'Starts the multi-step document upload wizard.' },
+      { label: 'Download Templates', labelShort: 'Templates', action: 'Accesses the official RSU GDrive for standardized forms.' }
+    ]
+  },
+
+  // --- RISK REGISTER ---
+  '/risk-register': {
+    title: 'Risk Management Registry',
+    description: 'A digital tool for proactive institutional governance. Log and mitigate vulnerabilities.',
+    steps: [
+      { title: 'Identify Factor', desc: 'Identify a Risk (Threat) or Opportunity (Gain) linked to a process objective.' },
+      { title: 'Baseline Analysis', desc: 'Rate the Likelihood and Consequence (1-5). Magnitude 5+ triggers mandatory action.' },
+      { title: 'Execute Treatment', desc: 'Assign a person and target date to mitigate the risk.' }
+    ],
+    buttons: [
+      { label: 'Log New Entry', labelShort: 'Log', action: 'Starts the risk identification and analysis form.' },
+      { label: 'AI Suggest', labelShort: 'AI', action: 'Uses GenAI to propose professional ISO-aligned treatment plans.' }
+    ]
+  },
+
+  // --- UNIT FORMS & RECORDS ---
+  '/unit-forms': {
+    title: 'Unit Forms & Records',
+    description: 'Management of controlled university forms and unit document rosters.',
+    steps: [
+      { title: 'Access Roster', desc: 'Click "Access Official Roster" to view your unit\'s approved form library.' },
+      { title: 'Verify Preview', desc: 'Check the Masterlist PDF preview to confirm currently registered form versions.' }
+    ],
+    buttons: [
+        { label: 'Apply for Form', labelShort: 'Register', action: 'Starts the DRF process to enroll new or revised forms.' }
+    ]
+  },
+  '/unit-forms?tab=register': {
+    title: 'Form Control: Registration',
+    description: 'Standard 4-step workflow for enrolling controlled documents.',
+    steps: [
+      { title: 'Download DRF', desc: 'Get the official Document Registration Form template.' },
+      { title: 'Secure Signatures', desc: 'For Final registration, a scanned, signed copy is mandatory.' },
+      { title: 'Execute Wizard', desc: 'Paste the GDrive links and submit for QA and Presidential review.' }
+    ],
+    buttons: [
+        { label: 'Launch Wizard', labelShort: 'Start', action: 'Opens the multi-step registration application.' }
+    ]
+  },
+
+  // --- QA REPORTS & CARS ---
+  '/qa-reports': {
+    title: 'QA Reports & CARs',
+    description: 'Central vault for Audit summaries, Management Reviews, and Corrective Actions.',
+    steps: [
+      { title: 'Monitor Decisions', desc: 'Check the "Actionable Decisions" tab to see tasks assigned from MR sessions.' },
+      { title: 'Track CARs', desc: 'Review the Corrective Action Request registry to identify unresolved non-conformities.' }
+    ],
+    buttons: [
+        { label: 'Registry', labelShort: 'Log', action: 'Narrows the view to a specific report category.' }
+    ]
+  },
+
+  // --- ACTIVITY LOG ---
   '/activity-log': {
     title: 'Activity Registry Hub',
     description: 'Official logbook for recording daily institutional tasks and WFH accomplishments.',
@@ -124,30 +246,43 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     nextStep: 'Log your tasks daily to ensure your Monthly Accomplishment Report is accurate for payroll or audit.'
   },
-  '/submissions': {
-    title: 'EOMS Submission Hub',
-    description: 'The primary workflow for ISO 7.5.3 compliance. Manage the lifecycle of the 6 core EOMS documents.',
+
+  // --- AUDITconduct / IQA CONDUCT ---
+  '/audit': {
+    title: 'Internal Quality Audit',
+    description: 'Oversight of institutional audit frameworks and itinerary fulfillment.',
     steps: [
-      { title: 'Identify Cycle', desc: 'Determine if you are submitting for the First or Final cycle based on the university calendar.' },
-      { title: 'New Submission', desc: 'Click the button and select the specific report type (e.g., SWOT, Op Plan).' },
-      { title: 'Select Version', desc: 'Choose "Draft" for content checking or "Final" for signed institutional records.' }
+      { title: 'Define Framework', desc: 'Admins: Establish an Audit Plan with scope, criteria, and lead auditors.' },
+      { title: 'Provision Itinerary', desc: 'Add individual sessions for units, assigning auditors and ISO clauses.' },
+      { title: 'Record Findings', desc: 'Auditors: Log evidence and findings (C, OFI, NC) during the live session.' }
     ],
     buttons: [
-      { label: 'New Submission', labelShort: 'New', action: 'Starts the multi-step document upload wizard.' },
-      { label: 'Download Templates', labelShort: 'Templates', action: 'Accesses the official RSU GDrive for standardized forms.' }
+        { label: 'New Plan', labelShort: 'Plan', action: 'Starts a new institutional audit framework.' },
+        { label: 'Conduct Audit', labelShort: 'Audit', action: 'Opens the Evidence Log Sheet for a provisioned session.' }
     ]
   },
-  '/risk-register': {
-    title: 'Risk Management Registry',
-    description: 'A digital tool for proactive institutional governance. Log and mitigate vulnerabilities.',
+
+  // --- MANUALS ---
+  '/manuals': {
+    title: 'Procedure Manuals',
+    description: 'Institutional operating guidelines and unit-specific procedures.',
     steps: [
-      { title: 'Identify Factor', desc: 'Identify a Risk (Threat) or Opportunity (Gain) linked to a process objective.' },
-      { title: 'Baseline Analysis', desc: 'Rate the Likelihood and Consequence (1-5). Magnitude 5+ triggers mandatory action.' },
-      { title: 'Execute Treatment', desc: 'Assign a person and target date to mitigate the risk.' }
+      { title: 'Index Search', desc: 'Use the sidebar or search bar to find a specific unit\'s manual.' },
+      { title: 'Verify Revision', desc: 'Check the revision badge to ensure you are referencing the latest approved version.' }
     ],
     buttons: [
-      { label: 'Log New Entry', labelShort: 'Log', action: 'Starts the risk identification and analysis form.' },
-      { label: 'AI Suggest', labelShort: 'AI', action: 'Uses GenAI to propose professional ISO-aligned treatment plans.' }
+        { label: 'Preview', labelShort: 'View', action: 'Loads the PDF preview within the portal.' }
     ]
   },
+  '/eoms-policy-manual': {
+    title: 'RSU EOMS Manual',
+    description: 'The primary quality management document aligned with ISO 21001:2018.',
+    steps: [
+      { title: 'Select Section', desc: 'Choose a policy section from the Table of Contents to view its specific standards.' },
+      { title: 'Standard Compliance', desc: 'Refer to these sections for guidance on institutional quality requirements.' }
+    ],
+    buttons: [
+        { label: 'Section', labelShort: 'Open', action: 'Loads the official policy document for review.' }
+    ]
+  }
 };

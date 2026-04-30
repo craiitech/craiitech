@@ -270,8 +270,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Sidebar>
           <SidebarInset>
             <Header notificationCount={notificationCount} />
-            <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-[calc(100vh-4rem)]">
-                <div className="flex-1 min-w-0">
+            <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-[calc(100vh-4rem)] overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-y-auto">
                     {children}
                 </div>
                 {/* 
@@ -279,7 +279,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                    Wrapped in Suspense to handle useSearchParams hook in independent client component.
                 */}
                 <Suspense fallback={<div className="w-80 shrink-0" />}>
-                  <PageGuidance />
+                  <PageGuidance className="hidden lg:block" />
                 </Suspense>
             </main>
             <Chatbot />
