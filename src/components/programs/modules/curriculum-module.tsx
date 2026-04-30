@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -6,20 +7,23 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, Link as LinkIcon, GraduationCap, HeartHandshake, Layers, PlusCircle, Trash2, CheckCircle2, Calendar, Info, Calculator, Users } from 'lucide-react';
-import { useEffect } from 'react';
+import { BookOpen, Link as LinkIcon, GraduationCap, HeartHandshake, Layers, PlusCircle, Trash2, CheckCircle2, Calendar, Info, Calculator, Users, Globe, UserCheck, LayoutList } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import type { GADSector } from '@/lib/types';
 
 interface CurriculumModuleProps {
   canEdit: boolean;
   programSpecializations?: { id: string, name: string }[];
   focusMode?: 'enrollment' | 'all';
 }
+
+const GAD_SECTORS: GADSector[] = ['Solo Parent', 'PWD', 'Senior Citizen', 'Youth/Student', 'LGBTQA++', 'Indigenous People'];
 
 function EnrollmentRecordCard({
     index,
@@ -36,7 +40,8 @@ function EnrollmentRecordCard({
     programSpecializations?: { id: string, name: string }[];
     setValue: any;
 }) {
-    // Watch all values for this specific record to perform real-time calculation
+    const [expandedLevel, setExpandedLevel] = useState<string | null>(null);
+
     const recordValues = useWatch({
         control,
         name: `enrollmentRecords.${index}`
@@ -53,33 +58,78 @@ function EnrollmentRecordCard({
         return levels.reduce((acc, level) => acc + calculateLevelTotal(term, level), 0);
     };
 
-    const renderTermInputs = (termKey: string) => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, lIdx) => {
-                const total = calculateLevelTotal(termKey, level);
-                return (
-                    <div key={level} className="p-3 rounded-lg border bg-muted/5 space-y-3">
-                        <p className="text-[9px] font-black uppercase text-primary border-b pb-1">{lIdx + 1}{lIdx === 0 ? 'st' : lIdx === 1 ? 'nd' : lIdx === 2 ? 'rd' : 'th'} Year Level</p>
-                        <div className="grid grid-cols-3 gap-2">
-                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.male`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
-                            )} />
-                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.female`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
-                            )} />
-                            <FormItem>
-                                <FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel>
-                                <div className="h-7 flex items-center justify-center text-[10px] font-black bg-primary/5 rounded border border-primary/20 tabular-nums">
-                                    {total}
+    const renderSectorInputs = (termKey: string, level: string) => (
+        <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-4 animate-in zoom-in duration-300">
+            <div className="flex items-center justify-between border-b pb-2">
+                <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                    <Globe className="h-3 w-3" /> Sectoral Breakdown (Institutional GAD)
+                </p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedLevel(null)} className="h-6 text-[9px] font-bold uppercase">Collapse</Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {GAD_SECTORS.map((sector) => (
+                    <div key={sector} className="space-y-2 p-2 rounded-lg bg-white border shadow-sm">
+                        <p className="text-[9px] font-black uppercase text-slate-700">{sector}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.male`} render={({ field }) => (
+                                <div className="space-y-1">
+                                    <Label className="text-[8px] uppercase font-bold text-muted-foreground">Male</Label>
+                                    <Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} />
                                 </div>
-                            </FormItem>
+                            )} />
+                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.female`} render={({ field }) => (
+                                <div className="space-y-1">
+                                    <Label className="text-[8px] uppercase font-bold text-muted-foreground">Female</Label>
+                                    <Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} />
+                                </div>
+                            )} />
                         </div>
-                        <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.specialNeeds`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[8px] uppercase font-bold text-blue-600 flex items-center gap-1"><HeartHandshake className="h-2 w-2" /> Special Needs</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px] bg-blue-50 border-blue-100" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
-                        )} />
                     </div>
-                );
-            })}
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderTermInputs = (termKey: string) => (
+        <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, lIdx) => {
+                    const total = calculateLevelTotal(termKey, level);
+                    const isExpanded = expandedLevel === `${termKey}-${level}`;
+                    return (
+                        <div key={level} className={cn("p-3 rounded-lg border bg-muted/5 space-y-3 transition-all", isExpanded && "ring-2 ring-primary border-primary")}>
+                            <div className="flex items-center justify-between border-b pb-1">
+                                <p className="text-[9px] font-black uppercase text-primary">{lIdx + 1}{lIdx === 0 ? 'st' : lIdx === 1 ? 'nd' : lIdx === 2 ? 'rd' : 'th'} Year Level</p>
+                                <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => setExpandedLevel(isExpanded ? null : `${termKey}-${level}`)}
+                                    className="h-5 px-2 text-[8px] font-black uppercase bg-white border shadow-sm gap-1"
+                                >
+                                    {isExpanded ? <LayoutList className="h-2.5 w-2.5" /> : <PlusCircle className="h-2.5 w-2.5" />}
+                                    {isExpanded ? 'Hide Sectors' : 'Sector Breakdown'}
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.male`} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
+                                )} />
+                                <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.female`} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
+                                )} />
+                                <FormItem>
+                                    <FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel>
+                                    <div className="h-7 flex items-center justify-center text-[10px] font-black bg-primary/5 rounded border border-primary/20 tabular-nums">
+                                        {total}
+                                    </div>
+                                </FormItem>
+                            </div>
+                            {isExpanded && renderSectorInputs(termKey, level)}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 
@@ -95,7 +145,7 @@ function EnrollmentRecordCard({
                             <Users className="h-3.5 w-3.5" />
                             Enrollment Data Log #{index + 1}
                         </p>
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Year-Level Headcount Distribution</p>
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Year-Level & GAD Sector Distribution</p>
                     </div>
                     <div className="w-full sm:w-[250px]">
                         <FormField control={control} name={`enrollmentRecords.${index}.majorId`} render={({ field: inputField }) => (
@@ -129,7 +179,7 @@ function EnrollmentRecordCard({
                 </Tabs>
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-2 px-4 flex justify-between items-center">
-                <p className="text-[8px] font-black uppercase text-primary/50">Real-time Calculation Active</p>
+                <p className="text-[8px] font-black uppercase text-primary/50">Institutional GAD Synchronization Active</p>
                 <div className="flex gap-6 text-[10px] font-black text-slate-800">
                     <div className="flex items-center gap-2">
                         <span className="opacity-40">1ST SEM TOTAL:</span>
@@ -296,7 +346,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
   });
 
   const getEmptyYearLevel = () => ({
-      male: 0, female: 0, total: 0, specialNeeds: 0
+      male: 0, female: 0, total: 0, specialNeeds: 0, sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {})
   });
 
   const getEmptyEnrollRecord = () => ({
@@ -402,7 +452,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                         <Users className="h-4 w-4" />
                         Major-Specific Enrollment Registry
                     </h3>
-                    <p className="text-[10px] text-muted-foreground font-medium">Disaggregated student statistics by Year Level and Semester.</p>
+                    <p className="text-[10px] text-muted-foreground font-medium">Disaggregated student statistics by Year Level and GAD Sector.</p>
                 </div>
                 {canEdit && (
                     <Button 
@@ -426,7 +476,6 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                         onRemove={() => removeEnroll(index)}
                         programSpecializations={programSpecializations}
                         setValue={setValue}
-                        watch={watch}
                     />
                 ))}
                 {enrollFields.length === 0 && (

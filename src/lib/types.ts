@@ -547,11 +547,19 @@ export type AccreditationArea = {
   weightedMean?: number;
 };
 
+export type SectorHeadcount = {
+  male: number;
+  female: number;
+};
+
 export type EnrollmentStats = {
   male: number;
   female: number;
   total: number;
   specialNeeds: number;
+  sectors?: {
+    [key in GADSector]?: SectorHeadcount;
+  };
 };
 
 export type YearLevelEnrollment = {
@@ -770,7 +778,7 @@ export type GADPlan = {
 };
 
 // Sector definition for GAD SDD
-export type GADSector = 'Solo Parent' | 'PWD' | 'Senior Citizen' | 'Youth/Student' | 'Employee';
+export type GADSector = 'Solo Parent' | 'PWD' | 'Senior Citizen' | 'Youth/Student' | 'Employee' | 'LGBTQA++' | 'Indigenous People';
 
 export type GADActivity = {
   id: string;
@@ -796,4 +804,23 @@ export type GADActivity = {
   varianceAnalysis?: string;
   deviceFingerprint: string; // For unauthenticated identification
   createdAt: any;
+};
+
+export type UnitPersonnelCensus = {
+    id: string; // unitId-year
+    unitId: string;
+    campusId: string;
+    year: number;
+    teaching: {
+        male: number;
+        female: number;
+        sectors: { [key in GADSector]?: SectorHeadcount };
+    };
+    nonTeaching: {
+        male: number;
+        female: number;
+        sectors: { [key in GADSector]?: SectorHeadcount };
+    };
+    updatedAt: any;
+    updatedBy: string;
 };

@@ -20,7 +20,8 @@ import {
     UserPlus,
     Calendar,
     Building,
-    Target
+    Target,
+    LayoutList
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -30,8 +31,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Campus, Unit, GadSettings, GADSector } from '@/lib/types';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
-const sectors: GADSector[] = ['Solo Parent', 'PWD', 'Senior Citizen', 'Youth/Student', 'Employee'];
+const sectors: GADSector[] = ['Solo Parent', 'PWD', 'Senior Citizen', 'Youth/Student', 'Employee', 'LGBTQA++', 'Indigenous People'];
 
 const sddSchema = z.object({
   activityName: z.string().min(5, 'Please provide the full name of the event.'),

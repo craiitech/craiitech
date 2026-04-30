@@ -1,8 +1,10 @@
 
 'use client';
 
-import { useMemo } from 'react';
-import type { ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
+import { useMemo, useState, useEffect } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { ProgramComplianceRecord, Campus, Unit, UnitPersonnelCensus, GADSector } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     PieChart, 
@@ -14,106 +16,117 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon, ShieldCheck, CalendarRange } from 'lucide-react';
+import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon, ShieldCheck, CalendarRange, Briefcase, PlusCircle, Save, Loader2, Target, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface SDDHubProps {
   compliances: ProgramComplianceRecord[];
   campuses: Campus[];
   units: Unit[];
+  activities: any[];
   selectedYear: number;
   unitName?: string;
 }
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const GAD_SECTORS: GADSector[] = ['Solo Parent', 'PWD', 'Senior Citizen', 'Youth/Student', 'Employee', 'LGBTQA++', 'Indigenous People'];
 
-export function SDDHub({ compliances, campuses, units, selectedYear, unitName }: SDDHubProps) {
+export function SDDHub({ compliances, campuses, units, activities, selectedYear, unitName }: SDDHubProps) {
+  const { userProfile, isAdmin } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSavingCensus, setIsSaving) = useState(false);
+
+  // 1. UNIT PERSONNEL CENSUS MODULE
+  const censusId = userProfile?.unitId ? `${userProfile.unitId}-${selectedYear}` : 'none';
+  const censusRef = useMemoFirebase(() => (firestore && userProfile?.unitId ? doc(firestore, 'unitPersonnelCensus', censusId) : null), [firestore, censusId]);
+  const { data: census, isLoading: isLoadingCensus } = useDoc<UnitPersonnelCensus>(censusRef);
+
+  const [censusForm, setCensusForm] = useState<Partial<UnitPersonnelCensus>>({
+    teaching: { male: 0, female: 0, sectors: {} },
+    nonTeaching: { male: 0, female: 0, sectors: {} }
+  });
+
+  useEffect(() => {
+    if (census) setCensusForm(census);
+    else setCensusForm({
+        teaching: { male: 0, female: 0, sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}) },
+        nonTeaching: { male: 0, female: 0, sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}) }
+    } as any);
+  }, [census]);
+
+  const handleSaveCensus = async () => {
+    if (!firestore || !userProfile?.unitId) return;
+    setIsSaving(true);
+    try {
+        await setDoc(censusRef!, {
+            ...censusForm,
+            id: censusId,
+            unitId: userProfile.unitId,
+            campusId: userProfile.campusId,
+            year: selectedYear,
+            updatedAt: serverTimestamp(),
+            updatedBy: userProfile.id
+        }, { merge: true });
+        toast({ title: 'Census Updated', description: 'Institutional personnel data synchronized.' });
+    } catch (e) {
+        toast({ title: 'Error', variant: 'destructive' });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
   const aggregatedData = useMemo(() => {
     let s1Male = 0, s1Female = 0;
-    let s2Male = 0, s2Female = 0;
-    let smMale = 0, smFemale = 0;
-    
-    let totalMaleFaculty = 0;
-    let totalFemaleFaculty = 0;
-    let totalOthersFaculty = 0;
-
-    let totalMaleGrads = 0;
-    let totalFemaleGrads = 0;
-
-    const uniqueFacultySet = new Set<string>();
+    const studentSectors: Record<string, { male: number, female: number }> = {};
+    GAD_SECTORS.forEach(s => studentSectors[s] = { male: 0, female: 0 });
 
     compliances.forEach(record => {
         const enrollmentRecords = record.enrollmentRecords || [];
         const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
         
-        if (enrollmentRecords.length > 0) {
-            enrollmentRecords.forEach(rec => {
+        enrollmentRecords.forEach(rec => {
+            const term = rec.firstSemester; // Baseline for GAD SDD is 1st Sem
+            if (term) {
                 levels.forEach(level => {
-                    s1Male += Number(rec.firstSemester?.[level]?.male || 0);
-                    s1Female += Number(rec.firstSemester?.[level]?.female || 0);
-                    s2Male += Number(rec.secondSemester?.[level]?.male || 0);
-                    s2Female += Number(rec.secondSemester?.[level]?.female || 0);
-                    smMale += Number(rec.midYearTerm?.[level]?.male || 0);
-                    smFemale += Number(rec.midYearTerm?.[level]?.female || 0);
+                    const lData = term[level];
+                    s1Male += Number(lData?.male || 0);
+                    s1Female += Number(lData?.female || 0);
+                    
+                    if (lData?.sectors) {
+                        Object.entries(lData.sectors).forEach(([sec, counts]: any) => {
+                            if (studentSectors[sec]) {
+                                studentSectors[sec].male += Number(counts.male || 0);
+                                studentSectors[sec].female += Number(counts.female || 0);
+                            }
+                        });
+                    }
                 });
-            });
-        } else {
-            // Legacy fallback
-            const s1 = record.stats?.enrollment?.firstSemester;
-            const s2 = record.stats?.enrollment?.secondSemester;
-            const sm = record.stats?.enrollment?.midYearTerm;
-            levels.forEach(level => {
-                if (s1) { s1Male += Number(s1[level]?.male || 0); s1Female += Number(s1[level]?.female || 0); }
-                if (s2) { s2Male += Number(s2[level]?.male || 0); s2Female += Number(s2[level]?.female || 0); }
-                if (sm) { smMale += Number(sm[level]?.male || 0); smFemale += Number(sm[level]?.female || 0); }
-            });
-        }
-
-        // SDD: Faculty (Deduplicated with Expanded Categories)
-        if (record.faculty) {
-            const roster = [...(record.faculty.members || [])];
-            if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
-            if (record.faculty.associateDean?.name && record.faculty.hasAssociateDean) roster.push(record.faculty.associateDean as any);
-            if (record.faculty.programChair?.name) roster.push(record.faculty.programChair as any);
-            
-            roster.forEach(m => {
-                if (!m.name || m.name.trim() === '') return;
-                const key = `${m.name.trim()}-${record.campusId}`.toLowerCase();
-                if (!uniqueFacultySet.has(key)) {
-                    uniqueFacultySet.add(key);
-                    if (m.sex === 'Male') totalMaleFaculty++;
-                    else if (m.sex === 'Female') totalFemaleFaculty++;
-                    else totalOthersFaculty++;
-                }
-            });
-        }
-
-        // SDD: Graduation
-        record.graduationRecords?.forEach(grad => {
-            totalMaleGrads += Number(grad.maleCount || 0);
-            totalFemaleGrads += Number(grad.femaleCount || 0);
+            }
         });
     });
 
     const createPieData = (m: number, f: number, o: number = 0) => [
         { name: 'Male', value: m, fill: COLORS[0] },
         { name: 'Female', value: f, fill: COLORS[1] },
-        { name: 'Others (LGBTQI++)', value: o, fill: COLORS[2] }
+        { name: 'Others', value: o, fill: COLORS[2] }
     ].filter(d => d.value > 0);
+
+    const sectoralChartData = Object.entries(studentSectors).map(([name, counts]) => ({
+        name,
+        total: counts.male + counts.female,
+        male: counts.male,
+        female: counts.female
+    })).filter(d => d.total > 0).sort((a,b) => b.total - a.total);
 
     return {
         s1: createPieData(s1Male, s1Female),
-        s2: createPieData(s2Male, s2Female),
-        sm: createPieData(smMale, smFemale),
-        faculty: createPieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
-        graduation: createPieData(totalMaleGrads, totalFemaleGrads),
-        totals: {
-            s1: s1Male + s1Female,
-            s2: s2Male + s2Female,
-            sm: smMale + smFemale,
-            faculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
-            grads: totalMaleGrads + totalFemaleGrads
-        }
+        studentSectors: sectoralChartData,
+        totals: { s1: s1Male + s1Female }
     };
   }, [compliances]);
 
@@ -121,124 +134,196 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-
-    return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-20">
       <Card className="border-primary/20 bg-primary/5 shadow-sm">
         <CardHeader className="py-4">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Info className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Unit SDD Registry</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Institutional SDD HUB</span>
             </div>
             <CardTitle className="text-lg font-black uppercase tracking-tight">Sex-Disaggregated Data (SDD) Hub: {unitName}</CardTitle>
-            <CardDescription className="text-xs">Consolidated headcount analysis derived from verified academic monitoring records for AY {selectedYear}.</CardDescription>
+            <CardDescription className="text-xs">Consolidated analysis of students, personnel, and activity participants for AY {selectedYear}.</CardDescription>
         </CardHeader>
       </Card>
 
-      {/* Term-Specific Population Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-              { title: '1st Semester Population', data: aggregatedData.s1, total: aggregatedData.totals.s1, icon: <Users className="h-5 w-5 text-primary" />, desc: '1st Sem Total' },
-              { title: '2nd Semester Population', data: aggregatedData.s2, total: aggregatedData.totals.s2, icon: <CalendarRange className="h-5 w-5 text-blue-600" />, desc: '2nd Sem Total' },
-              { title: 'Summer Term Population', data: aggregatedData.sm, total: aggregatedData.totals.sm, icon: <Activity className="h-5 w-5 text-amber-600" />, desc: 'Summer Total' }
-          ].map((term, i) => (
-              <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all">
-                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0 text-center">
-                      <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm group-hover:scale-110 transition-transform">{term.icon}</div>
-                      <CardTitle className="text-[10px] font-black uppercase tracking-widest leading-tight">{term.title}</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* STUDENT SDD SUMMARY */}
+          <div className="lg:col-span-1 space-y-6">
+              <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col h-full bg-white">
+                  <CardHeader className="p-4 bg-primary/5 border-b text-center shrink-0">
+                      <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm"><Users className="h-5 w-5 text-primary" /></div>
+                      <CardTitle className="text-[10px] font-black uppercase tracking-widest leading-tight">Student Population Baseline</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 flex-1 flex flex-col items-center">
-                      {term.data.length > 0 ? (
-                          <>
-                            <ChartContainer config={{}} className="h-[180px] w-full mb-4">
+                  <CardContent className="p-8 flex-1 flex flex-col items-center justify-center">
+                      {aggregatedData.s1.length > 0 ? (
+                        <>
+                            <ChartContainer config={{}} className="h-[220px] w-full mb-6">
                                 <ResponsiveContainer>
                                     <PieChart>
-                                        <Pie data={term.data} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
-                                            {term.data.map((e, j) => <Cell key={j} fill={e.fill} />)}
-                                        </Pie>
-                                        <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                        <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '15px' }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                            <div className="text-center mt-2">
-                                <p className="text-2xl font-black text-slate-800 tabular-nums">{term.total.toLocaleString()}</p>
-                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{term.desc}</p>
-                            </div>
-                          </>
-                      ) : (
-                          <div className="flex flex-col items-center justify-center text-center flex-1 opacity-20 py-10 space-y-3">
-                              <PieIcon className="h-10 w-10" />
-                              <p className="text-[9px] font-black uppercase tracking-widest">No Data Recorded</p>
-                          </div>
-                      )}
-                  </CardContent>
-              </Card>
-          ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[
-            { title: 'Faculty & Personnel Distribution', data: aggregatedData.faculty, total: aggregatedData.totals.faculty, icon: <UserCircle className="h-5 w-5 text-emerald-600" />, desc: 'Institutional Staffing Pool' },
-            { title: 'Graduation Statistics', data: aggregatedData.graduation, total: aggregatedData.totals.grads, icon: <GraduationCap className="h-5 w-5 text-purple-600" />, desc: 'Degree Completion Rate' }
-        ].map((hub, i) => (
-            <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all">
-                <CardHeader className="p-4 bg-muted/10 border-b shrink-0 text-center">
-                    <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm group-hover:scale-110 transition-transform">{hub.icon}</div>
-                    <CardTitle className="text-xs font-black uppercase tracking-widest leading-tight">{hub.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 flex-1 flex flex-col items-center overflow-hidden">
-                    {hub.data.length > 0 ? (
-                        <div className="w-full flex-1 flex flex-col items-center">
-                            <ChartContainer config={{}} className="h-[220px] w-full mb-4">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie 
-                                            data={hub.data} 
-                                            cx="50%" 
-                                            cy="50%" 
-                                            innerRadius={50} 
-                                            outerRadius={80} 
-                                            paddingAngle={5} 
-                                            dataKey="value" 
-                                            label={renderLabel}
-                                            labelLine={false}
-                                        >
-                                            {hub.data.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                        <Pie data={aggregatedData.s1} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
+                                            {aggregatedData.s1.map((e, j) => <Cell key={j} fill={e.fill} />)}
                                         </Pie>
                                         <Tooltip content={<ChartTooltipContent hideLabel />} />
                                         <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
-                            <div className="text-center mt-2">
-                                <p className="text-3xl font-black text-slate-800 tabular-nums">{hub.total.toLocaleString()}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{hub.desc}</p>
+                            <div className="text-center">
+                                <p className="text-4xl font-black text-slate-900 tabular-nums leading-none">{aggregatedData.totals.s1.toLocaleString()}</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Total Enrolled Baseline</p>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-center flex-1 opacity-20 py-20 space-y-3">
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center opacity-20 py-20 space-y-3">
                             <PieIcon className="h-12 w-12" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">No Data for this Unit</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">No enrollment data for {selectedYear}</p>
+                        </div>
+                      )}
+                  </CardContent>
+              </Card>
+          </div>
+
+          {/* STUDENT SECTORAL DISTRIBUTION */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-lg border-primary/10 h-full flex flex-col">
+                <CardHeader className="bg-muted/10 border-b py-4">
+                    <div className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Student Sectoral Reach Analysis</CardTitle>
+                    </div>
+                    <CardDescription className="text-[10px]">Headcount of students belonging to marginalized or prioritized GAD groups.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-8 flex-1">
+                    {aggregatedData.studentSectors.length > 0 ? (
+                        <ChartContainer config={{}} className="h-[350px] w-full">
+                            <ResponsiveContainer>
+                                <BarChart data={aggregatedData.studentSectors} layout="vertical" margin={{ left: 20, right: 40 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 900 }} width={120} axisLine={false} tickLine={false} />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} />
+                                    <Bar dataKey="male" stackId="a" fill="hsl(var(--chart-1))" radius={[0, 0, 0, 0]} />
+                                    <Bar dataKey="female" stackId="a" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]}>
+                                        <LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full opacity-20">
+                            <LayoutList className="h-12 w-12" />
+                            <p className="text-[10px] font-black uppercase tracking-widest mt-2">Zero Sectoral Hits Recorded</p>
                         </div>
                     )}
                 </CardContent>
             </Card>
-        ))}
+          </div>
       </div>
+
+      {/* UNIT PERSONNEL CENSUS WORKSPACE */}
+      {!isLoadingCensus && userProfile?.unitId && (
+          <Card className="border-indigo-200 shadow-xl overflow-hidden bg-indigo-50/5">
+              <CardHeader className="bg-indigo-50 border-b py-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-indigo-700">
+                            <Briefcase className="h-5 w-5" />
+                            <CardTitle className="text-lg font-black uppercase tracking-tight">Unit Personnel Census Workspace</CardTitle>
+                          </div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/70">Update total employee headcount for your office for AY {selectedYear}.</p>
+                      </div>
+                      <Button onClick={handleSaveCensus} disabled={isSavingCensus} className="shadow-lg shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-[10px] tracking-widest h-10 px-8">
+                          {isSavingCensus ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                          Commit Personnel Registry
+                      </Button>
+                  </div>
+              </CardHeader>
+              <CardContent className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      {/* TEACHING CENSUS */}
+                      <section className="space-y-6">
+                          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-800 border-b pb-1 flex items-center gap-2">
+                              <GraduationCap className="h-4 w-4" /> 1. Teaching Faculty (Unit Total)
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                  <Label className="text-[10px] font-black uppercase text-slate-500">Total Male</Label>
+                                  <Input type="number" value={censusForm.teaching?.male} onChange={(e) => setCensusForm(prev => ({ ...prev, teaching: { ...prev.teaching!, male: Number(e.target.value) } }))} className="h-10 bg-white font-black" />
+                              </div>
+                              <div className="space-y-1">
+                                  <Label className="text-[10px] font-black uppercase text-slate-500">Total Female</Label>
+                                  <Input type="number" value={censusForm.teaching?.female} onChange={(e) => setCensusForm(prev => ({ ...prev, teaching: { ...prev.teaching!, female: Number(e.target.value) } }))} className="h-10 bg-white font-black" />
+                              </div>
+                          </div>
+                          <div className="space-y-3">
+                              <p className="text-[9px] font-bold text-indigo-400 uppercase">Sectoral Breakdown (Teaching Faculty)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {GAD_SECTORS.map(sec => (
+                                      <div key={sec} className="p-2 rounded-lg bg-white border border-indigo-100 flex flex-col gap-2">
+                                          <p className="text-[8px] font-black uppercase truncate">{sec}</p>
+                                          <div className="flex gap-1">
+                                              <Input type="number" placeholder="M" value={censusForm.teaching?.sectors?.[sec]?.male || 0} onChange={(e) => setCensusForm(prev => ({ ...prev, teaching: { ...prev.teaching!, sectors: { ...prev.teaching!.sectors, [sec]: { ...prev.teaching!.sectors![sec] || { female: 0 }, male: Number(e.target.value) } } } }))} className="h-6 text-[9px] w-full px-1 text-center" />
+                                              <Input type="number" placeholder="F" value={censusForm.teaching?.sectors?.[sec]?.female || 0} onChange={(e) => setCensusForm(prev => ({ ...prev, teaching: { ...prev.teaching!, sectors: { ...prev.teaching!.sectors, [sec]: { ...prev.teaching!.sectors![sec] || { male: 0 }, female: Number(e.target.value) } } } }))} className="h-6 text-[9px] w-full px-1 text-center" />
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      </section>
+
+                      {/* NON-TEACHING CENSUS */}
+                      <section className="space-y-6">
+                          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-800 border-b pb-1 flex items-center gap-2">
+                              <Users className="h-4 w-4" /> 2. Non-Teaching Staff (Unit Total)
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                  <Label className="text-[10px] font-black uppercase text-slate-500">Total Male</Label>
+                                  <Input type="number" value={censusForm.nonTeaching?.male} onChange={(e) => setCensusForm(prev => ({ ...prev, nonTeaching: { ...prev.nonTeaching!, male: Number(e.target.value) } }))} className="h-10 bg-white font-black" />
+                              </div>
+                              <div className="space-y-1">
+                                  <Label className="text-[10px] font-black uppercase text-slate-500">Total Female</Label>
+                                  <Input type="number" value={censusForm.nonTeaching?.female} onChange={(e) => setCensusForm(prev => ({ ...prev, nonTeaching: { ...prev.nonTeaching!, female: Number(e.target.value) } }))} className="h-10 bg-white font-black" />
+                              </div>
+                          </div>
+                          <div className="space-y-3">
+                              <p className="text-[9px] font-bold text-indigo-400 uppercase">Sectoral Breakdown (Staff)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {GAD_SECTORS.map(sec => (
+                                      <div key={sec} className="p-2 rounded-lg bg-white border border-indigo-100 flex flex-col gap-2">
+                                          <p className="text-[8px] font-black uppercase truncate">{sec}</p>
+                                          <div className="flex gap-1">
+                                              <Input type="number" placeholder="M" value={censusForm.nonTeaching?.sectors?.[sec]?.male || 0} onChange={(e) => setCensusForm(prev => ({ ...prev, nonTeaching: { ...prev.nonTeaching!, sectors: { ...prev.nonTeaching!.sectors, [sec]: { ...prev.nonTeaching!.sectors![sec] || { female: 0 }, male: Number(e.target.value) } } } }))} className="h-6 text-[9px] w-full px-1 text-center" />
+                                              <Input type="number" placeholder="F" value={censusForm.nonTeaching?.sectors?.[sec]?.female || 0} onChange={(e) => setCensusForm(prev => ({ ...prev, nonTeaching: { ...prev.nonTeaching!, sectors: { ...prev.nonTeaching!.sectors, [sec]: { ...prev.nonTeaching!.sectors![sec] || { male: 0 }, female: Number(e.target.value) } } } }))} className="h-6 text-[9px] w-full px-1 text-center" />
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      </section>
+                  </div>
+              </CardContent>
+              <CardFooter className="bg-indigo-100/30 border-t py-4 px-8">
+                  <div className="flex items-start gap-3">
+                      <ShieldCheck className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                      <p className="text-[9px] text-indigo-800/80 leading-relaxed italic font-medium">
+                          <strong>Data Accuracy Mandate:</strong> This census provides the denominator for unit-wide gender participation rates. Ensure these numbers reflect the actual verified personnel list of your office or unit for the selected year.
+                      </p>
+                  </div>
+              </CardFooter>
+          </Card>
+      )}
 
       <Card className="border-primary/10 shadow-md">
         <CardHeader className="bg-muted/10 border-b">
             <div className="flex items-center gap-2">
                 <School className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional SDD Guidelines</CardTitle>
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional SDD Reporting Guidelines</CardTitle>
             </div>
         </CardHeader>
         <CardContent className="p-6 flex items-start gap-4">
@@ -247,7 +332,7 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
             </div>
             <div className="space-y-2">
                 <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                    Unit-specific SDD is vital for identifying localized gender gaps. Ensure your <strong>Program Compliance Records</strong> are updated quarterly to maintain accurate institutional analytics. This data directly feeds into the university's Gender and Development Plan and Budget (GPB).
+                    The RSU EOMS Portal automatically consolidates SDD from academic monitoring (students) and the personnel census (employees). This data is critical for generating the university's <strong>GAD Accomplishment Reports</strong> for the Philippine Commission on Women.
                 </p>
             </div>
         </CardContent>
