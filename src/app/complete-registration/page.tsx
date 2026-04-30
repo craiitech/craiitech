@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -47,17 +46,18 @@ const registrationSchema = z.object({
 export default function CompleteRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { user, userProfile, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses'): null, [firestore]);
+  // Ensure we only fetch campuses once we have an auth user to avoid permission errors
+  const campusesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'campuses'): null, [firestore, user]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units'): null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'units'): null, [firestore, user]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles'): null, [firestore]);
+  const rolesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'roles'): null, [firestore, user]);
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
   
   const assignableRoles = useMemo(() => {
@@ -79,10 +79,10 @@ export default function CompleteRegistrationPage() {
     },
   });
 
-  const isLoading = isLoadingCampuses || isLoadingRoles || isLoadingUnits || isUserLoading;
+  const isLoading = isLoadingCampuses || isLoadingRoles || isLoadingUnits || isAuthLoading;
 
   useEffect(() => {
-    if (userProfile && !isUserLoading) {
+    if (userProfile && !isAuthLoading) {
       form.reset({
         campusId: userProfile.campusId || '',
         roleId: userProfile.roleId || '',
@@ -90,7 +90,7 @@ export default function CompleteRegistrationPage() {
         sex: (userProfile.sex as any) || undefined,
       });
     }
-  }, [userProfile, isUserLoading, form]);
+  }, [userProfile, isAuthLoading, form]);
 
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');

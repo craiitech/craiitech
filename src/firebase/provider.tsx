@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
@@ -163,10 +162,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const { data: systemSettings } = useDoc<SystemSettings>(systemSettingsRef);
 
   const campusesQuery = useMemoFirebase(() => {
-    // Campuses stay public for registration dropdown
-    if (!firestore) return null;
+    // Only fetch campuses if user is present to avoid permission errors on public pages
+    if (!firestore || !userAuthState.user) return null;
     return collection(firestore, 'campuses');
-  }, [firestore]);
+  }, [firestore, userAuthState.user]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   // Memoize the context value
