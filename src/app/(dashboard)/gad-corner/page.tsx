@@ -33,6 +33,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { GADPlansTab } from '@/components/gad/gad-plans-tab';
 import { GADAccomplishmentTab } from '@/components/gad/gad-accomplishment-tab';
@@ -189,17 +190,19 @@ export default function GadCornerPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <ScrollArea className="w-full">
-            <TabsList className="bg-muted p-1 border shadow-sm flex lg:inline-flex animate-tab-highlight rounded-md whitespace-nowrap min-w-max">
-                <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Strategic Overview</TabsTrigger>
-                <TabsTrigger value="gpb" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Target className="h-4 w-4" /> GAD Plan & Budget (GPB)</TabsTrigger>
-                <TabsTrigger value="ar" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><FileText className="h-4 w-4" /> Accomplishment Report (AR)</TabsTrigger>
-                <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Users className="h-4 w-4" /> SDD Hub</TabsTrigger>
-                <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Target className="h-4 w-4" /> Projects Registry</TabsTrigger>
-                <TabsTrigger value="mainstreaming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-4 w-4" /> Mainstreaming</TabsTrigger>
-                {isAdmin && <TabsTrigger value="settings" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Settings2 className="h-4 w-4" /> GAD Settings</TabsTrigger>}
-            </TabsList>
-        </ScrollArea>
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-6">
+            <ScrollArea className="w-full">
+                <TabsList className="bg-muted p-1 border shadow-sm flex lg:inline-flex animate-tab-highlight rounded-md whitespace-nowrap min-w-max">
+                    <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Strategic Overview</TabsTrigger>
+                    <TabsTrigger value="gpb" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Target className="h-4 w-4" /> GAD Plan & Budget (GPB)</TabsTrigger>
+                    <TabsTrigger value="ar" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><FileText className="h-4 w-4" /> Accomplishment Report (AR)</TabsTrigger>
+                    <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Users className="h-4 w-4" /> SDD Hub</TabsTrigger>
+                    <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Target className="h-4 w-4" /> Projects Registry</TabsTrigger>
+                    <TabsTrigger value="mainstreaming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-4 w-4" /> Mainstreaming</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="settings" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Settings2 className="h-4 w-4" /> GAD Settings</TabsTrigger>}
+                </TabsList>
+            </ScrollArea>
+        </div>
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
           <GADOverview 
