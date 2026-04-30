@@ -12,6 +12,7 @@ import { ManagementReviewTab } from '@/components/qa-reports/management-review-t
 import { CorrectiveActionRequestTab } from '@/components/qa-reports/corrective-action-request-tab';
 import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
 import { ActionableDecisionsTab } from '@/components/qa-reports/actionable-decisions-tab';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading } = useUser();
@@ -48,39 +49,44 @@ export default function QaReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-primary" />
-            Institutional QA Reports
-          </h2>
-          <p className="text-muted-foreground">
-            Central repository for IQA, EQA, Management Reviews, and Corrective Actions.
-          </p>
-        </div>
-      </div>
-
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-6 h-auto p-1 animate-tab-highlight rounded-md">
-          <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <BarChart3 className="h-3.5 w-3.5" /> Overview
-          </TabsTrigger>
-          <TabsTrigger value="decisions" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <ListTodo className="h-3.5 w-3.5" /> Actionable Decisions
-          </TabsTrigger>
-          <TabsTrigger value="car" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <ClipboardCheck className="h-3.5 w-3.5" /> CAR Registry
-          </TabsTrigger>
-          <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <FileText className="h-3.5 w-3.5" /> IQA Reports
-          </TabsTrigger>
-          <TabsTrigger value="eqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <Presentation className="h-3.5 w-3.5" /> EQA Reports
-          </TabsTrigger>
-          <TabsTrigger value="mr" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <Users className="h-3.5 w-3.5" /> Management Review
-          </TabsTrigger>
-        </TabsList>
+        {/* Sticky Header and Tabs */}
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <ShieldCheck className="h-8 w-8 text-primary" />
+                    Institutional QA Reports
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Central repository for IQA, EQA, Management Reviews, and Corrective Actions.
+                  </p>
+                </div>
+            </div>
+
+            <ScrollArea className="w-full">
+                <TabsList className="bg-white border shadow-sm flex md:inline-flex min-w-max h-auto p-1 animate-tab-highlight rounded-md">
+                  <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
+                    <BarChart3 className="h-3.5 w-3.5" /> Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="decisions" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
+                    <ListTodo className="h-3.5 w-3.5" /> Actionable Decisions
+                  </TabsTrigger>
+                  <TabsTrigger value="car" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
+                    <ClipboardCheck className="h-3.5 w-3.5" /> CAR Registry
+                  </TabsTrigger>
+                  <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
+                    <FileText className="h-3.5 w-3.5" /> IQA Reports
+                  </TabsTrigger>
+                  <TabsTrigger value="eqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
+                    <Presentation className="h-3.5 w-3.5" /> EQA Reports
+                  </TabsTrigger>
+                  <TabsTrigger value="mr" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
+                    <Users className="h-3.5 w-3.5" /> Management Review
+                  </TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
           <QaAnalyticsTab />

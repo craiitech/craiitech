@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -27,6 +26,7 @@ import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 export default function SettingsPage() {
@@ -50,30 +50,36 @@ export default function SettingsPage() {
   if (isAdmin) {
     return (
       <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
-          <p className="text-muted-foreground">
-            Manage users, campuses, units, roles, and institutional signatories.
-          </p>
-        </div>
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto animate-tab-highlight rounded-md p-1 bg-muted">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="logo">System Logo</TabsTrigger>
-            <TabsTrigger value="signatories">Signatories</TabsTrigger>
-            <TabsTrigger value="gad">GAD Corner</TabsTrigger>
-            <TabsTrigger value="campuses">Campuses</TabsTrigger>
-            <TabsTrigger value="units">Units</TabsTrigger>
-            <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
-            <TabsTrigger value="roles">Roles</TabsTrigger>
-            <TabsTrigger value="advisories">QA Advisories</TabsTrigger>
-            <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
-            <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
-            <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
-            <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
-            <TabsTrigger value="backups">Data &amp; Backups</TabsTrigger>
-            <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
-          </TabsList>
+          {/* Sticky Header and Tabs */}
+          <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
+                <p className="text-muted-foreground">
+                  Manage users, campuses, units, roles, and institutional signatories.
+                </p>
+              </div>
+              <ScrollArea className="w-full">
+                  <TabsList className="flex md:inline-flex min-w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
+                    <TabsTrigger value="users">Users</TabsTrigger>
+                    <TabsTrigger value="logo">System Logo</TabsTrigger>
+                    <TabsTrigger value="signatories">Signatories</TabsTrigger>
+                    <TabsTrigger value="gad">GAD Corner</TabsTrigger>
+                    <TabsTrigger value="campuses">Campuses</TabsTrigger>
+                    <TabsTrigger value="units">Units</TabsTrigger>
+                    <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
+                    <TabsTrigger value="roles">Roles</TabsTrigger>
+                    <TabsTrigger value="advisories">QA Advisories</TabsTrigger>
+                    <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
+                    <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
+                    <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
+                    <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
+                    <TabsTrigger value="backups">Data &amp; Backups</TabsTrigger>
+                    <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
+                  </TabsList>
+              </ScrollArea>
+          </div>
+
           <TabsContent value="users" className="space-y-4">
             <UserManagement />
           </TabsContent>
@@ -129,7 +135,7 @@ export default function SettingsPage() {
   if (userRole === 'Campus Director') {
       return (
          <div className="space-y-6">
-            <div>
+            <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
               <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
               <p className="text-muted-foreground">
                 Manage settings and resources specific to your campus.
@@ -149,7 +155,7 @@ export default function SettingsPage() {
 
   return (
      <div className="space-y-4">
-        <div>
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
           <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
           <p className="text-muted-foreground">
             You do not have permission to modify system settings.

@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -168,58 +169,63 @@ export function AdminAuditView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <LayoutList className="h-6 w-6 text-primary" />
-              IQA Strategic Planning
-          </h2>
-          <p className="text-muted-foreground font-medium">Analyze results and manage the institutional audit itinerary.</p>
-        </div>
-        <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
-                    <Filter className="h-2.5 w-2.5" /> Audit Cycle Year
-                </label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
-                        <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {yearsList.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-            <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses} className="h-9 mt-5 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Audit Plan
-            </Button>
-        </div>
-      </div>
-
-      {!isLoadingClauses && (!isoClauses || isoClauses.length === 0) && (
-          <Alert className="border-amber-200 bg-amber-50">
-              <Database className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800 font-bold">Standard Clauses Missing</AlertTitle>
-              <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-700 mt-2">
-                  <span>The ISO 21001:2018 Clause database is empty. This is required for auditing.</span>
-                  <Button variant="outline" size="sm" onClick={handleSeedClauses} disabled={isSeeding} className="bg-white">
-                      {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4"/>}
-                      Seed Clauses
-                  </Button>
-              </AlertDescription>
-          </Alert>
-      )}
-
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
-            <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <BarChart3 className="h-3.5 w-3.5" /> Audit Intelligence
-            </TabsTrigger>
-            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <ListChecks className="h-3.5 w-3.5" /> Itinerary Management
-            </TabsTrigger>
-        </TabsList>
+        {/* Sticky Header and Tabs */}
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <LayoutList className="h-6 w-6 text-primary" />
+                    IQA Strategic Planning
+                </h2>
+                <p className="text-muted-foreground font-medium">Analyze results and manage the institutional audit itinerary.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-end">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                            <Filter className="h-2.5 w-2.5" /> Audit Cycle Year
+                        </label>
+                        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                            <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {yearsList.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses} className="h-9 mt-5 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Audit Plan
+                    </Button>
+                </div>
+            </div>
+
+            <ScrollArea className="w-full">
+                <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
+                    <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <BarChart3 className="h-3.5 w-3.5" /> Audit Intelligence
+                    </TabsTrigger>
+                    <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <ListChecks className="h-3.5 w-3.5" /> Itinerary Management
+                    </TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
+
+        {!isLoadingClauses && (!isoClauses || isoClauses.length === 0) && (
+            <Alert className="border-amber-200 bg-amber-50">
+                <Database className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800 font-bold">Standard Clauses Missing</AlertTitle>
+                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-700 mt-2">
+                    <span>The ISO 21001:2018 Clause database is empty. This is required for auditing.</span>
+                    <Button variant="outline" size="sm" onClick={handleSeedClauses} disabled={isSeeding} className="bg-white">
+                        {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4"/>}
+                        Seed Clauses
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
 
         <TabsContent value="analytics" className="animate-in fade-in duration-500">
             <AuditAnalytics 

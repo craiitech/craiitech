@@ -400,45 +400,59 @@ export default function RiskRegisterPage() {
   return (
     <>
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Registry</h2>
-            <p className="text-muted-foreground text-sm">
-              A centralized module for logging, tracking, and monitoring institutional risks and opportunities.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="space-y-1 w-full sm:w-auto">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm">
-                        <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
-                        <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+      {/* Sticky Header and Tabs */}
+      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Registry</h2>
+              <p className="text-muted-foreground text-sm">
+                A centralized module for logging, tracking, and monitoring institutional risks and opportunities.
+              </p>
             </div>
-            <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto">
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handlePrintROR} 
-                    disabled={isLoading || filteredRisks.length === 0}
-                    className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"
-                >
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print Registry
-                </Button>
-                {!isSupervisor && (
-                    <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Log New Entry
-                    </Button>
-                )}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="space-y-1 w-full sm:w-auto">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label>
+                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                      <SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm">
+                          <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
+                          <SelectValue placeholder="Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto">
+                  <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handlePrintROR} 
+                      disabled={isLoading || filteredRisks.length === 0}
+                      className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"
+                  >
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print Registry
+                  </Button>
+                  {!isSupervisor && (
+                      <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Log New Entry
+                      </Button>
+                  )}
+              </div>
             </div>
-          </div>
+        </div>
+
+        <ScrollArea className="w-full">
+            <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
+                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                    <BarChart3 className="h-4 w-4" /> Visual Insights
+                </TabsTrigger>
+                <TabsTrigger value="detailed-register" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                    <List className="h-4 w-4" /> Detailed Register
+                </TabsTrigger>
+            </TabsList>
+        </ScrollArea>
       </div>
 
       <Card className="border-primary/10 shadow-sm bg-muted/10">
@@ -514,17 +528,6 @@ export default function RiskRegisterPage() {
       )}
 
       <Tabs defaultValue="visual-insights" className="space-y-4">
-        <ScrollArea className="w-full">
-            <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
-                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                    <BarChart3 className="h-4 w-4" /> Visual Insights
-                </TabsTrigger>
-                <TabsTrigger value="detailed-register" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                    <List className="h-4 w-4" /> Detailed Register
-                </TabsTrigger>
-            </TabsList>
-        </ScrollArea>
-
         <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
             <RiskDashboard 
                 risks={filteredRisks} 
@@ -533,7 +536,7 @@ export default function RiskRegisterPage() {
             />
         </TabsContent>
 
-        <TabsContent value="detailed-register" className="animate-in fade-in duration-500">
+        <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
             <Tabs defaultValue="risks" className="space-y-4">
                 <div className="flex items-center justify-between">
                     <TabsList className="bg-muted/30 p-1 border shadow-sm h-9 animate-tab-highlight rounded-md">

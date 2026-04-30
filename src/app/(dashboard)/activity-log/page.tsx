@@ -58,6 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function EmployeeActivityLogPage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
@@ -282,40 +283,45 @@ export default function EmployeeActivityLogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <UserCheck className="h-8 w-8 text-primary" />
-            Institutional Activity Registry
-          </h2>
-          <p className="text-muted-foreground">Log daily tasks or remote WFH accomplishments for quality auditing.</p>
-        </div>
-        <div className="flex items-center gap-2">
-            <div className="flex bg-muted p-1 rounded-lg border mr-2">
-                <Input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="h-8 w-32 text-[10px] font-bold border-none bg-transparent" />
-            </div>
-            <Select value={viewScope} onValueChange={(v: any) => setViewScope(v)}>
-                <SelectTrigger className="h-10 w-48 text-xs font-bold bg-white">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="personal">My Personal Logbook</SelectItem>
-                    {canViewManagement && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
-                    {(isAdmin || userRole?.toLowerCase().includes('director')) && <SelectItem value="campus">Campus Monitoring View</SelectItem>}
-                </SelectContent>
-            </Select>
-        </div>
-      </div>
-
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
-            <TabsTrigger value="daily" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <Briefcase className="h-3.5 w-3.5" /> Employee Activity Log
-            </TabsTrigger>
-            <TabsTrigger value="wfh" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <Home className="h-3.5 w-3.5" /> Work From Home (WFH)
-            </TabsTrigger>
-        </TabsList>
+        {/* Sticky Header and Tabs */}
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <UserCheck className="h-8 w-8 text-primary" />
+                    Institutional Activity Registry
+                </h2>
+                <p className="text-muted-foreground">Log daily tasks or remote WFH accomplishments for quality auditing.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex bg-muted p-1 rounded-lg border mr-2">
+                        <Input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="h-8 w-32 text-[10px] font-bold border-none bg-transparent" />
+                    </div>
+                    <Select value={viewScope} onValueChange={(v: any) => setViewScope(v)}>
+                        <SelectTrigger className="h-10 w-48 text-xs font-bold bg-white">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="personal">My Personal Logbook</SelectItem>
+                            {canViewManagement && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
+                            {(isAdmin || userRole?.toLowerCase().includes('director')) && <SelectItem value="campus">Campus Monitoring View</SelectItem>}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <ScrollArea className="w-full">
+                <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
+                    <TabsTrigger value="daily" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Briefcase className="h-3.5 w-3.5" /> Employee Activity Log
+                    </TabsTrigger>
+                    <TabsTrigger value="wfh" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Home className="h-3.5 w-3.5" /> Work From Home (WFH)
+                    </TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
 
         <TabsContent value="daily" className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-wrap items-center justify-between gap-4">

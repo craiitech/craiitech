@@ -172,8 +172,8 @@ export default function UnitFormsPage() {
 
   useEffect(() => {
     if (userProfile && !selectedUnitId && !isUserLoading && !isAdmin) {
-        const myUnit = allUnits?.find(u => u.id === userProfile.unitId);
-        if (myUnit?.category === 'Academic') {
+        const iUnit = allUnits?.find(u => u.id === userProfile.unitId);
+        if (iUnit?.category === 'Academic') {
             setSelectedUnitId(SHARED_ACADEMIC_ID);
         } else {
             setSelectedUnitId(userProfile.unitId || null);
@@ -267,7 +267,7 @@ export default function UnitFormsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
           <p className="text-muted-foreground text-sm">Access official operating forms for verified university units.</p>

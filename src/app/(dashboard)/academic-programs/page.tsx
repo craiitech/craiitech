@@ -17,7 +17,8 @@ import {
     Search, 
     Building, 
     Trash2,
-    Database
+    Database,
+    Filter
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -38,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const currentYear = new Date().getFullYear();
 
@@ -86,7 +88,7 @@ export default function AcademicProgramsPage() {
             setUnitFilter(userProfile.unitId);
         }
     }
-  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, isUserLoading]);
+  }, [userProfile, isGlobalViewer, isCampusViewer, iisUnitViewer, isUserLoading]);
 
   /**
    * SCOPED PROGRAM QUERY
@@ -104,7 +106,7 @@ export default function AcademicProgramsPage() {
     }
     
     return query(baseRef, where('campusId', '==', userProfile.campusId));
-  }, [firestore, isUserLoading, userProfile, isGlobalViewer, isCampusViewer, isUnitViewer]);
+  }, [firestore, isUserLoading, userProfile, isGlobalViewer, isCampusViewer, iisUnitViewer]);
 
   const { data: rawPrograms, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
@@ -116,7 +118,7 @@ export default function AcademicProgramsPage() {
     if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
     return query(baseRef, where('academicYear', '==', selectedYear));
-  }, [firestore, isUserLoading, userProfile, selectedYear]);
+  }, [firestore, iisUserLoading, userProfile, selectedYear]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -136,17 +138,17 @@ export default function AcademicProgramsPage() {
       const matchesUnit = unitFilter === 'all' || p.collegeId === unitFilter;
       return matchesSearch && matchesCampus && matchesUnit;
     });
-  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile]);
+  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, iisUnitViewer, userProfile]);
 
   const campusesQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
-    [firestore, isUserLoading, userProfile]
+    [firestore, iisUserLoading, userProfile]
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null),
-    [firestore, isUserLoading, userProfile]
+    [firestore, iisUserLoading, userProfile]
   );
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
@@ -185,112 +187,119 @@ export default function AcademicProgramsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-primary" />
-            CHED Programs Monitoring
-          </h2>
-          <p className="text-muted-foreground flex items-center gap-2">
-            <ShieldCheck className="h-3 w-3" />
-            Decision Support System
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-            <div className="flex flex-col items-end">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5">Compliance Year</label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[140px] h-9">
-                        <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {academicYears.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-            {isAdmin && (
-            <div className="pt-4">
-                <Button onClick={handleNewProgram} size="sm" className="h-9 font-bold uppercase tracking-tight">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Register Program
-                </Button>
-            </div>
-            )}
-        </div>
-      </div>
-
-      <Card className="shadow-md border-primary/10">
-          <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
-              <div className="flex-1 w-full space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                      <Search className="h-2.5 w-2.5" /> Search Registry
-                  </label>
-                  <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                          placeholder="Search by name or initials..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-9 h-9 text-xs bg-white"
-                      />
-                  </div>
-              </div>
-              
-              <div className="w-full md:w-64 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                      <Building className="h-2.5 w-2.5" /> Campus Site
-                  </label>
-                  <Select 
-                      value={campusFilter} 
-                      onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}
-                      disabled={!isGlobalViewer}
-                  >
-                      <SelectTrigger className="h-9 text-xs bg-white">
-                          <SelectValue placeholder="All Campuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {isGlobalViewer && <SelectItem value="all">All Campuses</SelectItem>}
-                          {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
-
-              <div className="w-full md:w-64 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                      <Layers className="h-2.5 w-2.5" /> Academic Unit
-                  </label>
-                  <Select 
-                      value={unitFilter} 
-                      onValueChange={setUnitFilter}
-                      disabled={!isGlobalViewer && !isCampusViewer}
-                  >
-                      <SelectTrigger className="h-9 text-xs bg-white">
-                          <SelectValue placeholder="All Units" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {(isGlobalViewer || isCampusViewer) && <SelectItem value="all">All Units</SelectItem>}
-                          {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
-          </CardContent>
-      </Card>
-
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-fit">
-            <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <BarChart3 className="h-4 w-4" /> Decision Support
-            </TabsTrigger>
-            <TabsTrigger value="batch-hub" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <Database className="h-4 w-4 text-indigo-600" /> Batch Data Hub
-            </TabsTrigger>
-            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <Layers className="h-4 w-4" /> Program Registry
-            </TabsTrigger>
-            <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
-            </TabsTrigger>
-        </TabsList>
+        {/* Sticky Header and Tabs */}
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                        <GraduationCap className="h-8 w-8 text-primary" />
+                        CHED Programs Monitoring
+                    </h2>
+                    <p className="text-muted-foreground flex items-center gap-2">
+                        <ShieldCheck className="h-3 w-3" />
+                        Decision Support System
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                            <Filter className="h-2.5 w-2.5" /> Compliance Year
+                        </label>
+                        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                            <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {academicYears.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {isAdmin && (
+                    <div className="pt-4">
+                        <Button onClick={handleNewProgram} size="sm" className="h-9 font-bold uppercase tracking-tight shadow-lg shadow-primary/20">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Register Program
+                        </Button>
+                    </div>
+                    )}
+                </div>
+            </div>
+
+            <ScrollArea className="w-full">
+                <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-fit">
+                    <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <BarChart3 className="h-4 w-4" /> Decision Support
+                    </TabsTrigger>
+                    <TabsTrigger value="batch-hub" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Database className="h-4 w-4 text-indigo-600" /> Batch Data Hub
+                    </TabsTrigger>
+                    <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Layers className="h-4 w-4" /> Program Registry
+                    </TabsTrigger>
+                    <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
+                    </TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
+
+        <Card className="shadow-md border-primary/10">
+            <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
+                <div className="flex-1 w-full space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Search className="h-2.5 w-2.5" /> Search Registry
+                    </label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by name or initials..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-9 text-xs bg-white"
+                        />
+                    </div>
+                </div>
+                
+                <div className="w-full md:w-64 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Building className="h-2.5 w-2.5" /> Campus Site
+                    </label>
+                    <Select 
+                        value={campusFilter} 
+                        onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}
+                        disabled={!isGlobalViewer}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Campuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {isGlobalViewer && <SelectItem value="all">All Campuses</SelectItem>}
+                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="w-full md:w-64 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Layers className="h-2.5 w-2.5" /> Academic Unit
+                    </label>
+                    <Select 
+                        value={unitFilter} 
+                        onValueChange={setUnitFilter}
+                        disabled={!isGlobalViewer && !isCampusViewer}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Units" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(isGlobalViewer || isCampusViewer) && <SelectItem value="all">All Units</SelectItem>}
+                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+        </Card>
 
         <TabsContent value="analytics" className="animate-in fade-in duration-500">
             <ProgramAnalytics 

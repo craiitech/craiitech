@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
@@ -300,140 +299,65 @@ export default function SubmissionsPage() {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight uppercase">EOMS SUBMISSION HUB</h2>
-            <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 md:justify-end">
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                    <SelectTrigger className="w-[140px] h-9 bg-card font-semibold shadow-sm">
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
-                        <SelectValue placeholder="All Years" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Years</SelectItem>
-                        {availableYears.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-            
-            <div className="flex items-center gap-2 pt-5">
-                <Button 
-                    variant="outline"
-                    className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
-                    asChild
-                >
-                    <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
-                        <Download className="mr-2 h-4 w-4" /> Download Templates
-                    </a>
-                </Button>
-                {canSubmit && (
+        {/* Sticky Header and Tabs */}
+        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight uppercase">EOMS SUBMISSION HUB</h2>
+                <p className="text-muted-foreground text-sm">Manage unit compliance documentation and track overall performance.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
+                    <Select value={yearFilter} onValueChange={setYearFilter}>
+                        <SelectTrigger className="w-[140px] h-9 bg-card font-semibold shadow-sm">
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
+                            <SelectValue placeholder="All Years" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Years</SelectItem>
+                            {availableYears.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                <div className="flex items-center gap-2 pt-5">
                     <Button 
-                        onClick={() => router.push('/submissions/new')}
-                        className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
+                        variant="outline"
+                        className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                        asChild
                     >
-                        <PlusCircle className="mr-2 h-4 w-4" /> New Submission
+                        <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
+                            <Download className="mr-2 h-4 w-4" /> Download Templates
+                        </a>
                     </Button>
-                )}
+                    {canSubmit && (
+                        <Button 
+                            onClick={() => router.push('/submissions/new')}
+                            className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
+                        >
+                            <PlusCircle className="mr-2 h-4 w-4" /> New Submission
+                        </Button>
+                    )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 space-y-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search by document type, unit, or control number..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
-                    />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <School className="h-2.5 w-2.5" /> Campus Site
-                        </label>
-                        <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <SelectValue placeholder="All Campuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {isInstitutionalViewer && <SelectItem value="all">All Campuses</SelectItem>}
-                                {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <Building className="h-2.5 w-2.5" /> Unit / Office
-                        </label>
-                        <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isInstitutionalViewer && (!isSupervisor || userRole === 'Unit ODIMO')}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <SelectValue placeholder="All Units" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
-                                {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <Filter className="h-2.5 w-2.5" /> Workflow Status
-                        </label>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <SelectValue placeholder="All Statuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                <SelectItem value="submitted">Awaiting Approval</SelectItem>
-                                <SelectItem value="approved">Approved</SelectItem>
-                                <SelectItem value="rejected">Rejected</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <LayoutList className="h-2.5 w-2.5" /> Document Version
-                        </label>
-                        <Select value={modeFilter} onValueChange={(val: any) => setModeFilter(val)}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <SelectValue placeholder="All Versions" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All (Drafts & Finals)</SelectItem>
-                                <SelectItem value="draft">Drafts Only</SelectItem>
-                                <SelectItem value="final">Final Records Only</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        <Tabs defaultValue="visual-insights" className="space-y-4">
             <ScrollArea className="w-full">
                 <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
-                    <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                    <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <BarChart3 className="h-4 w-4" /> Visual Insights
                     </TabsTrigger>
-                    <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                    <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <List className="h-4 w-4" /> Detailed Audit Log
                     </TabsTrigger>
-                    {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Status</TabsTrigger>}
-                    {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
+                    {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Status</TabsTrigger>}
+                    {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
                 </TabsList>
             </ScrollArea>
+        </div>
 
+        <Tabs defaultValue="visual-insights" className="space-y-4">
             <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
                 <SubmissionDashboard 
                     submissions={dashboardSubmissions}
@@ -445,6 +369,84 @@ export default function SubmissionsPage() {
             </TabsContent>
 
             <TabsContent value="all-submissions" className="animate-in fade-in duration-500 space-y-4">
+                <Card className="border-primary/10 shadow-sm bg-muted/10">
+                    <CardContent className="p-4 space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by document type, unit, or control number..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                    <School className="h-2.5 w-2.5" /> Campus Site
+                                </label>
+                                <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
+                                    <SelectTrigger className="h-9 text-xs bg-white">
+                                        <SelectValue placeholder="All Campuses" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {isInstitutionalViewer && <SelectItem value="all">All Campuses</SelectItem>}
+                                        {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                    <Building className="h-2.5 w-2.5" /> Unit / Office
+                                </label>
+                                <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isInstitutionalViewer && (!isSupervisor || userRole === 'Unit ODIMO')}>
+                                    <SelectTrigger className="h-9 text-xs bg-white">
+                                        <SelectValue placeholder="All Units" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
+                                        {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                    <Filter className="h-2.5 w-2.5" /> Workflow Status
+                                </label>
+                                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <SelectTrigger className="h-9 text-xs bg-white">
+                                        <SelectValue placeholder="All Statuses" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Statuses</SelectItem>
+                                        <SelectItem value="submitted">Awaiting Approval</SelectItem>
+                                        <SelectItem value="approved">Approved</SelectItem>
+                                        <SelectItem value="rejected">Rejected</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                    <LayoutList className="h-2.5 w-2.5" /> Document Version
+                                </label>
+                                <Select value={modeFilter} onValueChange={(val: any) => setModeFilter(val)}>
+                                    <SelectTrigger className="h-9 text-xs bg-white">
+                                        <SelectValue placeholder="All Versions" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All (Drafts & Finals)</SelectItem>
+                                        <SelectItem value="draft">Drafts Only</SelectItem>
+                                        <SelectItem value="final">Final Records Only</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Tabs value={activeDetailedTab} onValueChange={setActiveDetailedTab} className="w-full">
                     <ScrollArea className="w-full">
                         <TabsList className="bg-muted/30 p-1 border h-auto flex whitespace-nowrap animate-tab-highlight rounded-md">
@@ -663,7 +665,7 @@ export default function SubmissionsPage() {
             </div>
             <AlertDialogFooter>
                 <AlertDialogCancel>Abort</AlertDialogCancel>
-                <AlertDialogAction handleConfirmDelete onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
+                <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
                     {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Record
                 </AlertDialogAction>
             </AlertDialogFooter>
