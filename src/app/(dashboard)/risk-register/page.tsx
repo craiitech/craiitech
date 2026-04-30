@@ -398,9 +398,7 @@ export default function RiskRegisterPage() {
     const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
   return (
-    <>
-    <div className="space-y-4">
-      {/* Sticky Header and Tabs */}
+    <Tabs defaultValue="visual-insights" className="space-y-4">
       <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
@@ -455,79 +453,79 @@ export default function RiskRegisterPage() {
         </ScrollArea>
       </div>
 
-      <Card className="border-primary/10 shadow-sm bg-muted/10">
-          <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
-              <div className="flex-1 w-full space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                      <Search className="h-2.5 w-2.5" /> Search Register
-                  </label>
-                  <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                          placeholder="Search description, objective, or person..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-9 h-9 text-xs bg-white"
-                      />
-                  </div>
-              </div>
-              
-              <div className="w-full md:w-64 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                      <Building className="h-2.5 w-2.5" /> Campus Site
-                  </label>
-                  <Select 
-                      value={campusFilter} 
-                      onValueChange={(val) => { setCampusFilter(val); }}
-                      disabled={!isAdmin}
-                  >
-                      <SelectTrigger className="h-9 text-xs bg-white">
-                          <SelectValue placeholder="All Campuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {isAdmin && <SelectItem value="all">All Campuses</SelectItem>}
-                          {allCampuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
+      <div className="space-y-4">
+        <Card className="border-primary/10 shadow-sm bg-muted/10">
+            <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
+                <div className="flex-1 w-full space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Search className="h-2.5 w-2.5" /> Search Register
+                    </label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search description, objective, or person..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-9 text-xs bg-white"
+                        />
+                    </div>
+                </div>
+                
+                <div className="w-full md:w-64 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Building className="h-2.5 w-2.5" /> Campus Site
+                    </label>
+                    <Select 
+                        value={campusFilter} 
+                        onValueChange={(val) => { setCampusFilter(val); }}
+                        disabled={!isAdmin}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Campuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {isAdmin && <SelectItem value="all">All Campuses</SelectItem>}
+                            {allCampuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-              <div className="w-full md:w-64 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                      <Layers className="h-2.5 w-2.5" /> Unit / Office
-                  </label>
-                  <Select 
-                      value={unitFilter} 
-                      onValueChange={setUnitFilter}
-                      disabled={!isAdmin && !isSupervisor}
-                  >
-                      <SelectTrigger className="h-9 text-xs bg-white">
-                          <SelectValue placeholder="All Units" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {(isAdmin || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
-                          {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
-          </CardContent>
-      </Card>
+                <div className="w-full md:w-64 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Layers className="h-2.5 w-2.5" /> Unit / Office
+                    </label>
+                    <Select 
+                        value={unitFilter} 
+                        onValueChange={setUnitFilter}
+                        disabled={!isAdmin && !isSupervisor}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Units" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(isAdmin || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
+                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+        </Card>
 
-      {!isLoading && (
-          <StrategicSwotAnalysis 
-            submissions={harvestedSubmissions || []}
-            risks={allRisks || []}
-            monitoringRecords={harvestedMonitoring || []}
-            programCompliances={harvestedCompliances || []}
-            auditFindings={harvestedFindings || []}
-            correctiveActionRequests={harvestedCars || []}
-            mrOutputs={harvestedMrOutputs || []}
-            scope={currentScopeType}
-            name={currentScopeName}
-            selectedYear={selectedYear}
-          />
-      )}
+        {!isLoading && (
+            <StrategicSwotAnalysis 
+                submissions={harvestedSubmissions || []}
+                risks={allRisks || []}
+                monitoringRecords={harvestedMonitoring || []}
+                programCompliances={harvestedCompliances || []}
+                auditFindings={harvestedFindings || []}
+                correctiveActionRequests={harvestedCars || []}
+                mrOutputs={harvestedMrOutputs || []}
+                scope={currentScopeType}
+                name={currentScopeName}
+                selectedYear={selectedYear}
+            />
+        )}
 
-      <Tabs defaultValue="visual-insights" className="space-y-4">
         <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
             <RiskDashboard 
                 risks={filteredRisks} 
@@ -622,66 +620,65 @@ export default function RiskRegisterPage() {
                 </TabsContent>
             </Tabs>
         </TabsContent>
-      </Tabs>
-    </div>
+      </div>
 
-    {/* Preview Dialog for the Submitted ROR Form */}
-    <Dialog open={!!previewSubmission} onOpenChange={(open) => !open && setPreviewSubmission(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
-            <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <FileSearch className="h-5 w-5 text-primary" />
+        {/* Preview Dialog for the Submitted ROR Form */}
+        <Dialog open={!!previewSubmission} onOpenChange={(open) => !open && setPreviewSubmission(null)}>
+            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+                <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                <FileSearch className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm font-black uppercase tracking-tight">Source Document Review: ROR Registry</DialogTitle>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                    {previewSubmission?.unitName} &bull; {previewSubmission?.cycleId} Cycle {previewSubmission?.year}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <DialogTitle className="text-sm font-black uppercase tracking-tight">Source Document Review: ROR Registry</DialogTitle>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                {previewSubmission?.unitName} &bull; {previewSubmission?.cycleId} Cycle {previewSubmission?.year}
-                            </p>
-                        </div>
+                        <Badge variant="secondary" className="h-6 px-3 bg-primary/5 text-primary border-primary/20 font-black text-xs uppercase">
+                            {previewSubmission?.controlNumber}
+                        </Badge>
                     </div>
-                    <Badge variant="secondary" className="h-6 px-3 bg-primary/5 text-primary border-primary/20 font-black text-xs uppercase">
-                        {previewSubmission?.controlNumber}
-                    </Badge>
+                </DialogHeader>
+                <div className="flex-1 bg-muted relative group">
+                    {previewSubmission && (
+                        <iframe 
+                            src={getEmbedUrl(previewSubmission.googleDriveLink)} 
+                            className="absolute inset-0 w-full h-full border-none bg-white" 
+                            allow="autoplay" 
+                            title="Risk Registry Document Preview"
+                        />
+                    )}
                 </div>
-            </DialogHeader>
-            <div className="flex-1 bg-muted relative group">
-                {previewSubmission && (
-                    <iframe 
-                        src={getEmbedUrl(previewSubmission.googleDriveLink)} 
-                        className="absolute inset-0 w-full h-full border-none bg-white" 
-                        allow="autoplay" 
-                        title="Risk Registry Document Preview"
-                    />
-                )}
-            </div>
-            <DialogFooter className="p-4 border-t bg-card shrink-0 flex justify-between items-center px-8">
-                <p className="text-[9px] text-muted-foreground italic font-medium">Digital Evidence integrity verified via Google Drive Cloud Storage.</p>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest" onClick={() => setPreviewSubmission(null)}>Close Preview</Button>
-                    <Button variant="default" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
-                        <a href={previewSubmission?.googleDriveLink} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open in Drive
-                        </a>
-                    </Button>
-                </div>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+                <DialogFooter className="p-4 border-t bg-card shrink-0 flex justify-between items-center px-8">
+                    <p className="text-[9px] text-muted-foreground italic font-medium">Digital Evidence integrity verified via Google Drive Cloud Storage.</p>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest" onClick={() => setPreviewSubmission(null)}>Close Preview</Button>
+                        <Button variant="default" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
+                            <a href={previewSubmission?.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open in Drive
+                            </a>
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
-    <RiskFormDialog 
-        key={editingRisk?.id || 'new'}
-        isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        risk={editingRisk}
-        unitUsers={users || []}
-        allUnits={allUnits || []}
-        allCampuses={allCampuses || []}
-        isMandatory={isMandatory}
-        registryLink={registryLink}
-        defaultYear={selectedYear}
-    />
-    </>
+        <RiskFormDialog 
+            key={editingRisk?.id || 'new'}
+            isOpen={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            risk={editingRisk}
+            unitUsers={users || []}
+            allUnits={allUnits || []}
+            allCampuses={allCampuses || []}
+            isMandatory={isMandatory}
+            registryLink={registryLink}
+            defaultYear={selectedYear}
+        />
+    </Tabs>
   );
 }

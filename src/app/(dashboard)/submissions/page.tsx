@@ -36,7 +36,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -299,65 +298,65 @@ export default function SubmissionsPage() {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        {/* Sticky Header and Tabs */}
-        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight uppercase">EOMS SUBMISSION HUB</h2>
-                <p className="text-muted-foreground text-sm">Manage unit compliance documentation and track overall performance.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
-                    <Select value={yearFilter} onValueChange={setYearFilter}>
-                        <SelectTrigger className="w-[140px] h-9 bg-card font-semibold shadow-sm">
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
-                            <SelectValue placeholder="All Years" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Years</SelectItem>
-                            {availableYears.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+        <Tabs defaultValue="visual-insights" className="space-y-4">
+            {/* Sticky Header and Tabs */}
+            <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight uppercase">EOMS SUBMISSION HUB</h2>
+                    <p className="text-muted-foreground text-sm">Manage unit compliance documentation and track overall performance.</p>
                 </div>
-                
-                <div className="flex items-center gap-2 pt-5">
-                    <Button 
-                        variant="outline"
-                        className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
-                        asChild
-                    >
-                        <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
-                            <Download className="mr-2 h-4 w-4" /> Download Templates
-                        </a>
-                    </Button>
-                    {canSubmit && (
+                <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
+                        <Select value={yearFilter} onValueChange={setYearFilter}>
+                            <SelectTrigger className="w-[140px] h-9 bg-card font-semibold shadow-sm">
+                                <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
+                                <SelectValue placeholder="All Years" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Years</SelectItem>
+                                {availableYears.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 pt-5">
                         <Button 
-                            onClick={() => router.push('/submissions/new')}
-                            className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
+                            variant="outline"
+                            className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                            asChild
                         >
-                            <PlusCircle className="mr-2 h-4 w-4" /> New Submission
+                            <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
+                                <Download className="mr-2 h-4 w-4" /> Download Templates
+                            </a>
                         </Button>
-                    )}
+                        {canSubmit && (
+                            <Button 
+                                onClick={() => router.push('/submissions/new')}
+                                className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
+                            >
+                                <PlusCircle className="mr-2 h-4 w-4" /> New Submission
+                            </Button>
+                        )}
+                    </div>
                 </div>
-              </div>
+                </div>
+
+                <ScrollArea className="w-full">
+                    <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
+                        <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <BarChart3 className="h-4 w-4" /> Visual Insights
+                        </TabsTrigger>
+                        <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <List className="h-4 w-4" /> Detailed Audit Log
+                        </TabsTrigger>
+                        {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Status</TabsTrigger>}
+                        {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
+                    </TabsList>
+                </ScrollArea>
             </div>
 
-            <ScrollArea className="w-full">
-                <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
-                    <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <BarChart3 className="h-4 w-4" /> Visual Insights
-                    </TabsTrigger>
-                    <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <List className="h-4 w-4" /> Detailed Audit Log
-                    </TabsTrigger>
-                    {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Status</TabsTrigger>}
-                    {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
-                </TabsList>
-            </ScrollArea>
-        </div>
-
-        <Tabs defaultValue="visual-insights" className="space-y-4">
             <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
                 <SubmissionDashboard 
                     submissions={dashboardSubmissions}
