@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch, Edit } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,7 @@ interface RiskTableProps {
   risks: Risk[];
   usersMap: Map<string, AppUser>;
   onEdit: (risk: Risk) => void;
+  onDelete: (risk: Risk) => void;
   onViewForm?: (risk: Risk) => void;
   isAdmin?: boolean;
   isSupervisor?: boolean;
@@ -47,7 +48,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Closed': 'default',
 };
 
-export function RiskTable({ risks, usersMap, onEdit, onViewForm, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
+export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
 
   const sortedRisks = useMemo(() => {
@@ -267,13 +268,20 @@ export function RiskTable({ risks, usersMap, onEdit, onViewForm, isAdmin, isSupe
                     <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel className="text-[10px] uppercase font-black">Controls</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => onEdit(risk)} className="text-xs font-bold">
-                        <Edit className="h-3 w-3 mr-2" /> View Full Details
+                        <Edit className="h-3.5 w-3.5 mr-2" /> Modify Entry
                     </DropdownMenuItem>
                     {onViewForm && (
                         <DropdownMenuItem onClick={() => onViewForm(risk)} className="text-xs font-bold text-primary">
-                            <FileSearch className="h-3 w-3 mr-2" /> View Submitted Form
+                            <FileSearch className="h-3.5 w-3.5 mr-2" /> View Submitted Form
                         </DropdownMenuItem>
                     )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => onDelete(risk)} 
+                      className="text-xs font-bold text-destructive hover:bg-destructive/10"
+                    >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Entry
+                    </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
               </div>

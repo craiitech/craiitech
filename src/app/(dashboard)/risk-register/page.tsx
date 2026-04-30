@@ -19,7 +19,8 @@ import {
     FileSearch, 
     ExternalLink, 
     X, 
-    ShieldCheck 
+    ShieldCheck,
+    Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -37,7 +38,7 @@ import type {
     ManagementReviewOutput 
 } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, doc, getDocs, limit, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, limit, orderBy, Timestamp, deleteDoc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';
@@ -59,6 +60,16 @@ import {
     DialogFooter
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -74,6 +85,9 @@ export default function RiskRegisterPage() {
     const [isMandatory, setIsMandatory] = useState(false);
     const [registryLink, setRegistryLink] = useState<string | null>(null);
     
+    const [deletingRisk, setDeletingRisk] = useState<Risk | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     // Preview States
     const [previewSubmission, setPreviewSubmission] = useState<Submission | null>(null);
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -282,6 +296,20 @@ export default function RiskRegisterPage() {
         setIsMandatory(false);
         setEditingRisk(risk);
         setIsFormOpen(true);
+    };
+
+    const handleDeleteRisk = async () => {
+        if (!firestore || !deletingRisk) return;
+        setIsDeleting(true);
+        try {
+            await deleteDoc(doc(firestore, 'risks', deletingRisk.id));
+            toast({ title: 'Record Removed', description: 'Registry entry has been permanently deleted.' });
+            setDeletingRisk(null);
+        } catch (e) {
+            toast({ title: 'Error', description: 'Could not delete record.', variant: 'destructive' });
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const handleViewForm = async (risk: Risk) => {
@@ -571,6 +599,7 @@ export default function RiskRegisterPage() {
                                         risks={filteredRisks.filter(r => r.type === 'Risk')}
                                         usersMap={usersMap}
                                         onEdit={handleEditRisk}
+                                        onDelete={setDeletingRisk}
                                         onViewForm={handleViewForm}
                                         isAdmin={isAdmin}
                                         isSupervisor={isSupervisor}
@@ -607,6 +636,7 @@ export default function RiskRegisterPage() {
                                         risks={filteredRisks.filter(r => r.type === 'Opportunity')}
                                         usersMap={usersMap}
                                         onEdit={handleEditRisk}
+                                        onDelete={setDeletingRisk}
                                         onViewForm={handleViewForm}
                                         isAdmin={isAdmin}
                                         isSupervisor={isSupervisor}
@@ -679,6 +709,29 @@ export default function RiskRegisterPage() {
             registryLink={registryLink}
             defaultYear={selectedYear}
         />
+
+        <AlertDialog open={!!deletingRisk} onOpenChange={(open) => !open && setDeletingRisk(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="flex items-center gap-2 text-destructive mb-2">
+                        <Trash2 className="h-6 w-6" />
+                        <AlertDialogTitle>Confirm Permanent Deletion</AlertDialogTitle>
+                    </div>
+                    <AlertDialogDescription>
+                        You are about to remove this assessment entry from the digital register. This action cannot be undone and will affect institutional analytics for <strong>AY {selectedYear}</strong>.
+                        <br /><br />
+                        <span className="font-bold text-slate-900">Entry: "{deletingRisk?.description}"</span>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Abort</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteRisk} className="bg-destructive text-white" disabled={isDeleting}>
+                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                        Delete Permanently
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </Tabs>
   );
 }
