@@ -2,7 +2,7 @@
 
 /**
  * @fileOverview A responsive guidance column that provides contextual help for dashboard pages.
- * Enhanced: Tab-reactive guidance using URL parameters.
+ * Enhanced: Sticky layout and internal scroll area for one-page persistent guidance.
  */
 
 import { useMemo } from 'react';
@@ -55,8 +55,8 @@ export function PageGuidance({ className }: PageGuidanceProps) {
 
   return (
     <div className={cn(
-      "w-full lg:w-80 shrink-0 transition-all duration-300", 
-      "lg:sticky lg:top-[5.5rem] lg:h-[calc(100vh-8rem)]", // Optimized height for fixed dashboard
+      "w-full lg:w-80 shrink-0", 
+      "lg:sticky lg:top-[5.5rem] lg:h-[calc(100vh-8rem)]", // Enforced sticky layout for the guidance column
       className
     )}>
       <Card className="h-full border-primary/20 shadow-xl bg-white/70 backdrop-blur-md flex flex-col overflow-hidden">

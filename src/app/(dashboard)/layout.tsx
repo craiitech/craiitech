@@ -268,7 +268,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SidebarNav notificationCount={notificationCount} />
             </SidebarContent>
           </Sidebar>
-          <SidebarInset>
+          <SidebarInset className="overflow-hidden">
             <Header notificationCount={notificationCount} />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-[calc(100vh-4rem)] overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-y-auto">
@@ -276,7 +276,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 {/* 
                    Persistent Page Guidance Column
-                   Wrapped in Suspense to handle useSearchParams hook in independent client component.
+                   Sticky and internally scrollable as requested.
                 */}
                 <Suspense fallback={<div className="w-80 shrink-0" />}>
                   <PageGuidance className="hidden lg:block" />

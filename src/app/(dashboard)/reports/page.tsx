@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -138,7 +137,6 @@ export default function ReportsPage() {
 
   /**
    * NORMALIZED SUBMISSIONS
-   * Ensures all reportType values match the canonical submissionTypes array.
    */
   const submissions = useMemo(() => {
     if (!rawSubmissions) return [];
@@ -157,7 +155,6 @@ export default function ReportsPage() {
 
     const submissionMap = new Map<string, Submission>(
       submissions.filter(s => s.year === selectedYear).map(s => {
-        // Key is already using normalized reportType from the submissions memo
         const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
         return [key, s];
       })
@@ -218,18 +215,15 @@ export default function ReportsPage() {
 
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
-    
     let totalMaleFaculty = 0;
     let totalFemaleFaculty = 0;
     let totalOthersFaculty = 0;
-
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
 
     const uniqueFacultySet = new Set<string>();
 
     filteredCompliances.forEach(record => {
-        // SDD: Enrollment aggregation (1st Sem baseline)
         const enrollmentRecords = record.enrollmentRecords || [];
         const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
         
@@ -335,7 +329,8 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      {/* Sticky Header Enforced */}
+      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Institutional Reports</h2>
           <p className="text-muted-foreground text-sm">Comprehensive university-wide analytics and system directory.</p>
@@ -426,7 +421,7 @@ export default function ReportsPage() {
                     </Card>
 
                     <Card className="lg:col-span-2 shadow-lg border-primary/10 overflow-hidden flex flex-col">
-                        <CardHeader className="bg-muted/10 border-b">
+                        <CardHeader className="bg-muted/10 border-b py-4">
                             <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
                                 <TrendingUp className="h-4 w-4 text-primary" />
                                 Campus Compliance Benchmarking
