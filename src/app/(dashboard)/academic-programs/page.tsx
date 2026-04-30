@@ -341,8 +341,8 @@ export default function AcademicProgramsPage() {
                 compliances={rawCompliances || []}
                 campuses={campuses || []} 
                 units={units || []} 
-                onEdit={onEditPlan}
-                onDelete={onDeletePlan}
+                onEdit={handleEditProgram}
+                onDelete={setDeletingProgram}
                 canManage={canManage}
             />
         </TabsContent>
