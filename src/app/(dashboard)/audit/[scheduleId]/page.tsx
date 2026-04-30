@@ -2,7 +2,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -310,9 +310,9 @@ export default function AuditExecutionPage() {
 
   if (!schedule) {
     return (
-      <div className="text-center">
+      <div className="text-center py-20">
         <h2 className="text-2xl font-bold">Audit Schedule Not Found</h2>
-        <p className="text-muted-foreground">The schedule you are looking for does not exist.</p>
+        <p className="text-muted-foreground mt-2">The schedule you are looking for does not exist.</p>
         <Button className="mt-4" onClick={() => router.back()}>
           <span>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -327,14 +327,15 @@ export default function AuditExecutionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Sticky Header Enforced */}
+      <div className="sticky top-[4rem] z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
             <h2 className="text-2xl font-bold tracking-tight">IQA - Evidence Log Sheet</h2>
-            <p className="text-muted-foreground flex items-center gap-2">
+            <p className="text-muted-foreground flex items-center gap-2 text-sm">
                 <Building2 className="h-3.5 w-3.5" />
                 {schedule.targetName} &bull; {format(conductDate, 'PPP')} @ {format(conductDate, 'hh:mm a')}
             </p>
@@ -548,7 +549,7 @@ export default function AuditExecutionPage() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p>
-                            <Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}>
+                            <Dialog open={isAddClauseOpen} onOpenChange={isAddClauseOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2">
                                         <PlusCircle className="h-3 w-3" /> Add More Clauses

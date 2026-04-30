@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -44,7 +45,8 @@ import {
   LayoutList,
   CheckCircle2,
   ListChecks,
-  MonitorCheck
+  MonitorCheck,
+  Target
 } from 'lucide-react';
 import {
   useUser,
@@ -283,6 +285,7 @@ export default function HomePage() {
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
 
   const canViewCampusAnnouncements = userProfile?.campusId;
@@ -919,7 +922,7 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
-        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} !isSupervisor={isSupervisor || isAdmin} />
+        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
 
         {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
             <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -976,7 +979,7 @@ export default function HomePage() {
                                     <p className="text-[10px] text-muted-foreground font-medium">{assignedRecommendations.length} Assigned Recos</p>
                                 </div>
                             </div>
-                            <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="h-7 text-[9px] font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
+                            <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="h-7 font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
                                 <Printer className="h-3 w-3 mr-1" /> Print Log
                             </Button>
                         </div>

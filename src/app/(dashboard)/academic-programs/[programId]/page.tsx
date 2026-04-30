@@ -39,7 +39,7 @@ export default function ProgramMonitoringDetailPage() {
 
   if (!program) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-20">
         <h2 className="text-2xl font-bold">Program Not Found</h2>
         <p className="text-muted-foreground mt-2">The academic program you are looking for does not exist.</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push('/academic-programs')}>
@@ -51,7 +51,8 @@ export default function ProgramMonitoringDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Sticky Header Enforced */}
+      <div className="sticky top-[4rem] z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => router.push('/academic-programs')}>
             <ArrowLeft className="h-4 w-4" />
@@ -61,7 +62,7 @@ export default function ProgramMonitoringDetailPage() {
               <GraduationCap className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-bold tracking-tight">{program.name}</h2>
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-xs uppercase font-black tracking-widest">
               {program.abbreviation} &bull; {campus?.name || '...'} &bull; {program.level} Registry
             </p>
           </div>

@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where } from 'firebase/firestore';
+import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where, getDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
 import {
@@ -143,7 +144,7 @@ const LoadingSkeleton = () => (
 export default function SubmissionDetailPage() {
   const { id } = useParams();
   const firestore = useFirestore();
-  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -199,13 +200,13 @@ export default function SubmissionDetailPage() {
     () => (firestore && submission ? doc(firestore, 'users', submission.userId) : null),
     [firestore, submission]
   );
-  const { data: submitter, isLoading: isLoadingSubmitter } = useDoc<AppUser>(submitterDocRef);
+  const { data: submitter } = useDoc<AppUser>(submitterDocRef);
 
   const campusDocRef = useMemoFirebase(
     () => (firestore && submission?.campusId ? doc(firestore, 'campuses', submission.campusId) : null),
     [firestore, submission?.campusId]
   );
-  const { data: campus, isLoading: isLoadingCampus } = useDoc<Campus>(campusDocRef);
+  const { data: campus } = useDoc<Campus>(campusDocRef);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? collection(firestore, 'units') : null),
@@ -225,11 +226,6 @@ export default function SubmissionDetailPage() {
   );
   const { data: unitUsers } = useCollection<AppUser>(unitUsersQuery);
 
-  /**
-   * REINFORCED SCOPING LOGIC:
-   * Digital Risks must be filtered by UnitId, CampusId, AND Year 
-   * to ensure strict parity with the current submission context.
-   */
   const existingRisksQuery = useMemoFirebase(() => {
     if (!firestore || !submission) return null;
     return query(
@@ -241,7 +237,7 @@ export default function SubmissionDetailPage() {
   }, [firestore, submission]);
   const { data: existingRisks, isLoading: isLoadingRisks } = useCollection<Risk>(existingRisksQuery);
 
-  const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
+  const isLoading = isUserLoading || isLoadingSubmission;
   
   const previewUrl = newLink || (submission?.googleDriveLink
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
@@ -304,7 +300,6 @@ export default function SubmissionDetailPage() {
         .filter(item => !approverChecklist[item.id])
         .map(item => `* ${item.rejectionReason}`);
 
-      // DETECT INCORRECT DIGITAL ENTRIES AS REJECTION REASON
       const isRor = normalizeReportType(submission?.reportType || '') === 'Risk and Opportunity Registry';
       if (isRor && existingRisks) {
           const incorrectEntries = existingRisks.filter(r => 
@@ -453,9 +448,9 @@ export default function SubmissionDetailPage() {
 
   if (!submission) {
     return (
-      <div className="text-center">
+      <div className="text-center py-20">
         <h2 className="text-2xl font-bold">Submission Not Found</h2>
-        <p className="text-muted-foreground">The submission you are looking for does not exist or you do not have permission to view it.</p>
+        <p className="text-muted-foreground mt-2">The submission record may have been deleted or moved.</p>
         <Button asChild className="mt-4"><Link href="/submissions"><ArrowLeft className="mr-2 h-4 w-4" />Back to Submissions</Link></Button>
       </div>
     );
@@ -466,11 +461,12 @@ export default function SubmissionDetailPage() {
 
   return (
     <div className="space-y-4">
-       <div className="flex items-center gap-4">
+       {/* Sticky Header Enforced */}
+       <div className="sticky top-[4rem] z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
-            <p className="text-muted-foreground">Viewing details for report: {submission.reportType}</p>
+            <p className="text-muted-foreground text-sm">Reviewing: {submission.reportType}</p>
           </div>
        </div>
 
@@ -484,8 +480,8 @@ export default function SubmissionDetailPage() {
               </Alert>
           )}
 
-          {/* DOCUMENT INFORMATION CARD - Now Sticky */}
-          <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
+          {/* DOCUMENT INFORMATION CARD - Sticky Sub-header */}
+          <div className="sticky top-[9rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
                 <div className="space-y-1">
                     <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Control Number</p>
