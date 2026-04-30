@@ -45,6 +45,7 @@ import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
+import { UnitSddExplorer } from './unit-sdd-explorer';
 
 interface SDDHubProps {
   compliances: ProgramComplianceRecord[];
@@ -166,7 +167,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
         <CardHeader className="py-4">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Info className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Institutional SDD HUB</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional SDD HUB</span>
             </div>
             <CardTitle className="text-lg font-black uppercase tracking-tight">Sex-Disaggregated Data (SDD) Hub: {unitName}</CardTitle>
             <CardDescription className="text-xs">Consolidated analysis of students, personnel, and activity participants for AY {selectedYear}.</CardDescription>
@@ -340,6 +341,15 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                   </div>
               </CardFooter>
           </Card>
+      )}
+
+      {/* INDIVIDUAL UNIT SDD EXPLORER */}
+      {(isAdmin || userRole?.toLowerCase().includes('director') || userRole?.toLowerCase().includes('odimo')) && (
+          <UnitSddExplorer 
+            compliances={compliances}
+            units={units}
+            selectedYear={selectedYear}
+          />
       )}
 
       <Card className="border-primary/10 shadow-md">

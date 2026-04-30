@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc } from 'firebase/firestore';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Campus, Unit, ProgramComplianceRecord, GADInitiative, GadSettings, GADPlan, GADActivity } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +16,8 @@ import {
     Building, 
     FileText, 
     CalendarCheck,
-    ShieldCheck
+    ShieldCheck,
+    Filter
 } from 'lucide-react';
 import { SDDHub } from '@/components/gad/sdd-hub';
 import { GADOverview } from '@/components/gad/gad-overview';
@@ -28,6 +29,9 @@ import { GADActivitiesTab } from '@/components/gad/gad-activities-tab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -198,6 +202,35 @@ export default function GadCornerPage() {
                 </TabsList>
             </ScrollArea>
         </div>
+
+        {isInstitutionalViewer && currentTab === 'overview' && (
+            <Card className="border-primary/20 bg-primary/5 shadow-sm">
+                <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <ShieldCheck className="h-5 w-5 text-primary" />
+                        <div className="space-y-0.5">
+                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Institutional GAD Registry Settings</p>
+                            <p className="text-[9px] text-muted-foreground font-medium italic">Configure the university-wide annual budget baseline.</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 max-w-sm space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-600">Total University Appropriations (Annual)</Label>
+                        <div className="flex gap-2">
+                            <Input 
+                                type="number" 
+                                placeholder="e.g., 500000000" 
+                                className="h-11 font-mono font-black"
+                                defaultValue={gadSettings?.institutionalTotalBudget || 0}
+                                onBlur={(e) => setDoc(gadSettingsRef!, { institutionalTotalBudget: Number(e.target.value) }, { merge: true })}
+                            />
+                            <Button disabled variant="outline" className="h-11 px-6 font-black uppercase text-[10px] border-none bg-white">
+                                5% Min: ₱{((gadSettings?.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
           <GADOverview 
