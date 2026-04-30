@@ -146,6 +146,8 @@ export type SystemSettings = {
 
 export type GadSettings = {
     leadershipUnitId?: string;
+    isPublicEntryEnabled?: boolean;
+    institutionalTotalBudget?: number;
     updatedAt?: any;
     updatedBy?: string;
 }
@@ -745,4 +747,53 @@ export type WfhActivity = {
     evidenceLink?: string;
     createdAt: any;
     updatedAt: any;
+};
+
+// GAD Plan & Budget types
+export type GADPlan = {
+  id: string;
+  year: number;
+  unitId: string;
+  campusId: string;
+  genderIssue: string;
+  causeOfIssue: string;
+  objective: string;
+  pap: string;
+  performanceIndicators: string;
+  targets: string;
+  budget: number;
+  sourceOfBudget: string;
+  responsibleOffice: string;
+  status: 'Draft' | 'Finalized';
+  createdAt: any;
+  updatedAt: any;
+};
+
+// Sector definition for GAD SDD
+export type GADSector = 'Solo Parent' | 'PWD' | 'Senior Citizen' | 'Youth/Student' | 'Employee';
+
+export type GADActivity = {
+  id: string;
+  activityId: string; // Official RSU Activity Code
+  activityName: string;
+  date: any; // Timestamp
+  year: number;
+  implementingUnitId: string;
+  campusId: string;
+  participants: {
+    male: number;
+    female: number;
+    sectors: {
+      [key in GADSector]?: {
+        male: number;
+        female: number;
+      }
+    };
+  };
+  planId?: string; // Optional link to a GPB entry for AR reporting
+  actualBudgetUsed?: number;
+  actualOutput?: string;
+  varianceAnalysis?: string;
+  deviceFingerprint: string; // For unauthenticated identification
+  createdAt: any;
 };
