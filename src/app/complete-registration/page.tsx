@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,8 +33,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Logo } from '@/components/logo';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, FileText } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 
 
@@ -94,7 +94,6 @@ export default function CompleteRegistrationPage() {
 
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
-  const sexValue = form.watch('sex');
   
   const isUnitRequired = useMemo(() => {
     if (!selectedRoleId || !roles) return false; 
@@ -192,7 +191,7 @@ export default function CompleteRegistrationPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-                <Logo className="h-8 w-8 text-primary" />
+                <FileText className="h-8 w-8 text-primary" />
                 <CardTitle className="text-3xl font-bold">Complete Your Registration</CardTitle>
             </div>
           <CardDescription>

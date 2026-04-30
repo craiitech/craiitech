@@ -101,8 +101,7 @@ service cloud.firestore {
     }
 
     match /gadActivities/{id} {
-      allow create: if true; // Public access for GAD SDD entry
-      allow get, list, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     match /unitPersonnelCensus/{id} {
@@ -157,16 +156,28 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /campuses/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /units/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /roles/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /campuses/{id} { 
+      allow read: if true; // Required for Registration dropdown
+      allow write: if isAdmin(); 
+    }
+    
+    match /units/{id} { 
+      allow read: if true; // Required for Registration unit filter
+      allow write: if isAdmin(); 
+    }
+    
+    match /roles/{id} { 
+      allow get, list: if true; // Required for Registration role selection
+      allow write: if isAdmin(); 
+    }
+    
     match /cycles/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /isoClauses/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
 
     match /system/{docId} {
-      allow get: if docId in ['gadSettings', 'settings'] || isSignedIn();
+      allow get: if isSignedIn(); // No more public read for settings/logo
       allow list: if isSignedIn();
       allow write: if isAdmin();
     }

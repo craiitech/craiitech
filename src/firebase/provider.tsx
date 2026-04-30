@@ -154,16 +154,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
-  // System settings are now fetched regardless of auth to support public pages and the landing page logo
+  // System settings are now only fetched if a user is logged in to avoid Permission Denied on public pages
   const systemSettingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !userAuthState.user) return null;
     return doc(firestore, 'system', 'settings');
-  }, [firestore]);
+  }, [firestore, userAuthState.user]);
   
   const { data: systemSettings } = useDoc<SystemSettings>(systemSettingsRef);
 
   const campusesQuery = useMemoFirebase(() => {
-    // Waiting for firestore. Rule update allows public read.
+    // Campuses stay public for registration dropdown
     if (!firestore) return null;
     return collection(firestore, 'campuses');
   }, [firestore]);
