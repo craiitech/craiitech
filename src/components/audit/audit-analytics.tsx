@@ -37,7 +37,7 @@ import {
     TrendingUp,
     ShieldAlert,
     Users,
-    LayoutList,
+    LayoutGrid,
     Briefcase,
     CalendarCheck,
     Scale,
@@ -45,7 +45,8 @@ import {
     Printer,
     Clock,
     ChevronRight,
-    Building2
+    Building2,
+    LayoutList as LayoutListIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -278,7 +279,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Assignment Report</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Assignment Report</button>
                     </div>
                     <div id="print-content">
                         ${reportHtml}
@@ -318,69 +319,69 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
       
       {/* 1. EXECUTIVE PERFORMANCE MONITOR */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Itinerary Density</CardTitle>
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col min-h-[110px]">
+            <CardHeader className="pb-2 pt-5 px-6">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground leading-none">Itinerary Density</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
+            <CardContent className="flex-1 px-6 pb-5">
                 <div className="text-3xl font-black text-primary tabular-nums">{analytics.totalSchedules}</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total Scheduled Sessions</p>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Total Scheduled Sessions</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><LayoutList className="h-12 w-12" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><LayoutListIcon className="h-10 w-10" /></div>
         </Card>
 
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Audit Completion</CardTitle>
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col min-h-[110px]">
+            <CardHeader className="pb-2 pt-5 px-6">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-700 leading-none">Audit Completion</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
+            <CardContent className="flex-1 px-6 pb-5">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.completedSchedules}</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Finalized Evidence Logs</p>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Finalized Evidence Logs</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-10 w-10 text-emerald-600" /></div>
         </Card>
 
-        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Audit Engagement</CardTitle>
+        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col min-h-[110px]">
+            <CardHeader className="pb-2 pt-5 px-6">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.1em] text-blue-700 leading-none">Audit Engagement</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
+            <CardContent className="flex-1 px-6 pb-5">
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics.auditorData.length}</div>
-                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Active Internal Auditors</p>
+                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Internal Auditors</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><Users className="h-12 w-12 text-blue-600" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><Users className="h-10 w-10 text-blue-600" /></div>
         </Card>
 
-        <Card className="bg-purple-50 border-purple-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-700">Auditor Sex Distribution</CardTitle>
+        <Card className="bg-purple-50 border-purple-100 shadow-sm relative overflow-hidden flex flex-col min-h-[110px]">
+            <CardHeader className="pb-2 pt-5 px-6">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.1em] text-purple-700 leading-none">Auditor Sex Balance</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
+            <CardContent className="flex-1 px-6 pb-5">
                 <div className="text-3xl font-black text-purple-600 tabular-nums">
                     {analytics.auditorSexCounts.Male}M / {analytics.auditorSexCounts.Female}F
                 </div>
-                <p className="text-[9px] font-bold text-purple-600/70 mt-1 uppercase">
-                    {analytics.auditorSexCounts.Others > 0 ? `+ ${analytics.auditorSexCounts.Others} Others (LGBTQI++)` : 'GAD Compliant Pool'}
+                <p className="text-[9px] font-bold text-purple-600/70 mt-1 uppercase tracking-tight">
+                    {analytics.auditorSexCounts.Others > 0 ? `+ ${analytics.auditorSexCounts.Others} Others` : 'Institutional Pool'}
                 </p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><HandHeart className="h-12 w-12 text-purple-600" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><HandHeart className="h-10 w-10 text-purple-600" /></div>
         </Card>
 
-        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Critical Findings</CardTitle>
+        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col min-h-[110px]">
+            <CardHeader className="pb-2 pt-5 px-6">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.1em] text-rose-700 leading-none">Critical Findings</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
+            <CardContent className="flex-1 px-6 pb-5">
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.counts.NC}</div>
-                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Non-Conformances</p>
+                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase tracking-tight">Open Non-Conformances</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-10 w-10 text-rose-600" /></div>
         </Card>
       </div>
 
       {/* 2. STRATEGIC AUDIT SWOT */}
       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border rounded-2xl shadow-lg bg-background overflow-hidden">
-          <div className="flex flex-col">
+          <div className="flex flex-col min-h-[250px]">
               <div className="bg-emerald-50 px-6 py-3 border-b flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Audit Strengths</span>
@@ -400,12 +401,14 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                           </div>
                       ))
                   ) : (
-                      <p className="text-[10px] text-muted-foreground italic opacity-50 py-10 text-center">Calibrating institutional strengths...</p>
+                      <div className="flex-1 flex items-center justify-center h-40 opacity-40">
+                        <p className="text-[10px] text-muted-foreground italic font-medium uppercase">Calibrating institutional strengths...</p>
+                      </div>
                   )}
               </div>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col min-h-[250px]">
               <div className="bg-rose-50 px-6 py-3 border-b flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-rose-600" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">Identified Gaps & Vulnerabilities</span>
@@ -428,7 +431,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                           </div>
                       ))
                   ) : (
-                      <div className="py-10 flex flex-col items-center justify-center opacity-20">
+                      <div className="flex-1 flex flex-col items-center justify-center h-40 opacity-20">
                           <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                           <p className="text-[10px] font-black uppercase mt-2">No Strategic Gaps Detected</p>
                       </div>
@@ -458,16 +461,16 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
               <ScrollArea className="h-[600px]">
                   <div className="divide-y">
                       {analytics.auditorData.map((auditor, aIdx) => (
-                          <div key={aIdx} className="p-6 space-y-4 hover:bg-muted/10 transition-colors group">
+                          <div key={aIdx} className="p-6 space-y-6 hover:bg-muted/10 transition-colors group">
                               <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary">
+                                  <div className="flex items-center gap-4">
+                                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary text-sm shadow-inner">
                                           {auditor.name.charAt(0)}
                                       </div>
                                       <div>
-                                          <h4 className="font-black text-slate-900 uppercase">{auditor.name}</h4>
-                                          <div className="flex items-center gap-2 mt-0.5">
-                                              <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase border-none bg-primary/5 text-primary">
+                                          <h4 className="font-black text-slate-900 uppercase tracking-tight">{auditor.name}</h4>
+                                          <div className="flex items-center gap-3 mt-1">
+                                              <Badge variant="secondary" className="h-4 px-2 text-[8px] font-black uppercase border-none bg-primary/5 text-primary">
                                                   {auditor.count} SESSIONS
                                               </Badge>
                                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -478,29 +481,29 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                                   </div>
                               </div>
 
-                              <div className="pl-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                              <div className="pl-14 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                   {auditor.assignments.map((asg, sIdx) => {
                                       const date = asg.date instanceof Timestamp ? asg.date.toDate() : new Date(asg.date);
                                       return (
-                                          <div key={sIdx} className="p-3 rounded-xl border bg-white shadow-sm flex flex-col gap-2 group-hover:border-primary/20 transition-all">
-                                              <div className="flex items-center justify-between gap-2 border-b pb-2">
-                                                  <div className="flex items-center gap-1.5 min-w-0">
-                                                      <Building2 className="h-3 w-3 text-primary/60" />
+                                          <div key={sIdx} className="p-4 rounded-xl border bg-white shadow-sm flex flex-col gap-3 group-hover:border-primary/30 transition-all hover:shadow-md">
+                                              <div className="flex items-center justify-between gap-2 border-b border-slate-50 pb-2">
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                      <Building2 className="h-3.5 w-3.5 text-primary/60" />
                                                       <span className="text-[10px] font-black text-slate-800 uppercase truncate" title={asg.unitName}>{asg.unitName}</span>
                                                   </div>
                                                   <Badge className={cn(
-                                                      "h-4 text-[7px] font-black uppercase border-none shrink-0",
-                                                      asg.status === 'Completed' ? "bg-emerald-600" : "bg-amber-50"
+                                                      "h-4 text-[7px] font-black uppercase border-none shrink-0 px-2",
+                                                      asg.status === 'Completed' ? "bg-emerald-600 text-white" : "bg-amber-50 text-amber-950"
                                                   )}>
                                                       {asg.status}
                                                   </Badge>
                                               </div>
-                                              <div className="space-y-1">
-                                                  <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground uppercase">
-                                                      <Clock className="h-3 w-3" />
+                                              <div className="space-y-1.5">
+                                                  <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
+                                                      <Clock className="h-3 w-3 text-primary/60" />
                                                       {format(date, 'MMM dd')} &bull; {format(date, 'hh:mm a')}
                                                   </div>
-                                                  <p className="text-[9px] text-slate-500 italic line-clamp-2 leading-relaxed">
+                                                  <p className="text-[9px] text-slate-500 italic line-clamp-3 leading-relaxed border-l-2 border-primary/10 pl-2">
                                                       {asg.procedure}
                                                   </p>
                                               </div>
@@ -616,7 +619,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                         analytics.unitExemplars.map((unit, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white border border-emerald-100 shadow-sm transition-all hover:scale-[1.02]">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-black text-xs">{idx + 1}</div>
+                                    <div className="flex h-8 w-8 rounded-full bg-emerald-100 items-center justify-center text-emerald-600 font-black text-xs shadow-inner">{idx + 1}</div>
                                     <span className="font-bold text-xs text-slate-800 uppercase truncate max-w-[180px]">{unit.name}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
