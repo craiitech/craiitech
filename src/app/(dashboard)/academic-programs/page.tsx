@@ -88,7 +88,7 @@ export default function AcademicProgramsPage() {
             setUnitFilter(userProfile.unitId);
         }
     }
-  }, [userProfile, isGlobalViewer, isCampusViewer, iisUnitViewer, isUserLoading]);
+  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, isUserLoading]);
 
   /**
    * SCOPED PROGRAM QUERY
@@ -106,7 +106,7 @@ export default function AcademicProgramsPage() {
     }
     
     return query(baseRef, where('campusId', '==', userProfile.campusId));
-  }, [firestore, isUserLoading, userProfile, isGlobalViewer, isCampusViewer, iisUnitViewer]);
+  }, [firestore, isUserLoading, userProfile, isGlobalViewer, isCampusViewer, isUnitViewer]);
 
   const { data: rawPrograms, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
@@ -118,7 +118,7 @@ export default function AcademicProgramsPage() {
     if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
     return query(baseRef, where('academicYear', '==', selectedYear));
-  }, [firestore, iisUserLoading, userProfile, selectedYear]);
+  }, [firestore, isUserLoading, userProfile, selectedYear]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -138,17 +138,17 @@ export default function AcademicProgramsPage() {
       const matchesUnit = unitFilter === 'all' || p.collegeId === unitFilter;
       return matchesSearch && matchesCampus && matchesUnit;
     });
-  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, iisUnitViewer, userProfile]);
+  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile]);
 
   const campusesQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
-    [firestore, iisUserLoading, userProfile]
+    [firestore, isUserLoading, userProfile]
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null),
-    [firestore, iisUserLoading, userProfile]
+    [firestore, isUserLoading, userProfile]
   );
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 

@@ -82,7 +82,7 @@ export default function MonitoringPage() {
             setUnitFilter(userProfile.unitId);
         }
     }
-  }, [isGlobalAdmin, isCampusOfficial, isUnitOfficial, iisUnitCoordinator, userProfile, isUserLoading]);
+  }, [isGlobalAdmin, isCampusOfficial, isUnitOfficial, isUnitCoordinator, userProfile, isUserLoading]);
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -105,15 +105,15 @@ export default function MonitoringPage() {
 
         return null;
     },
-    [firestore, isUserLoading, userProfile, isGlobalAdmin, isCampusOfficial, isUnitOfficial, iisUnitCoordinator]
+    [firestore, isUserLoading, userProfile, isGlobalAdmin, isCampusOfficial, isUnitOfficial, isUnitCoordinator]
   );
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
-  const campusesQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null), [firestore, iisUserLoading, userProfile]);
+  const campusesQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null), [firestore, isUserLoading, userProfile]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null), [firestore, iisUserLoading, userProfile]);
+  const unitsQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null), [firestore, isUserLoading, userProfile]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
