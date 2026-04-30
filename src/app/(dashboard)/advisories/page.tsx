@@ -52,7 +52,7 @@ export default function QaAdvisoriesPage() {
   return (
     <div className="space-y-6">
       {/* Sticky Header Enforced */}
-      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Megaphone className="h-8 w-8 text-primary" />
@@ -152,7 +152,7 @@ export default function QaAdvisoriesPage() {
           <div className="flex-1 bg-muted relative">
             {previewAdvisory && (
               <iframe 
-                src={getEmbedUrl(previewAdvisory.googleDriveLink)} 
+                src={getEmbedUrl(advisory.googleDriveLink)} 
                 className="absolute inset-0 w-full h-full border-none bg-white" 
                 allow="autoplay" 
                 title="QA Advisory Preview"

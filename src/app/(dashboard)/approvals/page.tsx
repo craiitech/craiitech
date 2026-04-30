@@ -190,7 +190,7 @@ export default function ApprovalsPage() {
     <TooltipProvider>
       <div className="space-y-4">
         {/* Sticky Header Enforced */}
-        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
           <h2 className="text-2xl font-bold tracking-tight">Approvals</h2>
           <p className="text-muted-foreground">
             Review and act on submissions awaiting your approval. Rows are color-coded by year for easier categorization.

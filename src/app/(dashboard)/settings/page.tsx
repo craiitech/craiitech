@@ -52,7 +52,7 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <Tabs defaultValue="users" className="space-y-4">
           {/* Sticky Header and Tabs */}
-          <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
                 <p className="text-muted-foreground">
@@ -122,7 +122,7 @@ export default function SettingsPage() {
             <AnnouncementManagement />
           </TabsContent>
           <TabsContent value="backups" className="space-y-4">
-            <DataBackupManagement />
+             DataBackupManagement />
           </TabsContent>
            <TabsContent value="error-reports" className="space-y-4">
             <ErrorReportManagement />
@@ -135,7 +135,7 @@ export default function SettingsPage() {
   if (userRole === 'Campus Director') {
       return (
          <div className="space-y-6">
-            <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
+            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
               <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
               <p className="text-muted-foreground">
                 Manage settings and resources specific to your campus.
@@ -155,7 +155,7 @@ export default function SettingsPage() {
 
   return (
      <div className="space-y-4">
-        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
           <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
           <p className="text-muted-foreground">
             You do not have permission to modify system settings.

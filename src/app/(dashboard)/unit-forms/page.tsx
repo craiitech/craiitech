@@ -266,7 +266,7 @@ export default function UnitFormsPage() {
   return (
     <div className="space-y-6">
       {/* Sticky Header Enforced */}
-      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
           <p className="text-muted-foreground text-sm">Access official operating forms for verified university units.</p>

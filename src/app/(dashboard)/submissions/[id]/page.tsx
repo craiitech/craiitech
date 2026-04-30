@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
@@ -462,7 +461,7 @@ export default function SubmissionDetailPage() {
   return (
     <div className="space-y-4">
        {/* Sticky Header Enforced */}
-       <div className="sticky top-[4rem] z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex items-center gap-4">
+       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
@@ -481,7 +480,7 @@ export default function SubmissionDetailPage() {
           )}
 
           {/* DOCUMENT INFORMATION CARD - Sticky Sub-header */}
-          <div className="sticky top-[9rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
+          <div className="sticky top-[5rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
                 <div className="space-y-1">
                     <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Control Number</p>

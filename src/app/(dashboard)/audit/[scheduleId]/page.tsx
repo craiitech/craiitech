@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -328,7 +327,7 @@ export default function AuditExecutionPage() {
   return (
     <div className="space-y-6">
       {/* Sticky Header Enforced */}
-      <div className="sticky top-[4rem] z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -549,7 +548,7 @@ export default function AuditExecutionPage() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p>
-                            <Dialog open={isAddClauseOpen} onOpenChange={isAddClauseOpen}>
+                            <Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2">
                                         <PlusCircle className="h-3 w-3" /> Add More Clauses
