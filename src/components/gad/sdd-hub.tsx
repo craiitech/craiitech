@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -39,7 +38,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
   const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isSavingCensus, setIsSaving) = useState(false);
+  const [isSavingCensus, setIsSaving] = useState(false);
 
   // 1. UNIT PERSONNEL CENSUS MODULE
   const censusId = userProfile?.unitId ? `${userProfile.unitId}-${selectedYear}` : 'none';
@@ -74,7 +73,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
         }, { merge: true });
         toast({ title: 'Census Updated', description: 'Institutional personnel data synchronized.' });
     } catch (e) {
-        toast({ title: 'Error', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to update census data.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
     }
