@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
@@ -143,6 +143,7 @@ export function SubmissionForm({
   const checklistItems = useMemo(() => {
     const items = [
       { id: 'correctDoc', label: `Is this the correct "${reportType}" for the ${cycleId} cycle for year ${year}?` },
+      { id: 'allDataEntry', label: 'ALL COLUMNS and ROWS in the FORM has Data Entry' },
       ...baseChecklistItems
     ];
 
