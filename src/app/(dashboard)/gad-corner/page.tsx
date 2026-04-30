@@ -35,7 +35,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+const yearsList = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export default function GadCornerPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -184,7 +184,7 @@ export default function GadCornerPage() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                                {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>

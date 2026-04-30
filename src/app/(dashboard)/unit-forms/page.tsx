@@ -118,7 +118,6 @@ export default function UnitFormsPage() {
   );
   const { data: unitRequests, isLoading: isLoadingUnitRequests } = useCollection<UnitFormRequest>(unitRequestsQuery);
 
-  // In-memory sorting for Admin Inbox
   const sortedAllRequests = useMemo(() => {
     if (!allRequests) return [];
     return [...allRequests].sort((a, b) => {
@@ -128,7 +127,6 @@ export default function UnitFormsPage() {
     });
   }, [allRequests]);
 
-  // In-memory sorting for Unit History
   const sortedUnitRequests = useMemo(() => {
     if (!unitRequests) return [];
     return [...unitRequests].sort((a, b) => {
@@ -267,18 +265,21 @@ export default function UnitFormsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Sticky Header Enforced */}
+      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
           <p className="text-muted-foreground text-sm">Access official operating forms for verified university units.</p>
         </div>
-        <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setIsSidebarVisible(!isSidebarVisible)}>
-          {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-          {isSidebarVisible ? 'Hide Units' : 'Show Units'}
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setIsSidebarVisible(!isSidebarVisible)}>
+                {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
+                {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+            </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100vh-20rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100vh-16rem)]">
           <div className={cn("transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0", isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6")}>
               <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
                   <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
@@ -478,7 +479,7 @@ export default function UnitFormsPage() {
                                                           <div className="flex flex-col items-center">
                                                               <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>
                                                               {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
-                                                          </div>
+                           </div>
                                                           <div className="space-y-1 pb-4">
                                                               <p className="text-sm font-black uppercase tracking-tight text-slate-800">{s.title}</p>
                                                               <p className="text-xs text-muted-foreground leading-relaxed italic">{s.desc}</p>
