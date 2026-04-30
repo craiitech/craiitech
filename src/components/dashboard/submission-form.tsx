@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -29,11 +28,13 @@ import { Label } from '../ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -466,7 +467,7 @@ export function SubmissionForm({
     <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {!canUpdateExisting && originalSubmitter && (
+        {!canUpdateExisting || originalSubmitter && (
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Submission Already Exists</AlertTitle>
