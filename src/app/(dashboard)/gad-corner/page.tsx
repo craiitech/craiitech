@@ -19,13 +19,16 @@ import {
     Globe, 
     Zap,
     Printer,
-    CheckCircle2
+    CheckCircle2,
+    CalendarCheck
 } from 'lucide-react';
 import { SDDHub } from '@/components/gad/sdd-hub';
 import { GADOverview } from '@/components/gad/gad-overview';
 import { GADInitiatives } from '@/components/gad/gad-initiatives';
 import { GADMainstreaming } from '@/components/gad/gad-mainstreaming';
-import { UnitSddExplorer } from '@/components/gad/unit-sdd-explorer';
+import { GADPlansTab } from '@/components/gad/gad-plans-tab';
+import { GADAccomplishmentTab } from '@/components/gad/gad-accomplishment-tab';
+import { GADActivitiesTab } from '@/components/gad/gad-activities-tab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,8 +38,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { GADPlansTab } from '@/components/gad/gad-plans-tab';
-import { GADAccomplishmentTab } from '@/components/gad/gad-accomplishment-tab';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -47,7 +48,6 @@ export default function GadCornerPage() {
   const { toast } = useToast();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
-  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
 
   const gadSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
@@ -123,19 +123,6 @@ export default function GadCornerPage() {
     return units.filter(u => u.id === userProfile?.unitId);
   }, [units, isInstitutionalViewer, isSupervisor, userProfile]);
 
-  const togglePublicEntry = async (enabled: boolean) => {
-    if (!firestore || !isAdmin) return;
-    setIsUpdatingSettings(true);
-    try {
-        await setDoc(gadSettingsRef!, { isPublicEntryEnabled: enabled }, { merge: true });
-        toast({ title: 'System Updated', description: `Public SDD entry is now ${enabled ? 'Enabled' : 'Disabled'}.` });
-    } catch (e) {
-        toast({ title: 'Error', variant: 'destructive' });
-    } finally {
-        setIsUpdatingSettings(false);
-    }
-  };
-
   const isLoading = isUserLoading || isLoadingCompliances || isLoadingSettings;
 
   return (
@@ -194,6 +181,7 @@ export default function GadCornerPage() {
             <ScrollArea className="w-full">
                 <TabsList className="bg-muted p-1 border shadow-sm flex lg:inline-flex animate-tab-highlight rounded-md whitespace-nowrap min-w-max">
                     <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Strategic Overview</TabsTrigger>
+                    <TabsTrigger value="activities" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><CalendarCheck className="h-4 w-4" /> Event Registry</TabsTrigger>
                     <TabsTrigger value="gpb" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Target className="h-4 w-4" /> GAD Plan & Budget (GPB)</TabsTrigger>
                     <TabsTrigger value="ar" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><FileText className="h-4 w-4" /> Accomplishment Report (AR)</TabsTrigger>
                     <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Users className="h-4 w-4" /> SDD Hub</TabsTrigger>
@@ -211,6 +199,15 @@ export default function GadCornerPage() {
             selectedYear={selectedYear}
             unitName={selectedUnitId === 'all' ? 'Institutional' : units?.find(u => u.id === selectedUnitId)?.name}
           />
+        </TabsContent>
+
+        <TabsContent value="activities">
+            <GADActivitiesTab 
+                activities={gadActivities || []}
+                campuses={campuses || []}
+                units={units || []}
+                selectedYear={selectedYear}
+            />
         </TabsContent>
 
         <TabsContent value="gpb">
@@ -273,17 +270,6 @@ export default function GadCornerPage() {
                         <CardDescription>Manage global settings for the GAD reporting ecosystem.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-8 space-y-8">
-                        <div className="flex items-center justify-between p-6 rounded-2xl border bg-muted/10 group hover:border-primary/30 transition-all">
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <Smartphone className="h-5 w-5 text-primary" />
-                                    <p className="text-sm font-black text-slate-800 uppercase">Public SDD Entry Gateway</p>
-                                </div>
-                                <p className="text-[11px] text-muted-foreground max-w-sm leading-relaxed">Toggle the unauthenticated `/gad-entry` page. This allows participants to log their data without a portal account.</p>
-                            </div>
-                            <Switch checked={gadSettings?.isPublicEntryEnabled} onCheckedChange={togglePublicEntry} disabled={isUpdatingSettings} />
-                        </div>
-
                         <div className="p-6 rounded-2xl border-2 border-indigo-100 bg-indigo-50/20 space-y-4">
                             <div className="flex items-center gap-3">
                                 <Zap className="h-6 w-6 text-primary" />
