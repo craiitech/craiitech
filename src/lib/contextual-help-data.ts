@@ -15,7 +15,7 @@ export interface PageHelp {
 
 export const helpContent: Record<string, PageHelp> = {
   '/dashboard': {
-    title: 'Dashboard: Overview',
+    title: 'Dashboard: Executive Summary',
     description: 'The central hub for monitoring your quality assurance performance and institutional announcements.',
     steps: [
       { title: 'Check Announcements', desc: 'Read the Communications Board for site-specific directives from your Director.' },
@@ -27,6 +27,65 @@ export const helpContent: Record<string, PageHelp> = {
       { label: 'Register Risk', labelShort: 'Risk', action: 'Direct shortcut to encode identified threats.' }
     ],
     nextStep: 'Ensure your current year\'s Risk Register is populated before submitting your first cycle reports.'
+  },
+  '/dashboard?tab=overview': {
+    title: 'Dashboard: Overview',
+    description: 'Real-time performance metrics and communication updates.',
+    steps: [
+      { title: 'Monitor KPIs', desc: 'Check Pending Approvals and Maturity scores for the selected year.' },
+      { title: 'Read Announcements', desc: 'Review the Communications Board for institutional alerts.' },
+      { title: 'Check Quality Gaps', desc: 'Address any highlighted Action Items (CARs, MR Decisions, or Accreditation Gaps).' }
+    ],
+    buttons: [
+      { label: 'View Year', labelShort: 'Year', action: 'Switches the analytical context of the dashboard.' },
+      { label: 'Print Log', labelShort: 'Print', action: 'Generates a report of assigned quality actions.' }
+    ]
+  },
+  '/dashboard?tab=analytics': {
+    title: 'Dashboard: Audit & Analytics',
+    description: 'In-depth verification of submission cycles and risk posture.',
+    steps: [
+      { title: 'Verify Cycles', desc: 'Check the Submission Schedule to ensure no pending deadlines are missed.' },
+      { title: 'Analyze Risks', desc: 'Review the Risk Status Overview to monitor treatment progress.' },
+      { title: 'Parity Check', desc: 'Use the Compliance Heatmap to identify site-level documentation gaps.' }
+    ],
+    buttons: [
+      { label: 'Risk Rating', labelShort: 'Risk', action: 'Categorization of threats by Magnitude.' }
+    ]
+  },
+  '/dashboard?tab=strategic': {
+    title: 'Dashboard: Strategic Outlook',
+    description: 'Long-term trends and institutional maturity profiling.',
+    steps: [
+      { title: 'Radar Profile', desc: 'Analyze balance across the 5 core EOMS quality pillars.' },
+      { title: 'Trend Velocity', desc: 'Monitor Compliance Over Time to track institutional adoption.' },
+      { title: 'Risk Funnel', desc: 'Verify the movement of raw threats into controlled/mitigated factors.' }
+    ],
+    buttons: [
+      { label: 'Maturity Radar', labelShort: 'Radar', action: 'Visual map of quality assurance balance.' }
+    ]
+  },
+  '/dashboard?tab=actions': {
+    title: 'Dashboard: Submission Checklist',
+    description: 'Verification status of mandatory EOMS documentation.',
+    steps: [
+      { title: 'Check Progress', desc: 'Review the percentage of documents that have reached the "Approved" status.' },
+      { title: 'Manage Files', desc: 'Click "Manage Submissions" to upload drafts or final signed records.' }
+    ],
+    buttons: [
+      { label: 'Manage Submissions', labelShort: 'Pencil', action: 'Enters the document submission wizard.' }
+    ]
+  },
+  '/dashboard?tab=history': {
+    title: 'Dashboard: Submission History',
+    description: 'Chronological audit trail of your unit\'s document lifecycle.',
+    steps: [
+      { title: 'Review Logs', desc: 'Browse past revisions and their final determinations (Approved/Rejected).' },
+      { title: 'Inspect Records', desc: 'Use the "Eye" icon to view the specific version details and feedback.' }
+    ],
+    buttons: [
+      { label: 'View', labelShort: 'Eye', action: 'Opens the detail page for a specific submission revision.' }
+    ]
   },
 
   // --- GAD CORNER ---
