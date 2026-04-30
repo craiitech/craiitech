@@ -70,7 +70,7 @@ export default function PublicGadEntryPage() {
 
   // 2. Fetch Context Data
   const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'gadSettings') : null), [firestore]);
-  const { data: settings } = useDoc<GadSettings>(settingsRef);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<GadSettings>(settingsRef);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -145,10 +145,20 @@ export default function PublicGadEntryPage() {
     }
   };
 
+  // Improved loading state to prevent flickering "Registry Closed" during initial fetch
+  if (isLoadingSettings) {
+      return (
+          <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing GAD Registry...</p>
+          </div>
+      );
+  }
+
   if (!settings?.isPublicEntryEnabled) {
       return (
           <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-              <Card className="max-w-md text-center">
+              <Card className="max-w-md text-center shadow-xl">
                   <CardHeader>
                       <div className="mx-auto h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                           <HandHeart className="h-10 w-10 text-slate-400 opacity-40" />
