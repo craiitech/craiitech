@@ -120,9 +120,8 @@ export const helpContent: Record<string, PageHelp> = {
     title: 'Unit Monitoring Hub',
     description: 'On-site verification tool for facility maintenance and physical standard compliance.',
     steps: [
-      { title: 'Schedule Visit', desc: 'Admins: Record the date and type (Office/Classroom) of the on-site visit.' },
-      { title: 'Verify Checklist', desc: 'Go through the 7S and EOMS documentation items to mark Availability.' },
-      { title: 'Log Findings', desc: 'Add remarks for items marked "For Improvement" or "Not Available".' }
+      { title: 'Performance Review', desc: 'Inspect the analytics tab for overall compliance trends by site.' },
+      { title: 'Check Results', desc: 'View unit scores in the "Visit Log" tab after monitoring conduct.' }
     ],
     buttons: [
         { label: 'New Visit', labelShort: 'New', action: 'Launches the field monitoring digital checklist.' },
@@ -140,6 +139,28 @@ export const helpContent: Record<string, PageHelp> = {
         { label: 'Export', labelShort: 'XLSX', action: 'Downloads the monitoring raw data to Excel.' }
     ]
   },
+  '/monitoring?tab=history': {
+    title: 'Monitoring: Visit Log',
+    description: 'Chronological archive of all field inspections conducted.',
+    steps: [
+      { title: 'Search Units', desc: 'Filter the list by unit name or officer in charge.' },
+      { title: 'View Score', desc: 'Check the color-coded compliance badge for immediate performance feedback.' }
+    ],
+    buttons: [
+        { label: 'Edit', labelShort: 'Edit', action: 'Admins can modify past logs if corrections are needed.' }
+    ]
+  },
+  '/monitoring?tab=findings': {
+    title: 'Monitoring: Gaps & Findings',
+    description: 'Direct visibility into outstanding non-conformities from field visits.',
+    steps: [
+      { title: 'Inspect Red Flags', desc: 'Units listed here have items marked "Not Available" or "Needs Updating".' },
+      { title: 'Remediation', desc: 'Address specific remarks logged by the monitor to clear the gap.' }
+    ],
+    buttons: [
+        { label: 'Findings', labelShort: 'Gaps', action: 'Total count of units currently flagged.' }
+    ]
+  },
 
   // --- ACADEMIC PROGRAMS ---
   '/academic-programs': {
@@ -153,6 +174,17 @@ export const helpContent: Record<string, PageHelp> = {
         { label: 'Workspace', labelShort: 'Open', action: 'Enters the 5-module compliance dashboard for a program.' }
     ]
   },
+  '/academic-programs?tab=analytics': {
+    title: 'Programs: Decision Support',
+    description: 'High-level maturity profiles and longitudinal achievement trends.',
+    steps: [
+      { title: 'Maturity Radar', desc: 'Verify the balance across Authority, Faculty, and Outcome pillars.' },
+      { title: 'Survey Pipeline', desc: 'Review the roadmap to prepare for upcoming accreditation years.' }
+    ],
+    buttons: [
+        { label: 'AY Filter', labelShort: 'AY', action: 'Scopes analytics to a specific academic year.' }
+    ]
+  },
   '/academic-programs?tab=batch-hub': {
     title: 'Programs: Batch Data Hub',
     description: 'Rapid entry module for institutional student and outcome statistics.',
@@ -162,6 +194,17 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [
         { label: 'Apply & Sync', labelShort: 'Save', action: 'Commits batch updates to the central academic registry.' }
+    ]
+  },
+  '/academic-programs?tab=registry': {
+    title: 'Programs: Program Registry',
+    description: 'Comprehensive directory of all university degree offerings.',
+    steps: [
+      { title: 'Status Check', desc: 'Verify if a program is active or closed (phased-out).' },
+      { title: 'College Filter', desc: 'Identify programs belonging to specific academic units.' }
+    ],
+    buttons: [
+        { label: 'Register', labelShort: 'New', action: 'Admins: Add a new program to the university portfolio.' }
     ]
   },
 
@@ -205,6 +248,17 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [
         { label: 'Apply for Form', labelShort: 'Register', action: 'Starts the DRF process to enroll new or revised forms.' }
+    ]
+  },
+  '/unit-forms?tab=roster': {
+    title: 'Form Control: Active Roster',
+    description: 'Browse and download verified controlled documents.',
+    steps: [
+      { title: 'Search Forms', desc: 'Find forms by code (e.g. QAO-01) or official title.' },
+      { title: 'Request Download', desc: 'Logging is mandatory for downloads to maintain the audit trail of form utilization.' }
+    ],
+    buttons: [
+        { label: 'Link Authorized', labelShort: 'Auth', action: 'Opens the secure download link after logging requester info.' }
     ]
   },
   '/unit-forms?tab=register': {
@@ -316,22 +370,44 @@ export const helpContent: Record<string, PageHelp> = {
     nextStep: 'Log your tasks daily to ensure your Monthly Accomplishment Report is accurate for payroll or audit.'
   },
 
-  // --- AUDITconduct / IQA CONDUCT ---
+  // --- AUDIT Conduct / IQA Hub ---
   '/audit': {
-    title: 'Internal Quality Audit',
+    title: 'Internal Quality Audit Hub',
     description: 'Oversight of institutional audit frameworks and itinerary fulfillment.',
     steps: [
-      { title: 'Define Framework', desc: 'Admins: Establish an Audit Plan with scope, criteria, and lead auditors.' },
-      { title: 'Provision Itinerary', desc: 'Add individual sessions for units, assigning auditors and ISO clauses.' },
-      { title: 'Record Findings', desc: 'Auditors: Log evidence and findings (C, OFI, NC) during the live session.' }
+      { title: 'Audit Intelligence', desc: 'Review high-level analytics and finding distribution for the selected year.' },
+      { title: 'Manage Itinerary', desc: 'Switch to the "Registry" tab to provision unit sessions and assign auditors.' }
     ],
     buttons: [
-        { label: 'New Plan', labelShort: 'Plan', action: 'Starts a new institutional audit framework.' },
-        { label: 'Conduct Audit', labelShort: 'Audit', action: 'Opens the Evidence Log Sheet for a provisioned session.' }
+        { label: 'Audit Year', labelShort: 'Year', action: 'Scopes the entire audit hub to a specific fiscal cycle.' },
+        { label: 'New Plan', labelShort: 'Plan', action: 'Starts a new institutional audit framework.' }
+    ]
+  },
+  '/audit?tab=analytics': {
+    title: 'Audit: Analytics',
+    description: 'Strategic visual decision support for internal quality assurance.',
+    steps: [
+      { title: 'Monitor Gaps', desc: 'Review the "Unit Finding Hotspots" to identify offices with open non-conformances.' },
+      { title: 'Check Coverage', desc: 'Analyze the "Clause Audit Density" to see which ISO requirements are being prioritized.' }
+    ],
+    buttons: [
+        { label: 'Print Registry', labelShort: 'Print', action: 'Generates the official Auditor Assignment Registry PDF.' }
+    ]
+  },
+  '/audit?tab=registry': {
+    title: 'Audit: Itinerary Registry',
+    description: 'Management of official IQA plans and individual session scheduling.',
+    steps: [
+      { title: 'Provision Entry', desc: 'Click "Add Entry" on a plan to schedule a unit session with specific ISO clauses.' },
+      { title: 'Framework Clone', desc: 'Use "Clone Plan" to replicate successful audit frameworks across different campuses.' }
+    ],
+    buttons: [
+        { label: 'Add Entry', labelShort: 'Add', action: 'Schedules a specific unit/office for audit conduct.' },
+        { label: 'Consolidate', labelShort: 'Report', action: 'Generates the unified institutional IQA report summary.' }
     ]
   },
 
-  // --- MANUALS ---
+  // --- MANUALS & POLICY ---
   '/manuals': {
     title: 'Procedure Manuals',
     description: 'Institutional operating guidelines and unit-specific procedures.',
@@ -352,6 +428,38 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [
         { label: 'Section', labelShort: 'Open', action: 'Loads the official policy document for review.' }
+    ]
+  },
+
+  // --- SYSTEM SETTINGS ---
+  '/settings': {
+    title: 'System Administration',
+    description: 'Global configuration and institutional hierarchy management.',
+    steps: [
+      { title: 'Select Parameter', desc: 'Use the top tabs to manage Users, Campuses, Units, or Registry Cycles.' },
+      { title: 'Apply Changes', desc: 'Ensure you click "Save" or "Update" after modifying system-wide parameters.' }
+    ]
+  },
+  '/settings?tab=users': {
+    title: 'Settings: User Management',
+    description: 'Verification and access control for university personnel.',
+    steps: [
+      { title: 'Activation', desc: 'Approve pending registrations to grant portal access.' },
+      { title: 'Profile Edit', desc: 'Admins can correct institutional assignments (Campus/Role) for any user.' }
+    ],
+    buttons: [
+        { label: 'Activate', labelShort: 'Auth', action: 'Grants full portal access to the user.' }
+    ]
+  },
+  '/settings?tab=backups': {
+    title: 'Settings: Data & Backups',
+    description: 'Institutional redundancy and audit trail maintenance.',
+    steps: [
+      { title: 'Full Snapshot', desc: 'Download a complete multi-sheet XLSX of every system registry.' },
+      { title: 'Audit Trail', desc: 'Export the permanent log of all user deletions and verification events.' }
+    ],
+    buttons: [
+        { label: 'Download Total', labelShort: 'Export', action: 'Generates the high-density Excel backup workbook.' }
     ]
   }
 };

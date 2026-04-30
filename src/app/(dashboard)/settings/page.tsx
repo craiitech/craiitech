@@ -27,10 +27,21 @@ import { DataBackupManagement } from '@/components/admin/data-backup-management'
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
   const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentTab = searchParams.get('tab') || 'users';
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   
   if (isUserLoading) {
      return (
@@ -50,8 +61,7 @@ export default function SettingsPage() {
   if (isAdmin) {
     return (
       <div className="space-y-4">
-        <Tabs defaultValue="users" className="space-y-4">
-          {/* Sticky Header and Tabs */}
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
           <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
@@ -61,70 +71,70 @@ export default function SettingsPage() {
               </div>
               <ScrollArea className="w-full">
                   <TabsList className="flex md:inline-flex min-w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
-                    <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="logo">System Logo</TabsTrigger>
-                    <TabsTrigger value="signatories">Signatories</TabsTrigger>
-                    <TabsTrigger value="gad">GAD Corner</TabsTrigger>
-                    <TabsTrigger value="campuses">Campuses</TabsTrigger>
-                    <TabsTrigger value="units">Units</TabsTrigger>
-                    <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
-                    <TabsTrigger value="roles">Roles</TabsTrigger>
-                    <TabsTrigger value="advisories">QA Advisories</TabsTrigger>
-                    <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
-                    <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
-                    <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
-                    <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
-                    <TabsTrigger value="backups">Data &amp; Backups</TabsTrigger>
-                    <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
+                    <TabsTrigger value="users" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Users</TabsTrigger>
+                    <TabsTrigger value="logo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">System Logo</TabsTrigger>
+                    <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Signatories</TabsTrigger>
+                    <TabsTrigger value="gad" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">GAD Corner</TabsTrigger>
+                    <TabsTrigger value="campuses" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Campuses</TabsTrigger>
+                    <TabsTrigger value="units" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Units</TabsTrigger>
+                    <TabsTrigger value="unit-grouping" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Explorer</TabsTrigger>
+                    <TabsTrigger value="roles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Roles</TabsTrigger>
+                    <TabsTrigger value="advisories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">QA Advisories</TabsTrigger>
+                    <TabsTrigger value="procedure-manuals" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Procedure Manuals</TabsTrigger>
+                    <TabsTrigger value="eoms-policy-manual" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">RSU EOMS Manual</TabsTrigger>
+                    <TabsTrigger value="cycles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Cycles & Deadlines</TabsTrigger>
+                    <TabsTrigger value="campus-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Campus Settings</TabsTrigger>
+                    <TabsTrigger value="backups" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Data & Backups</TabsTrigger>
+                    <TabsTrigger value="error-reports" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Error Reports</TabsTrigger>
                   </TabsList>
               </ScrollArea>
           </div>
 
-          <TabsContent value="users" className="space-y-4">
+          <TabsContent value="users" className="space-y-4 animate-in fade-in duration-500">
             <UserManagement />
           </TabsContent>
-          <TabsContent value="logo" className="space-y-4">
+          <TabsContent value="logo" className="space-y-4 animate-in fade-in duration-500">
             <LogoManagement />
           </TabsContent>
-          <TabsContent value="signatories" className="space-y-4">
+          <TabsContent value="signatories" className="space-y-4 animate-in fade-in duration-500">
             <SignatoryManagement />
           </TabsContent>
-          <TabsContent value="gad" className="space-y-4">
+          <TabsContent value="gad" className="space-y-4 animate-in fade-in duration-500">
             <GadSettingsManagement />
           </TabsContent>
-          <TabsContent value="campuses" className="space-y-4">
+          <TabsContent value="campuses" className="space-y-4 animate-in fade-in duration-500">
             <CampusManagement />
           </TabsContent>
-          <TabsContent value="units" className="space-y-4">
+          <TabsContent value="units" className="space-y-4 animate-in fade-in duration-500">
             <AdminUnitManagement />
           </TabsContent>
-          <TabsContent value="unit-grouping" className="space-y-4">
+          <TabsContent value="unit-grouping" className="space-y-4 animate-in fade-in duration-500">
             <UnitGroupingExplorer />
           </TabsContent>
-          <TabsContent value="roles" className="space-y-4">
+          <TabsContent value="roles" className="space-y-4 animate-in fade-in duration-500">
             <RoleManagement />
           </TabsContent>
-          <TabsContent value="advisories" className="space-y-4">
+          <TabsContent value="advisories" className="space-y-4 animate-in fade-in duration-500">
             <AdvisoryManagement />
           </TabsContent>
-          <TabsContent value="procedure-manuals" className="space-y-4">
+          <TabsContent value="procedure-manuals" className="space-y-4 animate-in fade-in duration-500">
             <ProcedureManualManagement />
           </TabsContent>
-          <TabsContent value="eoms-policy-manual" className="space-y-4">
+          <TabsContent value="eoms-policy-manual" className="space-y-4 animate-in fade-in duration-500">
             <EomsPolicyManualManagement />
           </TabsContent>
-           <TabsContent value="cycles" className="space-y-4">
+           <TabsContent value="cycles" className="space-y-4 animate-in fade-in duration-500">
             <CycleManagement />
           </TabsContent>
-           <TabsContent value="campus-settings" className="space-y-6">
+           <TabsContent value="campus-settings" className="space-y-6 animate-in fade-in duration-500">
             <CampusSettingsManagement />
             <Separator />
             <AnnouncementManagement />
           </TabsContent>
-          <TabsContent value="backups" className="space-y-4">
-             DataBackupManagement />
+          <TabsContent value="backups" className="space-y-4 animate-in fade-in duration-500">
+            <DataBackupManagement />
           </TabsContent>
-           <TabsContent value="error-reports" className="space-y-4">
+           <TabsContent value="error-reports" className="space-y-4 animate-in fade-in duration-500">
             <ErrorReportManagement />
           </TabsContent>
         </Tabs>
@@ -141,13 +151,16 @@ export default function SettingsPage() {
                 Manage settings and resources specific to your campus.
               </p>
             </div>
-            <div>
-                <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
-                <DirectorUnitManagement />
-            </div>
-             <div>
-                <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
-                <CampusSettingsManagement />
+            <div className="space-y-8 pt-4">
+                <div>
+                    <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-primary">Unit Management</h3>
+                    <DirectorUnitManagement />
+                </div>
+                <Separator />
+                <div>
+                    <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-primary">Campus Announcement</h3>
+                    <CampusSettingsManagement />
+                </div>
             </div>
         </div>
       )
