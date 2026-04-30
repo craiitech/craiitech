@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * @fileOverview Rich step-by-step guidance data for RSU EOMS Portal modules.
  * This registry powers the PageGuidance sidebar and updates dynamically via route + tab detection.
@@ -223,11 +225,78 @@ export const helpContent: Record<string, PageHelp> = {
     title: 'QA Reports & CARs',
     description: 'Central vault for Audit summaries, Management Reviews, and Corrective Actions.',
     steps: [
-      { title: 'Monitor Decisions', desc: 'Check the "Actionable Decisions" tab to see tasks assigned from MR sessions.' },
-      { title: 'Track CARs', desc: 'Review the Corrective Action Request registry to identify unresolved non-conformities.' }
+      { title: 'Strategic Review', desc: 'Access high-level institutional quality summaries and decision trackers.' },
+      { title: 'Select Module', desc: 'Use the tab navigation to switch between Analytics, Decisions, CARs, or Audit Reports.' }
     ],
     buttons: [
-        { label: 'Registry', labelShort: 'Log', action: 'Narrows the view to a specific report category.' }
+        { label: 'Year Filter', labelShort: 'Year', action: 'Scopes all registry data to a specific review year.' }
+    ]
+  },
+  '/qa-reports?tab=overview': {
+    title: 'QA Reports: Overview',
+    description: 'Visual analytics of institutional non-conformities and audit findings.',
+    steps: [
+      { title: 'Resolution Rate', desc: 'Monitor the institutional score for closing Corrective Action Requests.' },
+      { title: 'Findings Profile', desc: 'Review the distribution of NCs vs OFIs to identify systemic quality risks.' }
+    ],
+    buttons: [
+        { label: 'Resolution', labelShort: 'Rate', action: 'Percent of CARs closed vs total issued.' }
+    ]
+  },
+  '/qa-reports?tab=decisions': {
+    title: 'QA Reports: Decisions',
+    description: 'Tracking the implementation of tasks assigned from Management Reviews.',
+    steps: [
+      { title: 'Identify Assignment', desc: 'Filter the list to find decisions assigned to your unit or campus.' },
+      { title: 'Update Status', desc: 'Click "Update" to record action taken, attach evidence, and move items toward closure.' }
+    ],
+    buttons: [
+        { label: 'Update', labelShort: 'Log', action: 'Opens the decision implementation tracking form.' }
+    ]
+  },
+  '/qa-reports?tab=car': {
+    title: 'QA Reports: CAR Registry',
+    description: 'The master log of all Corrective Action Requests issued during audits.',
+    steps: [
+      { title: 'Respond to NC', desc: 'Units: If you have an "Open" CAR, click "Manage" to perform root cause analysis.' },
+      { title: 'Final Verification', desc: 'Admins: Review unit responses and verify effectiveness to close the CAR.' }
+    ],
+    buttons: [
+        { label: 'Print Registry', labelShort: 'Print', action: 'Generates the official CAR Control Register (QAO-00-019).' },
+        { label: 'Issue CAR', labelShort: 'New', action: 'Opens the form to create a new institutional request.' }
+    ]
+  },
+  '/qa-reports?tab=iqa': {
+    title: 'QA Reports: IQA Vault',
+    description: 'Permanent archive of Internal Quality Audit summary reports.',
+    steps: [
+      { title: 'Access Records', desc: 'Browse internal audit history for Romblon State University.' },
+      { title: 'Preview Files', desc: 'Use the "Preview" button to view the vaulted PDF evidence directly in the portal.' }
+    ],
+    buttons: [
+        { label: 'Vault', labelShort: 'Open', action: 'Accesses the institutional IQA document archive.' }
+    ]
+  },
+  '/qa-reports?tab=eqa': {
+    title: 'QA Reports: EQA Vault',
+    description: 'Repository for External Quality Audit reports from certifying bodies (e.g., TUV, AACCUP).',
+    steps: [
+      { title: 'Partner Reports', desc: 'Review findings from external assessors and third-party quality partners.' },
+      { title: 'Compliance Prep', desc: 'Reference these reports when preparing for re-certification surveys.' }
+    ],
+    buttons: [
+        { label: 'External', labelShort: 'View', action: 'Loads official reports from external quality bodies.' }
+    ]
+  },
+  '/qa-reports?tab=mr': {
+    title: 'QA Reports: Management Review',
+    description: 'Log of institutional review sessions and official meeting minutes.',
+    steps: [
+      { title: 'Session History', desc: 'Select a session from the sidebar to view its specific decisions and outputs.' },
+      { title: 'Open Minutes', desc: 'Click the minutes link to access the signed record of the session proceedings.' }
+    ],
+    buttons: [
+        { label: 'New Session', labelShort: 'Add', action: 'Registers a new MR meeting into the system.' }
     ]
   },
 

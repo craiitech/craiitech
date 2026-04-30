@@ -65,24 +65,24 @@ export default function QaReportsPage() {
             </div>
 
             <ScrollArea className="w-full">
-                <TabsList className="bg-white border shadow-sm flex md:inline-flex min-w-max h-auto p-1 animate-tab-highlight rounded-md">
-                  <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
-                    <BarChart3 className="h-3.5 w-3.5" /> Overview
+                <TabsList className="bg-muted p-1 border shadow-sm flex md:inline-flex min-w-max h-10 animate-tab-highlight rounded-md">
+                  <TabsTrigger value="overview" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                    <BarChart3 className="h-4 w-4" /> Overview
                   </TabsTrigger>
-                  <TabsTrigger value="decisions" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
-                    <ListTodo className="h-3.5 w-3.5" /> Actionable Decisions
+                  <TabsTrigger value="decisions" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                    <ListTodo className="h-4 w-4" /> Actionable Decisions
                   </TabsTrigger>
-                  <TabsTrigger value="car" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
-                    <ClipboardCheck className="h-3.5 w-3.5" /> CAR Registry
+                  <TabsTrigger value="car" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                    <ClipboardCheck className="h-4 w-4" /> CAR Registry
                   </TabsTrigger>
-                  <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
-                    <FileText className="h-3.5 w-3.5" /> IQA Reports
+                  <TabsTrigger value="iqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                    <FileText className="h-4 w-4" /> IQA Reports
                   </TabsTrigger>
-                  <TabsTrigger value="eqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
-                    <Presentation className="h-3.5 w-3.5" /> EQA Reports
+                  <TabsTrigger value="eqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                    <Presentation className="h-4 w-4" /> EQA Reports
                   </TabsTrigger>
-                  <TabsTrigger value="mr" className="gap-2 px-4 py-2 font-bold uppercase text-[10px] h-8">
-                    <Users className="h-3.5 w-3.5" /> Management Review
+                  <TabsTrigger value="mr" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                    <Users className="h-4 w-4" /> Management Review
                   </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -92,23 +92,23 @@ export default function QaReportsPage() {
           <QaAnalyticsTab />
         </TabsContent>
 
-        <TabsContent value="decisions">
+        <TabsContent value="decisions" className="animate-in fade-in duration-500">
           <ActionableDecisionsTab campuses={campuses || []} units={units || []} />
         </TabsContent>
 
-        <TabsContent value="car">
+        <TabsContent value="car" className="animate-in fade-in duration-500">
           <CorrectiveActionRequestTab campuses={campuses || []} units={units || []} canManage={canManage} />
         </TabsContent>
 
-        <TabsContent value="iqa">
+        <TabsContent value="iqa" className="animate-in fade-in duration-500">
           <AuditReportsTab type="IQA" campuses={campuses || []} canManage={canManage} />
         </TabsContent>
 
-        <TabsContent value="eqa">
+        <TabsContent value="eqa" className="animate-in fade-in duration-500">
           <AuditReportsTab type="EQA" campuses={campuses || []} canManage={canManage} />
         </TabsContent>
 
-        <TabsContent value="mr">
+        <TabsContent value="mr" className="animate-in fade-in duration-500">
           <ManagementReviewTab campuses={campuses || []} units={units || []} canManage={canManage} />
         </TabsContent>
       </Tabs>
