@@ -56,7 +56,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
   return (
     <div className={cn(
       "w-full lg:w-80 shrink-0", 
-      "lg:sticky lg:top-[5.5rem] lg:h-[calc(100vh-8rem)]", // Enforced sticky layout for the guidance column
+      "lg:sticky lg:top-0 lg:h-full", // Sticky relative to its scroll container in layout.tsx
       className
     )}>
       <Card className="h-full border-primary/20 shadow-xl bg-white/70 backdrop-blur-md flex flex-col overflow-hidden">

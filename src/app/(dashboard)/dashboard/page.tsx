@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -881,7 +880,7 @@ export default function HomePage() {
     return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
       {/* Sticky Header and Tabs */}
-      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Home</h2>
@@ -980,7 +979,7 @@ export default function HomePage() {
                                 </div>
                             </div>
                             <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="h-7 font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
-                                <Printer className="h-3 w-3 mr-1" /> Print Log
+                                <Printer className="h-3.5 w-3.5 mr-1" /> Print Log
                             </Button>
                         </div>
                     )}
@@ -1081,7 +1080,7 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Home</h2>
               <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
@@ -1166,7 +1165,7 @@ export default function HomePage() {
   const renderSupervisorHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
         {/* Sticky Header and Tabs */}
-        <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">Home</h2>
@@ -1250,7 +1249,11 @@ export default function HomePage() {
                         </p>
                     </div>
                 </CardFooter></Card>
-                {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
+                {selectedDetail && (
+                    <div className="sticky top-[10rem] z-20">
+                        <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+                    </div>
+                )}
             </div>
         </div>
       </TabsContent>
@@ -1277,7 +1280,7 @@ export default function HomePage() {
   const renderAdminHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
       {/* Sticky Header and Tabs */}
-      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">Home</h2>
@@ -1356,7 +1359,11 @@ export default function HomePage() {
                 </CardFooter></Card>
             </div>
         </div>
-        {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
+        {selectedDetail && (
+            <div className="sticky top-[10rem] z-20">
+                <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+            </div>
+        )}
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />

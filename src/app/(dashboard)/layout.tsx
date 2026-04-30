@@ -270,16 +270,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Sidebar>
           <SidebarInset className="overflow-hidden">
             <Header notificationCount={notificationCount} />
-            <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-[calc(100vh-4rem)] overflow-hidden">
-                <div className="flex-1 min-w-0 overflow-y-auto">
+            <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-y-auto h-full pr-2">
                     {children}
                 </div>
                 {/* 
                    Persistent Page Guidance Column
-                   Sticky and internally scrollable as requested.
+                   Sticky and internally scrollable.
                 */}
                 <Suspense fallback={<div className="w-80 shrink-0" />}>
-                  <PageGuidance className="hidden lg:block" />
+                  <PageGuidance className="hidden lg:block h-full" />
                 </Suspense>
             </main>
             <Chatbot />
