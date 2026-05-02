@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,8 +7,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { doc, updateDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette, Users, Lock, KeyRound } from 'lucide-react';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette, Users, Lock, KeyRound, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
@@ -38,6 +39,17 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
@@ -61,6 +73,10 @@ const passwordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const deleteAccountSchema = z.object({
+  password: z.string().min(1, 'Please enter your password to confirm deletion.'),
+});
+
 const fontSizeMap = [0.8, 1.0, 1.2, 1.4];
 const fontSizeLabels = ['Small (80%)', 'Default (100%)', 'Large (120%)', 'Extra Large (140%)'];
 
@@ -79,6 +95,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { logSessionActivity } = useSessionActivity();
 
   const form = useForm<z.infer<typeof profileSchema>>({
@@ -100,6 +118,11 @@ export default function ProfilePage() {
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
       resolver: zodResolver(passwordSchema),
       defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' }
+  });
+
+  const deleteForm = useForm<z.infer<typeof deleteAccountSchema>>({
+      resolver: zodResolver(deleteAccountSchema),
+      defaultValues: { password: '' }
   });
 
   useEffect(() => {
@@ -201,7 +224,7 @@ export default function ProfilePage() {
         if (error.code === 'auth/wrong-password') {
             msg = 'The "Current Password" you provided is incorrect.';
         } else if (error.code === 'auth/requires-recent-login') {
-            msg = 'For security reasons, please logout and log back in before updating your password.';
+            msg = 'For security reasons, please logout and log back in before attempting this update again.';
         }
         
         toast({ 
@@ -211,6 +234,41 @@ export default function ProfilePage() {
         });
     } finally {
         setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async (values: z.infer<typeof deleteAccountSchema>) => {
+    if (!user || !user.email || !firestore) return;
+    setIsDeletingAccount(true);
+
+    try {
+        // 1. Re-authenticate
+        const credential = EmailAuthProvider.credential(user.email, values.password);
+        await reauthenticateWithCredential(user, credential);
+
+        // 2. Log intention to system audit (Institutional requirement)
+        logSessionActivity(`User self-initiated account deletion. Submissions are preserved.`, { 
+            action: 'delete_own_account', 
+            details: { email: user.email } 
+        });
+
+        // 3. Delete Firestore profile (Personal data removal)
+        const userRef = doc(firestore, 'users', user.uid);
+        await deleteDoc(userRef);
+
+        // 4. Delete Auth account
+        await deleteUser(user);
+
+        toast({ title: 'Account Deleted', description: 'Your personal data and access have been removed. Registry logs were preserved for audit.' });
+        router.push('/');
+    } catch (error: any) {
+        console.error('Account Deletion Error:', error);
+        let msg = 'Could not delete account. Please verify your password.';
+        if (error.code === 'auth/wrong-password') {
+            msg = 'The password you provided is incorrect.';
+        }
+        toast({ title: 'Operation Failed', description: msg, variant: 'destructive' });
+        setIsDeletingAccount(false);
     }
   };
   
@@ -567,6 +625,83 @@ export default function ProfilePage() {
                     <p className="text-[10px] text-amber-700/70 italic">
                         If you need to change your assigned Unit or Role, please contact the Quality Assurance Office directly as these details are locked for audit integrity.
                     </p>
+                </CardContent>
+            </Card>
+
+            <Card className="border-destructive/20 bg-destructive/5 overflow-hidden">
+                <CardHeader className="bg-destructive/10 border-b py-4">
+                    <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
+                        <Trash2 className="h-5 w-5" /> Danger Zone
+                    </CardTitle>
+                    <CardDescription className="text-xs">Irreversible actions for your institutional account.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                    <div className="flex flex-col gap-4">
+                        <div className="space-y-1">
+                            <h4 className="text-sm font-bold text-slate-900">Delete This Account</h4>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                Once deleted, you will no longer have access to the RSU EOMS Portal. Your personal profile data and login credentials will be removed.
+                            </p>
+                        </div>
+                        <Alert variant="destructive" className="bg-white border-destructive/20">
+                            <Info className="h-4 w-4" />
+                            <AlertTitle className="text-[10px] font-black uppercase tracking-tight">Institutional Persistence Note</AlertTitle>
+                            <AlertDescription className="text-[10px] font-medium leading-tight">
+                                To maintain institutional audit integrity, all documents you have <strong>submitted</strong> or <strong>approved</strong> will remain in the university registry linked to your institutional identity string.
+                            </AlertDescription>
+                        </Alert>
+                        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="font-black uppercase text-[10px] tracking-widest shadow-lg shadow-destructive/20 h-11">
+                                    Permanently Delete Account
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <div className="flex items-center gap-2 text-destructive mb-2">
+                                        <ShieldAlert className="h-6 w-6" />
+                                        <AlertDialogTitle>Account Deletion Request</AlertDialogTitle>
+                                    </div>
+                                    <AlertDialogDescription className="space-y-4">
+                                        <p className="text-sm font-bold text-slate-900">Are you absolutely sure you want to delete your institutional account?</p>
+                                        <p className="text-xs text-muted-foreground leading-relaxed italic">
+                                            This action will remove your profile and authentication record. Your submissions will be preserved in the RSU EOMS Registry for quality auditing compliance.
+                                        </p>
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <Form {...deleteForm}>
+                                                <form className="space-y-3">
+                                                    <FormField
+                                                        control={deleteForm.control}
+                                                        name="password"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-[10px] font-black uppercase text-slate-500">Enter Password to Confirm</FormLabel>
+                                                                <FormControl>
+                                                                    <Input type="password" {...field} className="h-10 bg-slate-50" placeholder="••••••••" />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </form>
+                                            </Form>
+                                        </div>
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="mt-4">
+                                    <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
+                                    <Button 
+                                        onClick={deleteForm.handleSubmit(handleDeleteAccount)} 
+                                        disabled={isDeletingAccount} 
+                                        className="bg-destructive hover:bg-destructive/90 font-black uppercase text-[10px] tracking-widest h-10 px-8"
+                                    >
+                                        {isDeletingAccount ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                        Delete My Data
+                                    </Button>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                 </CardContent>
             </Card>
         </div>
