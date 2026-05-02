@@ -99,6 +99,8 @@ export default function ProfilePage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { logSessionActivity } = useSessionActivity();
 
+  const canEdit = !isSubmitting && !isUpdatingPassword && !isDeletingAccount;
+
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -302,7 +304,7 @@ export default function ProfilePage() {
                             <FormItem>
                                 <FormLabel className="text-[10px] font-bold uppercase">First Name</FormLabel>
                                 <FormControl>
-                                <Input placeholder="First Name" {...field} className="h-9 font-bold" />
+                                <Input placeholder="First Name" {...field} className="h-9 font-bold" disabled={!canEdit} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -315,7 +317,7 @@ export default function ProfilePage() {
                             <FormItem>
                                 <FormLabel className="text-[10px] font-bold uppercase">Last Name</FormLabel>
                                 <FormControl>
-                                <Input placeholder="Last Name" {...field} className="h-9 font-bold" />
+                                <Input placeholder="Last Name" {...field} className="h-9 font-bold" disabled={!canEdit} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -333,6 +335,7 @@ export default function ProfilePage() {
                               key={field.value || 'profile-sex-selector'}
                               onValueChange={field.onChange} 
                               value={field.value || ''}
+                              disabled={!canEdit}
                             >
                             <FormControl>
                                 <SelectTrigger className="h-9 font-bold">
@@ -384,7 +387,7 @@ export default function ProfilePage() {
                     </div>
                 </CardContent>
                 <CardFooter className="bg-muted/10 border-t py-4">
-                    <Button type="submit" disabled={isSubmitting || isLoading} className="w-full shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest">
+                    <Button type="submit" disabled={!canEdit} className="w-full shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest">
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Profile Updates
                     </Button>
@@ -414,6 +417,7 @@ export default function ProfilePage() {
                                 step={1} 
                                 value={[currentFontSizeIndex]} 
                                 onValueChange={(vals) => form.setValue('accessibility.fontSize', fontSizeMap[vals[0]])}
+                                disabled={!canEdit}
                             />
                             <div className="flex justify-between mt-2 text-[9px] font-black uppercase text-muted-foreground tracking-tighter">
                                 <span>Small</span>
@@ -437,6 +441,7 @@ export default function ProfilePage() {
                                 onValueChange={field.onChange}
                                 value={field.value}
                                 className="flex flex-wrap gap-4 pt-2"
+                                disabled={!canEdit}
                             >
                                 {colorPalettes.map((palette) => (
                                 <div key={palette.id} className="flex items-center space-x-2">
@@ -473,7 +478,7 @@ export default function ProfilePage() {
                             <FormDescription className="text-[10px]">Increases readability by sharpening colors and border definitions.</FormDescription>
                             </div>
                             <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            <Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canEdit} />
                             </FormControl>
                         </FormItem>
                         )}
@@ -549,7 +554,7 @@ export default function ProfilePage() {
                                     <FormControl>
                                         <div className="relative">
                                             <KeyRound className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground opacity-50" />
-                                            <Input type="password" {...field} className="pl-9 bg-slate-50" placeholder="••••••••" />
+                                            <Input type="password" {...field} className="pl-9 bg-slate-50" placeholder="••••••••" disabled={!canEdit} />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -566,7 +571,7 @@ export default function ProfilePage() {
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-black uppercase text-primary">New Password</FormLabel>
                                     <FormControl>
-                                        <Input type="password" {...field} className="h-10 font-bold" placeholder="Minimum 6 characters" />
+                                        <Input type="password" {...field} className="h-10 font-bold" placeholder="Minimum 6 characters" disabled={!canEdit} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -580,7 +585,7 @@ export default function ProfilePage() {
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-black uppercase text-primary">Confirm New Password</FormLabel>
                                     <FormControl>
-                                        <Input type="password" {...field} className="h-10 font-bold" />
+                                        <Input type="password" {...field} className="h-10 font-bold" disabled={!canEdit} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -596,7 +601,7 @@ export default function ProfilePage() {
 
                             <Button 
                                 type="submit" 
-                                disabled={isUpdatingPassword} 
+                                disabled={!canEdit} 
                                 className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
                             >
                                 {isUpdatingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
