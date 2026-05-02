@@ -50,6 +50,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
@@ -242,21 +243,17 @@ export default function ProfilePage() {
     setIsDeletingAccount(true);
 
     try {
-        // 1. Re-authenticate
         const credential = EmailAuthProvider.credential(user.email, values.password);
         await reauthenticateWithCredential(user, credential);
 
-        // 2. Log intention to system audit (Institutional requirement)
         logSessionActivity(`User self-initiated account deletion. Submissions are preserved.`, { 
             action: 'delete_own_account', 
             details: { email: user.email } 
         });
 
-        // 3. Delete Firestore profile (Personal data removal)
         const userRef = doc(firestore, 'users', user.uid);
         await deleteDoc(userRef);
 
-        // 4. Delete Auth account
         await deleteUser(user);
 
         toast({ title: 'Account Deleted', description: 'Your personal data and access have been removed. Registry logs were preserved for audit.' });
@@ -276,7 +273,6 @@ export default function ProfilePage() {
 
   const currentFontSize = form.watch('accessibility.fontSize') || 1.0;
   const currentFontSizeIndex = fontSizeMap.indexOf(currentFontSize);
-  const sexValue = form.watch('sex');
 
   return (
     <div className="space-y-6">
