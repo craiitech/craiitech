@@ -35,4 +35,4 @@ npm install
 npm run dev
 ```
 
-The application will be available at `https//eoms.rsu.edu.ph
+The application will be available at `https//eoms.rsu.edu.ph'
