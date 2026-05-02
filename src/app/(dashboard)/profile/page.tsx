@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -30,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette, Users, Lock, KeyRound, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react';
-import type { Campus, Unit, Role } from '@/lib/types';
+import type { Campus, Unit, User, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -492,7 +491,7 @@ export default function ProfilePage() {
                             <FormDescription className="text-[10px]">Optimizes character spacing and line height for improved cognitive flow.</FormDescription>
                             </div>
                             <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            <Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canEdit} />
                             </FormControl>
                         </FormItem>
                         )}
@@ -510,7 +509,7 @@ export default function ProfilePage() {
                             <FormDescription className="text-[10px]">Disables UI animations and transitions to prevent vestibular triggers.</FormDescription>
                             </div>
                             <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            <Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canEdit} />
                             </FormControl>
                         </FormItem>
                         )}
@@ -639,6 +638,15 @@ export default function ProfilePage() {
                                 Once deleted, you will no longer have access to the RSU EOMS Portal. Your personal profile data and login credentials will be removed.
                             </p>
                         </div>
+                        
+                        <Alert className="bg-white border-primary/20">
+                            <ShieldCheck className="h-4 w-4 text-primary" />
+                            <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-primary">Data Privacy Provision (RA 10173)</AlertTitle>
+                            <AlertDescription className="text-[10px] font-medium leading-tight text-slate-600">
+                                In accordance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, specifically the <em>Right to Erasure or Blocking</em>, you may request the removal of your personal identity data from this system. Note that institutional evidence (submissions) is retained for legal and auditing purposes as permitted by law.
+                            </AlertDescription>
+                        </Alert>
+
                         <Alert variant="destructive" className="bg-white border-destructive/20">
                             <Info className="h-4 w-4" />
                             <AlertTitle className="text-[10px] font-black uppercase tracking-tight">Institutional Persistence Note</AlertTitle>
@@ -646,6 +654,7 @@ export default function ProfilePage() {
                                 To maintain institutional audit integrity, all documents you have <strong>submitted</strong> or <strong>approved</strong> will remain in the university registry linked to your institutional identity string.
                             </AlertDescription>
                         </Alert>
+
                         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" className="font-black uppercase text-[10px] tracking-widest shadow-lg shadow-destructive/20 h-11">
