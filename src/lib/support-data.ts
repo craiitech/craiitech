@@ -20,6 +20,32 @@ export const faqs = [
     ],
   },
   {
+    role: 'Account Security & Data Privacy (RA 10173)',
+    questions: [
+      {
+        question: 'Can I delete my account?',
+        answer: 'Yes. In compliance with the Data Privacy Act of 2012 (RA 10173), users have the "Right to Erasure". You can permanently delete your account through the Profile page under the "Danger Zone" section. This requires your current password for security verification.',
+      },
+      {
+        question: 'What happens to my submissions if I delete my account?',
+        answer: 'While your personal authentication and profile are removed, all "Evidence Logs", "Submissions", and "Activity Logs" are preserved in the institutional registry. These records stay linked to your institutional identity string to maintain the integrity of university quality audits.',
+      },
+    ],
+  },
+  {
+    role: 'App Installation & Printing',
+    questions: [
+      {
+        question: 'How do I install the portal as an App on my device?',
+        answer: 'The RSU EOMS Portal is a Progressive Web App (PWA). When you log in, the system may prompt you with an installation dialog. You can also click the "Install" icon in your browser address bar (Chrome/Edge) or "Add to Home Screen" (Safari on iOS) to run the portal as a standalone window with a desktop shortcut.',
+      },
+      {
+        question: 'What is the required paper size for printing Audit Evidence Logs?',
+        answer: 'Institutional standards require all IQA Evidence Logs to be printed on Folio (8.5" x 13") paper. The system is hard-coded to enforce 0.5-inch margins and 11pt/12pt typography to ensure professional archival quality.',
+      },
+    ],
+  },
+  {
     role: 'Accessibility & Inclusivity (PWD Support)',
     questions: [
       {

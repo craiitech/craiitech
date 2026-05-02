@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search, Database, History, Target, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
+import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search, Database, History, Target, ShieldAlert, CheckCircle2, Info, Monitor, Trash2, Printer } from 'lucide-react';
 
 const manualSections = [
   {
@@ -30,8 +30,44 @@ const manualSections = [
         content: `
           <p>Analytics and registries are scoped by Academic Year. Ensure you have selected the correct <strong>AY Filter</strong> in your dashboard to view the relevant compliance matrix and stats.</p>
         `,
+      },
+      {
+        title: 'Data Privacy & Account Deletion (RA 10173)',
+        content: `
+          <p>In accordance with the <strong>Data Privacy Act of 2012</strong>, users possess the Right to Erasure:</p>
+          <ul class="list-disc space-y-2 pl-6">
+            <li><strong>Self-Initiated Deletion:</strong> Users can delete their personal accounts via the Profile workspace. This removes personal credentials and profile documents.</li>
+            <li><strong>Audit Persistence:</strong> To ensure institutional accountability, all <strong>Submissions</strong> and <strong>Activity Logs</strong> remain in the university registry linked to the user's institutional ID.</li>
+          </ul>
+        `,
       }
     ],
+  },
+  {
+    role: 'Technical & App Usage',
+    sections: [
+      {
+        title: 'Standalone App Usage (PWA)',
+        content: `
+          <p>For a professional, non-browser workspace, it is recommended to install the portal as an application:</p>
+          <ul class="list-disc space-y-2 pl-6">
+            <li><strong>Installation:</strong> Follow the on-screen prompt or use the browser's "Add to Home Screen" feature.</li>
+            <li><strong>Benefits:</strong> Access the portal directly from your taskbar or home screen without the distraction of browser tabs.</li>
+          </ul>
+        `,
+      },
+      {
+        title: 'Archival Printing Standards',
+        content: `
+          <p>To ensure consistency in physical university archives, the following standards are enforced:</p>
+          <ul class="list-disc space-y-2 pl-6">
+            <li><strong>Paper Size:</strong> All Evidence Logs and CAR reports are formatted for <strong>Folio (8.5" x 13")</strong>.</li>
+            <li><strong>Margins:</strong> A strict <strong>0.5-inch margin</strong> is applied to all sides of printed documents.</li>
+            <li><strong>Typography:</strong> Font sizes are optimized (10pt - 12pt) for high-density legibility in printed form.</li>
+          </ul>
+        `,
+      }
+    ]
   },
   {
     role: 'Unit Coordinators & ODIMOs',
@@ -172,16 +208,16 @@ export default function UserManualPage() {
                 <span className="text-[9px] font-black uppercase">Core Reports</span>
             </div>
             <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <TrendingUp className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">Decision Support</span>
+                <Monitor className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">Standalone App</span>
             </div>
             <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <ClipboardCheck className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">IQA Conduct</span>
+                <Printer className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">Folio Printing</span>
             </div>
             <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <Database className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">Data Backups</span>
+                <Trash2 className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">Data Privacy</span>
             </div>
         </div>
 
