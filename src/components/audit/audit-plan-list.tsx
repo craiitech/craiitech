@@ -179,24 +179,25 @@ function PlanItineraryRegistry({
                     <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>Evidence Log Template - ${schedule.targetName}</title>
+                        <title>Audit Evidence Template - ${schedule.targetName}</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
+                            @page { 
+                                size: 8.5in 13in !important; 
+                                margin: 0.5in !important; 
+                            }
                             @media print { 
-                                @page { 
-                                    size: 8.5in 13in !important; 
-                                    margin: 0.5in !important; 
-                                }
                                 body { 
                                     margin: 0 !important; 
                                     padding: 0 !important; 
                                     background: white; 
+                                    width: 100% !important;
                                     -webkit-print-color-adjust: exact;
                                 } 
                                 .no-print { display: none !important; }
-                                table { width: 100%; border-collapse: collapse; }
+                                table { width: 100% !important; border-collapse: collapse !important; }
                                 thead { display: table-header-group !important; }
-                                tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+                                tr { page-break-inside: avoid !important; }
                             }
                             body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                         </style>
@@ -205,7 +206,7 @@ function PlanItineraryRegistry({
                         <div class="no-print mb-8 flex justify-center">
                             <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Blank Evidence Log</button>
                         </div>
-                        <div id="print-content">
+                        <div id="print-content" style="padding: 0.1in;">
                             ${reportHtml}
                         </div>
                     </body>
@@ -505,11 +506,11 @@ export function AuditPlanList({
                     <title>Audit Plan - ${plan.auditNumber}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
                         @media print { 
-                            @page { 
-                                size: 8.5in 13in !important; 
-                                margin: 0.5in !important; 
-                            }
                             body { 
                                 margin: 0 !important; 
                                 padding: 0 !important; 
@@ -531,7 +532,7 @@ export function AuditPlanList({
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Detailed Audit Plan</button>
                     </div>
-                    <div id="print-content">
+                    <div id="print-content" style="padding: 0.1in;">
                         ${reportsHtml}
                     </div>
                 </body>
@@ -558,7 +559,7 @@ export function AuditPlanList({
             const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
             
             return renderToStaticMarkup(
-                <div key={schedule.id} className="print-page-break mb-12">
+                <div key={schedule.id} className="print-page-break mb-12" style={{ pageBreakAfter: 'always', paddingTop: '0.1in' }}>
                     <AuditPrintTemplate 
                         schedule={schedule}
                         findings={scheduleFindings}
@@ -580,24 +581,24 @@ export function AuditPlanList({
                     <title>Batch Evidence Logs - ${plan.auditNumber}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
                         @media print { 
-                            @page { 
-                                size: 8.5in 13in !important; 
-                                margin: 0.5in !important; 
-                            }
                             body { 
                                 margin: 0 !important; 
                                 padding: 0 !important; 
                                 background: white; 
-                                font-size: 11pt; 
+                                width: 100% !important;
                                 -webkit-print-color-adjust: exact;
                             } 
                             .no-print { display: none !important; }
-                            .print-page-break { page-break-after: always; margin-top: 0in; }
-                            .print-page-break:last-child { page-break-after: auto; }
-                            table { width: 100%; border-collapse: collapse; }
+                            .print-page-break { page-break-after: always !important; }
+                            .print-page-break:last-child { page-break-after: auto !important; }
+                            table { width: 100% !important; border-collapse: collapse !important; }
                             thead { display: table-header-group !important; }
-                            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+                            tr { page-break-inside: avoid !important; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                     </style>
@@ -606,7 +607,7 @@ export function AuditPlanList({
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-primary text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Print Full Evidence Registry</button>
                     </div>
-                    <div id="print-content">
+                    <div id="print-content" style="padding: 0.1in;">
                         ${logsHtml}
                     </div>
                 </body>
@@ -648,15 +649,18 @@ export function AuditPlanList({
                     <title>Consolidated Audit Report - ${plan.auditNumber}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
                         @media print { 
-                            @page { size: 8.5in 13in; margin: 0.5in !important; }
                             body { margin: 0 !important; padding: 0 !important; background: white; font-size: 11pt; } 
                             .no-print { display: none !important; }
                             .print-page-break { page-break-after: always; }
                             .print-page-break:last-child { page-break-after: auto; }
                             table { width: 100%; border-collapse: collapse; }
-                            thead { display: table-header-group; }
-                            tr { page-break-inside: avoid; page-break-after: auto; }
+                            thead { display: table-header-group !important; }
+                            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                     </style>
@@ -665,7 +669,7 @@ export function AuditPlanList({
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Print Consolidated Institutional Report</button>
                     </div>
-                    <div id="print-content">
+                    <div id="print-content" style="padding: 0.1in;">
                         ${reportHtml}
                     </div>
                 </body>

@@ -228,35 +228,31 @@ export default function AuditExecutionPage() {
                     <title>IQA Evidence Log - ${schedule.targetName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
                         @media print { 
-                            @page { 
-                                size: 8.5in 13in !important; 
-                                margin: 0.5in !important; 
-                            }
                             body { 
                                 margin: 0 !important; 
                                 padding: 0 !important; 
                                 background: white; 
+                                width: 100% !important;
                                 -webkit-print-color-adjust: exact;
                             } 
                             .no-print { display: none !important; }
-                            table { 
-                                page-break-inside: auto; 
-                                width: 100%; 
-                                border-collapse: collapse; 
-                            }
+                            table { width: 100% !important; border-collapse: collapse !important; }
                             thead { display: table-header-group !important; }
-                            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+                            tr { page-break-inside: avoid !important; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                        .text-center { text-align: center; }
                     </style>
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print IQA Report</button>
                     </div>
-                    <div id="print-content">
+                    <div id="print-content" style="padding: 0.1in;">
                         ${reportHtml}
                     </div>
                 </body>

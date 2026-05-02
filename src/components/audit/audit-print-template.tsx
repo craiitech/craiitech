@@ -33,7 +33,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
   const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
 
   return (
-    <div className="p-4 text-black bg-white max-w-[8in] mx-auto font-sans leading-tight print:p-0" style={{ fontSize: '11pt' }}>
+    <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '11pt' }}>
       {/* Institutional Branding Header - Logo Removed */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
         <div className="flex flex-col items-center gap-1 mb-2">
@@ -79,7 +79,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
       {/* Main Evidence Log Table */}
       <table className="w-full border-collapse border-2 border-black mb-6" style={{ fontSize: '11pt' }}>
-        <thead className="display-table-header-group">
+        <thead className="display-table-header-group" style={{ display: 'table-header-group' }}>
           <tr className="bg-slate-100">
             <th className="border border-black p-2 text-center w-[70px] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
             <th className="border border-black p-2 text-left uppercase font-black" style={{ fontSize: '10pt' }}>Requirements & Observations (Objective Evidence)</th>
@@ -92,7 +92,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
             const questions = clauseQuestions[clause.id] || [];
             
             return (
-              <tr key={clause.id} className="break-inside-avoid">
+              <tr key={clause.id} className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                 <td className="border border-black p-2 text-center font-black align-top pt-4">
                   {clause.id}
                 </td>
@@ -135,7 +135,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </table>
 
       {/* Consolidated Audit Summary */}
-      <div className="space-y-4 break-inside-avoid">
+      <div className="space-y-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
         <h3 className="font-black uppercase border-b-2 border-black pb-1 flex items-center gap-2" style={{ fontSize: '12pt' }}>
             <CheckCircle2 className="h-5 w-5" />
             Consolidated Audit Summary
@@ -162,7 +162,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </div>
 
       {/* Official Signatories Section */}
-      <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10">
+      <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10" style={{ pageBreakInside: 'avoid' }}>
         <div>
           <div className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[30px]">
             {schedule.auditorName || '__________________________'}
