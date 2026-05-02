@@ -6,30 +6,38 @@ const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
-  // Check if the card has a custom background to decide whether to show the abstract pattern.
-  // We exclude common "plain" backgrounds from the custom check.
-  const hasCustomBg = className?.includes('bg-') && 
-                     !className?.includes('bg-white') && 
-                     !className?.includes('bg-card') && 
-                     !className?.includes('bg-background') &&
-                     !className?.includes('bg-transparent');
+  // Detect if the card is a "plain" institutional card that needs visual emphasis.
+  // We exclude cards that already have strong semantic backgrounds (red for alerts, etc.)
+  const isSimple = !className || 
+                   (!className.includes('bg-destructive') && !className.includes('bg-emerald') && !className.includes('bg-rose') && !className.includes('bg-amber')) ||
+                   className.includes('bg-white') ||
+                   className.includes('bg-card') ||
+                   className.includes('bg-background') ||
+                   className.includes('border-primary/10') ||
+                   className.includes('shadow-md');
 
   return (
     <div
       ref={ref}
       className={cn(
-        "relative overflow-hidden rounded-[2.5rem] border border-white/40 bg-white/90 backdrop-blur-xl text-card-foreground shadow-[0_20px_50px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 ease-in-out hover:-translate-y-4",
+        "relative overflow-hidden rounded-[2.5rem] border border-white/40 bg-white/80 backdrop-blur-xl text-card-foreground shadow-[0_20px_50px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 ease-in-out hover:-translate-y-2",
         className
       )}
       {...props}
     >
-      {!hasCustomBg && (
-        <>
-          <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl animate-float-blob pointer-events-none" />
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent/5 rounded-full blur-3xl animate-float-blob pointer-events-none" style={{ animationDelay: '3s' }} />
-        </>
+      {isSimple && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+          {/* Primary Institutional Blob */}
+          <div className="absolute -top-[20%] -left-[10%] w-72 h-72 bg-primary/15 rounded-full blur-[80px] animate-float-blob" />
+          
+          {/* Accent Institutional Blob */}
+          <div className="absolute -bottom-[20%] -right-[10%] w-72 h-72 bg-accent/10 rounded-full blur-[80px] animate-float-blob" style={{ animationDelay: '4s' }} />
+          
+          {/* Secondary Soft Blob for depth */}
+          <div className="absolute top-[20%] right-[10%] w-40 h-40 bg-primary/5 rounded-full blur-[60px] animate-float-blob" style={{ animationDelay: '2s' }} />
+        </div>
       )}
-      <div className="relative z-10">
+      <div className="relative z-10 h-full w-full">
         {props.children}
       </div>
     </div>
