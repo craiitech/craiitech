@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -183,10 +184,11 @@ function PlanItineraryRegistry({
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
                             @media print { 
-                                @page { size: 8.5in 13in; margin: 0.5in; }
-                                body { margin: 0; padding: 0; background: white; font-size: 11pt; } 
+                                @page { size: 8.5in 13in; margin: 0.5in !important; }
+                                body { margin: 0 !important; padding: 0 !important; background: white; font-size: 11pt; } 
                                 .no-print { display: none !important; }
-                                table { page-break-inside: auto; }
+                                table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
+                                thead { display: table-header-group; }
                                 tr { page-break-inside: avoid; page-break-after: auto; }
                             }
                             body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
@@ -497,12 +499,13 @@ export function AuditPlanList({
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
-                            @page { size: 8.5in 13in; margin: 0.5in; }
-                            body { margin: 0; padding: 0; background: white; font-size: 11pt; } 
+                            @page { size: 8.5in 13in; margin: 0.5in !important; }
+                            body { margin: 0 !important; padding: 0 !important; background: white; font-size: 11pt; } 
                             .no-print { display: none !important; }
                             .print-page-break { page-break-after: always; }
                             .print-page-break:last-child { page-break-after: auto; }
-                            table { page-break-inside: auto; }
+                            table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
+                            thead { display: table-header-group; }
                             tr { page-break-inside: avoid; page-break-after: auto; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
@@ -562,12 +565,14 @@ export function AuditPlanList({
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
-                            @page { size: 8.5in 13in; margin: 0.5in; }
-                            body { margin: 0; padding: 0; background: white; font-size: 11pt; } 
+                            @page { size: 8.5in 13in; margin: 0.5in !important; }
+                            body { margin: 0 !important; padding: 0 !important; background: white; font-size: 11pt; } 
                             .no-print { display: none !important; }
-                            .print-page-break { page-break-after: always; }
+                            .print-page-break { page-break-after: always; margin-top: 0.5in; }
+                            .print-page-break:first-child { margin-top: 0; }
                             .print-page-break:last-child { page-break-after: auto; }
-                            table { page-break-inside: auto; }
+                            table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
+                            thead { display: table-header-group; }
                             tr { page-break-inside: avoid; page-break-after: auto; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
@@ -620,12 +625,13 @@ export function AuditPlanList({
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
-                            @page { size: 8.5in 13in; margin: 0.5in; }
-                            body { margin: 0; padding: 0; background: white; font-size: 11pt; } 
+                            @page { size: 8.5in 13in; margin: 0.5in !important; }
+                            body { margin: 0 !important; padding: 0 !important; background: white; font-size: 11pt; } 
                             .no-print { display: none !important; }
                             .print-page-break { page-break-after: always; }
                             .print-page-break:last-child { page-break-after: auto; }
-                            table { page-break-inside: auto; }
+                            table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
+                            thead { display: table-header-group; }
                             tr { page-break-inside: avoid; page-break-after: auto; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
