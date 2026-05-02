@@ -74,7 +74,7 @@ export function ContextualHelp() {
                     <div className="space-y-6">
                         <div className="space-y-3">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step-by-Step Procedure</h4>
-                            {currentHelp.steps.map((step, i) => (
+                            {(currentHelp.steps || []).map((step, i) => (
                             <div key={i} className="flex gap-4 items-start group">
                                 <div className="h-5 w-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0 mt-0.5">
                                     {i + 1}
@@ -87,11 +87,11 @@ export function ContextualHelp() {
                             ))}
                         </div>
 
-                        {currentHelp.buttons.length > 0 && (
+                        {(currentHelp.buttons?.length ?? 0) > 0 && (
                             <div className="space-y-3 pt-4 border-t">
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Control Legend</h4>
                                 <div className="grid grid-cols-1 gap-2">
-                                    {currentHelp.buttons.map((btn, i) => (
+                                    {currentHelp.buttons?.map((btn, i) => (
                                         <div key={i} className="p-2.5 rounded-lg border bg-slate-50 flex items-start gap-3">
                                             <Badge variant="secondary" className="h-4 px-1 text-[7px] font-black uppercase shrink-0 mt-0.5">{btn.labelShort || btn.label}</Badge>
                                             <div className="space-y-0.5 min-w-0">

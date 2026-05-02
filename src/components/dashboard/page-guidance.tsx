@@ -95,51 +95,55 @@ export function PageGuidance({ className }: PageGuidanceProps) {
                 )}
 
                 {/* STEP BY STEP WORKFLOW */}
-                <section className="space-y-4">
-                    <div className="flex items-center gap-2 border-b pb-1">
-                        <ListChecks className="h-3.5 w-3.5 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step-by-Step Procedure</h4>
-                    </div>
-                    <div className="space-y-5">
-                        {help.steps.map((step, idx) => (
-                            <div key={idx} className="flex gap-4 items-start group">
-                                <div className="flex flex-col items-center shrink-0">
-                                    <div className="h-6 w-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                        {idx + 1}
+                {(help.steps?.length ?? 0) > 0 && (
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-2 border-b pb-1">
+                            <ListChecks className="h-3.5 w-3.5 text-primary" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step-by-Step Procedure</h4>
+                        </div>
+                        <div className="space-y-5">
+                            {help.steps?.map((step, idx) => (
+                                <div key={idx} className="flex gap-4 items-start group">
+                                    <div className="flex flex-col items-center shrink-0">
+                                        <div className="h-6 w-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                            {idx + 1}
+                                        </div>
+                                        {idx < help.steps!.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
                                     </div>
-                                    {idx < help.steps.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                    <div className="space-y-1 pb-1 flex-1">
+                                        <p className="text-[11px] font-black uppercase text-slate-800 tracking-tight leading-tight">{step.title}</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{step.desc}"</p>
+                                    </div>
                                 </div>
-                                <div className="space-y-1 pb-1 flex-1">
-                                    <p className="text-[11px] font-black uppercase text-slate-800 tracking-tight leading-tight">{step.title}</p>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{step.desc}"</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
-                <Separator />
+                {(help.buttons?.length ?? 0) > 0 && <Separator />}
 
                 {/* BUTTON DEFINITIONS */}
-                <section className="space-y-4">
-                    <div className="flex items-center gap-2 border-b pb-1">
-                        <MousePointer2 className="h-3.5 w-3.5 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Control Legend</h4>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                        {help.buttons.map((btn, idx) => (
-                            <div key={idx} className="p-2.5 rounded-lg border bg-white shadow-sm flex items-start gap-3 group hover:border-primary/30 transition-all">
-                                <Badge variant="secondary" className="h-5 px-1.5 text-[8px] font-black uppercase border-none bg-primary/5 text-primary shrink-0 mt-0.5">
-                                    {btn.labelShort || btn.label}
-                                </Badge>
-                                <div className="space-y-0.5 min-w-0">
-                                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter truncate">{btn.label}</p>
-                                    <p className="text-[9px] text-muted-foreground leading-tight">{btn.action}</p>
+                {(help.buttons?.length ?? 0) > 0 && (
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-2 border-b pb-1">
+                            <MousePointer2 className="h-3.5 w-3.5 text-primary" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Control Legend</h4>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                            {help.buttons?.map((btn, idx) => (
+                                <div key={idx} className="p-2.5 rounded-lg border bg-white shadow-sm flex items-start gap-3 group hover:border-primary/30 transition-all">
+                                    <Badge variant="secondary" className="h-5 px-1.5 text-[8px] font-black uppercase border-none bg-primary/5 text-primary shrink-0 mt-0.5">
+                                        {btn.labelShort || btn.label}
+                                    </Badge>
+                                    <div className="space-y-0.5 min-w-0">
+                                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter truncate">{btn.label}</p>
+                                        <p className="text-[9px] text-muted-foreground leading-tight">{btn.action}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {help.nextStep && (
                     <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3 shadow-inner">

@@ -9,7 +9,7 @@ export interface PageHelp {
   title: string;
   description: string;
   steps: { title: string; desc: string }[];
-  buttons: { label: string; action: string; labelShort?: string }[];
+  buttons?: { label: string; action: string; labelShort?: string }[];
   nextStep?: string;
   alert?: string;
 }
