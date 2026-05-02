@@ -35,4 +35,4 @@ npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:900
+The application will be available at `https//eoms.rsu.edu.ph

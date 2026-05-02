@@ -46,6 +46,20 @@ export const faqs = [
     ],
   },
   {
+    role: 'SSL & HTTPS Security',
+    questions: [
+      {
+        question: 'How do I use Let\'s Encrypt SSL for the portal domain?',
+        answer: 'If the portal is hosted on a private Linux VPS, you should use Certbot to manage SSL:',
+        answerBlocks: [
+          { content: '<strong>Nginx Setup:</strong> Run <code>sudo certbot --nginx -d eoms.rsu.edu.ph</code> to automatically configure HTTPS.' },
+          { content: '<strong>Auto-Renewal:</strong> Let\'s Encrypt certificates last 90 days. Test the auto-renewal process with <code>sudo certbot renew --dry-run</code>.' },
+          { content: '<strong>Firebase Hosting:</strong> If using Firebase App Hosting or standard Firebase Hosting, SSL is provisioned automatically and requires no manual Certbot setup.' }
+        ]
+      }
+    ]
+  },
+  {
     role: 'Accessibility & Inclusivity (PWD Support)',
     questions: [
       {
