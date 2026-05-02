@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -27,6 +26,7 @@ import { doc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 interface GADAccomplishmentTabProps {
   plans: GADPlan[];
@@ -40,6 +40,7 @@ interface GADAccomplishmentTabProps {
 export function GADAccomplishmentTab({ plans, activities, campuses, units, selectedYear, selectedUnitId }: GADAccomplishmentTabProps) {
   const firestore = useFirestore();
   const { userProfile } = useUser();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
   const signatoryRef = useMemoFirebase(
@@ -55,7 +56,8 @@ export function GADAccomplishmentTab({ plans, activities, campuses, units, selec
     return plans.map(plan => {
       // Find all activities linked to this plan by PAP matching or explicit ID
       const linkedActivities = activities.filter(a => 
-        a.planId === plan.id || a.activityName.toLowerCase().includes(plan.pap.toLowerCase())
+        a.planId === plan.id || 
+        (a.activityName && plan.pap && a.activityName.toLowerCase().includes(plan.pap.toLowerCase()))
       );
 
       const actualMale = linkedActivities.reduce((acc, a) => acc + (a.participants?.male || 0), 0);
@@ -64,28 +66,40 @@ export function GADAccomplishmentTab({ plans, activities, campuses, units, selec
       
       const varianceBudget = plan.budget - actualBudget;
 
+      // Extract implementation details from the latest activity
+      const latestActivity = linkedActivities.length > 0 ? linkedActivities[linkedActivities.length - 1] : null;
+
       return {
         ...plan,
         actualMale,
         actualFemale,
         actualBudget,
         varianceBudget,
+        actualOutput: latestActivity?.actualOutput || '',
+        varianceAnalysis: latestActivity?.varianceAnalysis || '',
         activitiesCount: linkedActivities.length,
         isCompleted: linkedActivities.length > 0
       };
-    }).filter(d => d.pap.toLowerCase().includes(searchTerm.toLowerCase()));
+    }).filter(d => d.pap && d.pap.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [plans, activities, searchTerm]);
 
   const handlePrint = () => {
-    if (!arData.length) return;
+    if (!arData.length) {
+        toast({ title: "Registry Empty", description: "There is no accomplishment data to print for the selected year/unit.", variant: "destructive" });
+        return;
+    }
     
     const unitName = selectedUnitId === 'all' ? 'UNIVERSITY-WIDE' : unitMap.get(selectedUnitId) || 'UNIT';
-    const campusName = selectedUnitId === 'all' ? 'Institutional' : campusMap.get(userProfile?.campusId || '') || 'RSU';
+    
+    // Logic: If 'all', use Institutional. If specific unit, find its campus correctly.
+    const selectedUnitObj = units.find(u => u.id === selectedUnitId);
+    const targetCampusId = selectedUnitObj?.campusIds?.[0] || userProfile?.campusId || '';
+    const campusName = selectedUnitId === 'all' ? 'Institutional' : (campusMap.get(targetCampusId) || 'RSU');
 
     try {
         const reportHtml = renderToStaticMarkup(
             <GADAccomplishmentReportTemplate 
-                data={arData as any[]}
+                data={arData}
                 unitName={unitName}
                 campusName={campusName}
                 year={selectedYear}
@@ -122,7 +136,10 @@ export function GADAccomplishmentTab({ plans, activities, campuses, units, selec
             `);
             printWindow.document.close();
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error("GAD Print Error:", e);
+        toast({ title: "Print Failed", description: "An error occurred during report generation.", variant: "destructive" });
+    }
   };
 
   return (
