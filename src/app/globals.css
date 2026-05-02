@@ -223,4 +223,13 @@
     .animate-float-blob {
       animation: float-blob 12s infinite ease-in-out;
     }
+
+    @keyframes emergency-flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+    
+    .animate-emergency-flash {
+      animation: emergency-flash 0.8s infinite ease-in-out;
+    }
 }

@@ -11,6 +11,7 @@ export interface PageHelp {
   steps: { title: string; desc: string }[];
   buttons: { label: string; action: string; labelShort?: string }[];
   nextStep?: string;
+  alert?: string;
 }
 
 export const helpContent: Record<string, PageHelp> = {
@@ -202,7 +203,7 @@ export const helpContent: Record<string, PageHelp> = {
     title: 'Monitoring: Visit Log',
     description: 'Chronological archive of all field inspections conducted.',
     steps: [
-      { title: 'Search Units', desc: 'Filter the list by unit name or officer in charge.' },
+      { title: 'Search Units', desc: 'Find forms by code (e.g. QAO-01) or official title.' },
       { title: 'View Score', desc: 'Check the color-coded compliance badge for immediate performance feedback.' }
     ],
     buttons: [
@@ -286,6 +287,7 @@ export const helpContent: Record<string, PageHelp> = {
   '/risk-register': {
     title: 'Risk Management Registry',
     description: 'A digital tool for proactive institutional governance. Log and mitigate vulnerabilities.',
+    alert: 'ODIMO NOTICE: Only the Unit Coordinator is authorized to input data to this digital Registry. If new entries are required, please direct your Coordinator to perform the encoding. This ensures coordinators maintain full ownership and awareness of their unit\'s identified risks.',
     steps: [
       { title: 'Identify Factor', desc: 'Identify a Risk (Threat) or Opportunity (Gain) linked to a process objective.' },
       { title: 'Baseline Analysis', desc: 'Rate the Likelihood and Consequence (1-5). Magnitude 5+ triggers mandatory action.' },

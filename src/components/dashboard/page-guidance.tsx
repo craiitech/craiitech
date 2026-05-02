@@ -19,7 +19,8 @@ import {
     ListChecks, 
     MousePointer2, 
     Sparkles, 
-    HelpCircle
+    HelpCircle,
+    AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +79,21 @@ export function PageGuidance({ className }: PageGuidanceProps) {
           <ScrollArea className="h-full overscroll-contain">
             <div className="p-6 space-y-8 pb-12">
                 
+                {/* EMERGENCY ALERT SECTION */}
+                {help.alert && (
+                    <section className="animate-in zoom-in duration-500">
+                        <div className="p-4 rounded-xl border border-destructive/50 bg-destructive/5 space-y-2.5 shadow-sm">
+                            <div className="flex items-center gap-2 text-destructive animate-emergency-flash">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Crucial Protocol Warning</span>
+                            </div>
+                            <p className="text-[11px] font-bold text-destructive leading-relaxed text-center italic">
+                                "{help.alert}"
+                            </p>
+                        </div>
+                    </section>
+                )}
+
                 {/* STEP BY STEP WORKFLOW */}
                 <section className="space-y-4">
                     <div className="flex items-center gap-2 border-b pb-1">
