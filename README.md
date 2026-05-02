@@ -24,7 +24,7 @@ The portal provides a centralized platform for different user roles within the u
 - **Language:** [TypeScript](https://www.typescriptlang.org/)
 - **UI:** [React](https://react.dev/), [ShadCN UI](https://ui.shadcn.com/), [Tailwind CSS](https://tailwindcss.com/)
 - **Backend & Database:** [Firebase](https://firebase.google.com/) (Authentication, Firestore)
-- **Generative AI:** [Google AI & Genkit](https://firebase.google.com/docs/genkit) for AI-powered features.
+
 
 ## Getting Started
 

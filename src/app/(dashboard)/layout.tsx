@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
 import { Logo } from '@/components/logo';
 import { PageGuidance } from '@/components/dashboard/page-guidance';
+import { InstallPwaDialog } from '@/components/dashboard/install-pwa-dialog';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; // Current release version
 
@@ -286,6 +287,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarInset>
         </SidebarProvider>
       </div>
+      
+      <InstallPwaDialog />
       
       <WhatsNewDialog 
         isOpen={isWhatsNewOpen}
