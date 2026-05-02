@@ -48,7 +48,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
 
 export default function MonitoringPage() {
   const { user, isAdmin, isUserLoading, userProfile, isSupervisor, userRole } = useUser();
@@ -125,6 +125,13 @@ export default function MonitoringPage() {
     return units.filter(u => u.campusIds?.includes(campusFilter));
   }, [units, campusFilter]);
 
+  const calculateCompliance = (record: UnitMonitoringRecord) => {
+    if (!record.observations) return 0;
+    const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
+    const available = applicable.filter(o => o.status === 'Available').length;
+    return applicable.length > 0 ? Math.round((available / applicable.length) * 100) : 0;
+  };
+
   const filteredRecords = useMemo(() => {
     if (!allRecords) return [];
     
@@ -165,6 +172,45 @@ export default function MonitoringPage() {
         return dateB - dateA;
     });
   }, [allRecords, selectedYear, isUnitOfficial, isCampusOfficial, isGlobalAdmin, userProfile, campusFilter, unitFilter, searchTerm, unitMap, campusMap]);
+
+  const handleExportToExcel = () => {
+    if (!filteredRecords.length) return;
+
+    const data = filteredRecords.map(record => {
+      const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
+      const score = calculateCompliance(record);
+      
+      return {
+        'Visit Date': format(vDate, 'yyyy-MM-dd'),
+        'Campus': campusMap.get(record.campusId) || 'Unknown',
+        'Unit': unitMap.get(record.unitId) || 'Unknown',
+        'Room Type': record.roomType,
+        'Room Number': record.roomNumber || 'N/A',
+        'Building': record.building || 'N/A',
+        'Officer in Charge': record.officerInCharge || 'N/A',
+        'Monitor': record.monitorName,
+        'Compliance Rate': `${score}%`,
+        'General Remarks': record.generalRemarks || ''
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Monitoring Records");
+    
+    // Auto-size columns
+    const maxWidths = data.reduce((acc: any, row: any) => {
+        Object.keys(row).forEach((key, i) => {
+            const val = String(row[key]);
+            acc[i] = Math.max(acc[i] || 0, val.length, key.length);
+        });
+        return acc;
+    }, []);
+    worksheet['!cols'] = maxWidths.map((w: number) => ({ wch: w + 2 }));
+
+    XLSX.writeFile(workbook, `RSU_Unit_Monitoring_Export_${selectedYear}.xlsx`);
+    toast({ title: 'Export Complete', description: 'Monitoring data has been downloaded.' });
+  };
 
   const handleNewVisit = () => {
     setSelectedRecord(null);
@@ -226,13 +272,6 @@ export default function MonitoringPage() {
     }
   };
 
-  const calculateCompliance = (record: UnitMonitoringRecord) => {
-    if (!record.observations) return 0;
-    const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
-    const available = applicable.filter(o => o.status === 'Available').length;
-    return applicable.length > 0 ? Math.round((available / applicable.length) * 100) : 0;
-  };
-
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
   const isUnitOnlyView = (isUnitOfficial || isUnitCoordinator) && !isAdmin;
   const canAddVisit = isAdmin || userRole === 'Campus ODIMO';
@@ -260,7 +299,7 @@ export default function MonitoringPage() {
                                 <SelectValue placeholder="Year" />
                             </SelectTrigger>
                             <SelectContent>
-                                {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                                {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
