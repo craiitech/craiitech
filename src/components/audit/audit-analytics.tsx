@@ -54,7 +54,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-template';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -75,14 +75,6 @@ const COLORS = {
     Compliance: 'hsl(142 71% 45%)',
     OFI: 'hsl(48 96% 53%)',
     NC: 'hsl(var(--destructive))',
-};
-
-type SWOTItem = {
-    title: string;
-    description: string;
-    tag: string;
-    priority?: 'High' | 'Medium' | 'Low';
-    category?: string;
 };
 
 export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, campuses, users, isLoading, selectedYear }: AuditAnalyticsProps) {
@@ -128,10 +120,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
-    /**
-     * NEW: FINDINGS BY PROCESS CATEGORY
-     * Measures which part of the organization (Management, Operations, Support) has the most gaps.
-     */
     const findingsByCategory: Record<string, { name: string, NC: number, OFI: number, Compliance: number }> = {
         'Management Processes': { name: 'Management', NC: 0, OFI: 0, Compliance: 0 },
         'Operation Processes': { name: 'Operations', NC: 0, OFI: 0, Compliance: 0 },
@@ -201,20 +189,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         unitResults[s.targetId].score = Math.round((c / (total || 1)) * 100);
     });
 
-    const strengths: SWOTItem[] = [];
-    const gaps: SWOTItem[] = [];
-
-    if (yearSchedules.length > 0) {
-        const avgUnitScore = Object.values(unitResults).reduce((acc, curr) => acc + curr.score, 0) / (Object.keys(unitResults).length || 1);
-        if (avgUnitScore >= 80) {
-            strengths.push({ title: 'Positive Standard Conformity', description: `Institutional compliance mean reached ${Math.round(avgUnitScore)}% across ${Object.keys(unitResults).length} monitored units.`, tag: 'ISO 10.2', category: 'Audit' });
-        }
-    }
-
-    if (counts.NC > 5) {
-        gaps.push({ title: 'Systemic Non-Compliance', description: `High volume of critical gaps (${counts.NC}) identified across standard clauses.`, tag: 'Risk Alert', priority: 'High', category: 'Audit' });
-    }
-
     const unitExemplars = Object.entries(unitResults)
         .filter(([_, data]) => data.score >= 90)
         .map(([id, data]) => ({
@@ -243,8 +217,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         hotspots,
         auditorData,
         auditorSexCounts,
-        strengths,
-        gaps,
         leadAuditorName,
         totalSchedules: yearSchedules.length,
         completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length
@@ -252,7 +224,10 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
   }, [plans, schedules, findings, units, users, campuses, selectedYear]);
 
   const handlePrintAssignments = () => {
-    if (!analytics?.auditorData.length) return;
+    if (!analytics?.auditorData.length) {
+        toast({ title: "No Assignments", description: "There are no active auditor assignments for the selected year.", variant: "destructive" });
+        return;
+    }
     try {
         const reportHtml = renderToStaticMarkup(
             <AuditorAssignmentsPrintTemplate 
@@ -293,7 +268,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* 1. KPIs */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col min-h-[110px]">
             <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Itinerary Density</CardTitle></CardHeader>
@@ -318,19 +293,42 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* NEW: PROCESS CATEGORY DISTRIBUTION */}
+        {/* Finding Type Pie (Original Restored) */}
+        <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/10 border-b py-4">
+              <div className="flex items-center gap-2">
+                  <PieIcon className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Finding Lifecycle</CardTitle>
+              </div>
+          </CardHeader>
+          <CardContent className="pt-8 flex-1 flex flex-col items-center justify-center">
+              <ChartContainer config={{}} className="h-[280px] w-full">
+                  <ResponsiveContainer>
+                      <PieChart>
+                          <Pie data={analytics.findingsData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                              {analytics.findingsData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
+                          </Pie>
+                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                      </PieChart>
+                  </ResponsiveContainer>
+              </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Process Category Profile (New) */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-primary" />
                     <CardTitle className="text-sm font-black uppercase tracking-tight">Process Maturity Findings Profile</CardTitle>
                 </div>
-                <CardDescription className="text-xs">Distribution of NCs and OFIs across Management, Operations, and Support.</CardDescription>
+                <CardDescription className="text-xs">Distribution of gaps across Management, Operations, and Support.</CardDescription>
             </CardHeader>
             <CardContent className="pt-10 flex-1">
                 <ChartContainer config={{
                     NC: { label: 'Non-Conformance', color: COLORS.NC },
-                    OFI: { label: 'Opportunity for Improvement', color: COLORS.OFI },
+                    OFI: { label: 'OFI', color: COLORS.OFI },
                     Compliance: { label: 'Compliance', color: COLORS.Compliance }
                 }} className="h-[300px] w-full">
                     <ResponsiveContainer>
@@ -347,24 +345,41 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                <div className="flex items-start gap-3">
-                    <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                        <strong>Strategic Guide:</strong> Helps identify systemic weaknesses. High NC volume in "Management Processes" indicates top-level policy gaps, while "Operations" gaps impact direct service delivery.
-                    </p>
-                </div>
-            </CardFooter>
         </Card>
 
-        {/* CLAUSE COVERAGE CHART */}
+        {/* Top Findings by Clause (Original Restored) */}
+        <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/10 border-b py-4">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-destructive" />
+              <CardTitle className="text-sm font-black uppercase tracking-tight">Top Finding Gaps by ISO Clause</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-8 flex-1">
+            <ChartContainer config={{}} className="h-[350px] w-full">
+              <ResponsiveContainer>
+                <BarChart data={analytics.clauseData} layout="vertical" margin={{ left: 20, right: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="id" type="category" tick={{ fontSize: 10, fontWeight: 900 }} width={40} axisLine={false} tickLine={false} />
+                    <RechartsTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={14}>
+                        <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--destructive))' }} />
+                    </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Clause Density (New) */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Clause Audit Density</CardTitle></div>
-                <CardDescription className="text-xs">Top 10 standard requirements prioritized in recent Evidence Logs.</CardDescription>
+                <CardDescription className="text-xs">Prioritized standard requirements in recent Evidence Logs.</CardDescription>
             </CardHeader>
             <CardContent className="pt-10 flex-1">
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics.clauseData} layout="vertical" margin={{ left: 20, right: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
@@ -375,38 +390,76 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                    <strong>Insight:</strong> Highlights the ISO clauses receiving the most auditor attention.
-                </p>
-            </CardFooter>
         </Card>
       </div>
 
-      {/* ROR/Assignments/SWOT remains the same (as per "DO NOT REMOVE" instruction) */}
-      <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/10 border-b py-4 flex flex-row items-center justify-between">
-              <div className="space-y-1">
-                  <div className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Detailed Assignment Registry</CardTitle></div>
-                  <CardDescription className="text-xs">Timeline per auditor for AY {selectedYear}.</CardDescription>
-              </div>
-              <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2">
-                  <Printer className="h-4 w-4" /> Print Assignments
-              </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-              <ScrollArea className="h-[400px]">
-                  <div className="divide-y">
-                      {analytics.auditorData.map((auditor, aIdx) => (
-                          <div key={aIdx} className="p-6 hover:bg-muted/10 transition-colors">
-                              <h4 className="font-black text-slate-900 uppercase tracking-tight">{auditor.name} ({auditor.count} Assignments)</h4>
-                              <div className="pl-4 mt-2 text-[10px] text-muted-foreground">{auditor.assignments.map(a => a.unitName).join(', ')}</div>
-                          </div>
-                      ))}
+      {/* Tables Row: Unit Hotspots & Auditor Assignments */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="shadow-lg border-primary/10 overflow-hidden">
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-destructive" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight text-destructive">Unit Finding Hotspots</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Offices with open non-conformances requiring attention.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <Table>
+                      <TableHeader className="bg-muted/30">
+                          <TableRow>
+                              <TableHead className="pl-6 text-[10px] font-black uppercase">Unit / Office</TableHead>
+                              <TableHead className="text-center text-[10px] font-black uppercase">Open NCs</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {analytics.hotspots.map((h, i) => (
+                              <TableRow key={i}>
+                                  <TableCell className="pl-6 font-bold text-xs uppercase">{h.name}</TableCell>
+                                  <TableCell className="text-center"><Badge variant="destructive" className="h-5 font-black">{h.nc} NC</Badge></TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+              <CardHeader className="bg-muted/10 border-b py-4 flex flex-row items-center justify-between">
+                  <div className="space-y-1">
+                      <div className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Assignment Registry</CardTitle></div>
+                      <CardDescription className="text-xs">Timeline per auditor for AY {selectedYear}.</CardDescription>
                   </div>
-              </ScrollArea>
-          </CardContent>
-      </Card>
+                  <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
+                      <Printer className="h-4 w-4" /> Print Assignments
+                  </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <ScrollArea className="h-[300px]">
+                      <div className="divide-y">
+                          {analytics.auditorData.map((auditor, aIdx) => (
+                              <div key={aIdx} className="p-4 hover:bg-muted/10 transition-colors">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-tight">{auditor.name}</h4>
+                                    <Badge variant="secondary" className="h-4 text-[8px] font-black">{auditor.count} ASSIGNMENTS</Badge>
+                                  </div>
+                                  <div className="pl-4 mt-2 text-[10px] text-muted-foreground italic truncate">{auditor.assignments.map(a => a.unitName).join(', ')}</div>
+                              </div>
+                          ))}
+                      </div>
+                  </ScrollArea>
+              </CardContent>
+          </Card>
+      </div>
+
+      <div className="p-4 bg-muted/5 border rounded-xl">
+        <div className="flex items-start gap-4">
+            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                <strong>Administrative Guide:</strong> This dashboard provides institutional oversight of the Internal Quality Audit framework. Use the "Print Assignments" registry to issue official notices to the audit team. Non-conformance hotspots should be prioritized for Corrective Action Request (CAR) issuance in the main QA module.
+            </p>
+        </div>
+      </div>
     </div>
   );
 }
+
