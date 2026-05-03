@@ -247,11 +247,12 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
-                            body { margin: 0; padding: 0; background: white; } 
+                            body { margin: 0; padding: 0; background: white; font-size: 12pt; } 
                             .no-print { display: none !important; } 
                             .print-page-break { page-break-after: always; }
                         }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; font-size: 12pt; }
+                        table { font-size: 12pt !important; }
                     </style>
                 </head>
                 <body>
