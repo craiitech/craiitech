@@ -893,12 +893,12 @@ export default function HomePage() {
 
     return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-      {/* Sticky Header and Tabs */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+      {/* Institutional Header and Tabs */}
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-              <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
             </div>
             <div className="w-full sm:w-[150px] space-y-1">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
@@ -1094,10 +1094,10 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 flex flex-col sm:flex-row justify-between items-start gap-4 institutional-header">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-              <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
             </div>
             <div className="w-full sm:w-[150px] space-y-1">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
@@ -1178,12 +1178,12 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-        {/* Sticky Header and Tabs */}
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+        {/* Institutional Header and Tabs */}
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-                  <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
                 </div>
                 <div className="w-full sm:w-[150px] space-y-1">
                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
@@ -1293,12 +1293,12 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-      {/* Sticky Header and Tabs */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+      {/* Institutional Header and Tabs */}
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-                <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
               </div>
               <div className="w-full sm:w-[150px] space-y-1">
                   <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>

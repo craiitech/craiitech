@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const currentYear = new Date().getFullYear();
 
@@ -188,15 +189,15 @@ export default function AcademicProgramsPage() {
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        {/* Sticky Header and Tabs */}
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+        {/* Institutional Header and Tabs */}
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900">
                         <GraduationCap className="h-8 w-8 text-primary" />
                         CHED Programs Monitoring
                     </h2>
-                    <p className="text-muted-foreground flex items-center gap-2">
+                    <p className="text-muted-foreground flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
                         <ShieldCheck className="h-3 w-3" />
                         Decision Support System
                     </p>

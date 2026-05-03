@@ -211,11 +211,12 @@ export default function MonitoringPage() {
   return (
     <div className="space-y-6">
         <Tabs defaultValue="performance" className="space-y-4">
-            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            {/* Branded Header Area */}
+            <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight">{isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}</h2>
-                    <p className="text-muted-foreground text-sm">{isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record, analyze, and review on-site monitoring performance.'}</p>
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">{isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}</h2>
+                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">{isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record, analyze, and review on-site monitoring performance.'}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="w-[120px]">
@@ -224,8 +225,8 @@ export default function MonitoringPage() {
                             <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
-                    {!isUnitOnlyView && <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9"><FileDown className="mr-2 h-4 w-4" />Export</Button>}
-                    {canAddVisit && <Button size="sm" onClick={handleNewVisit} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />New Visit</Button>}
+                    {!isUnitOnlyView && <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9 font-bold"><FileDown className="mr-2 h-4 w-4" />Export</Button>}
+                    {canAddVisit && <Button size="sm" onClick={handleNewVisit} className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />New Visit</Button>}
                   </div>
                 </div>
                 <ScrollArea className="w-full">

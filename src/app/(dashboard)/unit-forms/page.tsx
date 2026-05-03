@@ -273,12 +273,12 @@ export default function UnitFormsPage() {
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        {/* Sticky Header Enforced */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+        {/* Branded Header Area */}
+        <div className="sticky top-0 z-20 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
-                <p className="text-muted-foreground text-sm">Access official operating forms for verified university units.</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Forms & Records</h2>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Access official operating forms for verified university units.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setIsSidebarVisible(!isSidebarVisible)}>
@@ -454,7 +454,7 @@ export default function UnitFormsPage() {
                                                             <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
                                                                 <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
                                                                 <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
-                                                                <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
+                                                                <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">{form.revision}</Badge></TableCell>
                                                                 <TableCell className="text-right pr-6"><Button variant="default" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5" onClick={() => setDownloadingForm(form)}><Download className="h-3 w-3" /> Request Download</Button></TableCell>
                                                             </TableRow>
                                                         )) : <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled.</TableCell></TableRow>}

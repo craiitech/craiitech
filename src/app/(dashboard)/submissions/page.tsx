@@ -300,12 +300,12 @@ export default function SubmissionsPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <Tabs defaultValue="visual-insights" className="space-y-4">
-            {/* Sticky Header and Tabs */}
-            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            {/* Branded Header Area */}
+            <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight uppercase">EOMS SUBMISSION HUB</h2>
-                    <p className="text-muted-foreground text-sm">Manage unit compliance documentation and track overall performance.</p>
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">EOMS SUBMISSION HUB</h2>
+                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Manage unit compliance documentation and track overall performance.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 md:justify-end">
                     <div className="space-y-1">
@@ -325,17 +325,17 @@ export default function SubmissionsPage() {
                     <div className="flex items-center gap-2 pt-5">
                         <Button 
                             variant="outline"
-                            className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                            className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
                             asChild
                         >
                             <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
-                                <Download className="mr-2 h-4 w-4" /> Download Templates
+                                <Download className="mr-2 h-4 w-4" /> Templates
                             </a>
                         </Button>
                         {canSubmit && (
                             <Button 
                                 onClick={() => router.push('/submissions/new')}
-                                className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
+                                className="shadow-lg shadow-primary/20 h-9 font-black uppercase text-[10px] tracking-widest"
                             >
                                 <PlusCircle className="mr-2 h-4 w-4" /> New Submission
                             </Button>

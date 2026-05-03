@@ -70,6 +70,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -192,11 +193,11 @@ export default function RiskRegisterPage() {
 
   return (
     <Tabs defaultValue="visual-insights" className="space-y-4">
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div><h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Registry</h2><p className="text-muted-foreground text-sm">Centralized module for institutional risk management.</p></div>
+            <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Risk & Opportunity Registry</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Centralized module for institutional risk management.</p></div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="space-y-1 w-full sm:w-auto"><label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label><Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}><SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm"><CalendarSearch className="h-4 w-4 mr-2 opacity-50" /><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1 w-full sm:w-auto"><label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label><Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}<SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm"><CalendarSearch className="h-4 w-4 mr-2 opacity-50" /><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></div>
               <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto"><Button variant="outline" size="sm" onClick={handlePrintROR} disabled={isLoading || filteredRisks.length === 0} className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"><Printer className="mr-2 h-4 w-4" />Print Registry</Button>{!isSupervisor && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}</div>
             </div>
         </div>

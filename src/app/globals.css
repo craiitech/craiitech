@@ -168,6 +168,13 @@
       -webkit-backdrop-filter: blur(16px);
       backdrop-filter: blur(16px);
   }
+
+  .institutional-header {
+    background-color: hsl(var(--background) / 0.95) !important;
+    background-image: linear-gradient(to right, hsl(var(--primary) / 0.08), transparent 40%, hsl(var(--accent) / 0.05)) !important;
+    border-bottom: 2px solid hsl(var(--primary) / 0.15) !important;
+    backdrop-filter: blur(12px) !important;
+  }
 }
 
 @layer utilities {

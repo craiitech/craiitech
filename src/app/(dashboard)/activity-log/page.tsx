@@ -157,7 +157,7 @@ export default function EmployeeActivityLogPage() {
         
         const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
         
-        return matchesSearch && matchesMonth;
+        return matchesSearch && monthFilter;
     }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
   }, [rawWfhActivities, searchTerm, monthFilter]);
 
@@ -238,7 +238,7 @@ export default function EmployeeActivityLogPage() {
     const itemsToPrint = rawWfhActivities.filter(a => {
         const d = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
         return d >= start && d <= end && (a.status === 'Verified' || a.userId === user?.uid);
-    }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
+    }).sort((a, b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
 
     if (itemsToPrint.length === 0) {
         toast({ title: 'No WFH data for this month', variant: 'destructive' });
@@ -312,14 +312,14 @@ export default function EmployeeActivityLogPage() {
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-6">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-6 institutional-header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900">
                     <UserCheck className="h-8 w-8 text-primary" />
                     Institutional Activity Registry
                 </h2>
-                <p className="text-muted-foreground">Log daily tasks or remote WFH accomplishments for quality auditing.</p>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Log daily tasks or remote WFH accomplishments for quality auditing.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex bg-muted p-1 rounded-lg border mr-2">
