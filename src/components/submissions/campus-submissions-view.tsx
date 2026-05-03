@@ -137,7 +137,6 @@ export function CampusSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  // Fetch contextual data for comprehensive SWOT analysis
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !selectedCampusId || !selectedYear) return null;
     return query(collection(firestore, 'risks'), where('campusId', '==', selectedCampusId), where('year', '==', Number(selectedYear)));
@@ -191,9 +190,6 @@ export function CampusSubmissionsView({
     })).filter(c => c.units.length > 0).sort((a,b) => a.name.localeCompare(b.name));
   }, [allCampuses, allUnits]);
 
-  /**
-   * CAMPUS-WIDE ANALYTICS
-   */
   const campusSummary = useMemo(() => {
     if (!selectedCampusId || !allSubmissions || !allUnits) return null;
 
@@ -242,9 +238,6 @@ export function CampusSubmissionsView({
     };
   }, [selectedCampusId, allSubmissions, allUnits, selectedYear]);
 
-  /**
-   * GRANULAR UNIT ANALYTICS
-   */
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !selectedCampusId) return null;
     
@@ -302,9 +295,6 @@ export function CampusSubmissionsView({
     };
   }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear]);
 
-  /**
-   * NOTICE PRINTING LOGIC
-   */
   const handlePrintUnitNotice = (type: 'Compliance' | 'Non-Compliance') => {
     if (!unitData || !selectedUnitId || !allUnits || !selectedCampusId || !allCampuses) return;
 
@@ -376,7 +366,6 @@ export function CampusSubmissionsView({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-16rem)]">
-        {/* SIDEBAR: Campus & Unit Selection */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -441,7 +430,6 @@ export function CampusSubmissionsView({
           </Card>
         </div>
 
-        {/* WORKSPACE Area */}
         <div className="flex-1 min-0 flex flex-col relative">
           <Button
             variant="secondary"
@@ -516,7 +504,6 @@ export function CampusSubmissionsView({
                     </div>
                 </div>
 
-                {/* 2-COLUMN SUBMISSION REGISTRY (RE-IMPLEMENTED) */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-1">

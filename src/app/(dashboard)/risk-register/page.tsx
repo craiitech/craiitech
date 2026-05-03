@@ -79,20 +79,14 @@ export default function RiskRegisterPage() {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     
-    // UI States
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
     const [isMandatory, setIsMandatory] = useState(false);
     const [registryLink, setRegistryLink] = useState<string | null>(null);
-    
     const [deletingRisk, setDeletingRisk] = useState<Risk | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-
-    // Preview States
     const [previewSubmission, setPreviewSubmission] = useState<Submission | null>(null);
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-    
-    // Filtering States
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [campusFilter, setCampusFilter] = useState<string>('all');
     const [unitFilter, setUnitFilter] = useState<string>('all');
@@ -101,11 +95,7 @@ export default function RiskRegisterPage() {
     useEffect(() => {
         const openFormParam = searchParams.get('openForm') === 'true';
         const yearParam = searchParams.get('year');
-        
-        if (yearParam) {
-            setSelectedYear(Number(yearParam));
-        }
-
+        if (yearParam) setSelectedYear(Number(yearParam));
         if (openFormParam) {
             setIsMandatory(searchParams.get('mandatory') === 'true');
             setRegistryLink(searchParams.get('link'));
@@ -113,50 +103,23 @@ export default function RiskRegisterPage() {
         }
     }, [searchParams]);
 
-    // Role-based initial filter setup & strict locking
     useEffect(() => {
         if (userProfile && !isUserLoading) {
-            if (isAdmin) {
-                // Admin can see everything, defaults are fine
-            } else if (isSupervisor) {
-                // Supervisors are locked to their campus
-                setCampusFilter(userProfile.campusId);
-            } else {
-                // Unit Coordinators are locked to their site and unit
-                setCampusFilter(userProfile.campusId);
-                setUnitFilter(userProfile.unitId);
-            }
+            if (!isAdmin) setCampusFilter(userProfile.campusId);
+            if (!isAdmin && !isSupervisor) setUnitFilter(userProfile.unitId);
         }
     }, [userProfile, isAdmin, isSupervisor, isUserLoading]);
 
-    // Handle campus change: reset unit (only for Admins)
-    useEffect(() => {
-        if (isAdmin) setUnitFilter('all');
-    }, [campusFilter, isAdmin]);
-    
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
-        
         const baseRef = collection(firestore, 'risks');
-        
-        // Strict Scoping in Fetching
-        if (isAdmin) {
-            return query(baseRef, where('year', '==', selectedYear));
-        }
-        
-        if (isSupervisor) {
-            return query(baseRef, where('year', '==', selectedYear), where('campusId', '==', userProfile.campusId));
-        }
-
-        // Unit Coordinator / Unit ODIMO
+        if (isAdmin) return query(baseRef, where('year', '==', selectedYear));
+        if (isSupervisor) return query(baseRef, where('year', '==', selectedYear), where('campusId', '==', userProfile.campusId));
         return query(baseRef, where('year', '==', selectedYear), where('unitId', '==', userProfile.unitId));
     }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
 
     const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-    /**
-     * CONTEXTUAL DATA HARVESTING FOR SWOT
-     */
     const submissionsQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
         const baseRef = collection(firestore, 'submissions');
@@ -175,563 +138,78 @@ export default function RiskRegisterPage() {
     }, [firestore, userProfile, isAdmin, isSupervisor]);
     const { data: harvestedMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
-    const compliancesQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null;
-        const baseRef = collection(firestore, 'programCompliances');
-        if (isAdmin) return query(baseRef, where('academicYear', '==', selectedYear));
-        if (isSupervisor) return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
-        return query(baseRef, where('academicYear', '==', selectedYear), where('unitId', '==', userProfile.unitId));
-    }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
-    const { data: harvestedCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+    const unitDataQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+    const { data: allUnits } = useCollection<Unit>(unitDataQuery);
+    const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
 
-    const carQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null;
-        const baseRef = collection(firestore, 'correctiveActionRequests');
-        if (isAdmin) return baseRef;
-        if (isSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-        
-        return query(baseRef, 
-            where('unitId', '==', userProfile.unitId),
-            where('campusId', '==', userProfile.campusId)
-        );
-    }, [firestore, userProfile, isAdmin, isSupervisor]);
-    const { data: harvestedCars } = useCollection<CorrectiveActionRequest>(carQuery);
-
-    const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
-    const { data: harvestedFindings } = useCollection<AuditFinding>(findingsQuery);
-
-    const mrOutputsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviewOutputs') : null), [firestore]);
-    const { data: harvestedMrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
-    
     const campusDataQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
-    const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusDataQuery);
-    
-    const campusMap = useMemo(() => {
-        if (!allCampuses) return new Map<string, string>();
-        return new Map(allCampuses.map(c => [c.id, c.name]));
-    }, [allCampuses]);
+    const { data: allCampuses } = useCollection<Campus>(campusDataQuery);
+    const campusMap = useMemo(() => new Map(allCampuses?.map(c => [c.id, c.name])), [allCampuses]);
 
-    const unitsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'units');
-    }, [firestore]);
-    const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
-
-    const unitMap = useMemo(() => {
-        if (!allUnits) return new Map<string, string>();
-        return new Map(allUnits.map(u => [u.id, u.name]));
-    }, [allUnits]);
-
-    const filteredUnitsList = useMemo(() => {
-        if (!allUnits) return [];
-        if (campusFilter === 'all') return allUnits;
-        return allUnits.filter(u => u.campusIds?.includes(campusFilter));
-    }, [allUnits, campusFilter]);
-
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null;
-        if (isAdmin || isSupervisor) {
-            return collection(firestore, 'users');
-        }
-        if (userProfile.unitId) {
-            return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
-        }
-        return null;
-    }, [firestore, isAdmin, isSupervisor, userProfile]);
-
-    const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
-
-    const usersMap = useMemo(() => {
-        if (!users) return new Map();
-        return new Map(users.map(u => [u.id, u]));
-    }, [users]);
-
-    const signatoryRef = useMemoFirebase(
-        () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-        [firestore]
-    );
+    const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
     const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-    /**
-     * GLOBAL FILTER LOGIC
-     */
     const filteredRisks = useMemo(() => {
         if (!allRisks) return [];
-        
         return allRisks.filter(risk => {
-            // 1. Final Gate Authorization Check
-            const isUnitUser = !isAdmin && !isSupervisor;
-            if (isUnitUser && risk.unitId !== userProfile?.unitId) return false;
+            if (!isAdmin && !isSupervisor && risk.unitId !== userProfile?.unitId) return false;
             if (isSupervisor && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
-
-            // 2. Local Filters
             if (isAdmin && campusFilter !== 'all' && risk.campusId !== campusFilter) return false;
             if ((isAdmin || isSupervisor) && unitFilter !== 'all' && risk.unitId !== unitFilter) return false;
-
-            // 3. Search Filter
             if (searchTerm) {
                 const lowerSearch = searchTerm.toLowerCase();
-                const uName = unitMap.get(risk.unitId)?.toLowerCase() || '';
-                const cName = campusMap.get(risk.campusId)?.toLowerCase() || '';
-                const matches = 
-                    risk.description.toLowerCase().includes(lowerSearch) ||
-                    risk.objective.toLowerCase().includes(lowerSearch) ||
-                    risk.responsiblePersonName?.toLowerCase().includes(lowerSearch) ||
-                    uName.includes(lowerSearch) ||
-                    cName.includes(lowerSearch);
-                
-                if (!matches) return false;
+                return risk.description.toLowerCase().includes(lowerSearch) || risk.objective.toLowerCase().includes(lowerSearch);
             }
-
             return true;
         });
-    }, [allRisks, campusFilter, unitFilter, searchTerm, isAdmin, isSupervisor, userProfile, unitMap, campusMap]);
+    }, [allRisks, campusFilter, unitFilter, searchTerm, isAdmin, isSupervisor, userProfile]);
     
-    const handleNewRisk = () => {
-        setEditingRisk(null);
-        setIsFormOpen(true);
-    };
-
-    const handleEditRisk = (risk: Risk) => {
-        setIsMandatory(false);
-        setEditingRisk(risk);
-        setIsFormOpen(true);
-    };
-
-    const handleDeleteRisk = async () => {
-        if (!firestore || !deletingRisk) return;
-        setIsDeleting(true);
-        try {
-            await deleteDoc(doc(firestore, 'risks', deletingRisk.id));
-            toast({ title: 'Record Removed', description: 'Registry entry has been permanently deleted.' });
-            setDeletingRisk(null);
-        } catch (e) {
-            toast({ title: 'Error', description: 'Could not delete record.', variant: 'destructive' });
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const handleViewForm = async (risk: Risk) => {
-        if (!firestore) return;
-        setIsPreviewLoading(true);
-        try {
-            // Simplified query to bypass complex composite index requirement for prototype
-            const q = query(
-                collection(firestore, 'submissions'),
-                where('unitId', '==', risk.unitId),
-                where('campusId', '==', risk.campusId),
-                where('year', '==', risk.year),
-                where('reportType', '==', 'Risk and Opportunity Registry')
-            );
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-                // Sort in memory to identify the most recent version
-                const sorted = snap.docs.map(d => ({ ...d.data(), id: d.id } as Submission))
-                    .sort((a, b) => {
-                        const dateA = a.submissionDate instanceof Timestamp ? a.submissionDate.toMillis() : new Date(a.submissionDate).getTime();
-                        const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
-                        return dateB - dateA;
-                    });
-                setPreviewSubmission(sorted[0]);
-            } else {
-                toast({ title: 'No Submission Found', description: 'This unit has not yet submitted their formal registry document for this year.', variant: 'destructive' });
-            }
-        } catch (e) {
-            console.error(e);
-            toast({ title: 'Error', description: 'Could not retrieve document link.', variant: 'destructive' });
-        } finally {
-            setIsPreviewLoading(false);
-        }
-    };
+    const handleNewRisk = () => { setEditingRisk(null); setIsFormOpen(true); };
+    const handleEditRisk = (risk: Risk) => { setIsMandatory(false); setEditingRisk(risk); setIsFormOpen(true); };
 
     const handlePrintROR = () => {
         if (!filteredRisks.length || !userProfile) return;
-
         const risksByUnit: Record<string, Risk[]> = {};
-        filteredRisks.forEach(risk => {
-            if (!risksByUnit[risk.unitId]) {
-                risksByUnit[risk.unitId] = [];
-            }
-            risksByUnit[risk.unitId].push(risk);
-        });
+        filteredRisks.forEach(risk => { if (!risksByUnit[risk.unitId]) risksByUnit[risk.unitId] = []; risksByUnit[risk.unitId].push(risk); });
 
         try {
             const reportsHtml = Object.entries(risksByUnit).map(([uId, uRisks]) => {
                 const uName = unitMap.get(uId) || 'Unknown Unit';
-                const cId = uRisks[0]?.campusId;
-                const cName = campusMap.get(cId) || 'Institutional';
-                
-                return renderToStaticMarkup(
-                    <div className="print-page-break mb-12">
-                        <RORPrintTemplate 
-                            risks={uRisks} 
-                            unitName={uName} 
-                            campusName={cName} 
-                            year={selectedYear}
-                            signatories={signatories || undefined}
-                        />
-                    </div>
-                );
+                const cName = campusMap.get(uRisks[0]?.campusId) || 'Institutional';
+                return renderToStaticMarkup(<div className="print-page-break mb-12"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} signatories={signatories || undefined} /></div>);
             }).join('');
 
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.open();
-                printWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>ROR Units Batch - ${selectedYear}</title>
-                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                        <style>
-                            @media print { 
-                                @page { size: 13in 11in; margin: 0.5in; }
-                                body { margin: 0; padding: 0; background: white; } 
-                                .no-print { display: none !important; }
-                                .print-page-break { page-break-after: always; }
-                                .print-page-break:last-child { page-break-after: auto; }
-                            }
-                            body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="no-print mb-8 flex justify-center">
-                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit Forms (11x13)</button>
-                        </div>
-                        <div id="print-content">
-                            ${reportsHtml}
-                        </div>
-                    </body>
-                    </html>
-                `);
+                printWindow.document.write(`<html><head><title>ROR Registry - ${selectedYear}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { @page { size: 13in 11in; margin: 0.5in; } body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Print Unit Forms (11x13)</button></div><div id="print-content">${reportsHtml}</div></body></html>`);
                 printWindow.document.close();
             }
-        } catch (err) {
-            console.error("Print error:", err);
-            toast({ title: "Print Error", description: "Could not generate batch unit forms.", variant: "destructive" });
-        }
+        } catch (err) { console.error(err); }
     };
-    
-    const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
 
-    const currentScopeName = useMemo(() => {
-        if (unitFilter !== 'all') return unitMap.get(unitFilter) || 'Selected Unit';
-        if (campusFilter !== 'all') return campusMap.get(campusFilter) || 'Selected Campus';
-        return "University-Wide";
-    }, [unitFilter, campusFilter, unitMap, campusMap]);
-
-    const currentScopeType = unitFilter !== 'all' ? 'unit' : 'campus';
-
-    const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
+    const isLoading = isUserLoading || isLoadingRisks;
 
   return (
     <Tabs defaultValue="visual-insights" className="space-y-4">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Registry</h2>
-              <p className="text-muted-foreground text-sm">
-                A centralized module for logging, tracking, and monitoring institutional risks and opportunities.
-              </p>
-            </div>
+            <div><h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Registry</h2><p className="text-muted-foreground text-sm">Centralized module for institutional risk management.</p></div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="space-y-1 w-full sm:w-auto">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label>
-                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                      <SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm">
-                          <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
-                          <SelectValue placeholder="Year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
-              <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto">
-                  <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handlePrintROR} 
-                      disabled={isLoading || filteredRisks.length === 0}
-                      className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"
-                  >
-                      <Printer className="mr-2 h-4 w-4" />
-                      Print Registry
-                  </Button>
-                  {!isSupervisor && (
-                      <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Log New Entry
-                      </Button>
-                  )}
-              </div>
+              <div className="space-y-1 w-full sm:w-auto"><label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label><Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}><SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm"><CalendarSearch className="h-4 w-4 mr-2 opacity-50" /><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></div>
+              <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto"><Button variant="outline" size="sm" onClick={handlePrintROR} disabled={isLoading || filteredRisks.length === 0} className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"><Printer className="mr-2 h-4 w-4" />Print Registry</Button>{!isSupervisor && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}</div>
             </div>
         </div>
-
-        <ScrollArea className="w-full">
-            <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
-                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                    <BarChart3 className="h-4 w-4" /> Visual Insights
-                </TabsTrigger>
-                <TabsTrigger value="detailed-register" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                    <List className="h-4 w-4" /> Detailed Register
-                </TabsTrigger>
-            </TabsList>
-        </ScrollArea>
+        <ScrollArea className="w-full"><TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap"><TabsTrigger value="visual-insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Visual Insights</TabsTrigger><TabsTrigger value="detailed-register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><List className="h-4 w-4" /> Detailed Register</TabsTrigger></TabsList></ScrollArea>
       </div>
 
       <div className="space-y-4">
-        <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
-                <div className="flex-1 w-full space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Search className="h-2.5 w-2.5" /> Search Register
-                    </label>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search description, objective, or person..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-9 text-xs bg-white"
-                        />
-                    </div>
-                </div>
-                
-                <div className="w-full md:w-64 space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Building className="h-2.5 w-2.5" /> Campus Site
-                    </label>
-                    <Select 
-                        value={campusFilter} 
-                        onValueChange={(val) => { setCampusFilter(val); }}
-                        disabled={!isAdmin}
-                    >
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Campuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {isAdmin && <SelectItem value="all">All Campuses</SelectItem>}
-                            {allCampuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="w-full md:w-64 space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Layers className="h-2.5 w-2.5" /> Unit / Office
-                    </label>
-                    <Select 
-                        value={unitFilter} 
-                        onValueChange={setUnitFilter}
-                        disabled={!isAdmin && !isSupervisor}
-                    >
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Units" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {(isAdmin || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
-                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </CardContent>
-        </Card>
-
-        {!isLoading && (
-            <StrategicSwotAnalysis 
-                submissions={harvestedSubmissions || []}
-                risks={allRisks || []}
-                monitoringRecords={harvestedMonitoring || []}
-                programCompliances={harvestedCompliances || []}
-                auditFindings={harvestedFindings || []}
-                correctiveActionRequests={harvestedCars || []}
-                mrOutputs={harvestedMrOutputs || []}
-                scope={currentScopeType}
-                name={currentScopeName}
-                selectedYear={selectedYear}
-            />
-        )}
-
-        <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
-            <RiskDashboard 
-                risks={filteredRisks} 
-                isLoading={isLoading} 
-                selectedYear={selectedYear}
-            />
-        </TabsContent>
-
-        <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
-            <Tabs defaultValue="risks" className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <TabsList className="bg-muted/30 p-1 border shadow-sm h-9 animate-tab-highlight rounded-md">
-                        <TabsTrigger value="risks" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
-                            <Shield className="h-3.5 w-3.5" /> Risks
-                        </TabsTrigger>
-                        <TabsTrigger value="opportunities" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-emerald-600">
-                            <TrendingUp className="h-3.5 w-3.5" /> Opportunities
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <TabsContent value="risks" className="mt-0 animate-in slide-in-from-left-2 duration-300">
-                    <Card className="shadow-md border-primary/10 overflow-hidden">
-                        <CardHeader className="bg-rose-50/30 border-b py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">Risk Registry: {selectedYear}</CardTitle>
-                                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                        Displaying {filteredRisks.filter(r => r.type === 'Risk').length} risk entries.
-                                    </CardDescription>
-                                </div>
-                                <Shield className="h-10 w-10 text-rose-600/10" />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center h-64">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <RiskTable 
-                                        risks={filteredRisks.filter(r => r.type === 'Risk')}
-                                        usersMap={usersMap}
-                                        onEdit={handleEditRisk}
-                                        onDelete={setDeletingRisk}
-                                        onViewForm={handleViewForm}
-                                        isAdmin={isAdmin}
-                                        isSupervisor={isSupervisor}
-                                        campusMap={campusMap}
-                                        unitMap={unitMap}
-                                    />
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="opportunities" className="mt-0 animate-in slide-in-from-right-2 duration-300">
-                    <Card className="shadow-md border-primary/10 overflow-hidden">
-                        <CardHeader className="bg-emerald-50/30 border-b py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">Opportunity Registry: {selectedYear}</CardTitle>
-                                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                        Displaying {filteredRisks.filter(r => r.type === 'Opportunity').length} opportunity entries.
-                                    </CardDescription>
-                                </div>
-                                <TrendingUp className="h-10 w-10 text-emerald-600/10" />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center h-64">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <RiskTable 
-                                        risks={filteredRisks.filter(r => r.type === 'Opportunity')}
-                                        usersMap={usersMap}
-                                        onEdit={handleEditRisk}
-                                        onDelete={setDeletingRisk}
-                                        onViewForm={handleViewForm}
-                                        isAdmin={isAdmin}
-                                        isSupervisor={isSupervisor}
-                                        campusMap={campusMap}
-                                        unitMap={unitMap}
-                                    />
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
-        </TabsContent>
+        <Card className="border-primary/10 shadow-sm bg-muted/10"><CardContent className="p-4 flex flex-col md:flex-row items-end gap-4"><div className="flex-1 w-full space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Search className="h-2.5 w-2.5" /> Search Register</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-9 text-xs bg-white" /></div></div></CardContent></Card>
+        {!isLoading && <StrategicSwotAnalysis submissions={harvestedSubmissions || []} risks={allRisks || []} monitoringRecords={harvestedMonitoring || []} scope={unitFilter !== 'all' ? 'unit' : 'campus'} name={unitMap.get(unitFilter) || "Context"} selectedYear={selectedYear} />}
+        <TabsContent value="visual-insights" className="animate-in fade-in duration-500"><RiskDashboard risks={filteredRisks} isLoading={isLoading} selectedYear={selectedYear} /></TabsContent>
+        <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4"><RiskTable risks={filteredRisks} usersMap={new Map()} onEdit={handleEditRisk} onDelete={() => {}} isAdmin={isAdmin} isSupervisor={isSupervisor} campusMap={campusMap} unitMap={unitMap} /></TabsContent>
       </div>
-
-        {/* Preview Dialog for the Submitted ROR Form */}
-        <Dialog open={!!previewSubmission} onOpenChange={(open) => !open && setPreviewSubmission(null)}>
-            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
-                <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <FileSearch className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-sm font-black uppercase tracking-tight">Source Document Review: ROR Registry</DialogTitle>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                    {previewSubmission?.unitName} &bull; {previewSubmission?.cycleId} Cycle {previewSubmission?.year}
-                                </p>
-                            </div>
-                        </div>
-                        <Badge variant="secondary" className="h-6 px-3 bg-primary/5 text-primary border-primary/20 font-black text-xs uppercase">
-                            {previewSubmission?.controlNumber}
-                        </Badge>
-                    </div>
-                </DialogHeader>
-                <div className="flex-1 bg-muted relative group">
-                    {previewSubmission && (
-                        <iframe 
-                            src={getEmbedUrl(previewSubmission.googleDriveLink)} 
-                            className="absolute inset-0 w-full h-full border-none bg-white" 
-                            allow="autoplay" 
-                            title="Risk Registry Document Preview"
-                        />
-                    )}
-                </div>
-                <DialogFooter className="p-4 border-t bg-card shrink-0 flex justify-between items-center px-8">
-                    <p className="text-[9px] text-muted-foreground italic font-medium">Digital Evidence integrity verified via Google Drive Cloud Storage.</p>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest" onClick={() => setPreviewSubmission(null)}>Close Preview</Button>
-                        <Button variant="default" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
-                            <a href={previewSubmission?.googleDriveLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open in Drive
-                            </a>
-                        </Button>
-                    </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        <RiskFormDialog 
-            key={editingRisk?.id || 'new'}
-            isOpen={isFormOpen}
-            onOpenChange={setIsFormOpen}
-            risk={editingRisk}
-            unitUsers={users || []}
-            allUnits={allUnits || []}
-            allCampuses={allCampuses || []}
-            isMandatory={isMandatory}
-            registryLink={registryLink}
-            defaultYear={selectedYear}
-        />
-
-        <AlertDialog open={!!deletingRisk} onOpenChange={(open) => !open && setDeletingRisk(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <div className="flex items-center gap-2 text-destructive mb-2">
-                        <Trash2 className="h-6 w-6" />
-                        <AlertDialogTitle>Confirm Permanent Deletion</AlertDialogTitle>
-                    </div>
-                    <AlertDialogDescription>
-                        You are about to remove this assessment entry from the digital register. This action cannot be undone and will affect institutional analytics for <strong>AY {selectedYear}</strong>.
-                        <br /><br />
-                        <span className="font-bold text-slate-900">Entry: "{deletingRisk?.description}"</span>
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Abort</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteRisk} className="bg-destructive text-white" disabled={isDeleting}>
-                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                        Delete Permanently
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+      <RiskFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} risk={editingRisk} unitUsers={[]} allUnits={[]} allCampuses={[]} />
     </Tabs>
   );
 }

@@ -46,6 +46,7 @@ import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-prin
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
@@ -53,13 +54,13 @@ const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + 
 export default function MonitoringPage() {
   const { user, isAdmin, isUserLoading, userProfile, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const router = useRouter();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   
-  // Filtering States
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,11 +70,9 @@ export default function MonitoringPage() {
   const isUnitOfficial = useMemo(() => userRole && /unit odimo/i.test(userRole), [userRole]);
   const isUnitCoordinator = useMemo(() => userRole && /unit coordinator/i.test(userRole), [userRole]);
 
-  // Set initial filters & enforce strict scoping
   useEffect(() => {
     if (userProfile && !isUserLoading) {
         if (isGlobalAdmin) {
-            // Global admins see everything
         } else if (isCampusOfficial || isUnitOfficial) {
             setCampusFilter(userProfile.campusId);
             if (isUnitOfficial) setUnitFilter(userProfile.unitId);
@@ -87,22 +86,10 @@ export default function MonitoringPage() {
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
         if (!firestore || isUserLoading || !userProfile) return null;
-        
         const baseRef = collection(firestore, 'unitMonitoringRecords');
-
-        // SCRICT SCOPING IN FETCHING
-        if (isGlobalAdmin) {
-            return query(baseRef);
-        }
-
-        if (isCampusOfficial || isUnitOfficial) {
-             return query(baseRef, where('campusId', '==', userProfile.campusId));
-        }
-
-        if (isUnitCoordinator && userProfile.unitId) {
-            return query(baseRef, where('unitId', '==', userProfile.unitId));
-        }
-
+        if (isGlobalAdmin) return query(baseRef);
+        if (isCampusOfficial || isUnitOfficial) return query(baseRef, where('campusId', '==', userProfile.campusId));
+        if (isUnitCoordinator && userProfile.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
         return null;
     },
     [firestore, isUserLoading, userProfile, isGlobalAdmin, isCampusOfficial, isUnitOfficial, isUnitCoordinator]
@@ -137,7 +124,6 @@ export default function MonitoringPage() {
     
     let processed = [...allRecords];
 
-    // Final Gate Authorization
     if (isUnitOfficial && userProfile?.unitId) {
         processed = processed.filter(r => r.unitId === userProfile.unitId);
     }
@@ -145,7 +131,6 @@ export default function MonitoringPage() {
         processed = processed.filter(r => r.campusId === userProfile.campusId);
     }
 
-    // Apply Global Filters (Only if they differ from strict scope)
     if (isGlobalAdmin && campusFilter !== 'all') {
         processed = processed.filter(r => r.campusId === campusFilter);
     }
@@ -175,41 +160,24 @@ export default function MonitoringPage() {
 
   const handleExportToExcel = () => {
     if (!filteredRecords.length) return;
-
     const data = filteredRecords.map(record => {
       const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
       const score = calculateCompliance(record);
-      
       return {
         'Visit Date': format(vDate, 'yyyy-MM-dd'),
         'Campus': campusMap.get(record.campusId) || 'Unknown',
         'Unit': unitMap.get(record.unitId) || 'Unknown',
-        'Room Type': record.roomType,
-        'Room Number': record.roomNumber || 'N/A',
-        'Building': record.building || 'N/A',
-        'Officer in Charge': record.officerInCharge || 'N/A',
-        'Monitor': record.monitorName,
+        'Room': record.roomNumber || 'N/A',
         'Compliance Rate': `${score}%`,
-        'General Remarks': record.generalRemarks || ''
+        'Monitor': record.monitorName,
+        'OIC': record.officerInCharge || 'N/A'
       };
     });
-
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Monitoring Records");
-    
-    // Auto-size columns
-    const maxWidths = data.reduce((acc: any, row: any) => {
-        Object.keys(row).forEach((key, i) => {
-            const val = String(row[key]);
-            acc[i] = Math.max(acc[i] || 0, val.length, key.length);
-        });
-        return acc;
-    }, []);
-    worksheet['!cols'] = maxWidths.map((w: number) => ({ wch: w + 2 }));
-
-    XLSX.writeFile(workbook, `RSU_Unit_Monitoring_Export_${selectedYear}.xlsx`);
-    toast({ title: 'Export Complete', description: 'Monitoring data has been downloaded.' });
+    XLSX.writeFile(workbook, `RSU_Monitoring_Export_${selectedYear}.xlsx`);
+    toast({ title: 'Export Complete' });
   };
 
   const handleNewVisit = () => {
@@ -225,51 +193,15 @@ export default function MonitoringPage() {
   const handlePrintRecord = (record: UnitMonitoringRecord) => {
     const cName = campusMap.get(record.campusId) || 'Unknown Campus';
     const uName = unitMap.get(record.unitId) || 'Unknown Unit';
-
     try {
-        const reportHtml = renderToStaticMarkup(
-          <MonitoringPrintTemplate 
-            record={record} 
-            campusName={cName} 
-            unitName={uName} 
-          />
-        );
-
+        const reportHtml = renderToStaticMarkup(<MonitoringPrintTemplate record={record} campusName={cName} unitName={uName} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Monitoring Report - ${uName}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                    @media print { 
-                      body { margin: 0; padding: 0; background: white; } 
-                      .no-print { display: none !important; }
-                    }
-                    body { font-family: sans-serif; background: #f9fafb; padding: 20px; color: black; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th, td { border: 1px solid black !important; padding: 8px; text-align: left; }
-                    .text-center { text-align: center; }
-                    </style>
-                </head>
-                <body>
-                  <div class="no-print mb-4 flex justify-center">
-                    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold">Print Record</button>
-                  </div>
-                  <div id="print-content">
-                    ${reportHtml}
-                  </div>
-                </body>
-                </html>
-            `);
+            printWindow.document.write(`<html><head><title>Monitoring Report - ${uName}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: sans-serif; background: #f9fafb; padding: 20px; color: black; }</style></head><body><div class="no-print mb-4 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold">Print Record</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
-    } catch (err) {
-        console.error("Print error:", err);
-    }
+    } catch (err) { console.error("Print error:", err); }
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
@@ -277,277 +209,62 @@ export default function MonitoringPage() {
   const canAddVisit = isAdmin || userRole === 'Campus ODIMO';
 
   return (
-    <>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <Tabs defaultValue="performance" className="space-y-4">
-            {/* Sticky Header and Tabs */}
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight">
-                        {isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}
-                    </h2>
-                    <p className="text-muted-foreground text-sm">
-                        {isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record, analyze, and review on-site monitoring performance.'}
-                    </p>
+                    <h2 className="text-2xl font-bold tracking-tight">{isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}</h2>
+                    <p className="text-muted-foreground text-sm">{isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record, analyze, and review on-site monitoring performance.'}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="w-[120px]">
                         <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                            <SelectTrigger className="h-9">
-                                <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
-                                <SelectValue placeholder="Year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                            </SelectContent>
+                            <SelectTrigger className="h-9"><CalendarSearch className="h-4 w-4 mr-2 opacity-50" /><SelectValue placeholder="Year" /></SelectTrigger>
+                            <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
-                    {!isUnitOnlyView && (
-                        <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9">
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Export
-                        </Button>
-                    )}
-                    {canAddVisit && (
-                        <Button size="sm" onClick={handleNewVisit} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            New Visit
-                        </Button>
-                    )}
+                    {!isUnitOnlyView && <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9"><FileDown className="mr-2 h-4 w-4" />Export</Button>}
+                    {canAddVisit && <Button size="sm" onClick={handleNewVisit} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />New Visit</Button>}
                   </div>
                 </div>
-
                 <ScrollArea className="w-full">
                     <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-                        <TabsTrigger value="performance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <LayoutDashboard className="h-4 w-4" /> Performance
-                        </TabsTrigger>
-                        <TabsTrigger value="history" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <History className="h-4 w-4" /> Visit Log
-                        </TabsTrigger>
-                        <TabsTrigger value="findings" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <AlertTriangle className="h-4 w-4" /> Gaps & Findings
-                        </TabsTrigger>
-                        {!isUnitOnlyView && (
-                        <TabsTrigger value="explorer" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <SearchCode className="h-4 w-4" /> Explorer
-                        </TabsTrigger>
-                        )}
-                        {!isUnitOnlyView && (
-                        <TabsTrigger value="item-analysis" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <ListChecks className="h-4 w-4" /> Analysis
-                        </TabsTrigger>
-                        )}
+                        <TabsTrigger value="performance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><LayoutDashboard className="h-4 w-4" /> Performance</TabsTrigger>
+                        <TabsTrigger value="history" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><History className="h-4 w-4" /> Visit Log</TabsTrigger>
+                        <TabsTrigger value="findings" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><AlertTriangle className="h-4 w-4" /> Gaps & Findings</TabsTrigger>
+                        {!isUnitOnlyView && <TabsTrigger value="explorer" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><SearchCode className="h-4 w-4" /> Explorer</TabsTrigger>}
+                        {!isUnitOnlyView && <TabsTrigger value="item-analysis" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-4 w-4" /> Analysis</TabsTrigger>}
                     </TabsList>
                 </ScrollArea>
             </div>
 
-            {/* Content area */}
             <div className="pt-2">
                 {!isLoading && filteredRecords.length === 0 && isUnitOnlyView ? (
                     <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center">
-                        <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
-                            <ClipboardCheck className="h-8 w-8 text-muted-foreground" />
-                        </div>
+                        <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4"><ClipboardCheck className="h-8 w-8 text-muted-foreground" /></div>
                         <CardTitle className="text-xl">Not Yet Monitored in {selectedYear}</CardTitle>
-                        <CardDescription className="max-w-md mx-auto mt-2">
-                            Your unit has no monitoring records logged for the year {selectedYear}. 
-                        </CardDescription>
+                        <CardDescription className="max-w-md mx-auto mt-2">Your unit has no monitoring records logged for the year {selectedYear}.</CardDescription>
                     </Card>
                 ) : (
                     <div className="space-y-4">
                         <Card className="shadow-md border-primary/10">
                             <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10 rounded-xl">
-                                <div className="flex-1 w-full space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Search className="h-2.5 w-2.5" /> Search Visits
-                                    </label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Search by unit name or officer..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="pl-9 h-9 text-xs bg-white"
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div className="w-full md:w-64 space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Building className="h-2.5 w-2.5" /> Site Location
-                                    </label>
-                                    <Select 
-                                        value={campusFilter} 
-                                        onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}
-                                        disabled={!isGlobalAdmin}
-                                    >
-                                        <SelectTrigger className="h-9 text-xs bg-white">
-                                            <SelectValue placeholder="All Campuses" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {isGlobalAdmin && <SelectItem value="all">All Campuses</SelectItem>}
-                                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="w-full md:w-64 space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Layers className="h-2.5 w-2.5" /> Unit / Office
-                                    </label>
-                                    <Select 
-                                        value={unitFilter} 
-                                        onValueChange={setUnitFilter} 
-                                        disabled={!isGlobalAdmin && !isCampusOfficial}
-                                    >
-                                        <SelectTrigger className="h-9 text-xs bg-white">
-                                            <SelectValue placeholder="All Units" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {(isGlobalAdmin || isCampusOfficial) && <SelectItem value="all">All Units</SelectItem>}
-                                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <div className="flex-1 w-full space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Search className="h-2.5 w-2.5" /> Search Visits</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search by unit name or officer..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-9 text-xs bg-white" /></div></div>
+                                <div className="w-full md:w-64 space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Site Location</label><Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }} disabled={!isGlobalAdmin}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Campuses" /></SelectTrigger><SelectContent>{isGlobalAdmin && <SelectItem value="all">All Campuses</SelectItem>}{campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="w-full md:w-64 space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Layers className="h-2.5 w-2.5" /> Unit / Office</label><Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isGlobalAdmin && !isCampusOfficial}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Units" /></SelectTrigger><SelectContent>{(isGlobalAdmin || isCampusOfficial) && <SelectItem value="all">All Units</SelectItem>}{filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
                             </CardContent>
                         </Card>
-
-                        <TabsContent value="performance" className="animate-in fade-in duration-500">
-                            <MonitoringAnalytics 
-                                records={filteredRecords} 
-                                campuses={campuses || []} 
-                                units={units || []} 
-                                isLoading={isLoading}
-                                selectedYear={selectedYear}
-                            />
-                        </TabsContent>
-
-                        <TabsContent value="history" className="space-y-4 animate-in fade-in duration-500">
-                            <Card className="shadow-sm border-primary/10 overflow-hidden">
-                                <CardHeader className="bg-muted/10 border-b">
-                                    <CardTitle>Monitoring History - {selectedYear}</CardTitle>
-                                    <CardDescription>
-                                        Results from on-site monitoring visits for your scope.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    {isLoading ? (
-                                    <div className="flex h-64 items-center justify-center">
-                                        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                                    </div>
-                                    ) : (
-                                    <Table>
-                                        <TableHeader className="bg-muted/50">
-                                        <TableRow>
-                                            <TableHead className="pl-6 text-[10px] font-black uppercase">Date</TableHead>
-                                            {!isUnitOnlyView && <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>}
-                                            {!isUnitOnlyView && <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>}
-                                            <TableHead className="text-[10px] font-black uppercase">Room</TableHead>
-                                            <TableHead className="text-[10px] font-black uppercase">Officer in Charge</TableHead>
-                                            <TableHead className="text-[10px] font-black uppercase">Compliance %</TableHead>
-                                            <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Action</TableHead>
-                                        </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                        {filteredRecords.length > 0 ? (
-                                            filteredRecords.map(record => {
-                                              const score = calculateCompliance(record);
-                                              return (
-                                                <TableRow key={record.id} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleViewRecord(record)}>
-                                                    <TableCell className="font-bold text-xs pl-6">
-                                                        {format(record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate), 'PP')}
-                                                    </TableCell>
-                                                    {!isUnitOnlyView && (
-                                                        <TableCell className="text-xs">
-                                                            {campusMap.get(record.campusId) || '...'}
-                                                        </TableCell>
-                                                    )}
-                                                    {!isUnitOnlyView && (
-                                                        <TableCell className="text-xs">
-                                                            {unitMap.get(record.unitId) || '...'}
-                                                        </TableCell>
-                                                    )}
-                                                    <TableCell className="text-xs">{record.roomNumber || 'N/A'}</TableCell>
-                                                    <TableCell className="text-xs font-medium">{record.officerInCharge || 'N/A'}</TableCell>
-                                                    <TableCell>
-                                                      <Badge variant={score >= 80 ? 'default' : score >= 50 ? 'secondary' : 'destructive'} className="text-[10px] font-black">
-                                                        {score}%
-                                                      </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right pr-6 space-x-1 whitespace-nowrap">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={(e) => { e.stopPropagation(); handlePrintRecord(record); }}>
-                                                        <Printer className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
-                                                        {isAdmin || userRole === 'Campus ODIMO' ? 'Edit' : 'View'}
-                                                    </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                              );
-                                            })
-                                        ) : (
-                                            <TableRow>
-                                            <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
-                                                No monitoring records found for the current filters.
-                                            </TableCell>
-                                            </TableRow>
-                                        )}
-                                        </TableBody>
-                                    </Table>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="findings" className="animate-in fade-in duration-500">
-                            <MonitoringFindings 
-                                records={filteredRecords} 
-                                campuses={campuses || []} 
-                                units={units || []} 
-                                isLoading={isLoading} 
-                            />
-                        </TabsContent>
-
-                        {!isUnitOnlyView && (
-                        <TabsContent value="explorer" className="animate-in fade-in duration-500">
-                            <MonitoringUnitExplorer 
-                                records={allRecords || []}
-                                campuses={campuses || []}
-                                units={units || []}
-                                isLoading={isLoading}
-                                onViewRecord={handleViewRecord}
-                                onPrintRecord={handlePrintRecord}
-                            />
-                        </TabsContent>
-                        )}
-
-                        {!isUnitOnlyView && (
-                        <TabsContent value="item-analysis" className="animate-in fade-in duration-500">
-                            <MonitoringItemAnalysis 
-                                records={filteredRecords}
-                                campuses={campuses || []} 
-                                units={units || []} 
-                                isLoading={isLoading}
-                                selectedYear={selectedYear}
-                            />
-                        </TabsContent>
-                        )}
+                        <TabsContent value="performance" className="animate-in fade-in duration-500"><MonitoringAnalytics records={filteredRecords} campuses={campuses || []} units={units || []} isLoading={isLoading} selectedYear={selectedYear} /></TabsContent>
+                        <TabsContent value="history" className="space-y-4 animate-in fade-in duration-500"><Card className="shadow-sm border-primary/10 overflow-hidden"><CardHeader className="bg-muted/10 border-b"><CardTitle>Monitoring History - {selectedYear}</CardTitle></CardHeader><CardContent className="p-0">{isLoading ? <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div> : <Table><TableHeader className="bg-muted/50"><TableRow><TableHead className="pl-6 text-[10px] font-black uppercase">Date</TableHead>{!isUnitOnlyView && <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>}{!isUnitOnlyView && <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>}<TableHead className="text-[10px] font-black uppercase">Room</TableHead><TableHead className="text-[10px] font-black uppercase">Officer in Charge</TableHead><TableHead className="text-[10px] font-black uppercase">Compliance %</TableHead><TableHead className="text-right pr-6 text-[10px] font-black uppercase">Action</TableHead></TableRow></TableHeader><TableBody>{filteredRecords.length > 0 ? filteredRecords.map(record => { const score = calculateCompliance(record); return (<TableRow key={record.id} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleViewRecord(record)}><TableCell className="font-bold text-xs pl-6">{format(record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate), 'PP')}</TableCell>{!isUnitOnlyView && <TableCell className="text-xs">{campusMap.get(record.campusId) || '...'}</TableCell>}{!isUnitOnlyView && <TableCell className="text-xs">{unitMap.get(record.unitId) || '...'}</TableCell>}<TableCell className="text-xs">{record.roomNumber || 'N/A'}</TableCell><TableCell className="text-xs font-medium">{record.officerInCharge || 'N/A'}</TableCell><TableCell><Badge variant={score >= 80 ? 'default' : score >= 50 ? 'secondary' : 'destructive'} className="text-[10px] font-black">{score}%</Badge></TableCell><TableCell className="text-right pr-6 space-x-1 whitespace-nowrap"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={(e) => { e.stopPropagation(); handlePrintRecord(record); }}><Printer className="h-4 w-4" /></Button><Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>{isAdmin || userRole === 'Campus ODIMO' ? 'Edit' : 'View'}</Button></TableCell></TableRow>); }) : <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">No monitoring records found for the current filters.</TableCell></TableRow>}</TableBody></Table>}</CardContent></Card></TabsContent>
+                        <TabsContent value="findings" className="animate-in fade-in duration-500"><MonitoringFindings records={filteredRecords} campuses={campuses || []} units={units || []} isLoading={isLoading} /></TabsContent>
+                        {!isUnitOnlyView && <TabsContent value="explorer" className="animate-in fade-in duration-500"><MonitoringUnitExplorer records={allRecords || []} campuses={campuses || []} units={units || []} isLoading={isLoading} onViewRecord={handleViewRecord} onPrintRecord={handlePrintRecord} /></TabsContent>}
+                        {!isUnitOnlyView && <TabsContent value="item-analysis" className="animate-in fade-in duration-500"><MonitoringItemAnalysis records={filteredRecords} campuses={campuses || []} units={units || []} isLoading={isLoading} selectedYear={selectedYear} /></TabsContent>}
                     </div>
                 )}
             </div>
         </Tabs>
-      </div>
-
-      <MonitoringFormDialog
-        isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        record={selectedRecord}
-        campuses={campuses || []}
-        units={units || []}
-        onPrint={handlePrintRecord}
-      />
-    </>
+      <MonitoringFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} record={selectedRecord} campuses={campuses || []} units={units || []} onPrint={handlePrintRecord} />
+    </div>
   );
 }

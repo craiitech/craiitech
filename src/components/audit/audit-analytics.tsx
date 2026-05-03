@@ -268,7 +268,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col min-h-[110px]">
             <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Itinerary Density</CardTitle></CardHeader>
@@ -293,7 +292,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Finding Type Pie (Original Restored) */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/10 border-b py-4">
               <div className="flex items-center gap-2">
@@ -316,7 +314,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
           </CardContent>
         </Card>
 
-        {/* Process Category Profile (New) */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -347,7 +344,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </CardContent>
         </Card>
 
-        {/* Top Findings by Clause (Original Restored) */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
@@ -372,7 +368,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
           </CardContent>
         </Card>
 
-        {/* Clause Density (New) */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Clause Audit Density</CardTitle></div>
@@ -393,7 +388,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         </Card>
       </div>
 
-      {/* Tables Row: Unit Hotspots & Auditor Assignments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-lg border-primary/10 overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
@@ -462,4 +456,3 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     </div>
   );
 }
-

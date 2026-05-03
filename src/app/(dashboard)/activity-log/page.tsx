@@ -76,14 +76,12 @@ export default function EmployeeActivityLogPage() {
   const [editingWfhActivity, setEditingWfhActivity] = useState<WfhActivity | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>(''); 
   const [monthFilter, setMonthFilter] = useState<string>('');
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
-  // Print States
   const [isWfhPrintDialogOpen, setIsWfhPrintDialogOpen] = useState(false);
   const [wfhPrintType, setWfhPrintType] = useState<'Teaching' | 'Non-Teaching'>('Non-Teaching');
   const [wfhDeptChair, setWfhDeptChair] = useState('');
@@ -96,17 +94,12 @@ export default function EmployeeActivityLogPage() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Defer default date to mount to avoid hydration mismatch
   useEffect(() => {
     const now = new Date();
-    // Default: Show all tasks for the month, don't restrict to a single day
     setDateFilter(''); 
     setMonthFilter(format(now, 'yyyy-MM'));
   }, []);
 
-  /**
-   * ACTIVITY REGISTRY QUERIES
-   */
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !user || isUserLoading) return null;
     const baseRef = collection(firestore, 'employeeActivities');
@@ -146,7 +139,6 @@ export default function EmployeeActivityLogPage() {
         const matchesStatus = statusFilter === 'all' || activity.status === statusFilter;
         const aDate = activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date);
         
-        // Scoping: Month is the primary filter, specific date is optional
         const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
         const matchesDate = !dateFilter || format(aDate, 'yyyy-MM-dd') === dateFilter;
         
@@ -195,7 +187,7 @@ export default function EmployeeActivityLogPage() {
     const periodLabel = dateFilter ? format(new Date(dateFilter), 'PPPP') : monthFilter ? format(new Date(monthFilter), 'MMMM yyyy') : 'All Selected Records';
 
     if (itemsToPrint.length === 0) {
-        toast({ title: 'No data to print', variant: 'destructive' });
+        toast({ title: "No data", description: "Select records to print.", variant: "destructive" });
         return;
     }
 
@@ -284,7 +276,6 @@ export default function EmployeeActivityLogPage() {
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        {/* Sticky Header and Tabs */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -415,12 +406,8 @@ export default function EmployeeActivityLogPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsWfhPrintDialogOpen(true)} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
-                        <Printer className="h-4 w-4" /> Generate Monitoring Sheet
-                    </Button>
-                    <Button onClick={() => { setEditingWfhActivity(null); setIsWfhFormOpen(true); }} className="h-10 shadow-lg shadow-primary/20 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Log WFH Task
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setIsWfhPrintDialogOpen(true)} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"><Printer className="h-4 w-4" /> Generate Monitoring Sheet</Button>
+                    <Button onClick={() => { setEditingWfhActivity(null); setIsWfhFormOpen(true); }} className="h-10 shadow-lg shadow-primary/20 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" /> Log WFH Task</Button>
                 </div>
             </div>
 
@@ -470,14 +457,10 @@ export default function EmployeeActivityLogPage() {
         </TabsContent>
       </Tabs>
 
-      {/* --- WFH Print Wizard --- */}
       <Dialog open={isWfhPrintDialogOpen} onOpenChange={setIsWfhPrintDialogOpen}>
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
-                <div className="flex items-center gap-2 text-primary mb-1">
-                    <Printer className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Report Wizard</span>
-                </div>
+                <div className="flex items-center gap-2 text-primary mb-1"><Printer className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-widest">Report Wizard</span></div>
                 <DialogTitle>Generate WFH Monitoring Sheet</DialogTitle>
                 <DialogDescription>Configure the personnel template and signatories for the selected month ({monthFilter}).</DialogDescription>
             </DialogHeader>
@@ -499,62 +482,20 @@ export default function EmployeeActivityLogPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
-                    <div className="flex items-center gap-2">
-                        <UserCheck className="h-4 w-4 text-primary" />
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-800">Identify Official Signatories</Label>
-                    </div>
-                    
+                    <div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-widest text-slate-800">Identify Official Signatories</Label></div>
                     {wfhPrintType === 'Teaching' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                            <div className="space-y-2">
-                                <Label htmlFor="dept-chair" className="text-[9px] font-bold uppercase text-muted-foreground">Department / Program Chair</Label>
-                                <Input 
-                                    id="dept-chair" 
-                                    value={wfhDeptChair} 
-                                    onChange={(e) => setWfhDeptChair(e.target.value)} 
-                                    placeholder="Enter full name" 
-                                    className="h-9 text-xs font-bold bg-slate-50"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="dean-director" className="text-[9px] font-bold uppercase text-muted-foreground">Dean / Campus Director</Label>
-                                <Input 
-                                    id="dean-director" 
-                                    value={wfhDeanDirector} 
-                                    onChange={(e) => setWfhDeanDirector(e.target.value)} 
-                                    placeholder="Enter full name" 
-                                    className="h-9 text-xs font-bold bg-slate-50"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Department / Program Chair</Label><Input value={wfhDeptChair} onChange={(e) => setWfhDeptChair(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50" /></div>
+                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Dean / Campus Director</Label><Input value={wfhDeanDirector} onChange={(e) => setWfhDeanDirector(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50" /></div>
                         </div>
                     ) : (
-                        <div className="animate-in slide-in-from-top-2 duration-300">
-                            <div className="space-y-2">
-                                <Label htmlFor="immediate-head" className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label>
-                                <Input 
-                                    id="immediate-head" 
-                                    value={wfhImmediateHead} 
-                                    onChange={(e) => setWfhImmediateHead(e.target.value)} 
-                                    placeholder="Enter full name" 
-                                    className="h-9 text-xs font-bold bg-slate-50"
-                                />
-                            </div>
-                        </div>
+                        <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label><Input value={wfhImmediateHead} onChange={(e) => setWfhImmediateHead(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50" /></div>
                     )}
-                    <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                        These names will be printed in the signature section of the official monitoring sheet.
-                    </p>
                 </div>
             </div>
             <DialogFooter className="border-t pt-4">
                 <Button variant="ghost" onClick={() => setIsWfhPrintDialogOpen(false)} className="font-bold text-[10px] uppercase">Cancel</Button>
-                <Button 
-                    onClick={handlePrintWfh} 
-                    className="font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-primary/20"
-                    disabled={wfhPrintType === 'Teaching' ? (!wfhDeptChair || !wfhDeanDirector) : !wfhImmediateHead}
-                >
-                    Generate & Print
-                </Button>
+                <Button onClick={handlePrintWfh} className="font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-primary/20" disabled={wfhPrintType === 'Teaching' ? (!wfhDeptChair || !wfhDeanDirector) : !wfhImmediateHead}>Generate & Print</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

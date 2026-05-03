@@ -45,9 +45,6 @@ interface AuditPlanListProps {
 type SortKey = 'scheduledDate' | 'processCategory' | 'targetName' | 'status';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
-/**
- * Sub-component to handle local search and sort for a specific plan's itinerary.
- */
 function PlanItineraryRegistry({ 
     plan, 
     schedules,
@@ -73,7 +70,6 @@ function PlanItineraryRegistry({
     const processedSchedules = useMemo(() => {
         let result = [...schedules];
 
-        // 1. Filtering
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
             result = result.filter(s => 
@@ -86,7 +82,6 @@ function PlanItineraryRegistry({
             );
         }
 
-        // 2. Sorting
         if (sortConfig) {
             const { key, direction } = sortConfig;
             result.sort((a, b) => {
@@ -165,7 +160,7 @@ function PlanItineraryRegistry({
             const reportHtml = renderToStaticMarkup(
                 <AuditPrintTemplate 
                     schedule={schedule}
-                    findings={[]} // Pass empty findings for blank template
+                    findings={[]} 
                     clauses={clausesInScope}
                     signatories={signatories}
                     leadAuditorName={plan.leadAuditorName}
