@@ -148,6 +148,7 @@ const statusVariant: Record<
 /**
  * ENHANCED DASHBOARD SKELETON LOADER
  * Displays comprehensive innovative guidance while synchronizing data.
+ * Updated: Added abstract animated green and gold background.
  */
 function DashboardSkeleton() {
   return (
@@ -167,8 +168,21 @@ function DashboardSkeleton() {
       </div>
 
       {/* COMPREHENSIVE GUIDANCE OVERLAY */}
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/90 backdrop-blur-xl overflow-y-auto">
-        <div className="w-full max-w-4xl space-y-12 animate-in zoom-in duration-700">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/60 backdrop-blur-xl overflow-y-auto">
+        
+        {/* Animated Green and Gold Abstract Background Layer */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+            {/* Gold Institutional Blob */}
+            <div className="absolute -top-[15%] -left-[10%] w-[70%] h-[70%] bg-yellow-400/20 rounded-full blur-[120px] animate-float-blob" />
+            
+            {/* Green Institutional Blob */}
+            <div className="absolute -bottom-[15%] -right-[10%] w-[70%] h-[70%] bg-emerald-500/20 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '4s' }} />
+            
+            {/* Center Blending Blob */}
+            <div className="absolute top-[25%] left-[25%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[100px] animate-float-blob" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <div className="w-full max-w-4xl space-y-12 animate-in zoom-in duration-700 relative z-10">
             
             {/* Sync Header */}
             <div className="flex flex-col items-center gap-4 text-center">
@@ -201,7 +215,7 @@ function DashboardSkeleton() {
                             { icon: <MonitorCheck className="text-blue-600" />, title: "Site Parity", desc: "Comparative maturity benchmarks across all campuses." },
                             { icon: <ClipboardCheck className="text-indigo-600" />, title: "Audit Integrity", desc: "Real-time Evidence Log Sheets for institutional IQA." }
                         ].map((cap, i) => (
-                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all">
+                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/90 border border-slate-100 shadow-sm transition-all hover:bg-white">
                                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
                                     {cap.icon}
                                 </div>
@@ -222,7 +236,7 @@ function DashboardSkeleton() {
                     </div>
 
                     <Card className="bg-primary/5 border-primary/20 shadow-none overflow-hidden group">
-                        <CardHeader className="py-4 border-b border-primary/10 bg-white">
+                        <CardHeader className="py-4 border-b border-primary/10 bg-white/90">
                             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                 <ListChecks className="h-3.5 w-3.5" />
                                 6 Core Registry Documents
@@ -231,19 +245,19 @@ function DashboardSkeleton() {
                         <CardContent className="pt-4 space-y-2">
                             {submissionTypes.map((type, i) => (
                                 <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-700">
-                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                    <CheckCircle2 className="h-3 text-emerald-500" />
                                     {type}
                                 </div>
                             ))}
                         </CardContent>
-                        <CardFooter className="bg-white border-t py-2">
+                        <CardFooter className="bg-white/90 border-t py-2">
                             <p className="text-[8px] font-medium text-muted-foreground italic leading-tight">
                                 Mandatory per submission cycle to maintain ISO 21001:2018 Certification.
                             </p>
                         </CardFooter>
                     </Card>
 
-                    <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-start gap-4">
+                    <div className="p-5 rounded-2xl bg-indigo-50/80 border border-indigo-100 backdrop-blur-sm flex items-start gap-4">
                         <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                             <p className="text-xs font-black uppercase text-indigo-900">Pro-Tip for Coordinators</p>
