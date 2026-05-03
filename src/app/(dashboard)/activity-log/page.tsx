@@ -264,7 +264,43 @@ export default function EmployeeActivityLogPage() {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
         printWindow.document.open();
-        printWindow.document.write(`<html><head><title>${title}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Click to Print Report</button></div>${html}</body></html>`);
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>${title}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { 
+                                background: white; 
+                                margin: 0 !important; 
+                                padding: 0 !important; 
+                                -webkit-print-color-adjust: exact;
+                            } 
+                            .no-print { display: none !important; } 
+                        } 
+                        body { 
+                            font-family: serif; 
+                            padding: 0; 
+                            color: black; 
+                            font-size: 12pt;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Click to Print Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">
+                        ${html}
+                    </div>
+                </body>
+            </html>
+        `);
         printWindow.document.close();
     }
   };

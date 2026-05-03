@@ -35,18 +35,18 @@ export function WfhReportTemplate({
   const isTeaching = type === 'Teaching';
 
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight">
+    <div className="p-0 text-black bg-white mx-auto font-serif leading-tight" style={{ width: '7.5in', fontSize: '12pt' }}>
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-lg font-black uppercase tracking-widest">WORK FROM HOME MONITORING SHEET</h1>
+        <h1 className="font-black uppercase tracking-widest" style={{ fontSize: '14pt' }}>WORK FROM HOME MONITORING SHEET</h1>
         <h2 className="text-md font-bold uppercase tracking-tight mt-1">({type})</h2>
       </div>
 
       {/* Meta Grid */}
-      <table className="w-full border-collapse border-2 border-black text-[11px] mb-8">
+      <table className="w-full border-collapse border-2 border-black mb-8" style={{ fontSize: '12pt' }}>
         <tbody>
           <tr>
-            <td className="border border-black p-2 w-[25%] bg-gray-100 font-bold">Name of Employee</td>
+            <td className="border border-black p-2 w-[30%] bg-gray-100 font-bold">Name of Employee</td>
             <td className="border border-black p-2 uppercase">{userName}</td>
           </tr>
           <tr>
@@ -98,25 +98,25 @@ export function WfhReportTemplate({
       </table>
 
       {/* Main Content Table */}
-      <table className="w-full border-collapse border-2 border-black text-[11px] mb-8">
+      <table className="w-full border-collapse border-2 border-black mb-8" style={{ fontSize: '11pt' }}>
         <thead>
           <tr className="bg-gray-100 font-black text-center uppercase border-b-2 border-black">
             <th className="border border-black p-2 w-[15%]">Period</th>
             <th className="border border-black p-2 w-[40%]">
                 Deliverables
-                <p className="text-[8px] font-normal normal-case italic mt-1">
+                <p className="font-normal normal-case italic mt-1" style={{ fontSize: '9pt' }}>
                     {isTeaching ? '(As approved by the Dean/Chair/Campus Director)' : '(As approved by the Immediate Head)'}
                 </p>
             </th>
             <th className="border border-black p-2">
                 Accomplishment
-                <p className="text-[8px] font-normal normal-case italic mt-1">(Attach additional proofs as needed)</p>
+                <p className="font-normal normal-case italic mt-1" style={{ fontSize: '9pt' }}>(Attach additional proofs as needed)</p>
             </th>
           </tr>
         </thead>
         <tbody>
           {displayRows.map((a, i) => (
-            <tr key={i} className="h-20 border-b border-black">
+            <tr key={i} className="h-24 border-b border-black">
               <td className="border border-black p-2 text-center align-top font-bold">
                 {a.date ? format(a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date), 'MM/dd/yy') : ''}
               </td>
@@ -126,7 +126,7 @@ export function WfhReportTemplate({
               <td className="border border-black p-2 align-top italic whitespace-pre-wrap leading-snug">
                 {a.accomplishment || ''}
                 {a.evidenceLink && (
-                  <div className="mt-3 not-italic font-bold text-[8px] border-t border-black/10 pt-1 overflow-hidden">
+                  <div className="mt-4 not-italic font-bold border-t border-black/10 pt-1 overflow-hidden" style={{ fontSize: '9pt' }}>
                     <span className="uppercase opacity-60 block mb-0.5">Attachment/Evidences:</span>
                     <span className="text-blue-700 underline truncate block">{a.evidenceLink}</span>
                   </div>
@@ -137,50 +137,50 @@ export function WfhReportTemplate({
         </tbody>
       </table>
 
-      <div className="mt-10 text-[11px] font-bold">
+      <div className="mt-10 font-bold" style={{ fontSize: '12pt' }}>
         On my honor, I certify that I rendered the above services within the duration of the National State of Emergency.
       </div>
 
       {/* Signatures */}
-      <div className="mt-20 flex flex-col items-center">
-        <div className="w-72 text-center">
-            <div className="border-b border-black font-bold uppercase pb-1 mb-1">
+      <div className="mt-20 flex flex-col items-center" style={{ fontSize: '12pt' }}>
+        <div className="w-80 text-center">
+            <div className="border-b-2 border-black font-bold uppercase pb-1 mb-1">
                 {userName}
             </div>
-            <p className="text-[10px] uppercase font-semibold">Employee's Signature over Printed Name</p>
+            <p className="uppercase font-semibold" style={{ fontSize: '10pt' }}>Employee's Signature over Printed Name</p>
         </div>
       </div>
 
-      <div className="mt-20 grid grid-cols-2 gap-20 text-[11px] font-black uppercase">
+      <div className="mt-24 grid grid-cols-2 gap-20 uppercase" style={{ fontSize: '12pt' }}>
         {isTeaching ? (
             <>
                 <div className="text-left">
-                    <p className="mb-10">VALIDATED:</p>
-                    <div className="border-b border-black font-bold text-center pb-1 mb-1 min-h-[1.5rem] uppercase">
+                    <p className="mb-12 font-bold">VALIDATED:</p>
+                    <div className="border-b-2 border-black font-bold text-center pb-1 mb-1 min-h-[1.5rem] uppercase">
                         {deptChair || ''}
                     </div>
-                    <p className="text-[10px] text-center font-semibold">Department Chair</p>
+                    <p className="text-[10pt] text-center font-semibold">Department Chair</p>
                 </div>
                 <div className="text-left">
-                    <p className="mb-10">APPROVED:</p>
-                    <div className="border-b border-black font-bold text-center pb-1 mb-1 min-h-[1.5rem] uppercase">
+                    <p className="mb-12 font-bold">APPROVED:</p>
+                    <div className="border-b-2 border-black font-bold text-center pb-1 mb-1 min-h-[1.5rem] uppercase">
                         {deanDirector || ''}
                     </div>
-                    <p className="text-[10px] text-center font-semibold">Dean/Director</p>
+                    <p className="text-[10pt] text-center font-semibold">Dean/Director</p>
                 </div>
             </>
         ) : (
             <div className="col-span-2 flex flex-col items-center text-center">
-                <p className="mb-10 w-full text-center">VALIDATED AND APPROVED:</p>
-                <div className="border-b border-black font-bold text-center pb-1 mb-1 w-72 min-h-[1.5rem] uppercase">
+                <p className="mb-12 w-full text-center font-bold">VALIDATED AND APPROVED:</p>
+                <div className="border-b-2 border-black font-bold text-center pb-1 mb-1 w-80 min-h-[1.5rem] uppercase">
                     {immediateHead || ''}
                 </div>
-                <p className="text-[10px] font-semibold">Immediate Head</p>
+                <p className="font-semibold" style={{ fontSize: '10pt' }}>Immediate Head</p>
             </div>
         )}
       </div>
 
-      <div className="mt-16 text-[9px] text-gray-400 italic text-center border-t pt-4">
+      <div className="mt-20 text-[10pt] text-gray-400 italic text-center border-t pt-4">
         Official WFH Monitoring Sheet &bull; RSU EOMS Portal Registry AY {new Date().getFullYear()}.
       </div>
     </div>
