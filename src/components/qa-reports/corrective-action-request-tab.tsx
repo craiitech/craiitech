@@ -351,8 +351,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     <title>CAR - ${car.carNumber}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
                         @media print { 
-                            body { margin: 0; padding: 0; background: white; } 
+                            body { 
+                                margin: 0 !important; 
+                                padding: 0 !important; 
+                                background: white; 
+                                -webkit-print-color-adjust: exact;
+                            } 
                             .no-print { display: none !important; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
@@ -362,7 +371,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
                     </div>
-                    <div id="print-content">
+                    <div id="print-content" style="padding: 0.1in;">
                         ${reportHtml}
                     </div>
                 </body>
@@ -547,7 +556,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     <TableHead className="py-4"><div className="text-[10px] font-black uppercase">Procedure / Context</div></TableHead>
                     <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Deadline {getSortIcon('deadline')}</Button></TableHead>
                     <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status & Guidance {getSortIcon('status')}</Button></TableHead>
-                    <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
+                    <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
