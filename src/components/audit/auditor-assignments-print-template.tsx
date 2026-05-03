@@ -51,7 +51,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
             <div className="flex flex-col items-center justify-center gap-1 mb-2">
                 <h1 className="font-bold uppercase leading-none" style={{ fontSize: '14pt' }}>Romblon State University</h1>
                 <h2 className="font-semibold leading-none mt-1" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
-                <p style={{ fontSize: '11pt' }} className="italic">Odiongan, Romblon</p>
+                <p style={{ fontSize: '10pt' }} className="italic">Odiongan, Romblon</p>
             </div>
             <div className="mt-6 border-y-2 border-black py-2 bg-slate-50/50">
               <h2 className="font-black uppercase tracking-[0.15em]" style={{ fontSize: '13pt' }}>IQA Auditor Assignment Registry</h2>
@@ -81,7 +81,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
               </thead>
               <tbody>
                   {auditor.assignments.sort((a,b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0)).map((a, i) => (
-                      <tr key={i} className="break-inside-avoid border-b border-black/10 last:border-black">
+                      <tr key={i} className="break-inside-avoid border-b border-black">
                           <td className="border border-black p-2 font-bold tabular-nums" style={{ fontSize: '11pt' }}>{safeFormatDate(a.date)}</td>
                           <td className="border border-black p-2 font-bold uppercase whitespace-nowrap" style={{ fontSize: '11pt' }}>
                               {safeFormatTime(a.startTime)} - {safeFormatTime(a.endTime)}
@@ -90,7 +90,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
                               <p className="font-black uppercase leading-tight" style={{ fontSize: '12pt' }}>{a.unitName}</p>
                               <p className="font-bold text-slate-500 mt-1 uppercase tracking-tighter" style={{ fontSize: '10pt' }}>{a.campus}</p>
                           </td>
-                          <td className="italic leading-relaxed" style={{ fontSize: '11pt' }}>
+                          <td className="border border-black p-2 italic leading-relaxed" style={{ fontSize: '11pt' }}>
                               {a.procedure}
                           </td>
                           <td className="border border-black p-2 text-center font-black uppercase" style={{ fontSize: '10pt' }}>
