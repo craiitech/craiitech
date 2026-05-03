@@ -12,33 +12,33 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 233 47% 49%; /* #3F51B5 */
+    --primary: 142 72% 29%; /* RSU Green - #1B6535 */
     --primary-foreground: 210 40% 98%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
-    --accent: 188 100% 39%; /* #00BCD4 */
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 93% 47%; /* RSU Gold - #EAB308 */
+    --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 233 47% 49%;
+    --ring: 142 72% 29%;
     --radius: 2.5rem;
-    --chart-1: 233 47% 49%;
-    --chart-2: 188 100% 39%;
+    --chart-1: 142 72% 29%;
+    --chart-2: 45 93% 47%;
     --chart-3: 288 80% 70%;
     --chart-4: 262 70% 80%;
     --chart-5: 333 80% 85%;
-    --sidebar-background: 232 47% 20%;
+    --sidebar-background: 142 72% 15%; /* Deep RSU Green */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 188 100% 39%;
-    --sidebar-primary-foreground: 233 47% 15%;
-    --sidebar-accent: 232 47% 25%;
+    --sidebar-primary: 45 93% 47%; /* RSU Gold */
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 142 72% 20%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 232 47% 25%;
-    --sidebar-ring: 188 100% 39%;
+    --sidebar-border: 142 72% 20%;
+    --sidebar-ring: 45 93% 47%;
   }
 
   .dark {
@@ -48,32 +48,32 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
-    --primary: 233 47% 49%;
+    --primary: 142 72% 29%;
     --primary-foreground: 210 40% 98%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 188 100% 39%;
+    --accent: 45 93% 47%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 233 47% 49%;
-    --chart-1: 233 47% 49%;
-    --chart-2: 188 100% 39%;
+    --ring: 142 72% 29%;
+    --chart-1: 142 72% 29%;
+    --chart-2: 45 93% 47%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 222 47% 11%;
+    --sidebar-background: 142 72% 10%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 188 100% 39%;
-    --sidebar-primary-foreground: 233 47% 15%;
+    --sidebar-primary: 45 93% 47%;
+    --sidebar-primary-foreground: 222 47% 11%;
     --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 188 100% 39%;
+    --sidebar-ring: 45 93% 47%;
   }
 }
 
@@ -114,7 +114,7 @@
 .accessibility-high-contrast {
   --background: 0 0% 100%;
   --foreground: 0 0% 0%;
-  --primary: 233 47% 20%;
+  --primary: 142 72% 15%;
   --border: 0 0% 0%;
   --input: 0 0% 0%;
   --ring: 0 0% 0%;
@@ -142,24 +142,28 @@
   --primary: 221.2 83.2% 53.3%;
   --ring: 221.2 83.2% 53.3%;
   --sidebar-primary: 221.2 83.2% 53.3%;
+  --sidebar-background: 222.2 47.4% 11.2%;
 }
 
 .theme-green {
   --primary: 142.1 76.2% 36.3%;
   --ring: 142.1 76.2% 36.3%;
   --sidebar-primary: 142.1 76.2% 36.3%;
+  --sidebar-background: 142.1 76.2% 10%;
 }
 
 .theme-maroon {
   --primary: 0 72% 35%;
   --ring: 0 72% 35%;
   --sidebar-primary: 0 72% 35%;
+  --sidebar-background: 0 72% 10%;
 }
 
 .theme-gold {
   --primary: 45 93% 47%;
   --ring: 45 93% 47%;
   --sidebar-primary: 45 93% 47%;
+  --sidebar-background: 45 93% 10%;
 }
 
 @layer components {
@@ -171,7 +175,7 @@
 
   .institutional-header {
     background-color: hsl(var(--background) / 0.95) !important;
-    background-image: linear-gradient(to right, hsl(var(--primary) / 0.08), transparent 40%, hsl(var(--accent) / 0.05)) !important;
+    background-image: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--background)) 50%, hsl(var(--accent) / 0.08) 100%) !important;
     border-bottom: 2px solid hsl(var(--primary) / 0.15) !important;
     backdrop-filter: blur(12px) !important;
   }

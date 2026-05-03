@@ -81,9 +81,9 @@ const fontSizeMap = [0.8, 1.0, 1.2, 1.4];
 const fontSizeLabels = ['Small (80%)', 'Default (100%)', 'Large (120%)', 'Extra Large (140%)'];
 
 const colorPalettes = [
-    { id: 'default', label: 'Institutional Indigo', color: 'bg-[#3F51B5]' },
+    { id: 'default', label: 'University Green & Gold', color: 'bg-[#1B6535]' },
     { id: 'blue', label: 'Professional Blue', color: 'bg-[#3b82f6]' },
-    { id: 'green', label: 'Quality Green', color: 'bg-[#16a34a]' },
+    { id: 'green', label: 'Quality Emerald', color: 'bg-[#16a34a]' },
     { id: 'maroon', label: 'RSU Maroon', color: 'bg-[#a51c1c]' },
     { id: 'gold', label: 'University Gold', color: 'bg-[#eab308]' },
 ];
