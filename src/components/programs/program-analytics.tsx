@@ -118,6 +118,13 @@ const chartConfig = {
 
 type SortKey = 'name' | 'campus' | 'currentLevel' | 'validity' | 'status';
 
+/**
+ * Utility to sort timeline-based objects by year.
+ */
+const sortTimeline = (data: Record<string, any>) => {
+    return Object.values(data).sort((a, b) => a.year.localeCompare(b.year));
+};
+
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -153,7 +160,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const copcByYear: Record<string, any> = {};
     const achievementByYear: Record<string, any> = {};
-    const milestoneVelocity: Record<string, any> = {};
     const roadmapData: any[] = [];
     const currentYearNum = new Date().getFullYear();
 
@@ -164,10 +170,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const unitImpactMap: Record<string, number> = {};
     const globalPillarSums = { authority: 0, accreditation: 0, faculty: 0, curriculum: 0, outcomes: 0 };
 
-    /**
-     * NEW: FACULTY EDUCATIONAL PROFILE (GAD)
-     * Aggregates highest degree attained across the institutional faculty pool.
-     */
     const degreeCounts = { Doctoral: 0, Masters: 0, Bachelor: 0, Others: 0 };
 
     programs.forEach(p => {
@@ -324,7 +326,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 roster.forEach(m => {
                     if (!m.name || m.name.trim() === '') return;
                     
-                    // Educational Profile Calculation
                     const degree = String(m.highestEducation || '').toUpperCase();
                     if (degree.includes('PHD') || degree.includes('DOCTOR')) degreeCounts.Doctoral++;
                     else if (degree.includes('MS') || degree.includes('MASTER')) degreeCounts.Masters++;
@@ -393,7 +394,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
         gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         monitoredCount,
-        integrityRate: programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0
+        integrityRate: programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0,
+        overallScore: Math.round(radarData.reduce((acc, curr) => acc + curr.score, 0) / radarData.length)
     };
   }, [programs, compliances, campusMap, unitMap]);
 
@@ -439,7 +441,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      {/* 1. KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden flex flex-col">
             <CardHeader className="pb-2"><div className="flex items-center justify-between"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Scope Portfolio</CardTitle><LayoutGrid className="h-4 w-4 text-primary opacity-20" /></div></CardHeader>
@@ -475,7 +476,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                               <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
                               <RechartsTooltip content={<ChartTooltipContent />} />
-                              <Radar name="University Maturity" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4} />
+                              <Radar
+                                  name="University Maturity"
+                                  dataKey="score"
+                                  stroke="hsl(var(--primary))"
+                                  fill="hsl(var(--primary))"
+                                  fillOpacity={0.4}
+                              />
                           </RadarChart>
                       </ResponsiveContainer>
                   </ChartContainer>
@@ -486,7 +493,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
 
-          {/* NEW: FACULTY EDUCATIONAL PROFILE */}
           <Card className="lg:col-span-1 shadow-lg border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center gap-2">
@@ -535,7 +541,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </Card>
       </div>
 
-      {/* Existing Charts follow (Recommendation Accountability, etc.) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Recommendation Accountability Summary</CardTitle></CardHeader>
