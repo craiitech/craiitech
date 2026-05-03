@@ -44,16 +44,16 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
   const qaoDirectorName = signatories?.qaoDirector || '____________________';
 
   return (
-    <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
+    <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       {/* Institutional Header - Logo Removed */}
       <div className="text-center mb-6">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
-            <h1 className="text-lg font-bold leading-none">Romblon State University</h1>
+            <h1 className="text-lg font-bold leading-none" style={{ fontSize: '14pt' }}>Romblon State University</h1>
             <p className="text-xs">Romblon, Philippines</p>
             <p className="text-xs italic">Main Campus, Odiongan, Romblon</p>
         </div>
         <div className="mt-6 mb-4">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em]">DETAILED AUDIT PLAN</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.2em]" style={{ fontSize: '13pt' }}>DETAILED AUDIT PLAN</h2>
         </div>
       </div>
 
@@ -62,9 +62,9 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
         <tbody>
           <tr>
             <td className="border-2 border-black p-2 w-[15%] font-bold bg-slate-50">No. of Audit</td>
-            <td className="border-2 border-black p-2 w-[35%] font-bold text-sm">{plan.auditNumber}</td>
+            <td className="border-2 border-black p-2 w-[35%] font-bold">{plan.auditNumber}</td>
             <td className="border-2 border-black p-2 w-[15%] font-bold bg-slate-50">Audit Date</td>
-            <td className="border-2 border-black p-2 w-[35%] font-bold text-sm">{auditDateRange}</td>
+            <td className="border-2 border-black p-2 w-[35%] font-bold">{auditDateRange}</td>
           </tr>
           <tr>
             <td className="border-2 border-black p-2 font-bold bg-slate-50">Audit Type</td>
@@ -93,17 +93,17 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
         <tbody>
           <tr>
             <td className="border-2 border-black p-2 w-[50%] align-top min-h-[80px]">
-              <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Section:</p>
+              <p className="font-bold text-[10pt] uppercase opacity-60 mb-2">Audit Section:</p>
               <div className="text-center py-4">
                 <p className="text-sm font-black uppercase">{campusName}</p>
                 <p className="text-xs font-bold text-slate-600 uppercase">{section.replace(' Processes', '')}</p>
               </div>
             </td>
             <td className="border-2 border-black p-2 w-[50%] align-top">
-              <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Team</p>
+              <p className="font-bold text-[10pt] uppercase opacity-60 mb-2">Audit Team</p>
               <div className="pt-2 text-center">
                 <p className="text-sm font-black uppercase">{plan.leadAuditorName}</p>
-                <p className="text-[9px] uppercase font-bold text-slate-500">IQA Team Leader</p>
+                <p className="text-[10pt] uppercase font-bold text-slate-500">IQA Team Leader</p>
               </div>
             </td>
           </tr>
@@ -115,11 +115,11 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
         <tbody>
           <tr>
             <td className="border-2 border-black p-2 w-[50%] align-top min-h-[120px]">
-              <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Scope and Criteria: {campusName}</p>
-              <p className="text-[9px] leading-relaxed text-slate-700 italic pr-4">{plan.scope}</p>
+              <p className="font-bold text-[10pt] uppercase opacity-60 mb-2">Audit Scope and Criteria: {campusName}</p>
+              <p className="text-[11pt] leading-relaxed text-slate-700 italic pr-4">{plan.scope}</p>
             </td>
             <td className="border-2 border-black p-2 w-[50%] align-top">
-              <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Reference Document:</p>
+              <p className="font-bold text-[10pt] uppercase opacity-60 mb-2">Audit Reference Document:</p>
               <div className="text-center py-8">
                 <p className="text-sm font-black uppercase">{plan.referenceDocument}</p>
               </div>
@@ -145,7 +145,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
       </table>
 
       {/* Itinerary Table */}
-      <table className="w-full border-collapse border-2 border-black text-[10px] mb-0">
+      <table className="w-full border-collapse border-2 border-black text-[11pt] mb-0">
         <thead>
           <tr className="bg-slate-100 font-black text-center uppercase tracking-tighter">
             <th className="border-2 border-black p-2 w-[12%]">Date</th>
@@ -155,7 +155,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             <th className="border-2 border-black p-2 w-[15%]">Auditor</th>
             <th className="border-2 border-black p-2 w-[15%]">Auditee</th>
           </tr>
-          <tr className="bg-slate-50 text-[9px] font-black uppercase text-center border-b-2 border-black">
+          <tr className="bg-slate-50 text-[10pt] font-black uppercase text-center border-b-2 border-black">
             <td colSpan={6} className="py-1">Audit Itinerary: {section}</td>
           </tr>
         </thead>
@@ -184,7 +184,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
               <td className="border border-black p-2 text-center font-bold align-top uppercase">
                 <p className="leading-tight">{schedule.targetName}</p>
                 {schedule.auditeeHeadName && (
-                    <p className="text-[8px] font-bold italic mt-1 border-t border-slate-100 pt-1 uppercase">
+                    <p className="text-[10pt] font-bold italic mt-1 border-t border-slate-100 pt-1 uppercase">
                         ({schedule.auditeeHeadName})
                     </p>
                 )}
@@ -202,7 +202,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
       {/* Signatories Section */}
       <table className="w-full border-collapse border-2 border-black border-t-0 mb-6">
         <tbody>
-          <tr className="font-bold text-[9px] uppercase">
+          <tr className="font-bold text-[10pt] uppercase">
             <td className="border-2 border-black p-2 w-[25%] align-top">Date Prepared:</td>
             <td className="border-2 border-black p-2 w-[37.5%] align-top">Prepared by:</td>
             <td className="border-2 border-black p-2 w-[37.5%] align-top">Approved by:</td>
@@ -214,13 +214,13 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             <td className="border-2 border-black p-4 align-middle">
               <div className="flex flex-col items-center">
                 <p className="text-sm font-black uppercase">{plan.leadAuditorName || '____________________'}</p>
-                <p className="text-[9px] uppercase">IQA Team Leader</p>
+                <p className="text-[10pt] uppercase">IQA Team Leader</p>
               </div>
             </td>
             <td className="border-2 border-black p-4 align-middle">
               <div className="flex flex-col items-center">
                 <p className="text-sm font-black uppercase">{qaoDirectorName}</p>
-                <p className="text-[9px] uppercase">QA Director</p>
+                <p className="text-[10pt] uppercase">QA Director</p>
               </div>
             </td>
           </tr>
@@ -228,13 +228,13 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
       </table>
 
       {/* Form Identification Footer */}
-      <div className="mt-4 flex justify-between items-end font-bold text-[10px]">
+      <div className="mt-4 flex justify-between items-end font-bold text-[10pt]">
         <div className="space-y-0.5">
-          <p className="font-black text-xs">QAO-00-015</p>
-          <p className="opacity-60 text-[9px]">Creation Date: 2021-02-14</p>
+          <p className="font-black">QAO-00-015</p>
+          <p className="opacity-60 text-[9pt]">Creation Date: 2021-02-14</p>
         </div>
         <div className="text-right">
-          <p className="font-black text-xs">DAP NO. <span className="underline ml-1">________________</span></p>
+          <p className="font-black text-sm">DAP NO. <span className="underline ml-1">________________</span></p>
         </div>
       </div>
     </div>
