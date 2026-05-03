@@ -17,7 +17,8 @@ import {
     ScatterChart,
     Scatter,
     ZAxis,
-    Legend
+    Legend,
+    LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
