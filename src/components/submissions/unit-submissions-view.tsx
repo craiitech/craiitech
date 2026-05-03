@@ -47,7 +47,7 @@ import {
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
@@ -257,7 +257,7 @@ export function UnitSubmissionsView({
   const currentUnit = allUnits?.find(u => u.id === selectedUnitId);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 border-none">
       <Card className="border-primary/10 shadow-sm bg-muted/10">
         <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
             <div className="flex-1 w-full space-y-1.5">
@@ -309,7 +309,7 @@ export function UnitSubmissionsView({
                       <ChartContainer config={{}} className="h-[180px] w-[180px]">
                           <ResponsiveContainer>
                               <PieChart>
-                                  <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                  <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                                   <Pie data={unitData.chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                                       {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />)}
                                   </Pie>

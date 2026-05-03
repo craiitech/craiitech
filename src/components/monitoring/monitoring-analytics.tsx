@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -196,7 +196,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fontWeight: 700 }} width={120} axisLine={false} tickLine={false} />
-                            <Tooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]}>
                                 <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: '#991b1b' }} />
                             </Bar>
@@ -222,7 +222,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                             <YAxis domain={[0, 100]} unit="%" axisLine={false} tickLine={false} />
-                            <Tooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={40}>
                                 <LabelList dataKey="rate" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: '11px', fontWeight: '900', fill: '#1e3a8a' }} />
                                 {analytics.campusChartData.map((entry, index) => (

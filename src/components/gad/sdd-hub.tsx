@@ -10,7 +10,7 @@ import {
     Pie, 
     Cell, 
     ResponsiveContainer, 
-    Tooltip, 
+    Tooltip as RechartsTooltip, 
     Legend,
     BarChart,
     Bar,
@@ -162,7 +162,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
   };
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 border-none pb-20">
       <Card className="border-primary/20 bg-primary/5 shadow-sm">
         <CardHeader className="py-4">
             <div className="flex items-center gap-2 text-primary mb-1">
@@ -191,7 +191,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                                         <Pie data={aggregatedData.s1} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
                                             {aggregatedData.s1.map((e, j) => <Cell key={j} fill={e.fill} />)}
                                         </Pie>
-                                        <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                        <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                                         <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -229,7 +229,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 900 }} width={120} axisLine={false} tickLine={false} />
-                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <RechartsTooltip content={<ChartTooltipContent />} />
                                     <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} />
                                     <Bar dataKey="male" stackId="a" fill="hsl(var(--chart-1))" radius={[0, 0, 0, 0]} />
                                     <Bar dataKey="female" stackId="a" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]}>
