@@ -3,12 +3,43 @@
 import { useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip as RechartsTooltip, 
+    Legend, 
+    ResponsiveContainer, 
+    Cell, 
+    LabelList, 
+    Radar, 
+    RadarChart, 
+    PolarGrid, 
+    PolarAngleAxis, 
+    PolarRadiusAxis 
+} from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ClipboardCheck, TrendingUp, School, Building, User, Trophy, Zap, Target, BarChart3, Info, LayoutList, ShieldCheck } from 'lucide-react';
+import { 
+    AlertCircle, 
+    ClipboardCheck, 
+    TrendingUp, 
+    School, 
+    Building, 
+    User, 
+    Trophy, 
+    Zap, 
+    Target, 
+    BarChart3, 
+    Info, 
+    LayoutList, 
+    ShieldCheck 
+} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MonitoringAnalyticsProps {
   records: UnitMonitoringRecord[];
