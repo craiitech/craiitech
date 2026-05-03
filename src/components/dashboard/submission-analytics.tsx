@@ -9,7 +9,7 @@ import { collection } from 'firebase/firestore';
 import type { Campus } from '@/lib/types';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
-import { Info, Zap, Target, Activity, Timer } from 'lucide-react';
+import { Info, Zap, Target, Activity, Timer, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface SubmissionAnalyticsProps {
   allSubmissions: Submission[] | null;
@@ -100,10 +100,6 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
     }));
   }, [yearSubmissions]);
 
-  /**
-   * NEW: REVISION LOAD & VERIFICATION EFFICIENCY
-   * Measures administrative efficiency by analyzing the volume of revisions needed.
-   */
   const efficiencyData = useMemo(() => {
     if (!yearSubmissions) return [];
     
@@ -120,6 +116,19 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
     });
 
     return Object.entries(revisionCounts).map(([name, count]) => ({ name, count }));
+  }, [yearSubmissions]);
+
+  // NEW: Accuracy Score (% of Approved Revisions that are Rev 00)
+  const accuracyScoreData = useMemo(() => {
+    const approved = yearSubmissions.filter(s => s.statusId === 'approved');
+    if (approved.length === 0) return [];
+    const firstTimeRight = approved.filter(s => s.revision === 0).length;
+    const correctionsNeeded = approved.length - firstTimeRight;
+
+    return [
+        { name: 'First-Time-Right', value: firstTimeRight, fill: 'hsl(142 71% 45%)' },
+        { name: 'Corrected Success', value: correctionsNeeded, fill: 'hsl(var(--chart-2))' }
+    ];
   }, [yearSubmissions]);
 
   if (isLoading || isLoadingCampuses) {
@@ -143,14 +152,14 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-            <CardTitle className="text-sm font-black uppercase tracking-tight">Submissions by Lifecycle Status</CardTitle>
+            <CardTitle className="text-sm font-black uppercase tracking-tight">Lifecycle Status</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Workflow distribution for AY {selectedYear}.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1 flex items-center justify-center">
-            <ChartContainer config={{}} className="h-[300px] w-full">
+            <ChartContainer config={{}} className="h-[250px] w-full">
                     <ResponsiveContainer>
                         <PieChart>
                             <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
@@ -161,7 +170,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
                                 cx="50%"
                                 cy="50%"
                                 innerRadius={60}
-                                outerRadius={90}
+                                outerRadius={80}
                                 paddingAngle={5}
                                 label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                             >
@@ -169,33 +178,57 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
                                     <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.statusId] || '#cccccc'} />
                                 ))}
                             </Pie>
-                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3">
-                <div className="flex items-start gap-3">
-                    <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                        <strong>Guidance:</strong> Measures the "Health" of the review cycle. A large segment of "Approved" indicates high documentation quality and efficient administrative verification.
-                    </p>
+        </Card>
+
+        {/* NEW: First-Time-Right Verification Score */}
+        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
+            <CardHeader className="bg-primary/5 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">First-Time-Right Accuracy</CardTitle>
                 </div>
-            </CardFooter>
+                <CardDescription className="text-[10px]">Percentage of approved documents that required zero corrections.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 flex-1 flex items-center justify-center">
+                <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ResponsiveContainer>
+                        <PieChart>
+                            <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                            <Pie
+                                data={accuracyScoreData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={70}
+                                dataKey="value"
+                                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                            >
+                                {accuracyScoreData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                            </Pie>
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
         </Card>
 
         <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-            <CardTitle className="text-sm font-black uppercase tracking-tight">{isAdmin ? "Campus Contribution Volume" : "Unit Contribution Volume"}</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Total revision count logged in AY {selectedYear}.</CardDescription>
+            <CardTitle className="text-sm font-black uppercase tracking-tight">Contribution Volume</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Total revision count logged.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer config={{}} className="h-[250px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={submissionsByHierarchyData} layout="vertical" margin={{ right: 40, left: 10 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                        <BarChart data={submissionsByHierarchyData} layout="vertical">
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                            <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 8, fontWeight: 700 }} axisLine={false} tickLine={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
                                 <LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
@@ -204,19 +237,10 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3">
-                <div className="flex items-start gap-3">
-                    <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                        <strong>Guidance:</strong> Tracks activity density. Units with very low counts may be facing technical barriers or delays in document preparation.
-                    </p>
-                </div>
-            </CardFooter>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* NEW: REVISION SPREAD - Efficiency Analytics */}
         <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-primary/5 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -240,23 +264,17 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                    <strong>Insight:</strong> A high volume of Rev 01/02+ indicates effective "Audit and Correction" cycles. Ideally, "Rev 00" should be the largest segment, representing high first-time document accuracy.
-                </p>
-            </CardFooter>
         </Card>
 
-        {/* DISTRIBUTION BY CORE DOCUMENT TYPE */}
         <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Distribution by Core Document Type</CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Aggregate count across all cycles for AY {selectedYear}.</CardDescription>
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Distribution by Document Type</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Aggregate count across all cycles.</CardDescription>
             </CardHeader>
             <CardContent className="pt-10 flex-1">
                 <ChartContainer config={{}} className="h-[300px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={submissionsByReportTypeData} layout="vertical" margin={{ left: 20, right: 40 }}>
+                        <BarChart data={submissionsByReportTypeData} layout="vertical" margin={{ left: 20, right: 40, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 8, fontWeight: 700 }} axisLine={false} tickLine={false} />
@@ -270,11 +288,6 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                    <strong>Insight:</strong> Identifies "Document Friction". If one type (e.g. Action Plans) is lagging, it suggests unit-level difficulty with that specific requirement.
-                </p>
-            </CardFooter>
         </Card>
       </div>
     </div>

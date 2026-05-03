@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import type { GADInitiative, ProgramComplianceRecord, GADSector } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ShieldCheck, CheckCircle2, HandHeart, Target, Landmark, Info, Activity, Users, PieChart as PieIcon } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, HandHeart, Target, Landmark, Info, Activity, Users, PieChart as PieIcon, Calculator } from 'lucide-react';
 import { 
     BarChart, 
     Bar, 
@@ -15,9 +14,11 @@ import {
     Tooltip as RechartsTooltip, 
     Legend, 
     ResponsiveContainer,
-    Cell
+    Cell,
+    LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Badge } from '@/components/ui/badge';
 
 interface GADOverviewProps {
   initiatives: GADInitiative[];
@@ -41,13 +42,12 @@ export function GADOverview({ initiatives, compliances, selectedYear, unitName }
     const maleBen = initiatives.reduce((acc, i) => acc + (i.beneficiariesMale || 0), 0);
     const femaleBen = initiatives.reduce((acc, i) => acc + (i.beneficiariesFemale || 0), 0);
 
-    // Aggregate sectoral data from all compliances (Student side)
     const sectoralStats: Record<string, { male: number, female: number }> = {};
     GAD_SECTORS.forEach(s => sectoralStats[s] = { male: 0, female: 0 });
 
     compliances.forEach(rec => {
         rec.enrollmentRecords?.forEach(enroll => {
-            const term = enroll.firstSemester;
+            const term = enroll.firstSemester; 
             if (term) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach(level => {
                     const lData = (term as any)[level];
@@ -88,21 +88,25 @@ export function GADOverview({ initiatives, compliances, selectedYear, unitName }
             </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-emerald-100 bg-emerald-50/10 flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-5"><Activity className="h-12 w-12" /></div>
+        {/* NEW: GAD 5% Budget Mandate Thermometer */}
+        <Card className="shadow-sm border-indigo-100 bg-indigo-50/10 flex flex-col relative overflow-hidden">
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Utilization Rate</CardDescription>
-                <CardTitle className="text-2xl font-black text-emerald-600 tabular-nums">{stats.utilizationRate}%</CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase text-indigo-700">Fiscal Mandate Track</CardDescription>
+                <CardTitle className="text-2xl font-black text-indigo-600">5% Target</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <Progress value={stats.utilizationRate} className="h-1 bg-emerald-100" />
-                <p className="text-[9px] font-bold text-emerald-600 mt-2 uppercase">Actual Utilization: ₱{stats.totalUtilized.toLocaleString()}</p>
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-indigo-800/60">
+                        <span>Fulfillment</span>
+                        <span>{stats.utilizationRate}%</span>
+                    </div>
+                    <Progress value={stats.utilizationRate} className="h-2 bg-indigo-100" />
+                    <div className="flex items-center gap-1.5 pt-1">
+                        <Calculator className="h-3 w-3 text-indigo-400" />
+                        <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">Based on institutional appropriations</span>
+                    </div>
+                </div>
             </CardContent>
-            <div className="p-3 bg-green-100/20 border-t mt-auto">
-                <p className="text-[9px] text-green-800/60 italic leading-tight">
-                    Percentage of the unit's allocated GAD budget used.
-                </p>
-            </div>
         </Card>
 
         <Card className="shadow-sm border-blue-100 bg-blue-50/10 flex flex-col relative overflow-hidden">

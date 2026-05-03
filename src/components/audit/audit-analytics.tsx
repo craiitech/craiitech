@@ -359,6 +359,35 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </CardContent>
         </Card>
 
+        {/* NEW: Auditor Performance Pulse */}
+        <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+            <CardHeader className="bg-primary/5 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Productivity & Completion Rate</CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-8 flex-1">
+                <ChartContainer config={{}} className="h-[300px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics.auditorData.slice(0, 10)}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="completed" name="Completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={30}>
+                                <LabelList dataKey="completed" position="top" style={{ fontSize: '10px', fontWeight: '900' }} />
+                            </Bar>
+                            <Bar dataKey="count" name="Assigned" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} barSize={30} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3">
+                <p className="text-[9px] text-muted-foreground italic text-center w-full">Tracking workload distribution and session finalization per auditor.</p>
+            </CardFooter>
+        </Card>
+
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
@@ -381,25 +410,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
-        </Card>
-
-        <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
-            <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Clause Audit Density</CardTitle></div>
-                <CardDescription className="text-xs">Prioritized standard requirements in recent Evidence Logs.</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-10 flex-1">
-                <ChartContainer config={{}} className="h-[350px] w-full">
-                    <ResponsiveContainer>
-                        <BarChart data={analytics.clauseData} layout="vertical" margin={{ left: 20, right: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                            <XAxis type="number" hide /><YAxis dataKey="id" type="category" tick={{ fontSize: 10, fontWeight: 900 }} width={40} axisLine={false} tickLine={false} />
-                            <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14}><LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} /></Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
         </Card>
       </div>
 

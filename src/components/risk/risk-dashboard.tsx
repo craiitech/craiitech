@@ -35,9 +35,14 @@ import {
     Info,
     ArrowDownToLine,
     ArrowUpToLine,
-    ListChecks
+    ListChecks,
+    Clock,
+    AlertTriangle,
+    ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format, differenceInDays } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 
 interface RiskDashboardProps {
   risks: Risk[];
@@ -78,10 +83,6 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
         .sort((a, b) => (b.risks + b.opportunities) - (a.risks + a.opportunities))
         .slice(0, 6);
 
-    /**
-     * NEW: REDUCTION CLOSURE ANALYTICS
-     * Measures the delta between initial risk and remaining risk after treatment.
-     */
     const closureEfficiencyData = risks
         .filter(r => r.status === 'Closed' && r.postTreatment)
         .slice(0, 10)
@@ -91,32 +92,26 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
             'Residual': r.postTreatment?.magnitude || 0
         }));
 
-    /**
-     * NEW: RISK VS OPPORTUNITY RATIO
-     */
     const ratioData = [
         { name: 'Risks', value: risks.filter(r => r.type === 'Risk').length, fill: 'hsl(var(--destructive))' },
         { name: 'Opportunities', value: risks.filter(r => r.type === 'Opportunity').length, fill: 'hsl(142 71% 45%)' }
     ];
 
-    const heatmapData = risks.map(r => {
-        let fill = RATING_COLORS[r.preTreatment.rating];
-        if (r.type === 'Opportunity') {
-            if (r.preTreatment.rating === 'High') fill = 'hsl(142 71% 45%)';
-            if (r.preTreatment.rating === 'Low') fill = 'hsl(var(--destructive))';
-        }
-        return {
-            x: r.preTreatment.consequence,
-            y: r.preTreatment.likelihood,
-            z: r.preTreatment.magnitude,
-            name: r.description,
-            rating: r.preTreatment.rating,
-            fill: fill,
-            type: r.type
-        };
-    });
+    const now = new Date();
+    const upcomingDeadlines = risks
+        .filter(r => r.status !== 'Closed' && r.targetDate)
+        .map(r => {
+            const date = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
+            return {
+                ...r,
+                date,
+                daysLeft: differenceInDays(date, now)
+            };
+        })
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .slice(0, 5);
 
-    return { total, openCount, highRiskCount, opportunityCount, priorityData, objectiveData, closureEfficiencyData, heatmapData, ratioData };
+    return { total, openCount, highRiskCount, opportunityCount, priorityData, objectiveData, closureEfficiencyData, ratioData, upcomingDeadlines };
   }, [risks]);
 
   if (isLoading) {
@@ -134,10 +129,10 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
     <div className="space-y-6">
       {/* 1. KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Strategic Entries</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-primary tabular-nums">{analytics.total}</div><p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Logged factors</p></CardContent></Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Open Critical Risks</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.openCount}</div><p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Closure Pending</p></CardContent></Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">High-Priority Gaps</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-amber-600 tabular-nums">{analytics.highRiskCount}</div><p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Mandatory Plans</p></CardContent></Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Growth Gain Ratio</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.opportunityCount}</div><p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Strategic Opps</p></CardContent></Card>
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Strategic Entries</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-primary tabular-nums">{analytics.total}</div></CardContent></Card>
+        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Open Critical Risks</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.openCount}</div></CardContent></Card>
+        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">High-Priority Gaps</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-amber-600 tabular-nums">{analytics.highRiskCount}</div></CardContent></Card>
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Growth Gain Ratio</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.opportunityCount}</div></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -151,39 +146,53 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
             <CardContent className="pt-6 flex-1"><ChartContainer config={{ risks: { label: 'Risks', color: 'hsl(var(--destructive))' }, opportunities: { label: 'Opportunities', color: 'hsl(var(--chart-2))' } }} className="h-[300px] w-full"><ResponsiveContainer><BarChart data={analytics.objectiveData} layout="vertical" margin={{ left: 20, right: 20 }}><CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} /><RechartsTooltip content={<ChartTooltipContent />} /><Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} /><Bar dataKey="risks" stackId="a" fill="hsl(var(--destructive))" /><Bar dataKey="opportunities" stackId="a" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></ChartContainer></CardContent>
         </Card>
 
-        {/* NEW: RISK VS OPPORTUNITY PROFILE */}
+        {/* NEW: Risk Treatment Deadline Countdown */}
         <Card className="shadow-md border-primary/10 flex flex-col">
-            <CardHeader className="bg-muted/10 border-b py-4">
+            <CardHeader className="bg-primary/5 border-b py-4">
                 <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Balance Profile</CardTitle>
+                    <Clock className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Treatment Deadline Registry</CardTitle>
                 </div>
-                <CardDescription className="text-[10px]">Ratio of perceived threats vs. growth opportunities for AY {selectedYear}.</CardDescription>
+                <CardDescription className="text-[10px]">Monitoring approaching mitigation targets.</CardDescription>
             </CardHeader>
-            <CardContent className="pt-8 flex-1 flex flex-col items-center justify-center">
-                <ChartContainer config={{}} className="h-[250px] w-[250px]">
-                    <ResponsiveContainer>
-                        <PieChart>
-                            <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                            <Pie data={analytics.ratioData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label>
-                                {analytics.ratioData.map((e, i) => <Cell key={i} fill={e.fill} />)}
-                            </Pie>
-                            <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+            <CardContent className="p-0 flex-1">
+                <div className="divide-y">
+                    {analytics.upcomingDeadlines.map((r, idx) => (
+                        <div key={idx} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-800 truncate" title={r.description}>{r.description}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant="secondary" className="h-4 text-[8px] font-black uppercase bg-primary/5 text-primary border-none">{r.responsiblePersonName || 'No Lead'}</Badge>
+                                    <span className="text-[9px] text-muted-foreground font-bold">{format(r.date, 'MMM dd, yyyy')}</span>
+                                </div>
+                            </div>
+                            <div className="ml-4 text-right">
+                                <Badge className={cn(
+                                    "h-5 text-[9px] font-black uppercase",
+                                    r.daysLeft < 7 ? "bg-rose-600 text-white animate-pulse" : "bg-blue-600 text-white"
+                                )}>
+                                    {r.daysLeft < 0 ? 'OVERDUE' : `${r.daysLeft} DAYS LEFT`}
+                                </Badge>
+                            </div>
+                        </div>
+                    ))}
+                    {analytics.upcomingDeadlines.length === 0 && (
+                        <div className="py-20 text-center opacity-20">
+                            <CheckCircle2 className="h-10 w-10 mx-auto mb-2" />
+                            <p className="text-[10px] font-black uppercase">No active deadlines</p>
+                        </div>
+                    )}
+                </div>
             </CardContent>
         </Card>
       </div>
 
-      {/* NEW: TREATMENT CLOSURE PERFORMANCE */}
       <Card className="shadow-lg border-emerald-100 bg-emerald-50/10 overflow-hidden">
           <CardHeader className="bg-emerald-50 border-b py-4">
               <div className="flex items-center gap-2">
                   <ArrowDownToLine className="h-5 w-5 text-emerald-600" />
-                  <CardTitle className="text-sm font-black uppercase tracking-tight text-emerald-800">Verified Risk Reduction Profile (Closed Items)</CardTitle>
+                  <CardTitle className="text-sm font-black uppercase tracking-tight text-emerald-800">Verified Risk Reduction Profile</CardTitle>
               </div>
-              <CardDescription className="text-[10px] font-bold text-emerald-700/60 uppercase">Measurement of Initial vs. Residual Magnitude after verified treatment.</CardDescription>
           </CardHeader>
           <CardContent className="pt-8">
               {analytics.closureEfficiencyData.length > 0 ? (
@@ -202,21 +211,8 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                           </BarChart>
                       </ResponsiveContainer>
                   </ChartContainer>
-              ) : (
-                  <div className="py-20 text-center opacity-20 flex flex-col items-center gap-3">
-                      <Activity className="h-10 w-10" />
-                      <p className="text-xs font-black uppercase">Awaiting Verified Closures</p>
-                  </div>
-              )}
+              ) : null}
           </CardContent>
-          <CardFooter className="bg-white/50 border-t py-3 px-6">
-              <div className="flex items-start gap-3">
-                  <Info className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-emerald-800 leading-relaxed font-medium italic">
-                      <strong>ISO 6.1 Performance Indicator:</strong> Successful risk treatment is demonstrated by a significant delta between Initial and Residual magnitudes. A residual score of 1-4 (Low) is the institutional target for all treated risks.
-                  </p>
-              </div>
-          </CardFooter>
       </Card>
     </div>
   );
