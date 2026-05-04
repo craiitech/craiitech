@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -18,7 +19,14 @@ import {
     Cell,
     LabelList,
     PieChart,
-    Pie
+    Pie,
+    Radar,
+    RadarChart,
+    PolarGrid,
+    PolarAngleAxis,
+    PolarRadiusAxis,
+    LineChart,
+    Line
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { 
@@ -90,10 +98,15 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  const campusMap = useMemo(() => {
+    const map = new Map(campuses.map(c => [c.id, c.name]));
+    map.set('university-wide', 'Institutional');
+    return map;
+  }, [campuses]);
+
   const analytics = useMemo(() => {
     if (!schedules.length) return null;
 
-    const campusMap = new Map(campuses.map(c => [c.id, c.name]));
     const yearPlans = plans.filter(p => p.year === selectedYear);
     const planIds = new Set(yearPlans.map(p => p.id));
     const yearSchedules = schedules.filter(s => planIds.has(s.auditPlanId));
@@ -227,7 +240,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length,
         yearSchedules
     };
-  }, [plans, schedules, findings, units, users, campuses, selectedYear]);
+  }, [plans, schedules, findings, units, users, campuses, selectedYear, campusMap]);
 
   const handlePrintAssignments = () => {
     if (!analytics?.auditorData.length) {
@@ -248,16 +261,16 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
   };
 
   const handlePrintAuditorSchedule = () => {
-    if (!analytics?.yearSchedules.length || !analytics.activePlan) {
+    if (!analytics?.yearSchedules.length) {
         toast({ title: "No Schedule", description: "There are no sessions scheduled for the selected year.", variant: "destructive" });
         return;
     }
     try {
         const reportHtml = renderToStaticMarkup(
             <AuditorSchedulePrintTemplate 
-                plan={analytics.activePlan}
+                plan={analytics.activePlan || undefined}
                 schedules={analytics.yearSchedules}
-                campusName={analytics.activePlan.campusId === 'university-wide' ? 'Institutional' : (campuses.find(c => c.id === analytics.activePlan!.campusId)?.name || 'RSU')}
+                campusMap={campusMap}
                 signatories={signatories || undefined}
             />
         );
@@ -539,3 +552,4 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     </div>
   );
 }
+
