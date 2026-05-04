@@ -70,7 +70,7 @@ export function ContextualHelp() {
           <p className="text-[11px] text-muted-foreground font-bold italic mb-4">"{currentHelp.description}"</p>
           <AlertDialogDescription asChild>
             <div className="text-sm text-muted-foreground pt-2">
-                <ScrollArea className="max-h-[350px] pr-4">
+                <ScrollArea className="max-h-[450px] pr-4">
                     <div className="space-y-6">
                         <div className="space-y-3">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step-by-Step Procedure</h4>
@@ -93,7 +93,7 @@ export function ContextualHelp() {
                                 <div className="grid grid-cols-1 gap-2">
                                     {currentHelp.buttons?.map((btn, i) => (
                                         <div key={i} className="p-2.5 rounded-lg border bg-slate-50 flex items-start gap-3">
-                                            <Badge variant="secondary" className="h-4 px-1 text-[7px] font-black uppercase shrink-0 mt-0.5">{btn.labelShort || btn.label}</Badge>
+                                            <Badge variant="secondary" className="h-5 px-1.5 text-[7px] font-black uppercase shrink-0 mt-0.5">{btn.labelShort || btn.label}</Badge>
                                             <div className="space-y-0.5 min-w-0">
                                                 <p className="text-[10px] font-black uppercase tracking-tight text-slate-700 truncate">{btn.label}</p>
                                                 <p className="text-[10px] text-slate-600 leading-tight font-medium">{btn.action}</p>

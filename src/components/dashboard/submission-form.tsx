@@ -45,6 +45,7 @@ import { generateControlNumber, cn, normalizeReportType } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { getOfficialServerTime } from '@/lib/actions';
 import Link from 'next/link';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const submissionSchema = z.object({
@@ -609,34 +610,36 @@ export function SubmissionForm({
                                 How to get the correct link?
                             </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="max-w-md border-primary/20 shadow-2xl">
                             <AlertDialogHeader>
                                 <AlertDialogTitle>How to Get Your Google Drive File Link</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     Follow these steps to ensure your file is shared correctly for submission.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <ol className="list-decimal space-y-3 pl-5 text-sm text-muted-foreground">
-                                <li>Open your file in Google Drive.</li>
-                                <li>Click the blue <strong>"Share"</strong> button in the top right corner.</li>
-                                <li>
-                                    In the popup window, find the <strong>"General access"</strong> section. If it says "Restricted", click on it.
-                                </li>
-                                <li>
-                                    Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the Quality Assurance Office to be able to view your file.
-                                </li>
-                                 <li>
-                                    To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
-                                 </li>
-                                <li>
-                                    Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your clipboard.
-                                </li>
-                                <li>
-                                    Paste the copied link into the "Google Drive Link" field in the submission form.
-                                </li>
-                            </ol>
-                            <AlertDialogFooter>
-                                 <AlertDialogAction>Got it!</AlertDialogAction>
+                            <ScrollArea className="max-h-[400px] pr-4">
+                                <ol className="list-decimal space-y-4 pl-5 text-sm text-muted-foreground py-2">
+                                    <li>Open your file in Google Drive.</li>
+                                    <li>Click the blue <strong>"Share"</strong> button in the top right corner.</li>
+                                    <li>
+                                        In the popup window, find the <strong>"General access"</strong> section. If it says "Restricted", click on it.
+                                    </li>
+                                    <li>
+                                        Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the Quality Assurance Office to be able to view your file.
+                                    </li>
+                                    <li>
+                                        To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
+                                    </li>
+                                    <li>
+                                        Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your clipboard.
+                                    </li>
+                                    <li>
+                                        Paste the copied link into the "Google Drive Link" field in the submission form.
+                                    </li>
+                                </ol>
+                            </ScrollArea>
+                            <AlertDialogFooter className="border-t pt-4">
+                                 <AlertDialogAction className="bg-primary font-black uppercase text-[10px] tracking-widest px-10">Got it!</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
