@@ -87,13 +87,6 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
                                     DATE: {date}
                                 </th>
                             ))}
-                            {/* Fill up to at least 3 columns to maintain structure */}
-                            {uniqueDates.length < 3 && Array.from({ length: 3 - uniqueDates.length }).map((_, i) => (
-                                <th key={`empty-day-${i}`} className="border-2 border-black p-3 text-center font-black uppercase" style={{ fontSize: '10pt' }}>
-                                    DAY {uniqueDates.length + i + 1}<br />
-                                    DATE: 
-                                </th>
-                            ))}
                         </tr>
                     </thead>
                     <tbody>
@@ -127,11 +120,6 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
                                         </td>
                                     );
                                 })}
-                                {uniqueDates.length < 3 && Array.from({ length: 3 - uniqueDates.length }).map((_, i) => (
-                                    <td key={`empty-cell-${i}`} className="border-2 border-black p-3 align-top">
-                                        <span className="opacity-40">-</span>
-                                    </td>
-                                ))}
                             </tr>
                         ))}
                     </tbody>
