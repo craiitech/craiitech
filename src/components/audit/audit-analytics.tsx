@@ -102,6 +102,10 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     return map;
   }, [campuses]);
 
+  const unitMap = useMemo(() => {
+    return new Map(units.map(u => [u.id, u.name]));
+  }, [units]);
+
   const analytics = useMemo(() => {
     if (!schedules.length) return null;
 
