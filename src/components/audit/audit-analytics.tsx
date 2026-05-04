@@ -23,9 +23,7 @@ import {
     RadarChart, 
     PolarGrid, 
     PolarAngleAxis, 
-    PolarRadiusAxis, 
-    LineChart, 
-    Line
+    PolarRadiusAxis 
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { 
@@ -68,6 +66,7 @@ import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuditAnalyticsProps {
   plans: AuditPlan[];
@@ -186,7 +185,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         else if (user?.sex === 'Others (LGBTQI++)') auditorSexCounts.Others++;
     });
 
-    const unitMap = new Map(units.map(u => [u.id, u.name]));
     const unitResults: Record<string, { total: number, nc: number, score: number }> = {};
     
     yearSchedules.forEach(s => {
@@ -239,7 +237,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length,
         yearSchedules
     };
-  }, [plans, schedules, findings, units, users, campuses, selectedYear, campusMap]);
+  }, [plans, schedules, findings, units, users, campuses, selectedYear, campusMap, unitMap]);
 
   const handlePrintAssignments = () => {
     if (!analytics?.auditorData.length) {
@@ -427,7 +425,6 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </CardContent>
         </Card>
 
-        {/* Auditor Performance Pulse */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-primary/5 border-b py-4">
                 <div className="flex items-center gap-2">
