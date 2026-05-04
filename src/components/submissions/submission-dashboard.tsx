@@ -38,7 +38,8 @@ import {
     RotateCw,
     Check,
     LayoutList,
-    ChevronRight
+    ChevronRight,
+    Circle
 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isBefore, isAfter } from 'date-fns';
@@ -277,7 +278,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                             </div>
                             <p className="text-[9px] font-black uppercase leading-tight">{type}</p>
                             {isApproved && (
-                                <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase bg-emerald-50 text-emerald-600 border-none mt-2">
+                                <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase bg-emerald-50 text-emerald-700 border-none mt-2">
                                     VERIFIED
                                 </Badge>
                             )}
