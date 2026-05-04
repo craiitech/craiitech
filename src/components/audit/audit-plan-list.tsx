@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -23,6 +22,7 @@ import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { AuditPrintTemplate } from './audit-print-template';
 import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
+import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -522,6 +522,28 @@ export function AuditPlanList({
     }
   };
 
+  const handlePrintUnitSchedule = (plan: AuditPlan) => {
+    const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
+    if (!planSchedules.length) {
+        toast({ title: "Itinerary Empty", description: "No sessions have been scheduled for this plan yet.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <UnitSchedulePrintTemplate 
+                plan={plan}
+                schedules={planSchedules}
+                campusName={campusMap.get(plan.campusId) || 'RSU'}
+                signatories={signatories || undefined}
+            />
+        );
+        triggerPrint(reportHtml, `IQA_Unit_Schedule_${plan.auditNumber}`);
+    } catch (e) {
+        console.error(e);
+    }
+  };
+
   const handlePrintAllEvidenceLogs = (plan: AuditPlan) => {
     const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
     if (!planSchedules.length) {
@@ -773,6 +795,14 @@ export function AuditPlanList({
                             className="h-9 text-[10px] font-black uppercase tracking-widest bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 gap-2"
                         >
                             <Printer className="h-3.5 w-3.5"/> Print All Evidence Logs
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); handlePrintUnitSchedule(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white border-primary/10 text-primary shadow-sm gap-2"
+                        >
+                            <Calendar className="h-3.5 w-3.5"/> Unit Schedule
                         </Button>
                         <Button 
                             variant="outline" 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -57,6 +56,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-template';
 import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
+import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -262,6 +262,25 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             />
         );
         triggerPrint(reportHtml, `IQA_Auditor_Schedule_AY${selectedYear}`);
+    } catch (e) { console.error(e); }
+  };
+
+  const handlePrintUnitSchedule = () => {
+    if (!analytics?.yearSchedules.length || !analytics.activePlan) {
+        toast({ title: "No Schedule", description: "There are no sessions scheduled for the selected year.", variant: "destructive" });
+        return;
+    }
+    try {
+        const campusName = analytics.activePlan.campusId === 'university-wide' ? 'Institutional' : (campuses.find(c => c.id === analytics.activePlan!.campusId)?.name || 'RSU');
+        const reportHtml = renderToStaticMarkup(
+            <UnitSchedulePrintTemplate 
+                plan={analytics.activePlan}
+                schedules={analytics.yearSchedules}
+                campusName={campusName}
+                signatories={signatories || undefined}
+            />
+        );
+        triggerPrint(reportHtml, `IQA_Unit_Schedule_AY${selectedYear}`);
     } catch (e) { console.error(e); }
   };
 
@@ -479,12 +498,15 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                       <div className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Assignment Registry</CardTitle></div>
                       <CardDescription className="text-xs">Timeline per auditor for AY {selectedYear}.</CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button onClick={handlePrintUnitSchedule} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
+                        <Printer className="h-4 w-4" /> Unit Sched.
+                    </Button>
                     <Button onClick={handlePrintAuditorSchedule} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-indigo-200 text-indigo-700 gap-2 shadow-sm">
-                        <CalendarDays className="h-4 w-4" /> Print Auditor Sched.
+                        <CalendarDays className="h-4 w-4" /> Auditor Sched.
                     </Button>
                     <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
-                        <Printer className="h-4 w-4" /> Print Assignments
+                        <Printer className="h-4 w-4" /> Assignments
                     </Button>
                   </div>
               </CardHeader>
