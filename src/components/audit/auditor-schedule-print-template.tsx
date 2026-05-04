@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -36,13 +35,7 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
   const safeFormatTime = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
-    return isNaN(date.getTime()) ? '' : format(date, 'h:mm');
-  };
-
-  const safeFormatDate = (d: any) => {
-    if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
-    return isNaN(date.getTime()) ? '' : format(date, 'MM/dd/yyyy');
+    return isNaN(date.getTime()) ? '' : format(date, 'h:mm a');
   };
 
   return (
@@ -158,4 +151,3 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
     </div>
   );
 }
-

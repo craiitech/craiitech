@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -535,7 +534,7 @@ export function AuditPlanList({
             <UnitSchedulePrintTemplate 
                 plan={plan}
                 schedules={planSchedules}
-                campusName={campusMap.get(plan.campusId) || 'RSU'}
+                campusMap={campusMap}
                 signatories={signatories || undefined}
             />
         );
@@ -585,13 +584,13 @@ export function AuditPlanList({
     try {
         const reportHtml = renderToStaticMarkup(
             <ConsolidatedAuditReportTemplate 
-                plan={plan}
-                schedules={planSchedules}
-                findings={planFindings}
-                clauses={isoClauses}
-                units={units}
-                campuses={campuses}
-                signatories={signatories || undefined}
+                plan={plan} 
+                schedules={planSchedules} 
+                findings={planFindings} 
+                clauses={isoClauses} 
+                units={units} 
+                campuses={campuses} 
+                signatories={signatories || undefined} 
             />
         );
 
@@ -874,4 +873,3 @@ export function AuditPlanList({
     </Accordion>
   );
 }
-

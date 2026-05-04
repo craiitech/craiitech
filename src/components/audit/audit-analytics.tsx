@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { 
@@ -279,17 +278,16 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
   };
 
   const handlePrintUnitSchedule = () => {
-    if (!analytics?.yearSchedules.length || !analytics.activePlan) {
+    if (!analytics?.yearSchedules.length) {
         toast({ title: "No Schedule", description: "There are no sessions scheduled for the selected year.", variant: "destructive" });
         return;
     }
     try {
-        const campusName = analytics.activePlan.campusId === 'university-wide' ? 'Institutional' : (campuses.find(c => c.id === analytics.activePlan!.campusId)?.name || 'RSU');
         const reportHtml = renderToStaticMarkup(
             <UnitSchedulePrintTemplate 
-                plan={analytics.activePlan}
+                plan={analytics.activePlan || undefined}
                 schedules={analytics.yearSchedules}
-                campusName={campusName}
+                campusMap={campusMap}
                 signatories={signatories || undefined}
             />
         );
@@ -381,7 +379,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
               <ChartContainer config={{}} className="h-[280px] w-full">
                   <ResponsiveContainer>
                       <PieChart>
-                          <Pie data={analytics.findingsData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                          <Pie data={analytics.findingsData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
                               {analytics.findingsData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
                           </Pie>
                           <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
@@ -552,4 +550,3 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     </div>
   );
 }
-
