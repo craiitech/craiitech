@@ -15,16 +15,16 @@ import {
     Tooltip as RechartsTooltip, 
     Legend, 
     ResponsiveContainer, 
-    Cell,
-    LabelList,
-    PieChart,
-    Pie,
-    Radar,
-    RadarChart,
-    PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis,
-    LineChart,
+    Cell, 
+    LabelList, 
+    PieChart, 
+    Pie, 
+    Radar, 
+    RadarChart, 
+    PolarGrid, 
+    PolarAngleAxis, 
+    PolarRadiusAxis, 
+    LineChart, 
     Line
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -55,7 +55,8 @@ import {
     Building2,
     LayoutList as LayoutListIcon,
     PieChart as PieIcon,
-    CalendarDays
+    CalendarDays,
+    ArrowUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -66,7 +67,6 @@ import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template'
 import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 interface AuditAnalyticsProps {
@@ -329,6 +329,13 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         `);
         printWindow.document.close();
     }
+  };
+
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
   };
 
   if (isLoading) {
