@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy, CalendarDays } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -21,6 +22,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { AuditPrintTemplate } from './audit-print-template';
+import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -491,53 +493,32 @@ export function AuditPlanList({
             );
         }).join('');
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Audit Plan - ${plan.auditNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { 
-                                margin: 0 !important; 
-                                padding: 0 !important; 
-                                background: white; 
-                                font-size: 11pt; 
-                                -webkit-print-color-adjust: exact;
-                            } 
-                            .no-print { display: none !important; }
-                            .print-page-break { page-break-after: always; }
-                            .print-page-break:last-child { page-break-after: auto; }
-                            table { width: 100%; border-collapse: collapse; }
-                            thead { display: table-header-group !important; }
-                            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Detailed Audit Plan</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${reportsHtml}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        triggerPrint(reportsHtml, `Audit_Plan_${plan.auditNumber}`);
     } catch (err) {
         console.error("Print error:", err);
         toast({ title: "Print Failed", description: "Could not generate the plan template.", variant: "destructive" });
+    }
+  };
+
+  const handlePrintAuditorSchedule = (plan: AuditPlan) => {
+    const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
+    if (!planSchedules.length) {
+        toast({ title: "Itinerary Empty", description: "No sessions have been scheduled for this plan yet.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditorSchedulePrintTemplate 
+                plan={plan}
+                schedules={planSchedules}
+                campusName={campusMap.get(plan.campusId) || 'RSU'}
+                signatories={signatories || undefined}
+            />
+        );
+        triggerPrint(reportHtml, `IQA_Auditor_Schedule_${plan.auditNumber}`);
+    } catch (e) {
+        console.error(e);
     }
   };
 
@@ -566,50 +547,7 @@ export function AuditPlanList({
             );
         }).join('');
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Batch Evidence Logs - ${plan.auditNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { 
-                                margin: 0 !important; 
-                                padding: 0 !important; 
-                                background: white; 
-                                width: 100% !important;
-                                -webkit-print-color-adjust: exact;
-                            } 
-                            .no-print { display: none !important; }
-                            .print-page-break { page-break-after: always !important; }
-                            .print-page-break:last-child { page-break-after: auto !important; }
-                            table { width: 100% !important; border-collapse: collapse !important; }
-                            thead { display: table-header-group !important; }
-                            tr { page-break-inside: avoid !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-primary text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Print Full Evidence Registry</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${logsHtml}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        triggerPrint(logsHtml, `Batch_Evidence_Logs_${plan.auditNumber}`);
     } catch (e) {
         console.error(e);
         toast({ title: "Print error", variant: "destructive" });
@@ -634,47 +572,57 @@ export function AuditPlanList({
             />
         );
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Consolidated Audit Report - ${plan.auditNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { margin: 0 !important; padding: 0 !important; background: white; font-size: 11pt; } 
-                            .no-print { display: none !important; }
-                            .print-page-break { page-break-after: always; }
-                            .print-page-break:last-child { page-break-after: auto; }
-                            table { width: 100%; border-collapse: collapse; }
-                            thead { display: table-header-group !important; }
-                            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Print Consolidated Institutional Report</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${reportHtml}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        triggerPrint(reportHtml, `Consolidated_Audit_Report_${plan.auditNumber}`);
     } catch (err) {
         console.error("Consolidation error:", err);
         toast({ title: "Report Generation Failed", description: "Could not consolidate institutional findings.", variant: "destructive" });
+    }
+  };
+
+  const triggerPrint = (html: string, title: string) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${title}</title>
+                <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                <style>
+                    @page { 
+                        size: 8.5in 13in !important; 
+                        margin: 0.5in !important; 
+                    }
+                    @media print { 
+                        body { 
+                            margin: 0 !important; 
+                            padding: 0 !important; 
+                            background: white; 
+                            width: 100% !important;
+                            -webkit-print-color-adjust: exact;
+                        } 
+                        .no-print { display: none !important; }
+                        .print-page-break { page-break-after: always; }
+                        .print-page-break:last-child { page-break-after: auto; }
+                        table { width: 100%; border-collapse: collapse; }
+                        thead { display: table-header-group !important; }
+                        tr { page-break-inside: avoid !important; }
+                    }
+                    body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                </style>
+            </head>
+            <body>
+                <div class="no-print mb-8 flex justify-center">
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                </div>
+                <div id="print-content" style="padding: 0.1in;">
+                    ${html}
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
   };
 
@@ -825,6 +773,14 @@ export function AuditPlanList({
                             className="h-9 text-[10px] font-black uppercase tracking-widest bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 gap-2"
                         >
                             <Printer className="h-3.5 w-3.5"/> Print All Evidence Logs
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); handlePrintAuditorSchedule(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-100 text-indigo-800 shadow-sm gap-2"
+                        >
+                            <CalendarDays className="h-3.5 w-3.5"/> Auditor Schedule
                         </Button>
                         <Button 
                             variant="outline" 

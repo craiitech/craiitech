@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -47,13 +48,15 @@ import {
     ChevronRight,
     Building2,
     LayoutList as LayoutListIcon,
-    PieChart as PieIcon
+    PieChart as PieIcon,
+    CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-template';
+import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -98,6 +101,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     const yearFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
 
     const leadAuditorName = yearPlans.length > 0 ? yearPlans[0].leadAuditorName : undefined;
+    const activePlan = yearPlans.length > 0 ? yearPlans[0] : null;
 
     const counts = { Compliance: 0, OFI: 0, NC: 0 };
     yearFindings.forEach(f => {
@@ -218,8 +222,10 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         auditorData,
         auditorSexCounts,
         leadAuditorName,
+        activePlan,
         totalSchedules: yearSchedules.length,
-        completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length
+        completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length,
+        yearSchedules
     };
   }, [plans, schedules, findings, units, users, campuses, selectedYear]);
 
@@ -237,40 +243,62 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 leadAuditorName={analytics.leadAuditorName}
             />
         );
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Auditor Assignments - AY ${selectedYear}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } 
-                            .no-print { display: none !important; } 
-                            .print-page-break { page-break-after: always; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; font-size: 12pt; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Assignment Sheets</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${reportHtml}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        triggerPrint(reportHtml, `Auditor_Assignments_AY${selectedYear}`);
     } catch (e) { console.error(e); }
+  };
+
+  const handlePrintAuditorSchedule = () => {
+    if (!analytics?.yearSchedules.length || !analytics.activePlan) {
+        toast({ title: "No Schedule", description: "There are no sessions scheduled for the selected year.", variant: "destructive" });
+        return;
+    }
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditorSchedulePrintTemplate 
+                plan={analytics.activePlan}
+                schedules={analytics.yearSchedules}
+                campusName={analytics.activePlan.campusId === 'university-wide' ? 'Institutional' : (campuses.find(c => c.id === analytics.activePlan!.campusId)?.name || 'RSU')}
+                signatories={signatories || undefined}
+            />
+        );
+        triggerPrint(reportHtml, `IQA_Auditor_Schedule_AY${selectedYear}`);
+    } catch (e) { console.error(e); }
+  };
+
+  const triggerPrint = (html: string, title: string) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>${title}</title>
+                <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                <style>
+                    @page { 
+                        size: 8.5in 13in !important; 
+                        margin: 0.5in !important; 
+                    }
+                    @media print { 
+                        body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } 
+                        .no-print { display: none !important; } 
+                        .print-page-break { page-break-after: always; }
+                    }
+                    body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; font-size: 12pt; }
+                </style>
+            </head>
+            <body>
+                <div class="no-print mb-8 flex justify-center">
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                </div>
+                <div id="print-content" style="padding: 0.1in;">
+                    ${html}
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
   };
 
   if (isLoading) {
@@ -362,7 +390,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </CardContent>
         </Card>
 
-        {/* NEW: Auditor Performance Pulse */}
+        {/* Auditor Performance Pulse */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-primary/5 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -451,9 +479,14 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                       <div className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Assignment Registry</CardTitle></div>
                       <CardDescription className="text-xs">Timeline per auditor for AY {selectedYear}.</CardDescription>
                   </div>
-                  <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
-                      <Printer className="h-4 w-4" /> Print Assignments
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={handlePrintAuditorSchedule} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-indigo-200 text-indigo-700 gap-2 shadow-sm">
+                        <CalendarDays className="h-4 w-4" /> Print Auditor Sched.
+                    </Button>
+                    <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
+                        <Printer className="h-4 w-4" /> Print Assignments
+                    </Button>
+                  </div>
               </CardHeader>
               <CardContent className="p-0">
                   <ScrollArea className="h-[300px]">
