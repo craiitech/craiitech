@@ -70,7 +70,6 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
@@ -808,7 +807,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         <FormField control={form.control} name="adminFeedback" render={({ field }) => (
                                             <FormItem>
                                                 <FormControl><Textarea {...field} rows={3} placeholder="Provide guidance or requests for further detail to the unit coordinator..." className="bg-white border-primary/10 italic text-xs leading-relaxed" /></FormControl>
-                                                <FormDescription className="text-[9px]">This feedback will be archived in the Discussion Log tab upon saving.</FormDescription>
+                                                <FormDescription className="text-[9px]">This feedback will be archived in the Discussion Log log upon saving.</FormDescription>
                                             </FormItem>
                                         )} />
                                     </section>
@@ -943,126 +942,127 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </ScrollArea>
             </div>
 
-            <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
-                <Tabs defaultValue="guide" className="flex-1 flex flex-col min-h-0">
-                    <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
-                        <TabsTrigger value="guide" className="text-[10px] font-black uppercase tracking-widest gap-2"><Info className="h-4 w-4" /> Operational Guide</TabsTrigger>
-                        <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2"><HistoryIcon className="h-4 w-4" /> Discussion Log</TabsTrigger>
-                    </TabsList>
-                    
-                    <div className="flex-1 overflow-hidden">
-                        <TabsContent value="guide" className="h-full m-0 flex flex-col">
-                            <ScrollArea className="flex-1">
-                                <div className="p-6 space-y-8 pb-12">
-                                    <section className="space-y-4">
-                                        <div className="flex items-center gap-2 border-b pb-1 text-primary">
-                                            <HelpCircle className="h-4 w-4" />
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest">How to Use the CAR Form</h4>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 1: Context Definition (Admin)</p>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed">Select the **Source** (e.g., Audit) and provide a clear **Statement of Non-Conformance**. Specify the **Time Limit for Reply** to set the unit deadline.</p>
-                                            </div>
-                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 2: Investigation (Unit)</p>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis**. This should explain *why* the failure happened, not just *what* happened.</p>
-                                            </div>
-                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 3: Action Planning (Unit)</p>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed">Add **Correction** steps for immediate fixes and **Corrective Actions** for long-term prevention. Attach **Google Drive links** as evidence for each step.</p>
-                                            </div>
-                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 4: Verification (Auditor)</p>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed">QA Auditors will use Part III and IV to verify implementation. Use the **Workspace** buttons to mark specific unit actions as Verified or Effective.</p>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    <Separator />
-
-                                    <section className="space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 border-b pb-1"><Building2 className="h-4 w-4" /> Unit Workflow Protocol</h4>
-                                        <div className="space-y-5">
-                                            {[
-                                                { step: '1', title: 'Investigation', desc: 'Identify the systematic reason for the failure.' },
-                                                { step: '2', title: 'Correction', desc: 'Immediate steps taken to contain the issue.' },
-                                                { step: '3', title: 'Action Plan', desc: 'Long-term measures to prevent recurrence.' },
-                                                { step: '4', title: 'Closure Request', desc: 'Notify QA for follow-up and final verification.' }
-                                            ].map((s, idx) => (
-                                                <div key={idx} className="flex gap-4 items-start group">
-                                                    <div className="flex flex-col items-center shrink-0">
-                                                        <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">
-                                                            {s.step}
-                                                        </div>
-                                                        {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
-                                                    </div>
-                                                    <div className="space-y-1 pb-2 flex-1">
-                                                        <p className="text-xs font-black uppercase tracking-tight text-slate-800 leading-tight">{s.title}</p>
-                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">"{s.desc}"</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
-
-                                    <Separator />
-
-                                    <section className="space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
-                                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2.5">
-                                            <p className="text-[10px] text-indigo-900 leading-relaxed font-bold italic text-center">"Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence logs."</p>
-                                        </div>
-                                    </section>
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-
-                        <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
-                            <ScrollArea className="flex-1">
-                                <div className="p-6 space-y-4">
-                                    {liveCar?.comments?.length ? (
-                                        <div className="space-y-4">
-                                            {liveCar.comments.slice().sort((a,b) => {
-                                                const getVal = (c: any) => {
-                                                    if (c.createdAt?.toMillis) return c.createdAt.toMillis();
-                                                    if (c.createdAt instanceof Date) return c.createdAt.getTime();
-                                                    if (c.createdAt?.seconds) return c.createdAt.seconds * 1000;
-                                                    return 0;
-                                                };
-                                                return getVal(b) - getVal(a);
-                                            }).map((c, i) => (
-                                                <div key={i} className={cn(
-                                                    "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30 animate-in slide-in-from-right-2 duration-300",
-                                                    c.text.includes('[QA OFFICE FEEDBACK]') ? "bg-primary/5 border-primary/20 ring-1 ring-primary/10" : "bg-white border-slate-100"
-                                                )}>
-                                                    <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
-                                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
-                                                        <span className="text-[8px] font-mono text-muted-foreground">
-                                                            {c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : 
-                                                             c.createdAt instanceof Date ? format(c.createdAt, 'MMM dd, p') : 
-                                                             c.createdAt?.seconds ? format(new Date(c.createdAt.seconds * 1000), 'MMM dd, p') : '--'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
-                                                    <div className="flex items-center justify-between mt-2">
-                                                        <Badge variant="outline" className="h-4 text-[7px] font-black uppercase border-muted-foreground/20 text-muted-foreground">{c.authorRole}</Badge>
-                                                        {c.text.includes('[QA OFFICE FEEDBACK]') && <Badge className="bg-primary text-white h-4 text-[7px] font-black uppercase">INSTITUTIONAL DIRECTIVE</Badge>}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
-                                            <MessageSquare className="h-12 w-12" />
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
+            <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l divide-y overflow-hidden">
+                {/* TOP HALF: DISCUSSION LOG */}
+                <div className="flex-1 flex flex-col min-h-0">
+                    <div className="p-4 bg-white border-b shrink-0 h-12 flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Discussion Log</h4>
                     </div>
-                </Tabs>
+                    <ScrollArea className="flex-1">
+                        <div className="p-6 space-y-4">
+                            {liveCar?.comments?.length ? (
+                                <div className="space-y-4">
+                                    {liveCar.comments.slice().sort((a,b) => {
+                                        const getVal = (c: any) => {
+                                            if (c.createdAt?.toMillis) return c.createdAt.toMillis();
+                                            if (c.createdAt instanceof Date) return c.createdAt.getTime();
+                                            if (c.createdAt?.seconds) return c.createdAt.seconds * 1000;
+                                            return 0;
+                                        };
+                                        return getVal(b) - getVal(a);
+                                    }).map((c, i) => (
+                                        <div key={i} className={cn(
+                                            "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30 animate-in slide-in-from-right-2 duration-300",
+                                            c.text.includes('[QA OFFICE FEEDBACK]') ? "bg-primary/5 border-primary/20 ring-1 ring-primary/10" : "bg-white border-slate-100"
+                                        )}>
+                                            <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
+                                                <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
+                                                <span className="text-[8px] font-mono text-muted-foreground">
+                                                    {c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : 
+                                                     c.createdAt instanceof Date ? format(c.createdAt, 'MMM dd, p') : 
+                                                     c.createdAt?.seconds ? format(new Date(c.createdAt.seconds * 1000), 'MMM dd, p') : '--'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <Badge variant="outline" className="h-4 text-[7px] font-black uppercase border-muted-foreground/20 text-muted-foreground">{c.authorRole}</Badge>
+                                                {c.text.includes('[QA OFFICE FEEDBACK]') && <Badge className="bg-primary text-white h-4 text-[7px] font-black uppercase">INSTITUTIONAL DIRECTIVE</Badge>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                                    <MessageSquare className="h-12 w-12" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
+                                </div>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </div>
+
+                {/* BOTTOM HALF: OPERATIONAL GUIDE */}
+                <div className="flex-1 flex flex-col min-h-0 bg-slate-50/50">
+                    <div className="p-4 bg-white border-b shrink-0 h-12 flex items-center gap-2">
+                        <Info className="h-4 w-4 text-primary" />
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Operational Guide</h4>
+                    </div>
+                    <ScrollArea className="flex-1">
+                        <div className="p-6 space-y-8 pb-12">
+                            <section className="space-y-4">
+                                <div className="flex items-center gap-2 border-b pb-1 text-primary">
+                                    <HelpCircle className="h-4 w-4" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">How to Use the CAR Form</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 1: Context Definition (Admin)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Select the **Source** (e.g., Audit) and provide a clear **Statement of Non-Conformance**. Specify the **Time Limit for Reply** to set the unit deadline.</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 2: Investigation (Unit)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis**. This should explain *why* the failure happened, not just *what* happened.</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 3: Action Planning (Unit)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Add **Correction** steps for immediate fixes and **Corrective Actions** for long-term prevention. Attach **Google Drive links** as evidence for each step.</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 4: Verification (Auditor)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">QA Auditors will use Part III and IV to verify implementation. Use the **Workspace** buttons to mark specific unit actions as Verified or Effective.</p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <Separator />
+
+                            <section className="space-y-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 border-b pb-1"><Building2 className="h-4 w-4" /> Unit Workflow Protocol</h4>
+                                <div className="space-y-5">
+                                    {[
+                                        { step: '1', title: 'Investigation', desc: 'Identify the systematic reason for the failure.' },
+                                        { step: '2', title: 'Correction', desc: 'Immediate steps taken to contain the issue.' },
+                                        { step: '3', title: 'Action Plan', desc: 'Long-term measures to prevent recurrence.' },
+                                        { step: '4', title: 'Closure Request', desc: 'Notify QA for follow-up and final verification.' }
+                                    ].map((s, idx) => (
+                                        <div key={idx} className="flex gap-4 items-start group">
+                                            <div className="flex flex-col items-center shrink-0">
+                                                <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">
+                                                    {s.step}
+                                                </div>
+                                                {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                            </div>
+                                            <div className="space-y-1 pb-2 flex-1">
+                                                <p className="text-xs font-black uppercase tracking-tight text-slate-800 leading-tight">{s.title}</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed italic">"{s.desc}"</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <Separator />
+
+                            <section className="space-y-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
+                                <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2.5">
+                                    <p className="text-[10px] text-indigo-900 leading-relaxed font-bold italic text-center">"Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence logs."</p>
+                                </div>
+                            </section>
+                        </div>
+                    </ScrollArea>
+                </div>
             </div>
           </div>
 
@@ -1075,77 +1075,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
-const renderRegistryTable = (data: CorrectiveActionRequest[], isLoading: boolean, unitMap: Map<string, string>, campusMap: Map<string, string>, isInstitutionalViewer: boolean, userProfile: any, requestSort: (key: SortKey) => void, getSortIcon: (key: SortKey) => React.ReactNode, handleEdit: (car: CorrectiveActionRequest) => void, handlePrint: (car: CorrectiveActionRequest) => void) => (
-    <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardContent className="p-0">
-        {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div> : (
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader className="bg-muted/30">
-                    <TableRow>
-                    <TableHead className="py-4 pl-6"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>CAR Number & Unit {getSortIcon('carNumber')}</Button></TableHead>
-                    <TableHead className="py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsible Office {getSortIcon('unit')}</Button></TableHead>
-                    <TableHead className="py-4"><div className="text-[10px] font-black uppercase">Procedure / Context</div></TableHead>
-                    <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Deadline {getSortIcon('deadline')}</Button></TableHead>
-                    <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status & Guidance {getSortIcon('status')}</Button></TableHead>
-                    <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {data.map((car, index) => {
-                        const latestComment = car.comments?.length ? car.comments[car.comments.length - 1] : null;
-                        return (
-                        <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", car.needsVerification && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
-                        <TableCell className="pl-6 py-4">
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2"><span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>{car.needsVerification && <Badge variant="outline" className="h-4 text-[7px] font-black border-blue-200 text-blue-700 bg-white animate-pulse">UNIT RESPONDED</Badge>}</div>
-                                <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest"><HistoryIcon className="h-2.5 w-2.5" />Logged: {format(car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate), 'MM/dd/yy')}</div>
-                            </div>
-                        </TableCell>
-                        <TableCell><div className="flex flex-col gap-1"><span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span></div></TableCell>
-                        <TableCell className="max-w-xs font-bold text-xs"><p className="truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</p><p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p></TableCell>
-                        <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
-                        <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-1">
-                                <Badge className={cn(
-                                    "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", 
-                                    car.status === 'Open' ? "bg-rose-600 text-white" : 
-                                    car.status === 'Awaiting Response/Update' ? "bg-indigo-600 text-white" :
-                                    car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
-                                    car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : 
-                                    "bg-emerald-600 text-white"
-                                )}>{car.status}</Badge>
-                                {latestComment && (
-                                    <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
-                                        "{latestComment.text.replace('[QA OFFICE FEEDBACK]: ', '')}"
-                                    </p>
-                                )}
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
-                                <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
-                            </div>
-                        </TableCell>
-                        </TableRow>
-                    )})}
-                    {!isLoading && data.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2 opacity-20">
-                                <ListChecks className="h-10 w-10" />
-                                <p className="text-xs font-bold uppercase tracking-widest">No results found</p>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
-        )}
-        </CardContent>
-    </Card>
-  );
-
