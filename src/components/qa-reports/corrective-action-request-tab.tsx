@@ -145,17 +145,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
+  const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
+
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
     [firestore]
   );
   const { data: rawCars, isLoading } = useCollection<CorrectiveActionRequest>(carQuery);
 
-  /**
-   * LIVE CAR REFERENCE
-   * Instead of relying on the snapshot taken when "Manage" was clicked, 
-   * we find the live record in the collection to ensure Discussion history is always current.
-   */
   const liveCar = useMemo(() => {
     if (!editingCar || !rawCars) return editingCar;
     return rawCars.find(c => c.id === editingCar.id) || editingCar;
@@ -169,8 +166,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-
-  const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
 
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
@@ -466,9 +461,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
     // Use liveCar comments as base to prevent history loss
     const updatedComments = liveCar?.comments ? [...liveCar.comments] : [];
-    if (isAdmin && values.adminFeedback?.trim()) {
+    if (isInstitutionalViewer && values.adminFeedback?.trim()) {
         const feedbackComment: Comment = {
-            text: `[ADMIN FEEDBACK]: ${values.adminFeedback.trim()}`,
+            text: `[QA OFFICE FEEDBACK]: ${values.adminFeedback.trim()}`,
             authorId: userProfile.id,
             authorName: `${userProfile.firstName} ${userProfile.lastName}`,
             authorRole: userRole || 'Admin',
@@ -477,8 +472,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         updatedComments.push(feedbackComment);
     }
 
-    if (isAdmin) {
-        const hasVerificationData = (values.followUpLogs?.length || 0) > 0 || (values.effectivenessAudits?.length || 0) > 0;
+    if (isInstitutionalViewer) {
+        const hasVerificationData = (values.followUpLogs?.length || 0) > (liveCar.followUpLogs?.length || 0) || 
+                                   (values.effectivenessAudits?.length || 0) > (liveCar.effectivenessAudits?.length || 0);
         
         if (hasVerificationData) {
             nextStatus = 'For Final Verification';
@@ -547,6 +543,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits')) return !isInstitutionalViewer;
+    if (fieldName === 'adminFeedback') return !isInstitutionalViewer;
+    
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
     if (fieldName === 'status') return !isInstitutionalViewer;
@@ -575,7 +573,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     {data.map((car, index) => {
                         const latestComment = car.comments?.length ? car.comments[car.comments.length - 1] : null;
                         return (
-                        <TableRow key={car.id} className={cn("transition-colors group", car.needsVerification && "bg-blue-50/30")}>
+                        <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", car.needsVerification && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
                         <TableCell className="pl-6 py-4">
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2"><span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>{car.needsVerification && <Badge variant="outline" className="h-4 text-[7px] font-black border-blue-200 text-blue-700 bg-white animate-pulse">UNIT RESPONDED</Badge>}</div>
@@ -597,14 +595,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 )}>{car.status}</Badge>
                                 {latestComment && (
                                     <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
-                                        "{latestComment.text.replace('[ADMIN FEEDBACK]: ', '')}"
+                                        "{latestComment.text.replace('[QA OFFICE FEEDBACK]: ', '')}"
                                     </p>
                                 )}
                             </div>
                         </TableCell>
                         <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                            <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
-                            <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
+                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
+                                <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
+                            </div>
                         </TableCell>
                         </TableRow>
                     )})}
@@ -704,7 +704,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
-                {editingCar && <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white border-none">{editingCar.status}</Badge>}
+                {liveCar && <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white border-none">{liveCar.status}</Badge>}
             </div>
             <DialogTitle>{editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
           </DialogHeader>
@@ -790,7 +790,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             <div className="space-y-10 pt-10 border-t border-dashed">
                                 <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div><div className="space-y-0.5"><h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Oversight & Verification</h4><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Internal Auditor / Quality Assurance Office Use Only</p></div></div>{isInstitutionalViewer && <div className="flex gap-2"><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up Log</Button><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Continue Monitoring the NC', remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Final Verification</Button></div>}</div>
                                 
-                                {isAdmin && (
+                                {isInstitutionalViewer && (
                                     <section className="bg-primary/5 p-6 rounded-2xl border border-primary/20 space-y-4 animate-in slide-in-from-top-4 duration-500">
                                         <div className="flex items-center gap-2 text-primary">
                                             <MessageSquare className="h-5 w-5" />
@@ -799,7 +799,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         <FormField control={form.control} name="adminFeedback" render={({ field }) => (
                                             <FormItem>
                                                 <FormControl><Textarea {...field} rows={3} placeholder="Provide guidance or requests for further detail to the unit coordinator..." className="bg-white border-primary/10 italic text-xs leading-relaxed" /></FormControl>
-                                                <FormDescription className="text-[9px]">This feedback will be visible to the unit in the main registry and discussion log.</FormDescription>
+                                                <FormDescription className="text-[9px]">This feedback will be archived in the Discussion tab upon saving.</FormDescription>
                                             </FormItem>
                                         )} />
                                     </section>
@@ -811,7 +811,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         const currentResult = form.watch(`followUpLogs.${index}.result`) || '';
                                         return (
                                         <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
-                                            {isAdmin && (
+                                            {isInstitutionalViewer && (
                                                 <div className="space-y-3 p-4 rounded-xl border-2 border-primary/20 bg-white shadow-sm animate-in slide-in-from-top-2 duration-300">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><ListChecks className="h-4 w-4" /> Action Verification Workspace</p>
                                                     <div className="space-y-2">
@@ -872,7 +872,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         const currentResult = form.watch(`effectivenessAudits.${index}.result`) || '';
                                         return (
                                         <div key={field.id} className="p-6 rounded-2xl border-2 border-indigo-100 bg-indigo-50/20 relative group space-y-6">
-                                            {isAdmin && (
+                                            {isInstitutionalViewer && (
                                                 <div className="space-y-3 p-4 rounded-xl border border-indigo-200 bg-white shadow-sm animate-in slide-in-from-top-2 duration-300">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2"><ClipboardCheck className="h-4 w-4" /> Final Evidence Audit Workspace</p>
                                                     <div className="space-y-2">
@@ -935,13 +935,57 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
 
             <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
-                <Tabs defaultValue="guidance" className="flex-1 flex flex-col min-h-0">
+                <Tabs defaultValue="history" className="flex-1 flex flex-col min-h-0">
                     <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
+                        <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2"><HistoryIcon className="h-4 w-4" /> Discussion Log</TabsTrigger>
                         <TabsTrigger value="guidance" className="text-[10px] font-black uppercase tracking-widest gap-2"><Info className="h-4 w-4" /> Protocol</TabsTrigger>
-                        <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2"><HistoryIcon className="h-4 w-4" /> Discussion</TabsTrigger>
                     </TabsList>
                     
                     <div className="flex-1 overflow-hidden">
+                        <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
+                            <ScrollArea className="flex-1">
+                                <div className="p-6 space-y-4">
+                                    {liveCar?.comments?.length ? (
+                                        <div className="space-y-4">
+                                            {liveCar.comments.slice().sort((a,b) => {
+                                                const getVal = (c: any) => {
+                                                    if (c.createdAt?.toMillis) return c.createdAt.toMillis();
+                                                    if (c.createdAt instanceof Date) return c.createdAt.getTime();
+                                                    if (c.createdAt?.seconds) return c.createdAt.seconds * 1000;
+                                                    return 0;
+                                                };
+                                                return getVal(b) - getVal(a);
+                                            }).map((c, i) => (
+                                                <div key={i} className={cn(
+                                                    "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30 animate-in slide-in-from-right-2 duration-300",
+                                                    c.text.includes('[QA OFFICE FEEDBACK]') ? "bg-primary/5 border-primary/20 ring-1 ring-primary/10" : "bg-white border-slate-100"
+                                                )}>
+                                                    <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
+                                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
+                                                        <span className="text-[8px] font-mono text-muted-foreground">
+                                                            {c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : 
+                                                             c.createdAt instanceof Date ? format(c.createdAt, 'MMM dd, p') : 
+                                                             c.createdAt?.seconds ? format(new Date(c.createdAt.seconds * 1000), 'MMM dd, p') : '--'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
+                                                    <div className="flex items-center justify-between mt-2">
+                                                        <Badge variant="outline" className="h-4 text-[7px] font-black uppercase border-muted-foreground/20 text-muted-foreground">{c.authorRole}</Badge>
+                                                        {c.text.includes('[QA OFFICE FEEDBACK]') && <Badge className="bg-primary text-white h-4 text-[7px] font-black uppercase">INSTITUTIONAL DIRECTIVE</Badge>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                                            <MessageSquare className="h-12 w-12" />
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+
                         <TabsContent value="guidance" className="h-full m-0 flex flex-col">
                             <ScrollArea className="flex-1">
                                 <div className="p-6 space-y-8">
@@ -966,45 +1010,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </div>
                             </ScrollArea>
                         </TabsContent>
-
-                        <TabsContent value="history" className="h-full m-0 flex flex-col">
-                            <ScrollArea className="flex-1">
-                                <div className="p-6 space-y-4">
-                                    {liveCar?.comments?.length ? (
-                                        <div className="space-y-4">
-                                            {liveCar.comments.slice().sort((a,b) => {
-                                                const getVal = (c: any) => {
-                                                    if (c.createdAt?.toMillis) return c.createdAt.toMillis();
-                                                    if (c.createdAt instanceof Date) return c.createdAt.getTime();
-                                                    return 0;
-                                                };
-                                                return getVal(b) - getVal(a);
-                                            }).map((c, i) => (
-                                                <div key={i} className={cn(
-                                                    "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30 animate-in slide-in-from-right-2 duration-300",
-                                                    c.text.includes('[ADMIN FEEDBACK]') ? "bg-primary/5 border-primary/10" : "bg-white border-slate-100"
-                                                )}>
-                                                    <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
-                                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
-                                                        <span className="text-[8px] font-mono text-muted-foreground">
-                                                            {c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : 
-                                                             c.createdAt instanceof Date ? format(c.createdAt, 'MMM dd, p') : '--'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
-                                                    <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
-                                            <MessageSquare className="h-12 w-12" />
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
                     </div>
                 </Tabs>
             </div>
@@ -1019,3 +1024,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+
