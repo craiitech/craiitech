@@ -114,14 +114,14 @@ const carSchema = z.object({
     result: z.string().min(1, 'Result is required'),
     verifiedBy: z.string().min(1, 'Required'),
     date: z.string().min(1, 'Required'),
-    remarks: z.string().optional(),
+    remarks: z.string().optional().or(z.literal('')),
   })).optional(),
   effectivenessAudits: z.array(z.object({
     result: z.string().min(1, 'Effectiveness result is required'),
     verifiedBy: z.string().min(1, 'Required'),
     date: z.string().min(1, 'Required'),
     action: z.enum(['Close the NC', 'Continue Monitoring the NC', 'Provide More Actions to Address the NC']),
-    remarks: z.string().optional(),
+    remarks: z.string().optional().or(z.literal('')),
   })).optional(),
   status: z.enum(['Open', 'In Progress', 'Awaiting Response/Update', 'For Final Verification', 'Closed']),
 });
@@ -317,11 +317,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         })),
         followUpLogs: (car.followUpLogs || []).map(log => ({
             ...log,
-            date: safeDate(log.date)
+            date: safeDate(log.date),
+            remarks: log.remarks || ''
         })),
         effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({
             ...audit,
-            date: safeDate(audit.date)
+            date: safeDate(audit.date),
+            remarks: audit.remarks || ''
         }))
     });
     setIsDialogOpen(true);
@@ -503,11 +505,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       })),
       followUpLogs: (values.followUpLogs || []).map(log => ({
           ...log,
-          date: Timestamp.fromDate(new Date(log.date))
+          date: Timestamp.fromDate(new Date(log.date)),
+          remarks: log.remarks || ''
       })),
       effectivenessAudits: (values.effectivenessAudits || []).map(audit => ({
           ...audit,
-          date: Timestamp.fromDate(new Date(audit.date))
+          date: Timestamp.fromDate(new Date(audit.date)),
+          remarks: audit.remarks || ''
       })),
       updatedAt: serverTimestamp(),
     };
@@ -847,6 +851,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             )}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Official Auditor Observation</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
+                                                <FormField control={form.control} name={`followUpLogs.${index}.remarks`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Follow-up Remarks</FormLabel><FormControl><Textarea {...inputField} value={inputField.value || ''} rows={2} className="bg-white text-xs" disabled={isFieldReadOnly(`followUpLogs.${index}.remarks`)} /></FormControl></FormItem>)} />
                                                 <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>)} />
                                                 <FormField control={form.control} name={`followUpLogs.${index}.date`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>)} />
                                             </div>
@@ -906,6 +911,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                 </div>
                                             )}
                                             <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Determination & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>)} />
+                                            <FormField control={form.control} name={`effectivenessAudits.${index}.remarks`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Audit Findings / Final Remarks</FormLabel><FormControl><Textarea {...inputField} value={inputField.value || ''} rows={3} className="bg-white border-indigo-100 text-xs" disabled={isFieldReadOnly(`effectivenessAudits.${index}.remarks`)} /></FormControl></FormItem>)} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <FormField control={form.control} name={`effectivenessAudits.${index}.action`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-primary">Final Verification Action</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly(`effectivenessAudits.${index}.action`)}><FormControl><SelectTrigger className="bg-white font-black h-11"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Close the NC" className="font-black text-emerald-600">1. Close the NC</SelectItem><SelectItem value="Continue Monitoring the NC">2. Continue Monitoring</SelectItem><SelectItem value="Provide More Actions to Address the NC">3. Provide More Actions</SelectItem></SelectContent></Select></FormItem>)} />
                                                 <FormField control={form.control} name={`effectivenessAudits.${index}.verifiedBy`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${index}.verifiedBy`)} /></FormControl></FormItem>)} />

@@ -221,7 +221,7 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
           </div>
           <div className="col-span-3 p-2">
             <p className="font-bold" style={{ fontSize: '10pt' }}>Remarks:</p>
-            <p className="mt-1" style={{ fontSize: '11pt' }}>{latestFollowUp?.remarks || '--'}</p>
+            <p className="mt-1 italic" style={{ fontSize: '10pt' }}>{latestFollowUp?.remarks || '--'}</p>
           </div>
         </div>
       </div>
@@ -255,7 +255,7 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
           </div>
           <div className="col-span-3 p-2">
             <p className="font-bold" style={{ fontSize: '10pt' }}>Remarks:</p>
-            <p className="mt-1" style={{ fontSize: '11pt' }}>{latestEffectiveness?.remarks || '--'}</p>
+            <p className="mt-1 italic" style={{ fontSize: '10pt' }}>{latestEffectiveness?.remarks || '--'}</p>
           </div>
         </div>
       </div>
