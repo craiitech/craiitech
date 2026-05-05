@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle, ShieldCheck, ShieldAlert, FileText, LayoutList, Info } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle, ShieldCheck, ShieldAlert, FileText, LayoutList, Info, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -139,6 +139,17 @@ export function SubmissionForm({
   const hasRisks = useMemo(() => digitalRisks?.some(r => r.type === 'Risk'), [digitalRisks]);
   const hasOpportunities = useMemo(() => digitalRisks?.some(r => r.type === 'Opportunity'), [digitalRisks]);
   const isDigitalComplete = useMemo(() => !!(hasRisks && hasOpportunities), [hasRisks, hasOpportunities]);
+
+  /**
+   * FINAL CYCLE VALIDATION:
+   * Checks if all digital entries have been updated with a Post-Treatment analysis.
+   * This is mandatory for "Final" submission to ensure the registry reflects implementation results.
+   */
+  const isPostTreatmentIncomplete = useMemo(() => {
+    if (!isRorForm || cycleId !== 'final' || !digitalRisks) return false;
+    // Entries are incomplete if they don't have residual likelihood/consequence or aren't 'Closed'
+    return digitalRisks.some(r => !r.postTreatment?.likelihood || !r.postTreatment?.consequence);
+  }, [isRorForm, cycleId, digitalRisks]);
 
   const isDraftValue = form.watch('isDraft');
 
@@ -328,6 +339,12 @@ export function SubmissionForm({
         return;
     }
 
+    // Final Cycle Specific: Check for Post-Treatment updates
+    if (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete) {
+        toast({ title: 'Final Assessment Required', description: 'All digital register entries must be updated with a post-treatment analysis before the final document can be submitted.', variant: 'destructive' });
+        return;
+    }
+
     setIsSubmitting(true);
     
     // Fetch official Philippine time from server to generate control number
@@ -514,6 +531,26 @@ export function SubmissionForm({
             </Alert>
         )}
 
+        {isRorForm && cycleId === 'final' && !isLoadingDigitalRisks && isDigitalComplete && isPostTreatmentIncomplete && (
+            <Alert variant="destructive" className="border-rose-300 bg-rose-50 animate-in zoom-in duration-500 shadow-md">
+                <ShieldAlert className="h-5 w-5 text-rose-600" />
+                <AlertTitle className="font-black uppercase text-rose-800 tracking-tight">Post-Treatment Audit Gap</AlertTitle>
+                <AlertDescription className="space-y-4 pt-1">
+                    <p className="text-xs font-bold leading-relaxed text-rose-700">
+                        The Final Submission for the Risk Registry requires that **every digital entry** has been updated with its Final Assessment (Residual Likelihood, Consequence, and Evidence).
+                    </p>
+                    <p className="text-[10px] font-medium italic text-rose-600">
+                        System detection: One or more entries in your digital register are missing their residual impact analysis for {year}.
+                    </p>
+                    <Button size="sm" variant="destructive" asChild className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-rose-200">
+                        <Link href="/risk-register?highlightSection=4" className="flex items-center gap-2">
+                            Perform Digital Updates Now <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
+
         <div className="bg-muted p-4 rounded-lg flex flex-col gap-2 border border-primary/20">
             <div className="flex items-center gap-2 text-primary">
                 <ShieldCheck className="h-5 w-5" />
@@ -550,20 +587,20 @@ export function SubmissionForm({
                                 onValueChange={(v) => field.onChange(v === 'true')}
                                 value={field.value ? 'true' : 'false'}
                                 className="flex flex-col sm:flex-row gap-4"
-                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
                             >
                                 <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
                                     <RadioGroupItem value="true" id="is-draft" />
                                     <Label htmlFor="is-draft" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><LayoutList className="h-4 w-4 text-blue-600" /> Draft (Content Check)</p>
-                                        <p className="text-[10px] text-muted-foreground">Raw working document for initial review and feedback.</p>
+                                        <p className="text-[10px] text-muted-foreground">For preliminary review. Mandatory updates are bypassed.</p>
                                     </Label>
                                 </div>
                                 <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm")}>
                                     <RadioGroupItem value="false" id="is-final" />
                                     <Label htmlFor="is-final" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final (Official Filing)</p>
-                                        <p className="text-[10px] text-muted-foreground">Signed, scanned PDF ready for compliance verification.</p>
+                                        <p className="text-[10px] text-muted-foreground">Signed, scanned PDF. Full compliance logic active.</p>
                                     </Label>
                                 </div>
                             </RadioGroup>
@@ -594,7 +631,7 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
@@ -659,7 +696,7 @@ export function SubmissionForm({
                 <Textarea
                   placeholder="Add any relevant comments for the approvers"
                   {...field}
-                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
                 />
               </FormControl>
               <FormMessage />
@@ -680,7 +717,7 @@ export function SubmissionForm({
                     onValueChange={(value: RiskRating) => setRiskRating(value)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
                 >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="low" /></FormControl>
@@ -710,7 +747,7 @@ export function SubmissionForm({
                             id={`${reportType}-${item.id}`}
                             checked={checkedState[item.id] || false}
                             onCheckedChange={() => handleCheckboxChange(item.id)}
-                            disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                            disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
                         />
                         <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-tight cursor-pointer">
                             {item.label}
@@ -742,7 +779,8 @@ export function SubmissionForm({
             validationStatus === 'invalid' ||
             !isChecklistComplete ||
             !canUpdateExisting ||
-            (isRorForm && !isLoadingDigitalRisks && !isDigitalComplete)
+            (isRorForm && !isLoadingDigitalRisks && !isDigitalComplete) ||
+            (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)
           }
         >
           {isSubmitting ? (

@@ -282,21 +282,37 @@ export const helpContent: Record<string, PageHelp> = {
       { label: 'Download Templates', labelShort: 'Templates', action: 'Accesses the official RSU GDrive for standardized forms.' }
     ]
   },
+  '/submissions/new': {
+    title: 'Document Upload Wizard',
+    description: 'Provisioning official evidence logs for institutional verification.',
+    alert: 'FINAL ROR NOTICE: Final Cycle submissions for the Risk & Opportunity Registry will be BLOCKED unless all digital entries for the year are updated with a Post-Treatment analysis.',
+    steps: [
+      { title: 'Link Validation', desc: 'Paste the GDrive link. The system will automatically check if the Quality Assurance Office has access.' },
+      { title: 'Compliance Checklist', desc: 'Final versions require manual confirmation of Year, Cycle, and Signatures.' },
+      { title: 'Revision Control', desc: 'Re-uploading for the same year/cycle will automatically increment the Revision (Rev 00, 01, etc.).' }
+    ],
+    buttons: [
+      { label: 'How to get link?', labelShort: 'Help', action: 'Displays the 7-step guide for correct Google Drive sharing.' }
+    ]
+  },
 
   // --- RISK REGISTER ---
   '/risk-register': {
     title: 'Risk Management Registry',
     description: 'A digital tool for proactive institutional governance. Log and mitigate vulnerabilities.',
-    alert: 'ODIMO NOTICE: Only the Unit Coordinator is authorized to input data to this digital Registry. If new entries are required, please direct your Coordinator to perform the encoding. This ensures coordinators maintain full ownership and awareness of their unit\'s identified risks.',
+    alert: 'ODIMO NOTICE: Only the Unit Coordinator is authorized to input data to this digital Registry. This ensures coordinators maintain full ownership and awareness of their unit\'s identified risks.',
     steps: [
-      { title: 'Identify Factor', desc: 'Identify a Risk (Threat) or Opportunity (Gain) linked to a process objective.' },
-      { title: 'Baseline Analysis', desc: 'Rate the Likelihood and Consequence (1-5). Magnitude 5+ triggers mandatory action.' },
-      { title: 'Execute Treatment', desc: 'Assign a person and target date to mitigate the risk.' }
+      { title: 'Step 1: Identify Factor', desc: 'Select Risk (Threat) or Opportunity (Gain) and describe the process objective.' },
+      { title: 'Step 2: Initial Analysis', desc: 'Rate Likelihood and Consequence. Ratings of 5-25 trigger a mandatory Action Plan requirement.' },
+      { title: 'Step 3: Treatment Action', desc: 'Provide an actionable mitigation strategy. Use the "AI Suggest" button for professional ISO-aligned advice.' },
+      { title: 'Step 4: Post-Treatment Audit', desc: 'DURING FINAL CYCLE: Update the "Residual Likelihood/Consequence" based on your actual implementation evidence.' }
     ],
     buttons: [
       { label: 'Log New Entry', labelShort: 'Log', action: 'Starts the risk identification and analysis form.' },
-      { label: 'AI Suggest', labelShort: 'AI', action: 'Uses GenAI to propose professional ISO-aligned treatment plans.' }
-    ]
+      { label: 'AI Suggest', labelShort: 'AI', action: 'Generates professional mitigation strategies based on your description.' },
+      { label: 'Apply & Sync', labelShort: 'Save', action: 'Commits your analysis to the institutional database.' }
+    ],
+    nextStep: 'Final Cycle ROR documents cannot be submitted until all digital entries here are updated with Section 4 (Post-Treatment).'
   },
 
   // --- UNIT FORMS & RECORDS ---
