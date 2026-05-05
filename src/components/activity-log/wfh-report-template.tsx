@@ -39,50 +39,50 @@ export function WfhReportTemplate({
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="font-black uppercase tracking-widest" style={{ fontSize: '14pt' }}>WORK FROM HOME MONITORING SHEET</h1>
-        <h2 className="text-md font-bold uppercase tracking-tight mt-1">({type})</h2>
+        <h2 className="font-bold uppercase tracking-tight mt-1" style={{ fontSize: '12pt' }}>({type.toUpperCase()})</h2>
       </div>
 
       {/* Meta Grid - Solid Borders enforced */}
-      <table className="w-full border-collapse border-2 border-black mb-8" style={{ fontSize: '12pt' }}>
+      <table className="w-full border-collapse border-2 border-black mb-8">
         <tbody>
-          <tr>
-            <td className="border border-black p-2 w-[35%] bg-white font-bold">Name of Employee</td>
-            <td className="border border-black p-2 uppercase font-bold">{userName}</td>
+          <tr className="border-b border-black">
+            <td className="border-r border-black p-2 w-[35%] bg-white font-bold" style={{ fontSize: '12pt' }}>Name of Employee</td>
+            <td className="p-2 uppercase font-bold" style={{ fontSize: '12pt' }}>{userName}</td>
           </tr>
-          <tr>
-            <td className="border border-black p-2 bg-white font-bold">Campus/College</td>
-            <td className="border border-black p-2 uppercase font-bold">{campusName}</td>
+          <tr className="border-b border-black">
+            <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Campus/College</td>
+            <td className="p-2 uppercase font-bold" style={{ fontSize: '12pt' }}>{campusName}</td>
           </tr>
           {isTeaching ? (
             <>
-              <tr>
-                <td className="border border-black p-2 bg-white font-bold">Teaching Load (Units)</td>
-                <td className="border border-black p-2 font-bold">{latest.teachingLoad || ''}</td>
+              <tr className="border-b border-black">
+                <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Teaching Load (Units)</td>
+                <td className="p-2 font-bold" style={{ fontSize: '12pt' }}>{latest.teachingLoad || ''}</td>
               </tr>
-              <tr>
-                <td className="border border-black p-2 bg-white font-bold">Nature of Appointment</td>
-                <td className="border border-black p-2">
-                    <div className="flex gap-6 font-bold">
+              <tr className="border-b border-black">
+                <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Nature of Appointment</td>
+                <td className="p-2">
+                    <div className="flex gap-6 font-bold" style={{ fontSize: '12pt' }}>
                         <span className="flex items-center gap-2">[{ (latest.natureOfAppointment === 'Permanent') ? 'X' : ' ' }] Permanent</span>
                         <span className="flex items-center gap-2">[{ (latest.natureOfAppointment === 'Lecturer') ? 'X' : ' ' }] Lecturer</span>
                         <span className="flex items-center gap-2">[{ (latest.natureOfAppointment === 'Part-Time') ? 'X' : ' ' }] Part-Time</span>
                     </div>
                 </td>
               </tr>
-              <tr>
-                <td className="border border-black p-2 bg-white font-bold">Subject/s Taught</td>
-                <td className="border border-black p-2 italic font-bold">{latest.subjectsTaught || ''}</td>
+              <tr className="border-b border-black">
+                <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Subject/s Taught</td>
+                <td className="p-2 italic font-bold" style={{ fontSize: '12pt' }}>{latest.subjectsTaught || ''}</td>
               </tr>
             </>
           ) : (
             <>
-              <tr>
-                <td className="border border-black p-2 bg-white font-bold">Office Assignment</td>
-                <td className="border border-black p-2 uppercase font-bold">{latest.officeAssignment || ''}</td>
+              <tr className="border-b border-black">
+                <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Office Assignment</td>
+                <td className="p-2 uppercase font-bold" style={{ fontSize: '12pt' }}>{latest.officeAssignment || ''}</td>
               </tr>
-              <tr>
-                <td className="border border-black p-2 bg-white font-bold">Nature of Appointment</td>
-                <td className="border border-black p-2 font-bold">
+              <tr className="border-b border-black">
+                <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Nature of Appointment</td>
+                <td className="p-2 font-bold" style={{ fontSize: '12pt' }}>
                     <div className="flex gap-6">
                         <span className="flex items-center gap-2">[{ (latest.natureOfAppointment === 'Permanent') ? 'X' : ' ' }] Permanent</span>
                     </div>
@@ -91,46 +91,46 @@ export function WfhReportTemplate({
             </>
           )}
           <tr>
-            <td className="border border-black p-2 bg-white font-bold">Other Designations</td>
-            <td className="border border-black p-2 italic font-bold">{latest.otherDesignations || ''}</td>
+            <td className="border-r border-black p-2 bg-white font-bold" style={{ fontSize: '12pt' }}>Other Designations</td>
+            <td className="p-2 italic font-bold" style={{ fontSize: '12pt' }}>{latest.otherDesignations || ''}</td>
           </tr>
         </tbody>
       </table>
 
       {/* Main Content Table - Solid Grid enforced */}
-      <table className="w-full border-collapse border-2 border-black text-[11pt] mb-8">
+      <table className="w-full border-collapse border-2 border-black mb-8">
         <thead>
-          <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[18%]">PERIOD</th>
-            <th className="border border-black p-2 w-[35%]">
+          <tr className="bg-gray-100 font-black text-center uppercase border-b-2 border-black">
+            <th className="border-r border-black p-2 w-[18%]" style={{ fontSize: '12pt' }}>PERIOD</th>
+            <th className="border-r border-black p-2 w-[35%]" style={{ fontSize: '12pt' }}>
                 DELIVERABLES
-                <p className="font-normal normal-case italic mt-1" style={{ fontSize: '8pt' }}>
+                <p className="font-normal normal-case italic mt-1" style={{ fontSize: '9pt' }}>
                     (As approved by the Dean/Chair/Campus Director)
                 </p>
             </th>
-            <th className="border border-black p-2">
+            <th className="p-2" style={{ fontSize: '12pt' }}>
                 ACCOMPLISHMENT
-                <p className="font-normal normal-case italic mt-1" style={{ fontSize: '8pt' }}>(Attach additional proofs as needed)</p>
+                <p className="font-normal normal-case italic mt-1" style={{ fontSize: '9pt' }}>(Attach additional proofs as needed)</p>
             </th>
           </tr>
         </thead>
         <tbody>
           {displayRows.map((a, i) => (
             <tr key={i} className="h-32 border-b border-black">
-              <td className="border border-black p-2 text-center align-top font-black tabular-nums">
+              <td className="border-r border-black p-2 text-center align-top font-black tabular-nums" style={{ fontSize: '12pt' }}>
                 {a.date ? format(a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date), 'MM/dd/yy') : ''}
               </td>
-              <td className="border border-black p-2 align-top text-xs font-medium leading-tight">
+              <td className="border-r border-black p-2 align-top font-medium leading-tight" style={{ fontSize: '11pt' }}>
                 {a.deliverables || ''}
               </td>
-              <td className="border border-black p-2 align-top">
+              <td className="p-2 align-top">
                 {a.accomplishment && (
                   <div className="space-y-4">
-                    <p className="text-xs italic leading-snug">{a.accomplishment}</p>
+                    <p className="italic leading-snug" style={{ fontSize: '11pt' }}>{a.accomplishment}</p>
                     {a.evidenceLink && (
                       <div className="pt-2">
-                        <p className="text-[8pt] font-black uppercase text-slate-800 leading-none mb-1">ATTACHMENT/EVIDENCES:</p>
-                        <a href={a.evidenceLink} target="_blank" rel="noopener noreferrer" className="text-[9pt] text-blue-700 underline break-all font-bold">
+                        <p className="font-black uppercase text-slate-800 leading-none mb-1" style={{ fontSize: '9pt' }}>ATTACHMENT/EVIDENCES:</p>
+                        <a href={a.evidenceLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline break-all font-bold" style={{ fontSize: '10pt' }}>
                           {a.evidenceLink}
                         </a>
                       </div>
@@ -143,54 +143,54 @@ export function WfhReportTemplate({
         </tbody>
       </table>
 
-      <div className="mt-10 font-bold mb-12">
+      <div className="mt-10 font-bold mb-12" style={{ fontSize: '12pt' }}>
         On my honor, I certify that I rendered the above services within the duration of the National State of Emergency.
       </div>
 
       {/* Signatures Layout */}
-      <div className="flex flex-col items-center mb-20" style={{ fontSize: '12pt' }}>
+      <div className="flex flex-col items-center mb-20">
         <div className="w-80 text-center">
             <div className="font-black uppercase mb-1" style={{ fontSize: '13pt' }}>
                 {userName}
             </div>
             <div className="border-t-2 border-black mt-1 pt-1">
-              <p className="uppercase font-black text-slate-900" style={{ fontSize: '9pt' }}>EMPLOYEE'S</p>
-              <p className="uppercase font-black text-slate-900" style={{ fontSize: '9pt' }}>SIGNATURE OVER</p>
-              <p className="uppercase font-black text-slate-900" style={{ fontSize: '9pt' }}>PRINTED NAME</p>
+              <p className="uppercase font-black text-slate-900" style={{ fontSize: '10pt' }}>EMPLOYEE'S</p>
+              <p className="uppercase font-black text-slate-900" style={{ fontSize: '10pt' }}>SIGNATURE OVER</p>
+              <p className="uppercase font-black text-slate-900" style={{ fontSize: '10pt' }}>PRINTED NAME</p>
             </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-16 uppercase mb-10" style={{ fontSize: '12pt' }}>
+      <div className="grid grid-cols-2 gap-16 uppercase mb-10">
         {isTeaching ? (
             <>
                 <div className="text-left">
-                    <p className="mb-10 font-black text-sm">VALIDATED:</p>
-                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase">
+                    <p className="mb-10 font-black text-sm" style={{ fontSize: '11pt' }}>VALIDATED:</p>
+                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase" style={{ fontSize: '12pt' }}>
                         {deptChair || ''}
                     </div>
                     <div className="border-t-2 border-black pt-1">
-                      <p className="text-[10pt] text-center font-black">DEPARTMENT CHAIR</p>
+                      <p className="text-center font-black" style={{ fontSize: '10pt' }}>DEPARTMENT CHAIR</p>
                     </div>
                 </div>
                 <div className="text-left">
-                    <p className="mb-10 font-black text-sm">APPROVED:</p>
-                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase">
+                    <p className="mb-10 font-black text-sm" style={{ fontSize: '11pt' }}>APPROVED:</p>
+                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase" style={{ fontSize: '12pt' }}>
                         {deanDirector || ''}
                     </div>
                     <div className="border-t-2 border-black pt-1">
-                      <p className="text-[10pt] text-center font-black">DEAN/DIRECTOR</p>
+                      <p className="text-center font-black" style={{ fontSize: '10pt' }}>DEAN/DIRECTOR</p>
                     </div>
                 </div>
             </>
         ) : (
             <div className="col-span-2 flex flex-col items-center text-center">
-                <p className="mb-10 w-full text-center font-black text-sm">VALIDATED AND APPROVED:</p>
-                <div className="font-black text-center mb-1 w-80 min-h-[1.5rem] uppercase">
+                <p className="mb-10 w-full text-center font-black text-sm" style={{ fontSize: '11pt' }}>VALIDATED AND APPROVED:</p>
+                <div className="font-black text-center mb-1 w-80 min-h-[1.5rem] uppercase" style={{ fontSize: '12pt' }}>
                     {immediateHead || ''}
                 </div>
                 <div className="border-t-2 border-black pt-1 w-80">
-                  <p className="font-black text-[10pt]">IMMEDIATE HEAD</p>
+                  <p className="font-black" style={{ fontSize: '10pt' }}>IMMEDIATE HEAD</p>
                 </div>
             </div>
         )}
