@@ -70,13 +70,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { Label } from '../ui/label';
 import { getOfficialServerTime } from '@/lib/actions';
 import { Checkbox } from '../ui/checkbox';
-import { Avatar, AvatarFallback } from '../ui/avatar';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -703,10 +703,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
-                {liveCar && <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white border-none">{liveCar.status}</Badge>}
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
+                    <div className="flex items-center gap-3">
+                        <DialogTitle className="text-xl">
+                            {editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)
+                        </DialogTitle>
+                        {liveCar && <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white border-none">{liveCar.status}</Badge>}
+                    </div>
+                </div>
+                {!isAdmin && <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8"><X className="h-4 w-4" /></Button>}
             </div>
-            <DialogTitle>{editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
           </DialogHeader>
           
           <div className="flex-1 flex overflow-hidden bg-white">
@@ -1007,20 +1014,20 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </div>
                                 <div className="space-y-3">
                                     <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 1: Context Definition (Admin)</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Select the **Source** (e.g., Audit) and provide a clear **Statement of Non-Conformance**. Specify the **Time Limit for Reply** to set the unit deadline.</p>
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Phase 1: Issuance (Admin)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Define the **Source** and a clear **Statement of Non-Conformance**. Specify the **Time Limit for Reply** to establish unit-level accountability.</p>
                                     </div>
                                     <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 2: Investigation (Unit)</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis**. This should explain *why* the failure happened, not just *what* happened.</p>
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Phase 2: Investigation (Unit)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis (RCA)**. Identify why the systemic failure occurred to prevent recurrence.</p>
                                     </div>
                                     <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 3: Action Planning (Unit)</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Add **Correction** steps for immediate fixes and **Corrective Actions** for long-term prevention. Attach **Google Drive links** as evidence for each step.</p>
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Phase 3: Action Execution (Unit)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Log **Immediate Corrections** (containment) and **Corrective Actions** (long-term). Attach **Google Drive links** as objective evidence.</p>
                                     </div>
                                     <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 4: Verification (Auditor)</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">QA Auditors will use Part III and IV to verify implementation. Use the **Workspace** buttons to mark specific unit actions as Verified or Effective.</p>
+                                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Phase 4: Closure (Auditor)</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Auditors verify implementation via Part III and IV. Closing the NC signifies that the corrective steps were effective.</p>
                                     </div>
                                 </div>
                             </section>
@@ -1031,10 +1038,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 border-b pb-1"><Building2 className="h-4 w-4" /> Unit Workflow Protocol</h4>
                                 <div className="space-y-5">
                                     {[
-                                        { step: '1', title: 'Investigation', desc: 'Identify the systematic reason for the failure.' },
+                                        { step: '1', title: 'Analysis', desc: 'Identify the systematic reason for the failure.' },
                                         { step: '2', title: 'Correction', desc: 'Immediate steps taken to contain the issue.' },
-                                        { step: '3', title: 'Action Plan', desc: 'Long-term measures to prevent recurrence.' },
-                                        { step: '4', title: 'Closure Request', desc: 'Notify QA for follow-up and final verification.' }
+                                        { step: '3', title: 'Prevention', desc: 'Long-term measures to prevent recurrence.' },
+                                        { step: '4', title: 'Hand-off', desc: 'Notify QA for final effectiveness verification.' }
                                     ].map((s, idx) => (
                                         <div key={idx} className="flex gap-4 items-start group">
                                             <div className="flex flex-col items-center shrink-0">
@@ -1049,15 +1056,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-                            </section>
-
-                            <Separator />
-
-                            <section className="space-y-4">
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
-                                <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2.5">
-                                    <p className="text-[10px] text-indigo-900 leading-relaxed font-bold italic text-center">"Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence logs."</p>
                                 </div>
                             </section>
                         </div>
