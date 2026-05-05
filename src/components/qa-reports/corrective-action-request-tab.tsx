@@ -470,6 +470,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             createdAt: new Date(),
         };
         updatedComments.push(feedbackComment);
+        form.setValue('adminFeedback', ''); // Clear the UI field after logging
     }
 
     if (isInstitutionalViewer) {
@@ -556,7 +557,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
-        {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : (
+        {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div> : (
             <div className="overflow-x-auto">
                 <Table>
                 <TableHeader className="bg-muted/30">
@@ -728,7 +729,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent></Select></FormItem>
                                 )} />
                                 <FormField control={form.control} name="initiator" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormDescription></FormItem>
                                 )} />
                                 <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent></Select></FormItem>
@@ -990,22 +991,35 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             <ScrollArea className="flex-1">
                                 <div className="p-6 space-y-8">
                                     <section className="space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2"><Building2 className="h-4 w-4" /> Unit Responsibilities</h4>
-                                        <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 border-b pb-1"><Building2 className="h-4 w-4" /> Unit Responsibilities</h4>
+                                        <div className="space-y-5">
                                             {[
                                                 { step: '1', title: 'Investigation', desc: 'Perform a root cause analysis to identify systematic failures.', icon: <Search className="h-4 w-4" /> },
                                                 { step: '2', title: 'Correction', desc: 'Identify immediate steps taken to fix the current issue and mitigate further impact.', icon: <CheckCircle2 className="h-4 w-4" /> },
                                                 { step: '3', title: 'Action Plan', desc: 'Define long-term corrective actions designed to prevent the recurrence of the findings.', icon: <ListChecks className="h-4 w-4" /> },
                                                 { step: '4', title: 'Submit', desc: 'Once documented, notify the Quality Assurance Office for follow-up and final verification.', icon: <Send className="h-4 w-4" /> }
                                             ].map((s, idx) => (
-                                                <div key={idx} className="flex gap-4 group"><div className="flex flex-col items-center"><div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>{idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}</div><div className="space-y-1 pb-4"><p className="text-xs font-black uppercase tracking-tight text-slate-800">{s.title}</p><p className="text-[10px] text-muted-foreground leading-relaxed italic">{s.desc}</p></div></div>
+                                                <div key={idx} className="flex gap-4 items-start group">
+                                                    <div className="flex flex-col items-center shrink-0">
+                                                        <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">
+                                                            {s.step}
+                                                        </div>
+                                                        {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                                    </div>
+                                                    <div className="space-y-1 pb-2 flex-1">
+                                                        <p className="text-xs font-black uppercase tracking-tight text-slate-800 leading-tight">{s.title}</p>
+                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">"{s.desc}"</p>
+                                                    </div>
+                                                </div>
                                             ))}
                                         </div>
                                     </section>
                                     <Separator />
                                     <section className="space-y-4">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
-                                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2"><p className="text-[10px] text-indigo-800 leading-relaxed font-medium">Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence.</p></div>
+                                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2.5">
+                                            <p className="text-[11px] text-indigo-900 leading-relaxed font-bold italic text-center">"Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence."</p>
+                                        </div>
                                     </section>
                                 </div>
                             </ScrollArea>
