@@ -123,7 +123,6 @@ export function SubmissionForm({
   const targetUnitId = useMemo(() => isAdmin ? watchAdminUnit : userProfile?.unitId, [isAdmin, watchAdminUnit, userProfile?.unitId]);
   const targetCampusId = useMemo(() => isAdmin ? watchAdminCampus : userProfile?.campusId, [isAdmin, watchAdminCampus, userProfile?.campusId]);
 
-  // Digital Risk Validation - Check if BOTH risks AND opportunities exist in DB before allowing submission
   const digitalRisksQuery = useMemoFirebase(() => {
     if (!firestore || !targetUnitId || !targetCampusId || !year || !isRorForm) return null;
     return query(
@@ -140,14 +139,8 @@ export function SubmissionForm({
   const hasOpportunities = useMemo(() => digitalRisks?.some(r => r.type === 'Opportunity'), [digitalRisks]);
   const isDigitalComplete = useMemo(() => !!(hasRisks && hasOpportunities), [hasRisks, hasOpportunities]);
 
-  /**
-   * FINAL CYCLE VALIDATION:
-   * Checks if all digital entries have been updated with a Post-Treatment analysis.
-   * This is mandatory for "Final" submission to ensure the registry reflects implementation results.
-   */
   const isPostTreatmentIncomplete = useMemo(() => {
     if (!isRorForm || cycleId !== 'final' || !digitalRisks) return false;
-    // Entries are incomplete if they don't have residual likelihood/consequence or aren't 'Closed'
     return digitalRisks.some(r => !r.postTreatment?.likelihood || !r.postTreatment?.consequence);
   }, [isRorForm, cycleId, digitalRisks]);
 
@@ -190,7 +183,7 @@ export function SubmissionForm({
 
 
   const isChecklistComplete = useMemo(() => {
-    if (isDraftValue) return true; // Checklist is not required for drafts
+    if (isDraftValue) return true; 
     if (isRorForm && !riskRating) return false;
     const currentKeys = checklistItems.map(i => i.id);
     return currentKeys.every(id => checkedState[id] === true);
@@ -333,13 +326,11 @@ export function SubmissionForm({
         return;
     }
 
-    // Secondary check for ROR digital entries (Double verification)
     if (isRorForm && !isDigitalComplete) {
         toast({ title: 'Registry Validation Block', description: 'Both individual Risks AND Opportunities must be recorded in the digital register before document submission.', variant: 'destructive' });
         return;
     }
 
-    // Final Cycle Specific: Check for Post-Treatment updates
     if (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete) {
         toast({ title: 'Final Assessment Required', description: 'All digital register entries must be updated with a post-treatment analysis before the final document can be submitted.', variant: 'destructive' });
         return;
@@ -347,7 +338,6 @@ export function SubmissionForm({
 
     setIsSubmitting(true);
     
-    // Fetch official Philippine time from server to generate control number
     const officialTime = await getOfficialServerTime();
     const phDate = new Date(officialTime.iso);
 
@@ -363,7 +353,6 @@ export function SubmissionForm({
 
     try {
         if (existingSubmission) {
-            // ISO Compliance: Any update to an existing record increments the revision
             const newRevision = (existingSubmission.revision || 0) + 1;
             const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, phDate);
 
@@ -372,7 +361,7 @@ export function SubmissionForm({
               googleDriveLink: values.googleDriveLink,
               isDraft: values.isDraft,
               statusId: 'submitted',
-              submissionDate: serverTimestamp(), // Atomic server time
+              submissionDate: serverTimestamp(), 
               unitName: unit.name,
               userId: user.uid,
               revision: newRevision,
@@ -415,7 +404,7 @@ export function SubmissionForm({
                 unitId: targetUnitId,
                 unitName: unit.name,
                 statusId: 'submitted',
-                submissionDate: serverTimestamp(), // Atomic server time
+                submissionDate: serverTimestamp(), 
                 comments: newComment ? [newComment] : [],
                 revision: initialRevision,
                 controlNumber: initialControlNumber,
@@ -437,7 +426,6 @@ export function SubmissionForm({
             submissionSuccess = true;
         }
         
-        // Track the link for the redirect dialog
         setLastSubmittedLink(values.googleDriveLink);
 
     } catch (error) {
@@ -476,7 +464,6 @@ export function SubmissionForm({
 
   const previewControlData = useMemo(() => {
     const rev = existingSubmission ? (existingSubmission.revision || 0) + 1 : 0;
-    // Use stable current date once hydrated to avoid hydration mismatch
     const controlNum = generateControlNumber(currentUnitName, rev, reportType, currentDate || new Date());
     return { rev, controlNum };
   }, [currentUnitName, existingSubmission, reportType, currentDate]);
@@ -799,16 +786,19 @@ export function SubmissionForm({
     <AlertDialog open={isRiskDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Mandatory Step: Log Your Risk</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Because your unit has submitted a <strong>Medium or High-rated risk</strong>, you are now required to log this entry in the official Risk Register database to establish your action plan.
-                    <br /><br />
-                    This is a mandatory step for compliance. You will be redirected to the registry now.
+                <AlertDialogTitle>Mandatory Step: Digital Registry Update</AlertDialogTitle>
+                <AlertDialogDescription className="space-y-4 pt-2">
+                    <p className="text-sm font-medium leading-relaxed">
+                        Because your unit has identified <strong>Medium or High-rated factors</strong> for the Academic Year <strong>{year}</strong>, you must now ensure all individual entries are accurately encoded in the official digital register.
+                    </p>
+                    <p className="text-xs text-muted-foreground italic">
+                        "The digital database must maintain a 1:1 parity with your submitted PDF document to satisfy ISO 21001:2018 traceability requirements."
+                    </p>
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogAction onClick={() => router.push(`/risk-register?openForm=true&mandatory=true&year=${year}&link=${encodeURIComponent(lastSubmittedLink)}&unitId=${targetUnitId}&campusId=${targetCampusId}`)}>
-                    Continue to Risk Register
+                    Continue to AY {year} Digital Register
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

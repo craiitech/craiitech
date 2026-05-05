@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -70,7 +69,7 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 2076 - (currentYear - 10) + 1 }, (_, i) => String(currentYear - 10 + i));
+const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const getRating = (magnitude: number): string => {
@@ -107,9 +106,6 @@ const formSchema = z.object({
   adminUnitId: z.string().optional(),
 });
 
-/**
- * Institutional Assessment Criteria based on official reference table.
- */
 const ASSESSMENT_CRITERIA = {
   likelihood: {
     Risk: [
@@ -224,7 +220,7 @@ export function RiskFormDialog({
       });
     } else {
       form.reset({
-        year: defaultYear || currentYear,
+        year: watchYear || defaultYear || currentYear,
         objective: form.getValues('objective') || '', 
         type: 'Risk',
         description: '',
@@ -246,10 +242,6 @@ export function RiskFormDialog({
     }
   }, [initialRisk, isOpen]);
 
-  /**
-   * REINFORCED SIDEBAR QUERY
-   * Strictly filters by Campus, Unit, and Year to maintain institutional context integrity.
-   */
   const unitRisksQuery = useMemoFirebase(() => {
     const targetUnitId = isAdmin ? selectedAdminUnitId : userProfile?.unitId;
     const targetCampusId = isAdmin ? selectedAdminCampusId : userProfile?.campusId;
@@ -432,23 +424,37 @@ export function RiskFormDialog({
                                 </h3>
                                 <Card>
                                   <CardContent className="space-y-4 pt-6">
-                                    <FormField control={form.control} name="type" render={({ field }) => (
-                                        <FormItem className="space-y-3">
-                                          <FormLabel className="font-bold">Entry Type</FormLabel>
-                                          <FormControl>
-                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
-                                              <div className="flex items-center space-x-2 space-y-0">
-                                                <RadioGroupItem value="Risk" id="type-risk" />
-                                                <Label htmlFor="type-risk" className="font-normal cursor-pointer">Risk</Label>
-                                              </div>
-                                              <div className="flex items-center space-x-2 space-y-0">
-                                                <RadioGroupItem value="Opportunity" id="type-opportunity" />
-                                                <Label htmlFor="type-opportunity" className="font-normal cursor-pointer">Opportunity</Label>
-                                              </div>
-                                            </RadioGroup>
-                                          </FormControl>
-                                        </FormItem>
-                                    )} />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <FormField control={form.control} name="year" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="font-bold">Monitoring Year</FormLabel>
+                                                <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                    <FormControl><SelectTrigger className="h-10 bg-slate-50 font-bold"><SelectValue placeholder="Select Year" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormDescription className="text-[10px]">Ensure you are logging for the correct AY context.</FormDescription>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="type" render={({ field }) => (
+                                            <FormItem className="space-y-3">
+                                              <FormLabel className="font-bold">Entry Type</FormLabel>
+                                              <FormControl>
+                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4 pt-2">
+                                                  <div className="flex items-center space-x-2 space-y-0">
+                                                    <RadioGroupItem value="Risk" id="type-risk" />
+                                                    <Label htmlFor="type-risk" className="font-normal cursor-pointer">Risk</Label>
+                                                  </div>
+                                                  <div className="flex items-center space-x-2 space-y-0">
+                                                    <RadioGroupItem value="Opportunity" id="type-opportunity" />
+                                                    <Label htmlFor="type-opportunity" className="font-normal cursor-pointer">Opportunity</Label>
+                                                  </div>
+                                                </RadioGroup>
+                                              </FormControl>
+                                            </FormItem>
+                                        )} />
+                                    </div>
                                     {isAdmin && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                                             <FormField control={form.control} name="adminCampusId" render={({ field }) => (
@@ -751,7 +757,6 @@ export function RiskFormDialog({
                                                 </Badge>
                                             </div>
 
-                                            {/* Closure / Carry-over Guidance */}
                                             <div className="mt-4 animate-in zoom-in duration-500">
                                                 {ptRating === 'Low' ? (
                                                     <Alert className="bg-emerald-50 border-emerald-200">
@@ -886,7 +891,7 @@ export function RiskFormDialog({
                                 {previewUrl && (
                                     <iframe 
                                         src={previewUrl} 
-                                        className="absolute inset-0 w-full h-full border-none"
+                                        className="absolute inset-0 w-full h-full border-none bg-white"
                                         allow="autoplay"
                                         title="Risk Registry Document Source"
                                     />
@@ -945,4 +950,3 @@ export function RiskFormDialog({
     </Dialog>
   );
 }
-
