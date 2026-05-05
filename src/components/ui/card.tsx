@@ -26,7 +26,7 @@ const Card = React.forwardRef<
       {...props}
     >
       {isSimple && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           {/* Primary Institutional Blob */}
           <div className="absolute -top-[20%] -left-[10%] w-72 h-72 bg-primary/15 rounded-full blur-[80px] animate-float-blob" />
           
@@ -37,9 +37,11 @@ const Card = React.forwardRef<
           <div className="absolute top-[20%] right-[10%] w-40 h-40 bg-primary/5 rounded-full blur-[60px] animate-float-blob" style={{ animationDelay: '2s' }} />
         </div>
       )}
-      <div className="relative z-10 h-full w-full">
-        {props.children}
-      </div>
+      {/* 
+         Children are rendered directly so that flex-based parents (like PageGuidance) 
+         can correctly pass flex properties to their children (CardHeader, CardContent, etc.)
+      */}
+      {props.children}
     </div>
   )
 })
@@ -51,7 +53,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-8", className)}
+    className={cn("relative z-10 flex flex-col space-y-1.5 p-8", className)}
     {...props}
   />
 ))
@@ -88,7 +90,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-8 pt-0", className)} {...props} />
+  <div ref={ref} className={cn("relative z-10 p-8 pt-0", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 
@@ -98,7 +100,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-8 pt-0", className)}
+    className={cn("relative z-10 flex items-center p-8 pt-0", className)}
     {...props}
   />
 ))

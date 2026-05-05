@@ -56,10 +56,10 @@ export function PageGuidance({ className }: PageGuidanceProps) {
 
   return (
     <div className={cn(
-      "w-full lg:w-80 shrink-0 lg:h-full", 
+      "w-full lg:w-80 shrink-0 lg:h-full flex flex-col", 
       className
     )}>
-      <Card className="h-full border-primary/20 shadow-xl bg-white/70 backdrop-blur-md flex flex-col overflow-hidden">
+      <Card className="flex-1 border-primary/20 shadow-xl bg-white/70 backdrop-blur-md flex flex-col overflow-hidden h-full">
         <CardHeader className="bg-primary/5 border-b py-4 px-6 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary">
@@ -75,7 +75,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
         </CardHeader>
         
         {/* min-h-0 is critical for ScrollArea within a flex-1 container */}
-        <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
+        <CardContent className="flex-1 min-h-0 p-0 overflow-hidden flex flex-col">
           <ScrollArea className="h-full w-full">
             <div className="p-6 space-y-8 pb-12">
                 
@@ -112,7 +112,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
                                     </div>
                                     <div className="space-y-1 pb-1 flex-1">
                                         <p className="text-[11px] font-black uppercase text-slate-800 tracking-tight leading-tight">{step.title}</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{step.desc}"</p>
+                                        <p className="text-[10px] text-muted-foreground font-medium leading-relaxed italic">"{step.desc}"</p>
                                     </div>
                                 </div>
                             ))}
