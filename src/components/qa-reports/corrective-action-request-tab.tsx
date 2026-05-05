@@ -454,6 +454,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     let nextStatus = values.status;
     let needsVerification = editingCar?.needsVerification || false;
 
+    const updatedComments = editingCar?.comments ? [...editingCar.comments] : [];
+    if (isAdmin && values.adminFeedback?.trim()) {
+        const feedbackComment: Comment = {
+            text: `[ADMIN FEEDBACK]: ${values.adminFeedback.trim()}`,
+            authorId: userProfile.id,
+            authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+            authorRole: userRole || 'Admin',
+            createdAt: new Date(),
+        };
+        updatedComments.push(feedbackComment);
+    }
+
     // Logic Refinement for Status Transitions
     if (isAdmin) {
         const hasVerificationData = (values.followUpLogs?.length || 0) > 0 || (values.effectivenessAudits?.length || 0) > 0;
@@ -478,18 +490,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     if (finalAudit && finalAudit.action === 'Close the NC') {
         nextStatus = 'Closed';
         needsVerification = false;
-    }
-
-    const updatedComments = editingCar?.comments ? [...editingCar.comments] : [];
-    if (isAdmin && values.adminFeedback?.trim()) {
-        const feedbackComment: Comment = {
-            text: `[ADMIN FEEDBACK]: ${values.adminFeedback.trim()}`,
-            authorId: userProfile.id,
-            authorName: `${userProfile.firstName} ${userProfile.lastName}`,
-            authorRole: userRole || 'Admin',
-            createdAt: new Date(),
-        };
-        updatedComments.push(feedbackComment);
     }
 
     const carData: any = {
@@ -964,11 +964,24 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <div className="p-6 space-y-4">
                                     {editingCar?.comments?.length ? (
                                         <div className="space-y-4">
-                                            {editingCar.comments.slice().sort((a,b) => (a.createdAt as any)?.toMillis?.() - (b.createdAt as any)?.toMillis?.()).map((c, i) => (
-                                                <div key={i} className="bg-white p-4 rounded-xl border border-primary/10 shadow-sm space-y-2 transition-all hover:border-primary/30">
+                                            {editingCar.comments.slice().sort((a,b) => {
+                                                const getVal = (c: any) => {
+                                                    if (c.createdAt?.toMillis) return c.createdAt.toMillis();
+                                                    if (c.createdAt instanceof Date) return c.createdAt.getTime();
+                                                    return 0;
+                                                };
+                                                return getVal(b) - getVal(a);
+                                            }).map((c, i) => (
+                                                <div key={i} className={cn(
+                                                    "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30",
+                                                    c.text.includes('[ADMIN FEEDBACK]') ? "bg-primary/5 border-primary/10" : "bg-white border-slate-100"
+                                                )}>
                                                     <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
                                                         <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
-                                                        <span className="text-[8px] font-mono text-muted-foreground">{c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : '--'}</span>
+                                                        <span className="text-[8px] font-mono text-muted-foreground">
+                                                            {c.createdAt?.toDate ? format(c.createdAt.toDate(), 'MMM dd, p') : 
+                                                             c.createdAt instanceof Date ? format(c.createdAt, 'MMM dd, p') : '--'}
+                                                        </span>
                                                     </div>
                                                     <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
                                                     <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
