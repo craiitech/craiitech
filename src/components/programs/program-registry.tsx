@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Clock, Users, Check, X, Hash } from 'lucide-react';
+import { Edit, School, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Clock, Users, Check, X, Hash, GraduationCap, Calculator } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -49,11 +48,11 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               <TableHead className="text-[10px] font-black uppercase pl-6 py-4">Program Name & Status</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">Campus</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">College / Unit</TableHead>
-              <TableHead className="text-[10px] font-black uppercase py-4">Majors / Type</TableHead>
               
               {isShowingActive && (
                 <>
-                  <TableHead className="text-[10px] font-black uppercase py-4 text-center">Board Approval</TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase py-4">Total Enrollment</TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase py-4">Graduates</TableHead>
                   <TableHead className="text-[10px] font-black uppercase py-4">Faculty Pool</TableHead>
                 </>
               )}
@@ -78,8 +77,27 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               
               const copcStatus = record?.ched?.copcStatus;
               const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
-              
-              const hasBoardApproval = !!(record?.ched?.boardApprovalLink || (record?.ched?.majorBoardApprovals && record.ched.majorBoardApprovals.length > 0 && record.ched.majorBoardApprovals.some(a => a.link)));
+
+              const enrollmentTotal = (() => {
+                  if (!record) return 0;
+                  const records = record.enrollmentRecords || [];
+                  const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+                  
+                  if (records.length > 0) {
+                      return records.reduce((acc, rec) => {
+                          const s1 = rec.firstSemester;
+                          if (!s1) return acc;
+                          const termTotal = levels.reduce((lAcc, level) => lTotal => lAcc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0), 0);
+                          return acc + termTotal;
+                      }, 0);
+                  }
+                  
+                  const s1 = record.stats?.enrollment?.firstSemester;
+                  if (!s1) return 0;
+                  return levels.reduce((acc, level) => acc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0), 0);
+              })();
+
+              const gradsTotal = record?.graduationRecords?.reduce((acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0), 0) || 0;
 
               let accLabel = '';
               let nextVisit = 'TBA';
@@ -151,32 +169,24 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       <Badge variant="outline" className="text-[8px] h-3.5 w-fit py-0 uppercase tracking-tighter opacity-60 font-mono border-muted-foreground/20">{program.collegeId}</Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4">
-                      <div className="flex flex-col gap-1.5">
-                          <div className="flex flex-wrap gap-1">
-                              {program.hasSpecializations ? (
-                                  program.specializations?.map(spec => (
-                                      <Badge key={spec.id} variant="secondary" className="text-[8px] h-3.5 bg-blue-50 text-blue-700 border-blue-100 font-bold">{spec.name}</Badge>
-                                  ))
-                              ) : (
-                                  <Badge variant="outline" className="text-[8px] h-3.5 text-muted-foreground font-medium">Standard</Badge>
-                              )}
-                          </div>
-                      </div>
-                  </TableCell>
 
                   {isShowingActive && (
                     <>
                       <TableCell className="py-4 text-center">
-                          {hasBoardApproval ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1 mx-auto">
-                                  <Check className="h-2.5 w-2.5" /> YES
-                              </Badge>
-                          ) : (
-                              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 text-[9px] font-black gap-1 mx-auto">
-                                  <X className="h-2.5 w-2.5" /> NO
-                              </Badge>
-                          )}
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-xs font-black tabular-nums">{enrollmentTotal.toLocaleString()}</span>
+                            <div className="flex items-center gap-1 text-[8px] font-black text-muted-foreground uppercase opacity-40">
+                                <Users className="h-2 w-2" /> 1ST SEM
+                            </div>
+                          </div>
+                      </TableCell>
+                      <TableCell className="py-4 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-xs font-black tabular-nums text-emerald-600">{gradsTotal.toLocaleString()}</span>
+                            <div className="flex items-center gap-1 text-[8px] font-black text-emerald-600/40 uppercase">
+                                <GraduationCap className="h-2 w-2" /> TOTAL
+                            </div>
+                          </div>
                       </TableCell>
                       <TableCell className="py-4">
                         <div className="flex items-center gap-2">

@@ -155,6 +155,9 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         };
     });
 
+    const totalEnrollment = enrollmentData.reduce((acc, curr) => acc + curr['1st Sem'], 0);
+    const totalGraduates = record.graduationRecords?.reduce((acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0), 0) || 0;
+
     let totalFaculty = 0;
     let alignedFaculty = 0;
     let othersFaculty = 0;
@@ -190,7 +193,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     const milestones = record.accreditationRecords || [];
     const latestAccreditation = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
     
-    // Aggregating all recommendations from all current milestones
     const recommendations: (AccreditationRecommendation & { milestoneLevel: string })[] = [];
     milestones.forEach(m => {
         m.recommendations?.forEach(reco => {
@@ -205,7 +207,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         accreditation: program.isNewProgram ? 20 : ((latestAccreditation?.level && latestAccreditation.level !== 'Non Accredited') ? 20 : 0),
         faculty: totalFaculty > 0 ? (alignmentRate / 100) * 20 : 0,
         curriculum: (curriculumRecords.some(c => c.isNotedByChed)) ? 20 : 10,
-        outcomes: ((record.graduationRecords?.length || 0) > 0) ? 20 : 0
+        outcomes: (totalGraduates > 0) ? 20 : 0
     };
     
     const radarData = [
@@ -235,6 +237,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
     return { 
         enrollmentData, 
+        totalEnrollment,
+        totalGraduates,
         alignmentRate, 
         totalFaculty, 
         facultyPieData,
@@ -306,7 +310,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
           </Card>
 
           <div className="lg:col-span-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Card className="border-primary/20 shadow-sm bg-primary/5">
                       <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">Next Survey Milestone</CardTitle></CardHeader>
                       <CardContent>
@@ -320,13 +324,23 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                       </CardContent>
                   </Card>
                   <Card className="border-emerald-200 shadow-sm bg-emerald-50/10">
-                      <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Faculty Alignment</CardTitle></CardHeader>
+                      <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Outcomes Registry</CardTitle></CardHeader>
                       <CardContent>
                           <div className="flex items-center gap-3">
-                              <UserCheck className="h-8 w-8 text-emerald-600 opacity-20" />
-                              <p className="text-3xl font-black text-emerald-600 tabular-nums">{analyticsData.alignmentRate}%</p>
+                              <GraduationCap className="h-8 w-8 text-emerald-600 opacity-20" />
+                              <p className="text-3xl font-black text-emerald-600 tabular-nums">{analyticsData.totalGraduates}</p>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-2 font-medium">Source: Verified Faculty Roster (CMO Check)</p>
+                          <p className="text-[10px] text-muted-foreground mt-2 font-medium">AY Total Verified Graduates</p>
+                      </CardContent>
+                  </Card>
+                  <Card className="border-blue-200 shadow-sm bg-blue-50/10">
+                      <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-700">Enrollment Baseline</CardTitle></CardHeader>
+                      <CardContent>
+                          <div className="flex items-center gap-3">
+                              <Users className="h-8 w-8 text-blue-600 opacity-20" />
+                              <p className="text-3xl font-black text-blue-600 tabular-nums">{analyticsData.totalEnrollment}</p>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-2 font-medium">Verified 1st Sem Headcount</p>
                       </CardContent>
                   </Card>
               </div>
