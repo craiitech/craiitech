@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -67,9 +68,9 @@ import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
@@ -652,7 +653,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </Card>
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div><p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Success Score</p></CardContent>
+            <CardContent className="flex-1"><div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div><p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Success Score</p></CardContent>
         </Card>
       </div>
 
@@ -1049,3 +1050,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+
