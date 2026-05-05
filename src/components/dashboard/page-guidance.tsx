@@ -2,7 +2,7 @@
 
 /**
  * @fileOverview A responsive guidance column that provides contextual help for dashboard pages.
- * Enhanced: Sticky layout and internal scroll area for one-page persistent guidance.
+ * Enhanced: Constrained flex layout to ensure internal ScrollArea works correctly on all pages.
  */
 
 import { useMemo } from 'react';
@@ -56,8 +56,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
 
   return (
     <div className={cn(
-      "w-full lg:w-80 shrink-0", 
-      "lg:sticky lg:top-0 lg:h-full", // Sticky relative to its scroll container in layout.tsx
+      "w-full lg:w-80 shrink-0 lg:h-full", 
       className
     )}>
       <Card className="h-full border-primary/20 shadow-xl bg-white/70 backdrop-blur-md flex flex-col overflow-hidden">
@@ -75,8 +74,9 @@ export function PageGuidance({ className }: PageGuidanceProps) {
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-full overscroll-contain">
+        {/* min-h-0 is critical for ScrollArea within a flex-1 container */}
+        <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
+          <ScrollArea className="h-full w-full">
             <div className="p-6 space-y-8 pb-12">
                 
                 {/* EMERGENCY ALERT SECTION */}
@@ -132,7 +132,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
                         <div className="grid grid-cols-1 gap-2">
                             {help.buttons?.map((btn, idx) => (
                                 <div key={idx} className="p-2.5 rounded-lg border bg-white shadow-sm flex items-start gap-3 group hover:border-primary/30 transition-all">
-                                    <Badge variant="secondary" className="h-5 px-1.5 text-[8px] font-black uppercase border-none bg-primary/5 text-primary shrink-0 mt-0.5">
+                                    <Badge variant="secondary" className="h-5 px-1.5 text-[7px] font-black uppercase border-none bg-primary/5 text-primary shrink-0 mt-0.5">
                                         {btn.labelShort || btn.label}
                                     </Badge>
                                     <div className="space-y-0.5 min-w-0">
