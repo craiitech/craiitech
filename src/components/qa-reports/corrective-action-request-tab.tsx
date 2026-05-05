@@ -151,6 +151,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   );
   const { data: rawCars, isLoading } = useCollection<CorrectiveActionRequest>(carQuery);
 
+  /**
+   * LIVE CAR REFERENCE
+   * Instead of relying on the snapshot taken when "Manage" was clicked, 
+   * we find the live record in the collection to ensure Discussion history is always current.
+   */
+  const liveCar = useMemo(() => {
+    if (!editingCar || !rawCars) return editingCar;
+    return rawCars.find(c => c.id === editingCar.id) || editingCar;
+  }, [editingCar, rawCars]);
+
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
     [firestore]
@@ -447,14 +457,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   };
 
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
-    if (!firestore || !userProfile) return;
+    if (!firestore || !userProfile || !liveCar) return;
     setIsSubmitting(true);
     
     const isUnitResponding = userProfile.unitId === values.unitId && !isAdmin;
     let nextStatus = values.status;
-    let needsVerification = editingCar?.needsVerification || false;
+    let needsVerification = liveCar?.needsVerification || false;
 
-    const updatedComments = editingCar?.comments ? [...editingCar.comments] : [];
+    // Use liveCar comments as base to prevent history loss
+    const updatedComments = liveCar?.comments ? [...liveCar.comments] : [];
     if (isAdmin && values.adminFeedback?.trim()) {
         const feedbackComment: Comment = {
             text: `[ADMIN FEEDBACK]: ${values.adminFeedback.trim()}`,
@@ -466,7 +477,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         updatedComments.push(feedbackComment);
     }
 
-    // Logic Refinement for Status Transitions
     if (isAdmin) {
         const hasVerificationData = (values.followUpLogs?.length || 0) > 0 || (values.effectivenessAudits?.length || 0) > 0;
         
@@ -474,7 +484,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             nextStatus = 'For Final Verification';
         }
 
-        // feedback takes precedence if the submission is still not ok
         if (values.adminFeedback?.trim()) {
             nextStatus = 'Awaiting Response/Update';
         }
@@ -485,7 +494,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         needsVerification = true;
     }
 
-    // Final check for closure from auditors
     const finalAudit = values.effectivenessAudits?.[values.effectivenessAudits.length - 1];
     if (finalAudit && finalAudit.action === 'Close the NC') {
         nextStatus = 'Closed';
@@ -691,7 +699,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
@@ -962,9 +970,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <TabsContent value="history" className="h-full m-0 flex flex-col">
                             <ScrollArea className="flex-1">
                                 <div className="p-6 space-y-4">
-                                    {editingCar?.comments?.length ? (
+                                    {liveCar?.comments?.length ? (
                                         <div className="space-y-4">
-                                            {editingCar.comments.slice().sort((a,b) => {
+                                            {liveCar.comments.slice().sort((a,b) => {
                                                 const getVal = (c: any) => {
                                                     if (c.createdAt?.toMillis) return c.createdAt.toMillis();
                                                     if (c.createdAt instanceof Date) return c.createdAt.getTime();
@@ -973,7 +981,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                 return getVal(b) - getVal(a);
                                             }).map((c, i) => (
                                                 <div key={i} className={cn(
-                                                    "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30",
+                                                    "p-4 rounded-xl border shadow-sm space-y-2 transition-all hover:border-primary/30 animate-in slide-in-from-right-2 duration-300",
                                                     c.text.includes('[ADMIN FEEDBACK]') ? "bg-primary/5 border-primary/10" : "bg-white border-slate-100"
                                                 )}>
                                                     <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
