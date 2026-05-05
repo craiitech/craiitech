@@ -149,8 +149,8 @@ export function WfhReportTemplate({
 
       {/* Signatures Layout */}
       <div className="flex flex-col items-center mb-20">
-        <div className="w-80 text-center">
-            <div className="font-black uppercase mb-1" style={{ fontSize: '13pt' }}>
+        <div className="min-w-[300px] w-fit text-center">
+            <div className="font-black uppercase mb-1 whitespace-nowrap" style={{ fontSize: '13pt' }}>
                 {userName}
             </div>
             <div className="border-t-2 border-black mt-1 pt-1">
@@ -164,18 +164,18 @@ export function WfhReportTemplate({
       <div className="grid grid-cols-2 gap-16 uppercase mb-10">
         {isTeaching ? (
             <>
-                <div className="text-left">
-                    <p className="mb-10 font-black text-sm" style={{ fontSize: '11pt' }}>VALIDATED:</p>
-                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase" style={{ fontSize: '12pt' }}>
+                <div className="text-center">
+                    <p className="mb-10 font-black text-sm text-left" style={{ fontSize: '11pt' }}>VALIDATED:</p>
+                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase whitespace-nowrap" style={{ fontSize: '12pt' }}>
                         {deptChair || ''}
                     </div>
                     <div className="border-t-2 border-black pt-1">
                       <p className="text-center font-black" style={{ fontSize: '10pt' }}>DEPARTMENT CHAIR</p>
                     </div>
                 </div>
-                <div className="text-left">
-                    <p className="mb-10 font-black text-sm" style={{ fontSize: '11pt' }}>APPROVED:</p>
-                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase" style={{ fontSize: '12pt' }}>
+                <div className="text-center">
+                    <p className="mb-10 font-black text-sm text-left" style={{ fontSize: '11pt' }}>APPROVED:</p>
+                    <div className="font-black text-center mb-1 min-h-[1.5rem] uppercase whitespace-nowrap" style={{ fontSize: '12pt' }}>
                         {deanDirector || ''}
                     </div>
                     <div className="border-t-2 border-black pt-1">
@@ -186,11 +186,13 @@ export function WfhReportTemplate({
         ) : (
             <div className="col-span-2 flex flex-col items-center text-center">
                 <p className="mb-10 w-full text-center font-black text-sm" style={{ fontSize: '11pt' }}>VALIDATED AND APPROVED:</p>
-                <div className="font-black text-center mb-1 w-80 min-h-[1.5rem] uppercase" style={{ fontSize: '12pt' }}>
-                    {immediateHead || ''}
-                </div>
-                <div className="border-t-2 border-black pt-1 w-80">
-                  <p className="font-black" style={{ fontSize: '10pt' }}>IMMEDIATE HEAD</p>
+                <div className="min-w-[300px] w-fit">
+                    <div className="font-black text-center mb-1 uppercase whitespace-nowrap" style={{ fontSize: '12pt' }}>
+                        {immediateHead || ''}
+                    </div>
+                    <div className="border-t-2 border-black pt-1">
+                      <p className="font-black" style={{ fontSize: '10pt' }}>IMMEDIATE HEAD</p>
+                    </div>
                 </div>
             </div>
         )}
