@@ -26,7 +26,7 @@ import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
@@ -70,7 +70,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <ScrollArea className="w-full">
-                  <TabsList className="flex md:inline-flex min-w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
+                  <TabsList className="inline-flex w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
                     <TabsTrigger value="users" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Users</TabsTrigger>
                     <TabsTrigger value="logo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">System Logo</TabsTrigger>
                     <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Signatories</TabsTrigger>
@@ -87,6 +87,7 @@ export default function SettingsPage() {
                     <TabsTrigger value="backups" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Data & Backups</TabsTrigger>
                     <TabsTrigger value="error-reports" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Error Reports</TabsTrigger>
                   </TabsList>
+                  <ScrollBar orientation="horizontal" />
               </ScrollArea>
           </div>
 

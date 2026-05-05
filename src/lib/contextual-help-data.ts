@@ -497,7 +497,7 @@ export const helpContent: Record<string, PageHelp> = {
     title: 'System Administration',
     description: 'Global configuration and institutional hierarchy management.',
     steps: [
-      { title: 'Select Parameter', desc: 'Use the top tabs to manage Users, Campuses, Units, or Registry Cycles.' },
+      { title: 'Select Parameter', desc: 'Use the horizontal scrolling tabs to manage Users, Campuses, Units, or Registry Cycles.' },
       { title: 'Apply Changes', desc: 'Ensure you click "Save" or "Update" after modifying system-wide parameters.' }
     ]
   },
@@ -512,6 +512,102 @@ export const helpContent: Record<string, PageHelp> = {
         { label: 'Activate', labelShort: 'Auth', action: 'Grants full portal access to the user.' }
     ]
   },
+  '/settings?tab=logo': {
+    title: 'Settings: Institutional Branding',
+    description: 'Configure the university logo used in headers and printed reports.',
+    steps: [
+      { title: 'Provide URL', desc: 'Enter a valid image URL or Google Drive direct link.' },
+      { title: 'Preview', desc: 'Verify the logo appears correctly in the live preview circle.' }
+    ]
+  },
+  '/settings?tab=signatories': {
+    title: 'Settings: Official Signatories',
+    description: 'Establish the authorized names for official university notices.',
+    steps: [
+      { title: 'Set Authority', desc: 'Input the current Director and QMS unit heads.' },
+      { title: 'Global Update', desc: 'Saving here updates signatures across all printed audit and compliance reports.' }
+    ]
+  },
+  '/settings?tab=gad': {
+    title: 'Settings: GAD Governance',
+    description: 'Designate the institutional GAD leadership unit.',
+    steps: [
+      { title: 'Assign Office', desc: 'Select the primary GAD office responsible for university-wide reporting.' },
+      { title: 'Global Oversight', desc: 'Users in this unit will be granted oversight permissions in the GAD Corner.' }
+    ]
+  },
+  '/settings?tab=campuses': {
+    title: 'Settings: Site Registry',
+    description: 'Manage the official list of university campuses.',
+    steps: [
+      { title: 'Register Site', desc: 'Add new physical campuses or extension sites to the system.' },
+      { title: 'Location Map', desc: 'Ensure geographic locations are accurate for regional reporting.' }
+    ]
+  },
+  '/settings?tab=units': {
+    title: 'Settings: Unit Registry',
+    description: 'Global management of all academic and administrative offices.',
+    steps: [
+      { title: 'Categorize', desc: 'Assign units as Academic, Admin, Research, or Support for proper grouping.' },
+      { title: 'Site Mapping', desc: 'Link units to one or more campuses where they operate.' }
+    ]
+  },
+  '/settings?tab=unit-grouping': {
+    title: 'Settings: Unit Explorer',
+    description: 'Institutional view of unit distribution across categories and sites.',
+    steps: [
+      { title: 'Audit Scoping', desc: 'Use this explorer to verify unit clusters when planning audit itineraries.' },
+      { title: 'Parity Review', desc: 'Identify how many entities are registered in each process category.' }
+    ]
+  },
+  '/settings?tab=roles': {
+    title: 'Settings: Permission Roles',
+    description: 'Manage institutional roles and access levels.',
+    steps: [
+      { title: 'Define Role', desc: 'Create or modify system roles like "Campus Director" or "Unit Coordinator".' },
+      { title: 'Access Bound', desc: 'Roles determine the visibility of modules and action buttons for users.' }
+    ]
+  },
+  '/settings?tab=advisories': {
+    title: 'Settings: QA Advisories',
+    description: 'Management of official communications and directives.',
+    steps: [
+      { title: 'Draft Advisory', desc: 'Log a new directive with a standardized control number.' },
+      { title: 'Set Scope', desc: 'Choose between University-Wide or Unit-Specific accessibility.' }
+    ]
+  },
+  '/settings?tab=procedure-manuals': {
+    title: 'Settings: Manual Registry',
+    description: 'Link official procedures to unit profiles.',
+    steps: [
+      { title: 'Update Links', desc: 'Provide the GDrive reference for a unit\'s operating procedure.' },
+      { title: 'Revision Control', desc: 'Record the latest approved revision number and implementation date.' }
+    ]
+  },
+  '/settings?tab=eoms-policy-manual': {
+    title: 'Settings: EOMS Policy Manual',
+    description: 'Manage the 10 core sections of the RSU EOMS Manual.',
+    steps: [
+      { title: 'Configure Section', desc: 'Input the metadata (Title, Revision, Pages) for each manual chapter.' },
+      { title: 'Publish', desc: 'Updating a section makes it immediately available in the EOMS Manual module.' }
+    ]
+  },
+  '/settings?tab=cycles': {
+    title: 'Settings: Cycles & Deadlines',
+    description: 'Management of official EOMS submission periods.',
+    steps: [
+      { title: 'Establish Window', desc: 'Define the Start and End dates for First and Final cycles.' },
+      { title: 'Audit Year', desc: 'Create cycles for upcoming years to enable forward planning.' }
+    ]
+  },
+  '/settings?tab=campus-settings': {
+    title: 'Settings: Campus Specifics',
+    description: 'Override parameters and announcements for specific sites.',
+    steps: [
+      { title: 'Select Campus', desc: 'Choose a target site to modify its local settings.' },
+      { title: 'Directives', desc: 'Post campus-only announcements to the home dashboards of relevant users.' }
+    ]
+  },
   '/settings?tab=backups': {
     title: 'Settings: Data & Backups',
     description: 'Institutional redundancy and audit trail maintenance.',
@@ -521,6 +617,14 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [
         { label: 'Download Total', labelShort: 'Export', action: 'Generates the high-density Excel backup workbook.' }
+    ]
+  },
+  '/settings?tab=error-reports': {
+    title: 'Settings: Error Diagnostics',
+    description: 'Monitoring system stability and user-reported issues.',
+    steps: [
+      { title: 'Review Logs', desc: 'Inspect stack traces and URLs for reported runtime errors.' },
+      { title: 'Triage', desc: 'Update status to "Acknowledged" or "Resolved" during debugging.' }
     ]
   }
 };
