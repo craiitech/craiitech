@@ -459,7 +459,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     let nextStatus = values.status;
     let needsVerification = liveCar?.needsVerification || false;
 
-    // Use liveCar comments as base to prevent history loss
     const updatedComments = liveCar?.comments ? [...liveCar.comments] : [];
     if (isInstitutionalViewer && values.adminFeedback?.trim()) {
         const feedbackComment: Comment = {
@@ -470,7 +469,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             createdAt: new Date(),
         };
         updatedComments.push(feedbackComment);
-        form.setValue('adminFeedback', ''); // Clear the UI field after logging
+        form.setValue('adminFeedback', ''); 
     }
 
     if (isInstitutionalViewer) {
@@ -729,7 +728,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent></Select></FormItem>
                                 )} />
                                 <FormField control={form.control} name="initiator" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormDescription></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent></Select></FormItem>
