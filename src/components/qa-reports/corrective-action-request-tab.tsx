@@ -55,7 +55,8 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     MessageSquare,
-    ClipboardList
+    ClipboardList,
+    HelpCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -616,8 +617,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <ListChecks className="h-10 w-10" />
                                 <p className="text-xs font-bold uppercase tracking-widest">No results found</p>
                             </div>
-                        </TableCell>
-                    </TableRow>
+                        </TableRow>
                     )}
                 </TableBody>
                 </Table>
@@ -737,11 +737,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent></Select></FormItem>
                                 )} />
                                 <FormField control={form.control} name="initiator" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel>
-                                        <FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent></Select></FormItem>
@@ -812,7 +808,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         <FormField control={form.control} name="adminFeedback" render={({ field }) => (
                                             <FormItem>
                                                 <FormControl><Textarea {...field} rows={3} placeholder="Provide guidance or requests for further detail to the unit coordinator..." className="bg-white border-primary/10 italic text-xs leading-relaxed" /></FormControl>
-                                                <FormDescription className="text-[9px]">This feedback will be archived in the Discussion tab upon saving.</FormDescription>
+                                                <FormDescription className="text-[9px]">This feedback will be archived in the Discussion Log tab upon saving.</FormDescription>
                                             </FormItem>
                                         )} />
                                     </section>
@@ -948,13 +944,80 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
 
             <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
-                <Tabs defaultValue="history" className="flex-1 flex flex-col min-h-0">
+                <Tabs defaultValue="guide" className="flex-1 flex flex-col min-h-0">
                     <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
+                        <TabsTrigger value="guide" className="text-[10px] font-black uppercase tracking-widest gap-2"><Info className="h-4 w-4" /> Operational Guide</TabsTrigger>
                         <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2"><HistoryIcon className="h-4 w-4" /> Discussion Log</TabsTrigger>
-                        <TabsTrigger value="guidance" className="text-[10px] font-black uppercase tracking-widest gap-2"><Info className="h-4 w-4" /> Protocol</TabsTrigger>
                     </TabsList>
                     
                     <div className="flex-1 overflow-hidden">
+                        <TabsContent value="guide" className="h-full m-0 flex flex-col">
+                            <ScrollArea className="flex-1">
+                                <div className="p-6 space-y-8 pb-12">
+                                    <section className="space-y-4">
+                                        <div className="flex items-center gap-2 border-b pb-1 text-primary">
+                                            <HelpCircle className="h-4 w-4" />
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest">How to Use the CAR Form</h4>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 1: Context Definition (Admin)</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed">Select the **Source** (e.g., Audit) and provide a clear **Statement of Non-Conformance**. Specify the **Time Limit for Reply** to set the unit deadline.</p>
+                                            </div>
+                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 2: Investigation (Unit)</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis**. This should explain *why* the failure happened, not just *what* happened.</p>
+                                            </div>
+                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 3: Action Planning (Unit)</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed">Add **Correction** steps for immediate fixes and **Corrective Actions** for long-term prevention. Attach **Google Drive links** as evidence for each step.</p>
+                                            </div>
+                                            <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Step 4: Verification (Auditor)</p>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed">QA Auditors will use Part III and IV to verify implementation. Use the **Workspace** buttons to mark specific unit actions as Verified or Effective.</p>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <Separator />
+
+                                    <section className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 border-b pb-1"><Building2 className="h-4 w-4" /> Unit Workflow Protocol</h4>
+                                        <div className="space-y-5">
+                                            {[
+                                                { step: '1', title: 'Investigation', desc: 'Identify the systematic reason for the failure.' },
+                                                { step: '2', title: 'Correction', desc: 'Immediate steps taken to contain the issue.' },
+                                                { step: '3', title: 'Action Plan', desc: 'Long-term measures to prevent recurrence.' },
+                                                { step: '4', title: 'Closure Request', desc: 'Notify QA for follow-up and final verification.' }
+                                            ].map((s, idx) => (
+                                                <div key={idx} className="flex gap-4 items-start group">
+                                                    <div className="flex flex-col items-center shrink-0">
+                                                        <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">
+                                                            {s.step}
+                                                        </div>
+                                                        {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                                    </div>
+                                                    <div className="space-y-1 pb-2 flex-1">
+                                                        <p className="text-xs font-black uppercase tracking-tight text-slate-800 leading-tight">{s.title}</p>
+                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">"{s.desc}"</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <Separator />
+
+                                    <section className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
+                                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2.5">
+                                            <p className="text-[10px] text-indigo-900 leading-relaxed font-bold italic text-center">"Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence logs."</p>
+                                        </div>
+                                    </section>
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+
                         <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
                             <ScrollArea className="flex-1">
                                 <div className="p-6 space-y-4">
@@ -998,44 +1061,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </div>
                             </ScrollArea>
                         </TabsContent>
-
-                        <TabsContent value="guidance" className="h-full m-0 flex flex-col">
-                            <ScrollArea className="flex-1">
-                                <div className="p-6 space-y-8">
-                                    <section className="space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 border-b pb-1"><Building2 className="h-4 w-4" /> Unit Responsibilities</h4>
-                                        <div className="space-y-5">
-                                            {[
-                                                { step: '1', title: 'Investigation', desc: 'Perform a root cause analysis to identify systematic failures.', icon: <Search className="h-4 w-4" /> },
-                                                { step: '2', title: 'Correction', desc: 'Identify immediate steps taken to fix the current issue and mitigate further impact.', icon: <CheckCircle2 className="h-4 w-4" /> },
-                                                { step: '3', title: 'Action Plan', desc: 'Define long-term corrective actions designed to prevent the recurrence of the findings.', icon: <ListChecks className="h-4 w-4" /> },
-                                                { step: '4', title: 'Submit', desc: 'Once documented, notify the Quality Assurance Office for follow-up and final verification.', icon: <Send className="h-4 w-4" /> }
-                                            ].map((s, idx) => (
-                                                <div key={idx} className="flex gap-4 items-start group">
-                                                    <div className="flex flex-col items-center shrink-0">
-                                                        <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-colors">
-                                                            {s.step}
-                                                        </div>
-                                                        {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
-                                                    </div>
-                                                    <div className="space-y-1 pb-2 flex-1">
-                                                        <p className="text-xs font-black uppercase tracking-tight text-slate-800 leading-tight">{s.title}</p>
-                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">"{s.desc}"</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
-                                    <Separator />
-                                    <section className="space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 flex items-center gap-2"><Gavel className="h-4 w-4" /> Institutional Oversight</h4>
-                                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2.5">
-                                            <p className="text-[11px] text-indigo-900 leading-relaxed font-bold italic text-center">"Part III & IV are reserved for QA Office. Auditors will verify implementation effectiveness based on your digital evidence."</p>
-                                        </div>
-                                    </section>
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
                     </div>
                 </Tabs>
             </div>
@@ -1050,4 +1075,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
