@@ -135,7 +135,7 @@ export default function NewSubmissionPage() {
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const digitalRisksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || !selectedYear) return null;
@@ -302,8 +302,10 @@ export default function NewSubmissionPage() {
     }
   };
   
-  const getStatusText = (status: string) => {
-    return status === 'submitted' ? 'Awaiting Approval' : status;
+  const getStatusText = (sub: Submission) => {
+    if (sub.statusId === 'submitted') return 'Awaiting Approval';
+    if (sub.statusId === 'approved' && sub.isDraft) return 'Draft Cleared';
+    return sub.statusId;
   }
 
   const isCycleSelected = selectedYear !== null && selectedCycle !== null;
@@ -431,7 +433,7 @@ export default function NewSubmissionPage() {
                                                     <Badge variant="secondary" className="text-[9px]">N/A</Badge>
                                                 ) : submission && (
                                                     <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
-                                                        {getStatusText(submission.statusId)}
+                                                        {getStatusText(submission)}
                                                     </Badge>
                                                 )}
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />

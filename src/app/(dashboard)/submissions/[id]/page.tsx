@@ -44,7 +44,8 @@ import {
     ThumbsUp,
     ThumbsDown,
     RefreshCcw,
-    Edit
+    Edit,
+    ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -354,7 +355,7 @@ export default function SubmissionDetailPage() {
         });
   }
   
-  const handleResubmit = async () => {
+  const handleResubmit = async (targetIsDraft?: boolean) => {
     if (!submissionDocRef || !submission || !newLink || !user || !userProfile) {
         toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
         return;
@@ -374,6 +375,9 @@ export default function SubmissionDetailPage() {
         const phDate = new Date(officialTime.iso);
         const nextRevision = (submission.revision || 0) + 1;
         const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, phDate);
+        
+        const finalDraftStatus = targetIsDraft !== undefined ? targetIsDraft : submission.isDraft;
+
          const updateData: any = {
             googleDriveLink: newLink,
             statusId: 'submitted',
@@ -381,7 +385,7 @@ export default function SubmissionDetailPage() {
             userId: user.uid,
             revision: nextRevision,
             controlNumber: nextControlNumber,
-            isDraft: submission.isDraft
+            isDraft: finalDraftStatus
         };
         if (newComment) {
             const comment: Comment = {
@@ -424,9 +428,10 @@ export default function SubmissionDetailPage() {
     }
   };
   
-  const getStatusText = (status: string) => {
-    if (!status) return 'UNKNOWN';
-    return status === 'submitted' ? 'AWAITING APPROVAL' : status.toUpperCase();
+  const getStatusText = (sub: Submission) => {
+    if (sub.statusId === 'submitted') return 'AWAITING APPROVAL';
+    if (sub.statusId === 'approved' && sub.isDraft) return 'DRAFT CLEARED';
+    return sub.statusId?.toUpperCase() || 'UNKNOWN';
   }
 
   const handleRotate = () => { setRotation(prev => (prev + 90) % 360); };
@@ -489,7 +494,7 @@ export default function SubmissionDetailPage() {
                 <div className="space-y-1">
                     <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Status</p>
                     <div className="flex items-center gap-2">
-                        <p className={cn("text-xs font-black uppercase tracking-tight", submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive")}>{getStatusText(submission.statusId)}</p>
+                        <p className={cn("text-xs font-black uppercase tracking-tight", submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive")}>{getStatusText(submission)}</p>
                         {submission.isDraft && <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">DRAFT</Badge>}
                     </div>
                 </div>
@@ -566,7 +571,7 @@ export default function SubmissionDetailPage() {
                                                       <div className="flex items-center gap-2 mb-1">
                                                           {risk.type === 'Risk' ? <Shield className="h-3.5 w-3.5 text-rose-600" /> : <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />}
                                                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type} ({risk.year})</span>
-                                                          <Badge className={cn("text-[8px] font-black h-4 py-0 px-1.5 border-none", risk.type === 'Risk' ? (risk.preTreatment.rating === 'High' ? "bg-rose-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-500" : "bg-emerald-600") : (risk.preTreatment.rating === 'High' ? "bg-emerald-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-500" : "bg-rose-600"))}>{risk.preTreatment.rating} ({risk.preTreatment.magnitude})</Badge>
+                                                          <Badge className={cn("text-[8px] font-black h-4 py-0 px-1.5 border-none", risk.type === 'Risk' ? (risk.preTreatment.rating === 'High' ? "bg-rose-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-emerald-600") : (risk.preTreatment.rating === 'High' ? "bg-emerald-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-rose-600"))}>{risk.preTreatment.rating} ({risk.preTreatment.magnitude})</Badge>
                                                       </div>
                                                       <p className="text-xs font-bold text-slate-800 leading-tight truncate">{risk.description}</p>
                                                       
@@ -679,6 +684,42 @@ export default function SubmissionDetailPage() {
             </>
           )}
 
+          {isSubmitter && submission.statusId === 'approved' && submission.isDraft && (
+            <Card className="border-emerald-200 bg-emerald-50/10 shadow-xl animate-in zoom-in duration-500">
+                <CardHeader className="bg-emerald-100/50 border-b">
+                    <CardTitle className="flex items-center gap-2 text-emerald-800">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                        Step 2: Submit Final Official Document
+                    </CardTitle>
+                    <CardDescription className="text-emerald-700/80 font-medium">
+                        Your draft has been <strong>Cleared for Finalization</strong>. Please provide the link to the signed and scanned PDF official document.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="final-link" className="text-[10px] font-black uppercase text-emerald-700">Official GDrive Link (Signed PDF)</Label>
+                        <Input id="final-link" placeholder="https://drive.google.com/..." value={newLink} onChange={(e) => setNewLink(e.target.value)} disabled={isSubmitting} className="focus:ring-emerald-500 border-emerald-200 h-11 font-bold shadow-sm" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="final-comment" className="text-[10px] font-black uppercase text-emerald-700">Optional Notes</Label>
+                        <Textarea id="final-comment" placeholder="Any final notes for the archive..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isSubmitting} className="bg-white" />
+                    </div>
+                    <div className="p-4 rounded-xl border border-dashed border-emerald-200 bg-white flex items-start gap-3">
+                        <Info className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-emerald-800 leading-relaxed italic">
+                            By submitting as <strong>Final</strong>, the revision will increment to Rev {String((submission.revision || 0) + 1).padStart(2, '0')} and require a full compliance checklist verification by the Quality Assurance Office.
+                        </p>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2 border-t border-emerald-100 pt-4 pb-6 px-8 bg-white/50">
+                    <Button onClick={() => handleResubmit(false)} disabled={isSubmitting || !newLink.startsWith('https://drive.google.com/')} className="min-w-[240px] bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 font-black uppercase text-[10px] tracking-widest h-11">
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
+                        Submit Official Final Filing
+                    </Button>
+                </CardFooter>
+            </Card>
+          )}
+
           {isSubmitter && submission.statusId === 'rejected' && (
              <Card className="border-destructive/50 shadow-lg">
                 <CardHeader className="bg-destructive/5 border-b"><CardTitle className="flex items-center gap-2"><History className="text-destructive" />Resubmit {submission.isDraft ? 'Draft' : 'Report'}</CardTitle><CardDescription>Resubmission automatically increments to <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription></CardHeader>
@@ -705,7 +746,7 @@ export default function SubmissionDetailPage() {
                     </div>
                  </CardContent>
                 <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                    <Button onClick={handleResubmit} disabled={isSubmitting || !newLink || (isRiskRegistry && !hasDigitalRisks)} className="min-w-[200px]">
+                    <Button onClick={() => handleResubmit()} disabled={isSubmitting || !newLink} className="min-w-[200px]">
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
                         Submit Corrected Revision
                     </Button>

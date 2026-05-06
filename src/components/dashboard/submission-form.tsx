@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
@@ -313,6 +313,10 @@ export function SubmissionForm({
     return false;
   }, [existingSubmission, user, userRole, isAdmin]);
 
+  const isApprovedDraft = useMemo(() => {
+      return !!(existingSubmission?.statusId === 'approved' && existingSubmission?.isDraft);
+  }, [existingSubmission]);
+
   const onSubmit = async (values: z.infer<typeof submissionSchema>) => {
     if (!user || !firestore || !userProfile || !units || !campuses) {
       toast({ title: 'Error', description: 'Data is still loading.', variant: 'destructive' });
@@ -483,6 +487,22 @@ export function SubmissionForm({
             </Alert>
         )}
 
+        {isApprovedDraft && (
+            <Alert className="bg-emerald-50 border-emerald-200 animate-in slide-in-from-top-2 duration-500 shadow-md">
+                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                <AlertTitle className="font-black uppercase tracking-tight text-emerald-800">Draft Content Cleared!</AlertTitle>
+                <AlertDescription className="space-y-4 pt-1">
+                    <p className="text-xs font-bold leading-relaxed text-emerald-700">
+                        Your preliminary draft for this report has been approved. You are now required to submit the **FINAL OFFICIAL DOCUMENT** (Signed PDF) to complete the compliance cycle.
+                    </p>
+                    <div className="p-3 bg-white/80 rounded-lg border border-emerald-100 flex items-center gap-3">
+                        <ArrowRight className="h-4 w-4 text-emerald-600 animate-pulse" />
+                        <span className="text-[11px] font-black uppercase text-emerald-800">Instructions: Select "Final (Official Filing)" below.</span>
+                    </div>
+                </AlertDescription>
+            </Alert>
+        )}
+
         <Alert className="bg-primary/5 border-primary/20">
             <Info className="h-4 w-4 text-primary" />
             <AlertTitle className="text-xs font-black uppercase tracking-tight text-primary">Draft System Workflow</AlertTitle>
@@ -576,14 +596,14 @@ export function SubmissionForm({
                                 className="flex flex-col sm:flex-row gap-4"
                                 disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
                             >
-                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
+                                <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
                                     <RadioGroupItem value="true" id="is-draft" />
                                     <Label htmlFor="is-draft" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><LayoutList className="h-4 w-4 text-blue-600" /> Draft (Content Check)</p>
                                         <p className="text-[10px] text-muted-foreground">For preliminary review. Mandatory updates are bypassed.</p>
                                     </Label>
                                 </div>
-                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm")}>
+                                <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm")}>
                                     <RadioGroupItem value="false" id="is-final" />
                                     <Label htmlFor="is-final" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final (Official Filing)</p>

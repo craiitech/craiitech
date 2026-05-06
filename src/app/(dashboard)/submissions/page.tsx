@@ -293,6 +293,12 @@ export default function SubmissionsPage() {
     }
   }
 
+  const getStatusText = (sub: Submission) => {
+    if (sub.statusId === 'submitted') return 'AWAITING APPROVAL';
+    if (sub.statusId === 'approved' && sub.isDraft) return 'DRAFT CLEARED';
+    return sub.statusId?.toUpperCase() || 'UNKNOWN';
+  };
+
   const reportSelectedYear = yearFilter === 'all' ? new Date().getFullYear().toString() : yearFilter;
   const canSubmit = !isAuditor && (!isSupervisor || userRole === 'Unit ODIMO');
 
@@ -579,7 +585,7 @@ export default function SubmissionsPage() {
                                                                         sub.statusId === 'pending' && "bg-slate-50 text-white"
                                                                     )}
                                                                 >
-                                                                    {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
+                                                                    {getStatusText(sub)}
                                                                 </Badge>
                                                             </TableCell>
                                                             <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
