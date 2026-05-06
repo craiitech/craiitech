@@ -87,7 +87,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       return records.reduce((acc, rec) => {
                           const s1 = rec.firstSemester;
                           if (!s1) return acc;
-                          const termTotal = levels.reduce((lAcc, level) => lTotal => lAcc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0), 0);
+                          const termTotal = levels.reduce((lAcc, level) => lAcc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0), 0);
                           return acc + termTotal;
                       }, 0);
                   }
