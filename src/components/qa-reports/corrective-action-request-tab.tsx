@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -68,7 +69,7 @@ import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -637,7 +638,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </Card>
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In-Progress</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div><p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p></CardContent>
+            <CardContent className="flex-1"><div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div><p className="text-[9px) font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p></CardContent>
         </Card>
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Verification Pending</CardTitle></CardHeader>
@@ -667,7 +668,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <SelectValue placeholder="All Sites" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Sites</SelectItem>
                         {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
@@ -685,13 +685,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       </div>
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
-        <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
-            <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>
-            {isInstitutionalViewer && (
-                <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue {carStats.needsVerification > 0 && <Badge className="ml-2 bg-white text-blue-600 border-none h-4 px-1 text-[8px] font-black">{carStats.needsVerification}</Badge>}</TabsTrigger>
-            )}
-            {!isAdmin && <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>}
-        </TabsList>
+        <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+                <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>
+                {isInstitutionalViewer && (
+                    <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue {carStats.needsVerification > 0 && <Badge className="ml-2 bg-white text-blue-600 border-none h-4 px-1 text-[8px] font-black">{carStats.needsVerification}</Badge>}</TabsTrigger>
+                )}
+                {!isAdmin && <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>}
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
             {renderRegistryTable(processedCars)}

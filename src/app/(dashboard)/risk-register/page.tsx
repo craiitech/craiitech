@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -48,7 +49,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Dialog, 
     DialogContent, 
@@ -221,7 +222,13 @@ export default function RiskRegisterPage() {
                 <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto"><Button variant="outline" size="sm" onClick={handlePrintROR} disabled={isLoading || filteredRisks.length === 0} className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"><Printer className="mr-2 h-4 w-4" />Print Registry</Button>{!isSupervisor && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}</div>
                 </div>
             </div>
-            <ScrollArea className="w-full"><TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap"><TabsTrigger value="visual-insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Visual Insights</TabsTrigger><TabsTrigger value="detailed-register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><List className="h-4 w-4" /> Detailed Register</TabsTrigger></TabsList></ScrollArea>
+            <ScrollArea className="w-full">
+                <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap min-w-max w-max">
+                    <TabsTrigger value="visual-insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Visual Insights</TabsTrigger>
+                    <TabsTrigger value="detailed-register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><List className="h-4 w-4" /> Detailed Register</TabsTrigger>
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
         </div>
 
         <Card className="border-primary/10 shadow-sm bg-muted/10">

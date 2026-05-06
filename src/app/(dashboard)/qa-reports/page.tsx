@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -12,7 +13,7 @@ import { ManagementReviewTab } from '@/components/qa-reports/management-review-t
 import { CorrectiveActionRequestTab } from '@/components/qa-reports/corrective-action-request-tab';
 import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
 import { ActionableDecisionsTab } from '@/components/qa-reports/actionable-decisions-tab';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading } = useUser();
@@ -65,7 +66,7 @@ export default function QaReportsPage() {
             </div>
 
             <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm flex md:inline-flex min-w-max h-10 animate-tab-highlight rounded-md">
+                <TabsList className="bg-muted p-1 border shadow-sm flex md:inline-flex w-max min-w-max h-10 animate-tab-highlight rounded-md">
                   <TabsTrigger value="overview" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
                     <BarChart3 className="h-4 w-4" /> Overview
                   </TabsTrigger>
@@ -85,6 +86,7 @@ export default function QaReportsPage() {
                     <Users className="h-4 w-4" /> Management Review
                   </TabsTrigger>
                 </TabsList>
+                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 

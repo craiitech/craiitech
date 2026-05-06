@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -39,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const currentYear = new Date().getFullYear();
@@ -89,7 +90,7 @@ export default function AcademicProgramsPage() {
             setUnitFilter(userProfile.unitId);
         }
     }
-  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, isUserLoading]);
+  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, userProfile?.campusId, userProfile?.unitId, isUserLoading]);
 
   /**
    * SCOPED PROGRAM QUERY
@@ -228,7 +229,7 @@ export default function AcademicProgramsPage() {
             </div>
 
             <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-fit">
+                <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-max min-w-max">
                     <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <BarChart3 className="h-4 w-4" /> Decision Support
                     </TabsTrigger>
@@ -242,6 +243,7 @@ export default function AcademicProgramsPage() {
                         <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
                     </TabsTrigger>
                 </TabsList>
+                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 

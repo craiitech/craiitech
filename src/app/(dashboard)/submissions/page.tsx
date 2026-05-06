@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
@@ -48,7 +49,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from './new/page';
@@ -351,7 +352,7 @@ export default function SubmissionsPage() {
                 </div>
 
                 <ScrollArea className="w-full">
-                    <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
+                    <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap min-w-max w-max">
                         <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">
                             <BarChart3 className="h-4 w-4" /> Visual Insights
                         </TabsTrigger>
@@ -361,6 +362,7 @@ export default function SubmissionsPage() {
                         {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Status</TabsTrigger>}
                         {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
                     </TabsList>
+                    <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </div>
 
@@ -455,7 +457,7 @@ export default function SubmissionsPage() {
 
                 <Tabs value={activeDetailedTab} onValueChange={setActiveDetailedTab} className="w-full">
                     <ScrollArea className="w-full">
-                        <TabsList className="bg-muted/30 p-1 border h-auto flex whitespace-nowrap animate-tab-highlight rounded-md">
+                        <TabsList className="bg-muted/30 p-1 border h-auto flex whitespace-nowrap animate-tab-highlight rounded-md w-max min-w-max">
                             <TabsTrigger value="all" className="text-[9px] font-black uppercase px-4 py-2">All Documents</TabsTrigger>
                             {submissionTypes.map((type) => (
                                 <TabsTrigger 
@@ -467,6 +469,7 @@ export default function SubmissionsPage() {
                                 </TabsTrigger>
                             ))}
                         </TabsList>
+                        <ScrollBar orientation="horizontal" />
                     </ScrollArea>
 
                     <TabsContent value={activeDetailedTab} className="mt-4">

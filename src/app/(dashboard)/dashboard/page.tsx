@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -121,7 +122,7 @@ import { cn, normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
@@ -639,13 +640,7 @@ export default function HomePage() {
                     </style>
                 </head>
                 <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Blank Evidence Log</button>
-                    </div>
-                    <div id="print-content">${reportHtml}</div>
-                </body>
-                </html>
-            `);
+                    <div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Blank Evidence Log</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
@@ -913,11 +908,12 @@ export default function HomePage() {
             </div>
         </div>
         <ScrollArea className="w-full">
-            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
+            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
                 <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
+            <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
       
@@ -1198,12 +1194,13 @@ export default function HomePage() {
                 </div>
             </div>
             <ScrollArea className="w-full">
-                <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
+                <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
                     <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
                     <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
                     <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
                     <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
                 </TabsList>
+                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 
@@ -1312,11 +1309,14 @@ export default function HomePage() {
                   </Select>
               </div>
           </div>
-          <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
-              <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-              <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-              <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
       </div>
 
       <TabsContent value="overview" className="space-y-4">
@@ -1364,7 +1364,7 @@ export default function HomePage() {
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                  <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
                  <CardFooter className="bg-muted/5 border-t py-3">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                         <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                         <p className="text-[9px] text-muted-foreground italic leading-tight">
                             Institutional audit trail of latest evidence uploads. Use this to monitor university-wide documentation frequency.
