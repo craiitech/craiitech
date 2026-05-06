@@ -45,7 +45,8 @@ import {
     ThumbsDown,
     RefreshCcw,
     Edit,
-    ArrowRight
+    ArrowRight,
+    XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -563,7 +564,9 @@ export default function SubmissionDetailPage() {
                       <ScrollArea className="h-[450px]">
                           {existingRisks && existingRisks.length > 0 ? (
                               <div className="divide-y">
-                                  {existingRisks.map((risk) => (
+                                  {existingRisks.map((risk) => {
+                                      const isPass = risk.verification?.status.includes('Correct') || risk.verification?.status.includes('Updated');
+                                      return (
                                       <div key={risk.id} className="p-4 hover:bg-muted/20 transition-colors group">
                                           <div className="flex flex-col gap-4">
                                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -577,7 +580,8 @@ export default function SubmissionDetailPage() {
                                                       
                                                       {risk.verification && (
                                                           <div className="flex items-center gap-2 pt-1">
-                                                              <Badge variant="outline" className={cn("h-4 text-[7px] font-black uppercase", risk.verification.status.includes('Correct') || risk.verification.status.includes('Updated') ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-rose-600 border-rose-200 bg-rose-50")}>
+                                                              <Badge variant="outline" className={cn("h-4 text-[7px] font-black uppercase flex items-center gap-1", isPass ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-rose-600 border-rose-200 bg-rose-50")}>
+                                                                  {isPass ? <CheckCircle2 className="h-2.5 w-2.5" /> : <XCircle className="h-2.5 w-2.5" />}
                                                                   {risk.verification.status}
                                                               </Badge>
                                                               <span className="text-[8px] text-muted-foreground italic">by {risk.verification.verifiedBy}</span>
@@ -604,7 +608,7 @@ export default function SubmissionDetailPage() {
                                                                   onClick={() => handleVerifyRisk(risk.id, 'Correct')}
                                                                   disabled={verifyingRiskId === risk.id}
                                                               >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ThumbsUp className="h-3 w-3" />}
+                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                                                                   Correct
                                                               </Button>
                                                               <Button 
@@ -614,7 +618,7 @@ export default function SubmissionDetailPage() {
                                                                   onClick={() => handleVerifyRisk(risk.id, 'Incorrect')}
                                                                   disabled={verifyingRiskId === risk.id}
                                                               >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ThumbsDown className="h-3 w-3" />}
+                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
                                                                   Incorrect
                                                               </Button>
                                                           </>
@@ -627,7 +631,7 @@ export default function SubmissionDetailPage() {
                                                                   onClick={() => handleVerifyRisk(risk.id, 'Updated')}
                                                                   disabled={verifyingRiskId === risk.id}
                                                               >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
+                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                                                                   Updated
                                                               </Button>
                                                               <Button 
@@ -637,7 +641,7 @@ export default function SubmissionDetailPage() {
                                                                   onClick={() => handleVerifyRisk(risk.id, 'Not Updated')}
                                                                   disabled={verifyingRiskId === risk.id}
                                                               >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlertTriangle className="h-3 w-3" />}
+                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
                                                                   Not Updated
                                                               </Button>
                                                           </>
@@ -646,7 +650,7 @@ export default function SubmissionDetailPage() {
                                               )}
                                           </div>
                                       </div>
-                                  ))}
+                                  )})}
                               </div>
                           ) : <div className="py-16 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No digital entries found</p></div>}
                       </ScrollArea>

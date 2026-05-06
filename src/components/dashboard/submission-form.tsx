@@ -141,7 +141,7 @@ export function SubmissionForm({
 
   const isPostTreatmentIncomplete = useMemo(() => {
     if (!isRorForm || cycleId !== 'final' || !digitalRisks) return false;
-    return digitalRisks.some(r => !r.postTreatment?.likelihood || !r.postTreatment?.consequence);
+    return digitalRisks.some(r => !r.postTreatment?.likelihood || !r.postTreatment?.consequence || !r.postTreatment?.evidence);
   }, [isRorForm, cycleId, digitalRisks]);
 
   const isDraftValue = form.watch('isDraft');
@@ -197,7 +197,7 @@ export function SubmissionForm({
   };
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -344,7 +344,7 @@ export function SubmissionForm({
         return;
     }
 
-    if (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete) {
+    if (isRorForm && cycleId === 'final' && !values.isDraft && isPostTreatmentIncomplete) {
         toast({ title: 'Final Assessment Required', description: 'All digital register entries must be updated with a post-treatment analysis before the final document can be submitted.', variant: 'destructive' });
         return;
     }
@@ -547,20 +547,20 @@ export function SubmissionForm({
             </Alert>
         )}
 
-        {isRorForm && cycleId === 'final' && !isLoadingDigitalRisks && isDigitalComplete && isPostTreatmentIncomplete && (
+        {isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && isPostTreatmentIncomplete && (
             <Alert variant="destructive" className="border-rose-300 bg-rose-50 animate-in zoom-in duration-500 shadow-md">
                 <ShieldAlert className="h-5 w-5 text-rose-600" />
-                <AlertTitle className="font-black uppercase text-rose-800 tracking-tight">Post-Treatment Audit Gap</AlertTitle>
+                <AlertTitle className="font-black uppercase text-rose-800 tracking-tight">Final Assessment Audit Gap</AlertTitle>
                 <AlertDescription className="space-y-4 pt-1">
                     <p className="text-xs font-bold leading-relaxed text-rose-700">
-                        The Final Submission for the Risk Registry requires that **every digital entry** has been updated with its Final Assessment (Residual Likelihood, Consequence, and Evidence).
+                        The Final Submission for the Risk Registry is <strong>BLOCKED</strong> because one or more entries in your digital register are missing their residual impact analysis.
                     </p>
                     <p className="text-[10px] font-medium italic text-rose-600">
-                        System detection: One or more entries in your digital register are missing their residual impact analysis for {year}.
+                        System detection: All entries in your digital register must have post-treatment likelihood, consequence, and evidence logged for {year}.
                     </p>
                     <Button size="sm" variant="destructive" asChild className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-rose-200">
                         <Link href="/risk-register?highlightSection=4" className="flex items-center gap-2">
-                            Perform Digital Updates Now <ArrowRight className="h-3.5 w-3.5" />
+                            Complete Digital Updates Now <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                     </Button>
                 </AlertDescription>
@@ -603,7 +603,7 @@ export function SubmissionForm({
                                 onValueChange={(v) => field.onChange(v === 'true')}
                                 value={field.value ? 'true' : 'false'}
                                 className="flex flex-col sm:flex-row gap-4"
-                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
+                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
                             >
                                 <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
                                     <RadioGroupItem value="true" id="is-draft" />
@@ -612,7 +612,7 @@ export function SubmissionForm({
                                         <p className="text-[10px] text-muted-foreground">For preliminary review. Mandatory updates are bypassed.</p>
                                     </Label>
                                 </div>
-                                <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm")}>
+                                <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", !field.value && "bg-green-50 border-green-200 shadow-sm", (!field.value && isRorForm && cycleId === 'final' && isPostTreatmentIncomplete) && "border-destructive/30 bg-rose-50/10")}>
                                     <RadioGroupItem value="false" id="is-final" />
                                     <Label htmlFor="is-final" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final (Official Filing)</p>
@@ -647,7 +647,7 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
@@ -712,7 +712,7 @@ export function SubmissionForm({
                 <Textarea
                   placeholder="Add any relevant comments for the approvers"
                   {...field}
-                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
+                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}
                 />
               </FormControl>
               <FormMessage />
@@ -733,7 +733,7 @@ export function SubmissionForm({
                     onValueChange={(value: RiskRating) => setRiskRating(value)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}
                 >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="low" /></FormControl>
