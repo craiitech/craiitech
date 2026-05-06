@@ -307,11 +307,20 @@ export function SubmissionForm({
   }, [firestore, targetUnitId, targetCampusId, reportType, year, cycleId, user, form]); 
 
   const canUpdateExisting = useMemo(() => {
-    if (!existingSubmission || !user || !userRole) return true;
-    if (existingSubmission.userId === user.uid) return true;
-    if (userRole === 'Unit ODIMO' || isAdmin) return true;
+    if (!existingSubmission || !user || !userProfile || !userRole) return true;
+    
+    // Admins and Unit ODIMOs can always update/override
+    if (isAdmin || userRole === 'Unit ODIMO') return true;
+
+    // For Unit Coordinators, allow update if they are the original submitter 
+    // OR if they belong to the same unit (to allow finishing drafts)
+    const isSameUnit = userProfile.unitId === existingSubmission.unitId;
+    const isOwner = existingSubmission.userId === user.uid;
+
+    if (userRole === 'Unit Coordinator' && (isOwner || isSameUnit)) return true;
+
     return false;
-  }, [existingSubmission, user, userRole, isAdmin]);
+  }, [existingSubmission, user, userProfile, userRole, isAdmin]);
 
   const isApprovedDraft = useMemo(() => {
       return !!(existingSubmission?.statusId === 'approved' && existingSubmission?.isDraft);

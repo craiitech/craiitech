@@ -662,7 +662,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
             <div className="w-full md:w-48 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
-                <Select value={campusFilter} onValueChange={campusFilter}>
+                <Select value={campusFilter} onValueChange={setCampusFilter}>
                     <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
                         <SelectValue placeholder="All Sites" />
                     </SelectTrigger>
@@ -938,7 +938,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     </div>
                                                 </div>
                                             )}
-                                            <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Final Determination & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>)} />
+                                            <FormField control={form.control} name={`effectivenessAudits.${index}.result`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-10px] font-black uppercase text-indigo-900">Final Determination & Evidence</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white border-indigo-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${index}.result`)} /></FormControl></FormItem>)} />
                                             <FormField control={form.control} name={`effectivenessAudits.${index}.remarks`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-indigo-900">Audit Findings / Final Remarks</FormLabel><FormControl><Textarea {...inputField} value={inputField.value || ''} rows={3} className="bg-white border-indigo-100 text-xs" disabled={isFieldReadOnly(`effectivenessAudits.${index}.remarks`)} /></FormControl></FormItem>)} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <FormField control={form.control} name={`effectivenessAudits.${index}.action`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase text-primary">Final Verification Action</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly(`effectivenessAudits.${index}.action`)}><FormControl><SelectTrigger className="bg-white font-black h-11"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Close the NC" className="font-black text-emerald-600">1. Close the NC</SelectItem><SelectItem value="Continue Monitoring the NC">2. Continue Monitoring</SelectItem><SelectItem value="Provide More Actions to Address the NC">3. Provide More Actions</SelectItem></SelectContent></Select></FormItem>)} />
