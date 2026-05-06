@@ -34,6 +34,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
