@@ -34,7 +34,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -607,7 +606,7 @@ export function SubmissionForm({
                                     <RadioGroupItem value="false" id="is-final" />
                                     <Label htmlFor="is-final" className="flex-1 cursor-pointer">
                                         <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final (Official Filing)</p>
-                                        <p className="text-[10px] text-muted-foreground">Signed, scanned PDF. Full compliance logic active.</p>
+                                        <p className="text-[10px] text-muted-foreground">Signed, scanned PDF. Full compliance checklist active.</p>
                                     </Label>
                                 </div>
                             </RadioGroup>
@@ -771,7 +770,7 @@ export function SubmissionForm({
                         Draft Review Mode Active
                     </CardTitle>
                     <CardDescription className="text-[10px] font-bold text-blue-700/70 uppercase tracking-widest">
-                        Checklist is bypassed. focus purely on content checking.
+                        Checklist is bypassed. Focus purely on content checking.
                     </CardDescription>
                 </CardHeader>
             </Card>

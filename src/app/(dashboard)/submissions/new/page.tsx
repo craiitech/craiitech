@@ -135,7 +135,7 @@ export default function NewSubmissionPage() {
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const digitalRisksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || !selectedYear) return null;
