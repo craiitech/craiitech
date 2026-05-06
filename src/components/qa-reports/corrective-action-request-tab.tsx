@@ -74,9 +74,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
-import { Label } from '../ui/label';
-import { getOfficialServerTime } from '@/lib/actions';
-import { Checkbox } from '../ui/checkbox';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -665,7 +662,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
             <div className="w-full md:w-48 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
-                <Select value={campusFilter} onValueChange={setCampusFilter}><SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm"><SelectValue placeholder="All Sites" /></SelectTrigger><SelectContent><SelectItem value="all">All Sites</SelectItem>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
+                <Select value={campusFilter} onValueChange={campusFilter}>
+                    <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
+                        <SelectValue placeholder="All Sites" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Sites</SelectItem>
+                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="w-full md:w-48 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Calendar className="h-2.5 w-2.5" /> Fiscal Year</label>
@@ -1019,7 +1024,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     </div>
                                     <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
                                         <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Phase 2: Investigation (Unit)</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis (RCA)**. Identify why the systemic failure occurred to prevent recurrence.</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">Perform a **Root Cause Analysis (RCA)**. Identify why the systematic failure occurred to prevent recurrence.</p>
                                     </div>
                                     <div className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
                                         <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">Phase 3: Action Execution (Unit)</p>

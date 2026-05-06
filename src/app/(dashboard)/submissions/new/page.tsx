@@ -179,7 +179,7 @@ export default function NewSubmissionPage() {
     );
      const finalMap = new Map(
       normalizedSubmissions
-        .filter(s => s.cycleId === 'final')
+        .filter(s => s.cycleId === 'final' && s.isDraft !== true)
         .map((s) => [s.reportType, s])
     );
 
@@ -599,7 +599,7 @@ export default function NewSubmissionPage() {
                                 <Info className="h-5 w-5 text-primary" />
                                 <AlertTitle className="font-black uppercase text-primary tracking-tight">Post-Treatment Update Required</AlertTitle>
                                 <AlertDescription className="space-y-4 pt-1">
-                                    <p className="text-xs font-bold leading-relaxed">
+                                    <p className="text-xs font-bold leading-relaxed text-primary">
                                         Before uploading your formal registry document, please ensure each individual entry in the Digital Risk Register has been updated with its **Final Assessment (Post-Treatment Analysis)**.
                                     </p>
                                     <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">

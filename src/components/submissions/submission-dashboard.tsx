@@ -150,14 +150,17 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
             const relevantTotal = Math.max(0, allUnits.length - exemptUnitIds.size);
             const percentage = relevantTotal > 0 ? Math.round(((relevantTotal - missingUnitsCount) / relevantTotal) * 100) : 100;
 
-            const isApproved = cycleSubs.some(s => s.reportType === type && s.statusId === 'approved');
+            // JOURNEY MAP LOGIC: BASE ON FINAL FILED, NOT JUST DRAFT
+            const isApproved = cycleSubs.some(s => s.reportType === type && s.statusId === 'approved' && s.isDraft !== true);
+            const isDraftCleared = cycleSubs.some(s => s.reportType === type && s.statusId === 'approved' && s.isDraft === true);
 
             return {
                 type,
                 missingCount: missingUnitsCount,
                 percentage,
                 isExempt: relevantTotal === 0,
-                isApproved
+                isApproved,
+                isDraftCleared
             };
         });
     };
@@ -251,37 +254,50 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
 
   return (
     <div className="space-y-6">
-      {/* NEW: Compliance Journey Roadmap */}
       <Card className="shadow-lg border-primary/10 overflow-hidden bg-primary/5">
         <CardHeader className="bg-primary/10 border-b py-4">
             <div className="flex items-center gap-2">
                 <LayoutList className="h-5 w-5 text-primary" />
                 <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Compliance Journey Map</CardTitle>
             </div>
-            <CardDescription className="text-[10px]">Strategic roadmap for the 6 core ISO 21001:2018 mandatory documents.</CardDescription>
+            <CardDescription className="text-[10px]">Strategic roadmap based on <strong>Final Official Filings</strong> (Approved PDFs).</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {submissionTypes.map((type, idx) => {
-                    const isApproved = analytics.firstCycleMissing.find(m => m.type === type)?.isApproved || 
-                                     analytics.finalCycleMissing.find(m => m.type === type)?.isApproved;
+                    const status1 = analytics.firstCycleMissing.find(m => m.type === type);
+                    const status2 = analytics.finalCycleMissing.find(m => m.type === type);
+                    
+                    const isApproved = status1?.isApproved || status2?.isApproved;
+                    const isDraftCleared = status1?.isDraftCleared || status2?.isDraftCleared;
+                    
                     return (
                         <div key={idx} className={cn(
                             "flex flex-col items-center text-center p-4 rounded-2xl border transition-all duration-500",
-                            isApproved ? "bg-white border-emerald-500 shadow-md ring-1 ring-emerald-200" : "bg-muted/10 border-slate-100 grayscale opacity-40"
+                            isApproved ? "bg-white border-emerald-500 shadow-md ring-1 ring-emerald-200" : 
+                            isDraftCleared ? "bg-blue-50 border-blue-200 shadow-sm" :
+                            "bg-muted/10 border-slate-100 grayscale opacity-40"
                         )}>
                             <div className={cn(
                                 "h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors shadow-sm",
-                                isApproved ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+                                isApproved ? "bg-emerald-600 text-white" : 
+                                isDraftCleared ? "bg-blue-600 text-white" :
+                                "bg-slate-200 text-slate-500"
                             )}>
-                                {isApproved ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-5 w-5" />}
+                                {isApproved ? <CheckCircle2 className="h-6 w-6" /> : 
+                                 isDraftCleared ? <LayoutList className="h-5 w-5" /> :
+                                 <Circle className="h-5 w-5" />}
                             </div>
                             <p className="text-[9px] font-black uppercase leading-tight">{type}</p>
-                            {isApproved && (
+                            {isApproved ? (
                                 <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase bg-emerald-50 text-emerald-700 border-none mt-2">
-                                    VERIFIED
+                                    OFFICIALLY FILED
                                 </Badge>
-                            )}
+                            ) : isDraftCleared ? (
+                                <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase bg-blue-100 text-blue-700 border-none mt-2">
+                                    DRAFT CLEARED
+                                </Badge>
+                            ) : null}
                         </div>
                     );
                 })}
@@ -289,9 +305,8 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
         </CardContent>
       </Card>
 
-      {/* Executive KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
           <div className="absolute top-0 right-0 p-2 opacity-5"><FileText className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Volume Registry</CardTitle>
@@ -300,7 +315,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
             <div className="text-3xl font-black text-primary tabular-nums tracking-tighter">{analytics.total}</div>
           </CardContent>
         </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Approval Maturity</CardTitle>
           </CardHeader>
@@ -308,7 +323,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
             <div className="text-3xl font-black text-emerald-600 tabular-nums tracking-tighter">{analytics.approvalRate}%</div>
           </CardContent>
         </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Audit Queue</CardTitle>
           </CardHeader>
@@ -316,7 +331,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
             <div className="text-3xl font-black text-amber-600 tabular-nums tracking-tighter">{analytics.pending}</div>
           </CardContent>
         </Card>
-        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Timeliness</CardTitle>
           </CardHeader>
@@ -455,7 +470,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                         <YAxis 
                             dataKey="name" 
                             type="category" 
-                            tick={{ fontSize: 9, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
+                            tick={{ fontSize: 8, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
                             width={180}
                             axisLine={false}
                             tickLine={false}
