@@ -3,7 +3,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Check } from 'lucide-react';
 
 interface NoticeProps {
   unitName: string;
@@ -54,6 +54,8 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
     thruLine = `THE CAMPUS DIRECTOR, ${campusName.toUpperCase()}`;
   }
 
+  const isFirstCompliant = missingFirst.length === 0;
+
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       {/* Institutional Header - Logo Removed */}
@@ -102,12 +104,19 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         </p>
 
         <p>
-            Upon verification through the RSU EOMS Portal, the following required reports are either <strong>missing</strong> or 
-            <strong>awaiting necessary corrections</strong> for final approval:
+            Upon verification through the RSU EOMS Portal, the current audit status for your unit is as follows:
         </p>
 
         <div className="space-y-4 py-4">
-            {missingFirst.length > 0 && (
+            {isFirstCompliant ? (
+                <div className="border-2 border-green-600 p-4 bg-green-50/50 flex items-center justify-between">
+                    <div>
+                        <p className="font-black text-green-700 text-xs uppercase mb-1">I. FIRST SUBMISSION CYCLE:</p>
+                        <p className="font-bold text-green-600 text-sm">FULLY COMPLIANT</p>
+                    </div>
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                </div>
+            ) : (
                 <div className="border border-black p-4 bg-slate-50">
                     <p className="font-bold text-xs uppercase mb-2">I. FIRST SUBMISSION CYCLE (OUTSTANDING):</p>
                     <ul className="list-decimal pl-8 space-y-1">
@@ -115,12 +124,21 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
                     </ul>
                 </div>
             )}
-            {missingFinal.length > 0 && (
+
+            {missingFinal.length > 0 ? (
                 <div className="border border-black p-4 bg-slate-50">
                     <p className="font-bold text-xs uppercase mb-2">II. FINAL SUBMISSION CYCLE (OUTSTANDING):</p>
                     <ul className="list-decimal pl-8 space-y-1">
                         {missingFinal.map((doc, i) => <li key={i}>{doc}</li>)}
                     </ul>
+                </div>
+            ) : (
+                <div className="border-2 border-green-600 p-4 bg-green-50/50 flex items-center justify-between">
+                    <div>
+                        <p className="font-black text-green-700 text-xs uppercase mb-1">II. FINAL SUBMISSION CYCLE:</p>
+                        <p className="font-bold text-green-600 text-sm">FULLY COMPLIANT</p>
+                    </div>
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
                 </div>
             )}
         </div>
@@ -153,7 +171,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
       </div>
 
       <div className="mt-16 text-[9px] text-slate-400 italic border-t pt-4 flex justify-between">
-        <span>RSU-QAO-FOR-022 | Rev 00</span>
+        <span>RSU-QAO-FOR-022 | Rev 01-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
     </div>
@@ -194,11 +212,21 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
                 <strong> ISO 21001:2018</strong> standards for the Academic Year <strong>{year}</strong>.
             </p>
 
-            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto shadow-sm">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-2">Verification Registry Status</p>
-                <div className="flex items-center justify-center gap-3">
-                    <ShieldCheck className="h-6 w-6 text-emerald-600" />
-                    <span className="text-xl font-black text-emerald-800">{totalApproved} Verified Records</span>
+            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto shadow-sm space-y-4">
+                <div className="border-b border-emerald-200 pb-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Verification Ledger</p>
+                    <div className="flex items-center justify-center gap-3">
+                        <ShieldCheck className="h-6 w-6 text-emerald-600" />
+                        <span className="text-xl font-black text-emerald-800">{totalApproved} Verified Records</span>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase text-emerald-600">
+                    <div className="flex items-center gap-1">
+                        <Check className="h-3 w-3" /> 1st Cycle
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Final Cycle
+                    </div>
                 </div>
             </div>
 
@@ -226,7 +254,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
         <div className="mt-auto pt-8 flex justify-between items-end text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
             <div className="flex flex-col">
                 <span>Verification Code: VER-{year}-{format(new Date(), 'HHmm')}</span>
-                <span>RSU-QAO-FOR-023 | REV 00</span>
+                <span>RSU-QAO-FOR-023 | REV 01-2025</span>
             </div>
             <div className="text-right">
                 <p>Institutional Excellence Record</p>
@@ -286,32 +314,40 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
                 <section className="space-y-4">
                     <h3 className="font-black text-xs uppercase bg-slate-100 p-2 border-l-4 border-black">I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)</h3>
                     <div className="space-y-6">
-                        {nonCompliantUnits.map((unit, idx) => (
-                            <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/50">
-                                <div className="flex justify-between items-center mb-3">
-                                    <p className="font-bold text-sm uppercase">{unit.name}</p>
-                                    <span className="text-[10px] font-black bg-white border border-black px-2 py-0.5">{unit.score}% MATURITY</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {unit.missingFirst.length > 0 && (
-                                        <div>
-                                            <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (1st Cycle):</p>
-                                            <ul className="list-disc pl-4 text-[10px] space-y-0.5">
-                                                {unit.missingFirst.map((m, i) => <li key={i}>{m}</li>)}
-                                            </ul>
+                        {nonCompliantUnits.map((unit, idx) => {
+                            const firstCycleDone = unit.missingFirst.length === 0;
+                            return (
+                                <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/50">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className="flex flex-col">
+                                            <p className="font-bold text-sm uppercase">{unit.name}</p>
+                                            {firstCycleDone && (
+                                                <p className="text-[9px] font-black text-green-600 uppercase">First Cycle Status: Fully Compliant</p>
+                                            )}
                                         </div>
-                                    )}
-                                    {unit.missingFinal.length > 0 && (
-                                        <div>
-                                            <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (Final Cycle):</p>
-                                            <ul className="list-disc pl-4 text-[10px] space-y-0.5">
-                                                {unit.missingFinal.map((m, i) => <li key={i}>{m}</li>)}
-                                            </ul>
-                                        </div>
-                                    )}
+                                        <span className="text-[10px] font-black bg-white border border-black px-2 py-0.5">{unit.score}% MATURITY</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {unit.missingFirst.length > 0 && (
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (1st Cycle):</p>
+                                                <ul className="list-disc pl-4 text-[10px] space-y-0.5">
+                                                    {unit.missingFirst.map((m, i) => <li key={i}>{m}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {unit.missingFinal.length > 0 && (
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (Final Cycle):</p>
+                                                <ul className="list-disc pl-4 text-[10px] space-y-0.5">
+                                                    {unit.missingFinal.map((m, i) => <li key={i}>{m}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </section>
             )}
@@ -356,7 +392,7 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
       </div>
 
       <div className="mt-16 text-[9px] text-slate-400 italic border-t pt-4 flex justify-between">
-        <span>RSU-QAO-FOR-024 | REV 00</span>
+        <span>RSU-QAO-FOR-024 | REV 01-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
     </div>
@@ -429,7 +465,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
         <div className="mt-auto pt-8 flex justify-between items-end text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
             <div className="flex flex-col">
                 <span>Verification Code: SITE-VER-{year}-{format(new Date(), 'HHmm')}</span>
-                <span>RSU-QAO-FOR-025 | REV 00</span>
+                <span>RSU-QAO-FOR-025 | REV 01-2025</span>
             </div>
             <div className="text-right">
                 <p>Institutional Excellence Record</p>
