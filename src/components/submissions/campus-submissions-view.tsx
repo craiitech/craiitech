@@ -41,7 +41,11 @@ import {
     Target,
     Activity,
     Trophy,
-    ListChecks
+    ListChecks,
+    Search,
+    X,
+    Check,
+    Monitor
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
@@ -57,15 +61,17 @@ import {
 } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance, CampusNoticeOfCompliance, CampusNoticeOfNonCompliance } from './notices-print-templates';
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
 import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-const COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',
     'Awaiting Approval': 'hsl(var(--chart-1))',
     Missing: 'hsl(var(--destructive))',
@@ -85,7 +91,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50' 
+      final: 'bg-amber-100/40 hover:bg-blue-200/50' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40', 
@@ -130,6 +136,10 @@ export function CampusSubmissionsView({
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  
+  // ADMIN FILTER STATES
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const [sidebarCampusFilter, setSidebarCampusFilter] = useState('all');
 
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
@@ -181,14 +191,35 @@ export function CampusSubmissionsView({
 
   const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
 
+  /**
+   * FILTERED CAMPUS GROUPS
+   * Respects both the Sidebar Search and the Campus Dropdown Filter.
+   */
   const campusGroups = useMemo(() => {
     if (!allCampuses || !allUnits) return [];
     
-    return allCampuses.map(campus => ({
-        ...campus,
-        units: allUnits.filter(u => u.campusIds?.includes(campus.id)).sort((a,b) => a.name.localeCompare(b.name))
-    })).filter(c => c.units.length > 0).sort((a,b) => a.name.localeCompare(b.name));
-  }, [allCampuses, allUnits]);
+    let filteredCampuses = [...allCampuses];
+
+    // 1. Campus Filter
+    if (sidebarCampusFilter !== 'all') {
+        filteredCampuses = filteredCampuses.filter(c => c.id === sidebarCampusFilter);
+    }
+
+    return filteredCampuses.map(campus => {
+        let campusUnits = allUnits.filter(u => u.campusIds?.includes(campus.id));
+
+        // 2. Unit Search Filter
+        if (sidebarSearch) {
+            const lowerSearch = sidebarSearch.toLowerCase();
+            campusUnits = campusUnits.filter(u => u.name.toLowerCase().includes(lowerSearch));
+        }
+
+        return {
+            ...campus,
+            units: campusUnits.sort((a,b) => a.name.localeCompare(b.name))
+        };
+    }).filter(c => c.units.length > 0).sort((a,b) => a.name.localeCompare(b.name));
+  }, [allCampuses, allUnits, sidebarSearch, sidebarCampusFilter]);
 
   const campusSummary = useMemo(() => {
     if (!selectedCampusId || !allSubmissions || !allUnits) return null;
@@ -272,10 +303,10 @@ export function CampusSubmissionsView({
     const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
-        { name: 'Approved', value: approved, fill: COLORS.Approved },
-        { name: 'Awaiting Approval', value: pending, fill: COLORS['Awaiting Approval'] },
-        { name: 'Rejected', value: rejected, fill: COLORS.Rejected },
-        { name: 'Missing', value: missingTotal, fill: COLORS.Missing }
+        { name: 'Approved', value: approved, fill: STATUS_COLORS.Approved },
+        { name: 'Awaiting Approval', value: pending, fill: STATUS_COLORS['Awaiting Approval'] },
+        { name: 'Rejected', value: rejected, fill: STATUS_COLORS.Rejected },
+        { name: 'Missing', value: missingTotal, fill: STATUS_COLORS.Missing }
     ].filter(d => d.value >= 0);
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
@@ -413,7 +444,7 @@ export function CampusSubmissionsView({
           onClick={() => setIsSidebarVisible(!isSidebarVisible)}
         >
           {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-          {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+          {isSidebarVisible ? 'Hide Directory' : 'Show Directory'}
         </Button>
       </div>
 
@@ -422,9 +453,31 @@ export function CampusSubmissionsView({
           "transition-all duration-300 overflow-hidden flex flex-col gap-2",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
         )}>
-          <Card className="flex flex-col h-full shadow-sm border-primary/10">
-            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
+          <Card className="flex flex-col h-full shadow-sm border-primary/10 overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0 space-y-4">
               <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Institutional Scope</CardTitle>
+              
+              {/* ADMIN SIDEBAR FILTERS */}
+              <div className="space-y-3">
+                  <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search unit name..." 
+                        value={sidebarSearch}
+                        onChange={(e) => setSidebarSearch(e.target.value)}
+                        className="h-8 pl-8 text-[10px] bg-white border-primary/10"
+                      />
+                  </div>
+                  <Select value={sidebarCampusFilter} onValueChange={setSidebarCampusFilter}>
+                      <SelectTrigger className="h-8 text-[10px] font-black uppercase bg-white border-primary/10">
+                          <div className="flex items-center gap-1.5"><Filter className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Sites" /></div>
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all" className="text-[10px] font-black">All Campuses</SelectItem>
+                          {allCampuses?.map(c => <SelectItem key={c.id} value={c.id} className="text-[10px] font-bold">{c.name}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-0">
               <ScrollArea className="h-full">
@@ -477,6 +530,12 @@ export function CampusSubmissionsView({
                     </AccordionItem>
                   ))}
                 </Accordion>
+                {campusGroups.length === 0 && (
+                    <div className="p-10 text-center text-muted-foreground opacity-40">
+                        <Search className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-[10px] font-black uppercase">No matching units</p>
+                    </div>
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
@@ -488,12 +547,12 @@ export function CampusSubmissionsView({
             size="icon"
             className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            title={isSidebarVisible ? "Hide Units" : "Show Units"}
+            title={isSidebarVisible ? "Hide Directory" : "Show Directory"}
           >
             {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
 
-          {selectedUnitId && unitData ? (
+          {selectedUnitId && unitData && unitMap.get(selectedUnitId) ? (
             <ScrollArea className="h-full pr-4">
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -529,7 +588,7 @@ export function CampusSubmissionsView({
                                 <PieChart>
                                     <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                                     <Pie data={unitData.chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
-                                        {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />)}
+                                        {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />)}
                                     </Pie>
                                 </PieChart>
                             </ResponsiveContainer>
