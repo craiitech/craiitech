@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -36,7 +35,8 @@ interface CampusNoticeProps {
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
  * Optimized for Folio (8.5 x 13) with 11pt typography and single spacing.
- * Strictly follows the RSU memorandum signatory format.
+ * Aligns Unit Name and Campus under the FOR: label.
+ * Signatories: Name on first line, Title on second line, no solid line.
  */
 export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead }: NoticeProps) {
   const isPresident = unitName.toLowerCase().includes('president');
@@ -160,20 +160,18 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <p>For your immediate compliance and appropriate action.</p>
       </div>
 
-      {/* CORRECTED SIGNATORIES BLOCK AS PER SCREENSHOT */}
-      <div className="mt-20 space-y-10">
-        <div className="border-t border-black pt-1 w-full">
-            <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
-            </p>
+      {/* SIGNATORIES BLOCK - Name on 1st line, Title on 2nd line, no solid line */}
+      <div className="mt-20 space-y-8">
+        <div className="w-full text-left">
+            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qmsHead}</p>
+            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>HEAD, QUALITY MANAGEMENT SYSTEM UNIT</p>
         </div>
         
-        <div className="space-y-1">
+        <div className="space-y-4 text-left">
             <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-            <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                    {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
-                </p>
+            <div className="w-full">
+                <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qaoDirector}</p>
+                <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>DIRECTOR, QUALITY ASSURANCE OFFICE</p>
             </div>
         </div>
       </div>
@@ -240,20 +238,18 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             </p>
         </div>
 
-        {/* CORRECTED SIGNATORIES BLOCK */}
-        <div className="mt-20 space-y-10">
-            <div className="border-t border-black pt-1 w-full text-left">
-                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                    {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
-                </p>
+        {/* SIGNATORIES BLOCK - Consistent with Non-Compliance format */}
+        <div className="mt-20 space-y-8 text-left">
+            <div className="w-full">
+                <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qmsHead}</p>
+                <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>HEAD, QUALITY MANAGEMENT SYSTEM UNIT</p>
             </div>
             
-            <div className="space-y-1 text-left">
+            <div className="space-y-4">
                 <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-                <div className="border-t border-black pt-1 w-full">
-                    <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                        {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
-                    </p>
+                <div className="w-full">
+                    <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qaoDirector}</p>
+                    <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>DIRECTOR, QUALITY ASSURANCE OFFICE</p>
                 </div>
             </div>
         </div>
@@ -282,7 +278,6 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
  */
 export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   const nonCompliantUnits = units.filter(u => u.score < 100);
-  const compliantUnits = units.filter(u => u.score === 100);
 
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight" style={{ fontSize: '11pt' }}>
@@ -347,20 +342,18 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
         </p>
       </div>
 
-      {/* CORRECTED SIGNATORIES BLOCK */}
-      <div className="mt-20 space-y-10">
-        <div className="border-t border-black pt-1 w-full text-left">
-            <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
-            </p>
+      {/* SIGNATORIES BLOCK - Consistent with Non-Compliance format */}
+      <div className="mt-20 space-y-8 text-left">
+        <div className="w-full">
+            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qmsHead}</p>
+            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>HEAD, QUALITY MANAGEMENT SYSTEM UNIT</p>
         </div>
         
-        <div className="space-y-1 text-left">
+        <div className="space-y-4">
             <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-            <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                    {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
-                </p>
+            <div className="w-full">
+                <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qaoDirector}</p>
+                <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>DIRECTOR, QUALITY ASSURANCE OFFICE</p>
             </div>
         </div>
       </div>
@@ -416,20 +409,18 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
             </div>
         </div>
 
-        {/* CORRECTED SIGNATORIES BLOCK */}
-        <div className="mt-20 space-y-10">
-            <div className="border-t border-black pt-1 w-full text-left">
-                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                    {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
-                </p>
+        {/* SIGNATORIES BLOCK - Consistent with Non-Compliance format */}
+        <div className="mt-20 space-y-8 text-left">
+            <div className="w-full">
+                <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qmsHead}</p>
+                <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>HEAD, QUALITY MANAGEMENT SYSTEM UNIT</p>
             </div>
             
-            <div className="space-y-1 text-left">
+            <div className="space-y-4">
                 <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-                <div className="border-t border-black pt-1 w-full">
-                    <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
-                        {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
-                    </p>
+                <div className="w-full">
+                    <p className="font-black uppercase" style={{ fontSize: '11pt' }}>{qaoDirector}</p>
+                    <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>DIRECTOR, QUALITY ASSURANCE OFFICE</p>
                 </div>
             </div>
         </div>
@@ -441,7 +432,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
         <div className="mt-auto pt-6 flex justify-between items-end text-[9pt] text-slate-400 uppercase font-bold tracking-tighter">
             <div className="flex flex-col space-y-0.5">
                 <span>Verification Code: SITE-VER-{year}-{format(new Date(), 'HHmm')}</span>
-                <span>RSU-QAO-FOR-025 | REV 01-2025</span>
+                <span>RSU-QAO-FOR-023 | REV 01-2025</span>
             </div>
             <div className="text-right">
                 <p>Institutional Excellence Record</p>
