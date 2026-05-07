@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -40,7 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const currentYear = new Date().getFullYear();
@@ -243,7 +242,6 @@ export default function AcademicProgramsPage() {
                         <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
                     </TabsTrigger>
                 </TabsList>
-                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 

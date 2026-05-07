@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -45,7 +44,7 @@ import {
     LayoutList,
     School
 } from 'lucide-react';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
 import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
 import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
@@ -298,7 +297,6 @@ export default function UnitFormsPage() {
                         <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
                     </TabsTrigger>
                 </TabsList>
-                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 
@@ -572,7 +570,6 @@ export default function UnitFormsPage() {
                   <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
                       <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Inbox className="h-3.5 w-3.5" /> Registration Review Inbox</TabsTrigger>
                   </TabsList>
-                  <ScrollBar orientation="horizontal" />
                   <TabsContent value="inbox" className="animate-in fade-in duration-500">
                       {!isHistoryActive ? (
                           <div className="p-12 text-center bg-white border rounded-2xl shadow-sm"><Button onClick={() => setIsHistoryActive(true)} className="font-black uppercase tracking-widest text-xs">Load Active Inbox & Review History</Button></div>

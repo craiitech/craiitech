@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -46,7 +45,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 
 const currentYear = new Date().getFullYear();
@@ -238,7 +237,6 @@ export default function MonitoringPage() {
                         {!isUnitOnlyView && <TabsTrigger value="explorer" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><SearchCode className="h-4 w-4" /> Explorer</TabsTrigger>}
                         {!isUnitOnlyView && <TabsTrigger value="item-analysis" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-4 w-4" /> Analysis</TabsTrigger>}
                     </TabsList>
-                    <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </div>
 

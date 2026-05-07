@@ -26,7 +26,7 @@ import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
@@ -87,7 +87,6 @@ export default function SettingsPage() {
                     <TabsTrigger value="backups" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Data & Backups</TabsTrigger>
                     <TabsTrigger value="error-reports" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Error Reports</TabsTrigger>
                   </TabsList>
-                  <ScrollBar orientation="horizontal" />
               </ScrollArea>
           </div>
 

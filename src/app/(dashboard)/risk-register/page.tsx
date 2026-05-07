@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -49,7 +48,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
     Dialog, 
     DialogContent, 
@@ -192,7 +191,7 @@ export default function RiskRegisterPage() {
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.open();
-                printWindow.document.write(`<html><head><title>ROR Registry - ${selectedYear}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { @page { size: 13in 11in; margin: 0.5in; } body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Print Unit Forms (11x13)</button></div><div id="print-content">${reportsHtml}</div></body></html>`);
+                printWindow.document.write(`<html><head><title>ROR Registry - ${selectedYear}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { @page { size: 13in 11in; margin: 0.5in; } body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Print Unit Forms (11x13)</button></div><div id="print-content">${reportsHtml}</div></body></html>`);
                 printWindow.document.close();
             }
         } catch (err) { console.error(err); }
@@ -227,7 +226,6 @@ export default function RiskRegisterPage() {
                     <TabsTrigger value="visual-insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><BarChart3 className="h-4 w-4" /> Visual Insights</TabsTrigger>
                     <TabsTrigger value="detailed-register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><List className="h-4 w-4" /> Detailed Register</TabsTrigger>
                 </TabsList>
-                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 

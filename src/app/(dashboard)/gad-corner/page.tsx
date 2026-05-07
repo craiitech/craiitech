@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -29,7 +28,7 @@ import { GADAccomplishmentTab } from '@/components/gad/gad-accomplishment-tab';
 import { GADActivitiesTab } from '@/components/gad/gad-activities-tab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -202,7 +201,6 @@ export default function GadCornerPage() {
                     <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Target className="h-4 w-4" /> Projects Registry</TabsTrigger>
                     <TabsTrigger value="mainstreaming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-4 w-4" /> Mainstreaming</TabsTrigger>
                 </TabsList>
-                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 

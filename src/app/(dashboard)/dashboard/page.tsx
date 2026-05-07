@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -122,7 +121,7 @@ import { cn, normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
@@ -177,7 +176,7 @@ function DashboardSkeleton() {
             <div className="absolute -top-[15%] -left-[10%] w-[70%] h-[70%] bg-yellow-400/20 rounded-full blur-[120px] animate-float-blob" />
             
             {/* Green Institutional Blob */}
-            <div className="absolute -bottom-[15%] -right-[10%] w-[70%] h-[70%] bg-emerald-500/20 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '4s' }} />
+            <div className="absolute -bottom-[15%] -right-[10%] w-[70%] h-[70%] bg-emerald-50/20 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '4s' }} />
             
             {/* Center Blending Blob */}
             <div className="absolute top-[25%] left-[25%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[100px] animate-float-blob" style={{ animationDelay: '2s' }} />
@@ -913,7 +912,6 @@ export default function HomePage() {
                 <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
                 <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
-            <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
       
@@ -1200,7 +1198,6 @@ export default function HomePage() {
                     <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
                     <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
                 </TabsList>
-                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 
@@ -1315,7 +1312,6 @@ export default function HomePage() {
                 <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
                 <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
             </TabsList>
-            <ScrollBar orientation="horizontal" />
           </ScrollArea>
       </div>
 

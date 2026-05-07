@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
@@ -49,7 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from './new/page';
@@ -362,7 +361,6 @@ export default function SubmissionsPage() {
                         {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Status</TabsTrigger>}
                         {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
                     </TabsList>
-                    <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </div>
 
@@ -469,7 +467,6 @@ export default function SubmissionsPage() {
                                 </TabsTrigger>
                             ))}
                         </TabsList>
-                        <ScrollBar orientation="horizontal" />
                     </ScrollArea>
 
                     <TabsContent value={activeDetailedTab} className="mt-4">

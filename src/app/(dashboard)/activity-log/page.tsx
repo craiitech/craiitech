@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -59,7 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function EmployeeActivityLogPage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
@@ -294,7 +293,7 @@ export default function EmployeeActivityLogPage() {
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Click to Print Report</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
                     </div>
                     <div id="print-content" style="padding: 0.1in;">
                         ${html}
@@ -348,7 +347,6 @@ export default function EmployeeActivityLogPage() {
                         <Home className="h-3.5 w-3.5" /> Work From Home (WFH)
                     </TabsTrigger>
                 </TabsList>
-                <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
 
@@ -456,7 +454,7 @@ export default function EmployeeActivityLogPage() {
                             <TableRow>
                                 <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-3">Target Deliverables</TableHead>
-                                <TableHead className="text-[10px) font-black uppercase py-3">Actual Accomplishment</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-3">Actual Accomplishment</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase text-center py-3">Designation</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
                                 <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
