@@ -318,7 +318,33 @@ export function CampusSubmissionsView({
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>QA Unit Notice</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Official Notice</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>QA Unit Notice - ${unit?.name}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                        <style>
+                            @page { 
+                                size: 8.5in 13in !important; 
+                                margin: 0.5in !important; 
+                            }
+                            @media print { 
+                                body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
+                                .no-print { display: none !important; } 
+                            } 
+                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="no-print mb-8 flex justify-center">
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Folio Notice</button>
+                        </div>
+                        <div id="print-content">
+                            ${reportHtml}
+                        </div>
+                    </body>
+                </html>
+            `);
             printWindow.document.close();
         }
     } catch (err) { console.error("Print error:", err); }
@@ -341,7 +367,33 @@ export function CampusSubmissionsView({
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>QA Campus Notice</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Consolidated Notice</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>QA Campus Notice - ${campus?.name}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                        <style>
+                            @page { 
+                                size: 8.5in 13in !important; 
+                                margin: 0.5in !important; 
+                            }
+                            @media print { 
+                                body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
+                                .no-print { display: none !important; } 
+                            } 
+                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="no-print mb-8 flex justify-center">
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Folio Notice</button>
+                        </div>
+                        <div id="print-content">
+                            ${reportHtml}
+                        </div>
+                    </body>
+                </html>
+            `);
             printWindow.document.close();
         }
     } catch (err) { console.error("Print error:", err); }

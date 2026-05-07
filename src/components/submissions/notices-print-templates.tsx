@@ -34,6 +34,7 @@ interface CampusNoticeProps {
 
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
+ * Optimized for Folio (8.5 x 13) with 12pt typography
  */
 export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead }: NoticeProps) {
   const isPresident = unitName.toLowerCase().includes('president');
@@ -57,46 +58,46 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
   const isFirstCompliant = missingFirst.length === 0;
 
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
-      {/* Institutional Header - Logo Removed */}
-      <div className="text-center border-b-2 border-black pb-6 mb-8">
+    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed" style={{ fontSize: '12pt' }}>
+      {/* Institutional Header */}
+      <div className="text-center border-b-2 border-black pb-6 mb-10">
         <div className="space-y-1">
-            <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-            <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
-            <p className="text-xs italic">Main Campus, Odiongan, Romblon</p>
+            <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>Romblon State University</h1>
+            <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Quality Assurance Office</h2>
+            <p className="text-sm italic">Main Campus, Odiongan, Romblon</p>
         </div>
       </div>
 
-      <div className="flex justify-between mb-10">
-        <div className="space-y-1 text-xs">
+      <div className="flex justify-between mb-12">
+        <div className="space-y-1">
             <p className="font-bold">MEMORANDUM</p>
-            <p>Ref No: RSU-QAO-NNC-{year}-{format(new Date(), 'MMdd')}</p>
+            <p className="text-[10pt]">Ref No: RSU-QAO-NNC-{year}-{format(new Date(), 'MMdd')}</p>
         </div>
-        <p className="font-bold text-xs">{format(new Date(), 'MMMM d, yyyy')}</p>
+        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
       </div>
 
-      <div className="space-y-4 mb-10">
+      <div className="space-y-6 mb-12">
         <div className="grid grid-cols-12 gap-2">
-            <span className="col-span-2 font-bold uppercase text-xs">FOR:</span>
-            <span className="col-span-10 font-bold uppercase text-xs">{forLine}</span>
+            <span className="col-span-1 font-bold uppercase">FOR:</span>
+            <span className="col-span-11 font-bold uppercase">{forLine}</span>
         </div>
         
         {thruLine ? (
-            <div className="grid grid-cols-12 gap-2 border-b border-black pb-4">
-                <span className="col-span-2 font-bold uppercase text-xs">THRU:</span>
-                <span className="col-span-10 font-bold uppercase text-xs">{thruLine}</span>
+            <div className="grid grid-cols-12 gap-2 border-b border-black pb-6">
+                <span className="col-span-1 font-bold uppercase">THRU:</span>
+                <span className="col-span-11 font-bold uppercase">{thruLine}</span>
             </div>
         ) : (
-            <div className="border-b border-black pb-4" />
+            <div className="border-b border-black pb-6" />
         )}
 
-        <div className="grid grid-cols-12 gap-2 pt-2">
-            <span className="col-span-2 font-bold uppercase text-xs">SUBJECT:</span>
-            <span className="col-span-10 font-black uppercase underline text-xs">NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)</span>
+        <div className="grid grid-cols-12 gap-2 pt-4">
+            <span className="col-span-1 font-bold uppercase">SUBJECT:</span>
+            <span className="col-span-11 font-black uppercase underline decoration-2 underline-offset-4">NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)</span>
         </div>
       </div>
 
-      <div className="space-y-6 text-sm">
+      <div className="space-y-8">
         <p>
             This is to formally inform your office that as of <strong>{format(new Date(), 'PPP')}</strong>, the 
             <strong> {unitName}</strong> has failed to complete the mandatory documentation requirements for the 
@@ -107,38 +108,38 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
             Upon verification through the RSU EOMS Portal, the current audit status for your unit is as follows:
         </p>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-6">
             {isFirstCompliant ? (
-                <div className="border-2 border-green-600 p-4 bg-green-50/50 flex items-center justify-between">
-                    <div>
-                        <p className="font-black text-green-700 text-xs uppercase mb-1">I. FIRST SUBMISSION CYCLE:</p>
-                        <p className="font-bold text-green-600 text-sm">FULLY COMPLIANT</p>
+                <div className="border-2 border-green-600 p-6 bg-green-50/50 flex items-center justify-between rounded-lg">
+                    <div className="space-y-1">
+                        <p className="font-black text-green-700 uppercase" style={{ fontSize: '10pt' }}>I. FIRST SUBMISSION CYCLE:</p>
+                        <p className="font-bold text-green-600 text-lg">FULLY COMPLIANT</p>
                     </div>
-                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                    <CheckCircle2 className="h-10 w-10 text-green-600" />
                 </div>
             ) : (
-                <div className="border border-black p-4 bg-slate-50">
-                    <p className="font-bold text-xs uppercase mb-2">I. FIRST SUBMISSION CYCLE (OUTSTANDING):</p>
-                    <ul className="list-decimal pl-8 space-y-1">
+                <div className="border-2 border-black p-6 bg-slate-50 rounded-lg">
+                    <p className="font-bold uppercase mb-4" style={{ fontSize: '10pt' }}>I. FIRST SUBMISSION CYCLE (OUTSTANDING):</p>
+                    <ul className="list-disc pl-10 space-y-2">
                         {missingFirst.map((doc, i) => <li key={i}>{doc}</li>)}
                     </ul>
                 </div>
             )}
 
             {missingFinal.length > 0 ? (
-                <div className="border border-black p-4 bg-slate-50">
-                    <p className="font-bold text-xs uppercase mb-2">II. FINAL SUBMISSION CYCLE (OUTSTANDING):</p>
-                    <ul className="list-decimal pl-8 space-y-1">
+                <div className="border-2 border-black p-6 bg-slate-50 rounded-lg">
+                    <p className="font-bold uppercase mb-4" style={{ fontSize: '10pt' }}>II. FINAL SUBMISSION CYCLE (OUTSTANDING):</p>
+                    <ul className="list-disc pl-10 space-y-2">
                         {missingFinal.map((doc, i) => <li key={i}>{doc}</li>)}
                     </ul>
                 </div>
             ) : (
-                <div className="border-2 border-green-600 p-4 bg-green-50/50 flex items-center justify-between">
-                    <div>
-                        <p className="font-black text-green-700 text-xs uppercase mb-1">II. FINAL SUBMISSION CYCLE:</p>
-                        <p className="font-bold text-green-600 text-sm">FULLY COMPLIANT</p>
+                <div className="border-2 border-green-600 p-6 bg-green-50/50 flex items-center justify-between rounded-lg">
+                    <div className="space-y-1">
+                        <p className="font-black text-green-700 uppercase" style={{ fontSize: '10pt' }}>II. FINAL SUBMISSION CYCLE:</p>
+                        <p className="font-bold text-green-600 text-lg">FULLY COMPLIANT</p>
                     </div>
-                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                    <CheckCircle2 className="h-10 w-10 text-green-600" />
                 </div>
             )}
         </div>
@@ -153,24 +154,24 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <p>For your immediate compliance and appropriate action.</p>
       </div>
 
-      <div className="mt-20 space-y-12">
-        <div className="w-64">
-            <div className="border-b border-black font-bold uppercase text-center pb-1">{qmsHead}</div>
-            <p className="text-[10px] uppercase font-bold mt-1 text-center">Head, Quality Management System Unit</p>
+      <div className="mt-24 space-y-20">
+        <div className="w-80">
+            <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qmsHead}</div>
+            <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</p>
         </div>
         
-        <div className="w-64">
-            <p className="text-[10px] font-bold uppercase mb-4">Noted by:</p>
-            <div className="border-b border-black font-bold uppercase text-center pb-1">{qaoDirector}</div>
-            <p className="text-[10px] uppercase font-bold mt-1 text-center">Director, Quality Assurance Office</p>
+        <div className="w-80">
+            <p className="font-bold uppercase mb-6" style={{ fontSize: '10pt' }}>Noted by:</p>
+            <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qaoDirector}</div>
+            <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office</p>
         </div>
       </div>
 
-      <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-500">
         This is a system-generated report; signature is not required.
       </div>
 
-      <div className="mt-16 text-[9px] text-slate-400 italic border-t pt-4 flex justify-between">
+      <div className="mt-auto pt-10 border-t border-slate-200 flex justify-between text-[10pt] text-slate-400 italic">
         <span>RSU-QAO-FOR-022 | Rev 01-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
@@ -180,79 +181,80 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
 /**
  * NOTICE OF COMPLIANCE TEMPLATE (UNIT LEVEL)
+ * Optimized for Folio (8.5 x 13) with 12pt typography
  */
 export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector, qmsHead }: NoticeProps) {
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
-      <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
-        {/* Institutional Header - Logo Removed */}
-        <div className="text-center pb-6 mb-12">
-            <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-            <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
-            <div className="w-24 h-1 bg-primary mx-auto mt-4" />
+    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[16px] border-double border-slate-200" style={{ fontSize: '12pt' }}>
+      <div className="border-2 border-slate-800 p-12 min-h-[11in] flex flex-col">
+        {/* Institutional Header */}
+        <div className="text-center pb-8 mb-16 border-b-2 border-slate-100">
+            <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '18pt' }}>Romblon State University</h1>
+            <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Quality Assurance Office</h2>
+            <div className="w-32 h-1.5 bg-primary mx-auto mt-6" />
         </div>
 
-        <div className="text-center space-y-8 flex-1">
-            <div className="flex justify-center mb-4">
-                <CheckCircle2 className="h-16 w-16 text-emerald-600" />
+        <div className="text-center space-y-12 flex-1">
+            <div className="flex justify-center">
+                <CheckCircle2 className="h-24 w-24 text-emerald-600" />
             </div>
             
-            <h2 className="text-3xl font-black uppercase tracking-[0.1em] text-slate-900">Notice of Compliance</h2>
+            <h2 className="font-black uppercase tracking-[0.2em] text-slate-900" style={{ fontSize: '28pt' }}>Notice of Compliance</h2>
             
-            <p className="text-lg italic text-slate-600">This is to officially certify that the</p>
+            <p className="text-xl italic text-slate-600">This is to officially certify that the</p>
             
-            <div className="py-4">
-                <h3 className="text-2xl font-black uppercase text-primary underline underline-offset-8 decoration-slate-300">{unitName}</h3>
-                <p className="text-md font-bold text-slate-700 mt-2">{campusName}</p>
+            <div className="py-6">
+                <h3 className="font-black uppercase text-primary underline underline-offset-8 decoration-slate-300" style={{ fontSize: '24pt' }}>{unitName}</h3>
+                <p className="font-bold text-slate-700 mt-4 uppercase tracking-widest" style={{ fontSize: '14pt' }}>{campusName}</p>
             </div>
 
-            <p className="max-w-xl mx-auto text-md leading-relaxed">
+            <p className="max-w-2xl mx-auto text-lg leading-relaxed">
                 has successfully completed and fulfilled all mandatory documentation requirements for the 
                 <strong> Educational Organizations Management System (EOMS)</strong> compliant with 
                 <strong> ISO 21001:2018</strong> standards for the Academic Year <strong>{year}</strong>.
             </p>
 
-            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto shadow-sm space-y-4">
-                <div className="border-b border-emerald-200 pb-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Verification Ledger</p>
-                    <div className="flex items-center justify-center gap-3">
-                        <ShieldCheck className="h-6 w-6 text-emerald-600" />
-                        <span className="text-xl font-black text-emerald-800">{totalApproved} Verified Records</span>
+            <div className="bg-emerald-50 border-2 border-emerald-100 p-8 rounded-2xl max-w-md mx-auto shadow-md space-y-6">
+                <div className="border-b-2 border-emerald-200 pb-3">
+                    <p className="text-[11pt] font-black uppercase tracking-widest text-emerald-700 mb-2">Institutional Verification Ledger</p>
+                    <div className="flex items-center justify-center gap-4">
+                        <ShieldCheck className="h-8 w-8 text-emerald-600" />
+                        <span className="text-2xl font-black text-emerald-800">{totalApproved} Approved Records</span>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase text-emerald-600">
-                    <div className="flex items-center gap-1">
-                        <Check className="h-3 w-3" /> 1st Cycle
+                <div className="grid grid-cols-2 gap-4 font-black uppercase text-emerald-600" style={{ fontSize: '10pt' }}>
+                    <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 stroke-[4]" /> 1st Cycle COMPLETED
                     </div>
-                    <div className="flex items-center gap-1">
-                        <Check className="h-3 w-3" /> Final Cycle
+                    <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 stroke-[4]" /> Final Cycle COMPLETED
                     </div>
                 </div>
             </div>
 
-            <p className="text-sm text-slate-500 pt-8">
+            <p className="text-md text-slate-500 pt-12">
                 Issued this <strong>{format(new Date(), 'do')}</strong> day of <strong>{format(new Date(), 'MMMM')}</strong>, 
                 <strong> {format(new Date(), 'yyyy')}</strong>.
             </p>
         </div>
 
-        <div className="mt-20 grid grid-cols-2 gap-12">
+        <div className="mt-24 grid grid-cols-2 gap-16">
             <div className="text-center">
-                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qmsHead}</div>
-                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Head, QMS Unit</p>
+                <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '13pt' }}>{qmsHead}</div>
+                <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Head, QMS Unit</p>
             </div>
             <div className="text-center">
-                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qaoDirector}</div>
-                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Director, QAO (Noted By)</p>
+                <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '13pt' }}>{qaoDirector}</div>
+                <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Director, QAO (Noted By)</p>
             </div>
         </div>
 
-        <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+        <div className="mt-10 text-center text-[10pt] font-bold italic text-slate-500">
             This is a system-generated report; signature is not required.
         </div>
 
-        <div className="mt-auto pt-8 flex justify-between items-end text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
-            <div className="flex flex-col">
+        <div className="mt-auto pt-10 flex justify-between items-end text-[10pt] text-slate-400 uppercase font-bold tracking-tighter">
+            <div className="flex flex-col space-y-0.5">
                 <span>Verification Code: VER-{year}-{format(new Date(), 'HHmm')}</span>
                 <span>RSU-QAO-FOR-023 | REV 01-2025</span>
             </div>
@@ -268,78 +270,79 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
 
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (NON-COMPLIANCE)
+ * Optimized for Folio (8.5 x 13) with 12pt typography
  */
 export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   const nonCompliantUnits = units.filter(u => u.score < 100);
   const compliantUnits = units.filter(u => u.score === 100);
 
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
-      <div className="text-center border-b-2 border-black pb-6 mb-8">
+    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed" style={{ fontSize: '12pt' }}>
+      <div className="text-center border-b-2 border-black pb-6 mb-10">
         <div className="space-y-1">
-            <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-            <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
+            <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>Romblon State University</h1>
+            <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Quality Assurance Office</h2>
             <p className="text-xs italic">Odiongan, Romblon</p>
         </div>
       </div>
 
-      <div className="flex justify-between mb-10">
-        <div className="space-y-1 text-xs">
+      <div className="flex justify-between mb-12">
+        <div className="space-y-1">
             <p className="font-bold">MEMORANDUM</p>
-            <p>Ref No: RSU-QAO-CNNC-{year}-{format(new Date(), 'MMdd')}</p>
+            <p className="text-[10pt]">Ref No: RSU-QAO-CNNC-{year}-{format(new Date(), 'MMdd')}</p>
         </div>
-        <p className="font-bold text-xs">{format(new Date(), 'MMMM d, yyyy')}</p>
+        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
       </div>
 
-      <div className="space-y-4 mb-10">
-        <div className="grid grid-cols-12 gap-2 border-b border-black pb-4">
-            <span className="col-span-2 font-bold uppercase text-xs">FOR:</span>
-            <span className="col-span-10 font-bold uppercase text-lg">THE CAMPUS DIRECTOR, {campusName}</span>
+      <div className="space-y-6 mb-12">
+        <div className="grid grid-cols-12 gap-2 border-b-2 border-black pb-6">
+            <span className="col-span-1 font-bold uppercase">FOR:</span>
+            <span className="col-span-11 font-black uppercase" style={{ fontSize: '14pt' }}>THE CAMPUS DIRECTOR, {campusName}</span>
         </div>
-        <div className="grid grid-cols-12 gap-2 pt-2">
-            <span className="col-span-2 font-bold uppercase text-xs">SUBJECT:</span>
-            <span className="col-span-10 font-black uppercase underline text-xs">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
+        <div className="grid grid-cols-12 gap-2 pt-4">
+            <span className="col-span-1 font-bold uppercase">SUBJECT:</span>
+            <span className="col-span-11 font-black uppercase underline decoration-2 underline-offset-4">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
         </div>
       </div>
 
-      <div className="space-y-6 text-[13px]">
+      <div className="space-y-8">
         <p>
             Respectfully submitted herewith is the <strong>Consolidated Compliance Status Report</strong> for the 
             <strong> {campusName}</strong> Academic Year <strong>{year}</strong>, as verified through the 
             RSU EOMS Digital Submission and Monitoring Portal.
         </p>
 
-        <div className="space-y-8">
+        <div className="space-y-10">
             {nonCompliantUnits.length > 0 && (
-                <section className="space-y-4">
-                    <h3 className="font-black text-xs uppercase bg-slate-100 p-2 border-l-4 border-black">I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)</h3>
+                <section className="space-y-6">
+                    <h3 className="font-black text-sm uppercase bg-slate-100 p-3 border-l-[6px] border-black">I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)</h3>
                     <div className="space-y-6">
                         {nonCompliantUnits.map((unit, idx) => {
                             const firstCycleDone = unit.missingFirst.length === 0;
                             return (
-                                <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/50">
-                                    <div className="flex justify-between items-center mb-3">
+                                <div key={idx} className="border-2 border-black/20 p-6 rounded-xl bg-slate-50/50">
+                                    <div className="flex justify-between items-center mb-4">
                                         <div className="flex flex-col">
-                                            <p className="font-bold text-sm uppercase">{unit.name}</p>
+                                            <p className="font-black text-lg uppercase">{unit.name}</p>
                                             {firstCycleDone && (
-                                                <p className="text-[9px] font-black text-green-600 uppercase">First Cycle Status: Fully Compliant</p>
+                                                <p className="font-black text-green-600 uppercase" style={{ fontSize: '9pt' }}>First Cycle Status: Fully Compliant</p>
                                             )}
                                         </div>
-                                        <span className="text-[10px] font-black bg-white border border-black px-2 py-0.5">{unit.score}% MATURITY</span>
+                                        <span className="font-black bg-white border-2 border-black px-4 py-1 rounded shadow-sm">{unit.score}% MATURITY</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-8">
                                         {unit.missingFirst.length > 0 && (
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (1st Cycle):</p>
-                                                <ul className="list-disc pl-4 text-[10px] space-y-0.5">
+                                            <div className="p-3 bg-white/60 rounded border border-dashed border-slate-300">
+                                                <p className="font-black uppercase text-slate-500 underline mb-2" style={{ fontSize: '9pt' }}>Missing (1st Cycle):</p>
+                                                <ul className="list-disc pl-6 space-y-1.5" style={{ fontSize: '11pt' }}>
                                                     {unit.missingFirst.map((m, i) => <li key={i}>{m}</li>)}
                                                 </ul>
                                             </div>
                                         )}
                                         {unit.missingFinal.length > 0 && (
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (Final Cycle):</p>
-                                                <ul className="list-disc pl-4 text-[10px] space-y-0.5">
+                                            <div className="p-3 bg-white/60 rounded border border-dashed border-slate-300">
+                                                <p className="font-black uppercase text-slate-500 underline mb-2" style={{ fontSize: '9pt' }}>Missing (Final Cycle):</p>
+                                                <ul className="list-disc pl-6 space-y-1.5" style={{ fontSize: '11pt' }}>
                                                     {unit.missingFinal.map((m, i) => <li key={i}>{m}</li>)}
                                                 </ul>
                                             </div>
@@ -354,12 +357,12 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
 
             {compliantUnits.length > 0 && (
                 <section className="space-y-4">
-                    <h3 className="font-black text-xs uppercase bg-emerald-50 p-2 border-l-4 border-emerald-600 text-emerald-800">II. FULLY COMPLIANT UNITS (100% VERIFIED)</h3>
-                    <div className="grid grid-cols-2 gap-2">
+                    <h3 className="font-black text-sm uppercase bg-emerald-50 p-3 border-l-[6px] border-emerald-600 text-emerald-800">II. FULLY COMPLIANT UNITS (100% VERIFIED)</h3>
+                    <div className="grid grid-cols-2 gap-4">
                         {compliantUnits.map((unit, idx) => (
-                            <div key={idx} className="flex items-center gap-2 p-2 border border-emerald-100 rounded bg-emerald-50/30">
-                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                                <span className="font-bold text-[11px] uppercase truncate">{unit.name}</span>
+                            <div key={idx} className="flex items-center gap-3 p-4 border-2 border-emerald-100 rounded-xl bg-emerald-50/30">
+                                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                <span className="font-black uppercase truncate">{unit.name}</span>
                             </div>
                         ))}
                     </div>
@@ -367,31 +370,31 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
             )}
         </div>
 
-        <p className="pt-6">
+        <p className="pt-10">
             Campus Directors are urged to coordinate with the non-compliant units identified above to expedite the 
             completion of their documentation requirements. Quality and operational parity across all units is 
             essential for our institutional ISO 21001:2018 certification maintenance.
         </p>
       </div>
 
-      <div className="mt-20 space-y-12">
-        <div className="w-64">
-            <div className="border-b border-black font-bold uppercase text-center pb-1">{qmsHead}</div>
-            <p className="text-[10px] uppercase font-bold mt-1 text-center">Head, Quality Management System Unit</p>
+      <div className="mt-24 space-y-20">
+        <div className="w-80">
+            <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qmsHead}</div>
+            <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</p>
         </div>
         
-        <div className="w-64">
-            <p className="text-[10px] font-bold uppercase mb-4">Noted by:</p>
-            <div className="border-b border-black font-bold uppercase text-center pb-1">{qaoDirector}</div>
-            <p className="text-[10px] uppercase font-bold mt-1 text-center">Director, Quality Assurance Office</p>
+        <div className="w-80">
+            <p className="font-bold uppercase mb-6" style={{ fontSize: '10pt' }}>Noted by:</p>
+            <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qaoDirector}</div>
+            <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office</p>
         </div>
       </div>
 
-      <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-500">
         This is a system-generated report; signature is not required.
       </div>
 
-      <div className="mt-16 text-[9px] text-slate-400 italic border-t pt-4 flex justify-between">
+      <div className="mt-auto pt-10 border-t border-slate-200 flex justify-between text-[10pt] text-slate-400 italic">
         <span>RSU-QAO-FOR-024 | REV 01-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
@@ -401,69 +404,70 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
 
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (COMPLIANCE)
+ * Optimized for Folio (8.5 x 13) with 12pt typography
  */
 export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
-      <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
-        <div className="text-center pb-6 mb-12">
-            <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-            <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
-            <div className="w-24 h-1 bg-primary mx-auto mt-4" />
+    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[16px] border-double border-slate-200" style={{ fontSize: '12pt' }}>
+      <div className="border-2 border-slate-800 p-12 min-h-[11in] flex flex-col">
+        <div className="text-center pb-8 mb-16 border-b-2 border-slate-100">
+            <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '20pt' }}>Romblon State University</h1>
+            <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '16pt' }}>Quality Assurance Office</h2>
+            <div className="w-40 h-2 bg-primary mx-auto mt-8" />
         </div>
 
-        <div className="text-center space-y-8 flex-1">
-            <div className="flex justify-center mb-4">
-                <ShieldCheck className="h-16 w-16 text-emerald-600" />
+        <div className="text-center space-y-12 flex-1">
+            <div className="flex justify-center">
+                <ShieldCheck className="h-32 w-32 text-emerald-600" />
             </div>
             
-            <h2 className="text-3xl font-black uppercase tracking-[0.1em] text-slate-900">Institutional Notice of Compliance</h2>
+            <h2 className="font-black uppercase tracking-[0.2em] text-slate-900" style={{ fontSize: '32pt' }}>Institutional Notice of Compliance</h2>
             
-            <p className="text-lg italic text-slate-600">This is to officially recognize that the</p>
+            <p className="text-2xl italic text-slate-600">This is to officially recognize that the</p>
             
-            <div className="py-4">
-                <h3 className="text-3xl font-black uppercase text-primary underline underline-offset-8 decoration-slate-300">{campusName}</h3>
+            <div className="py-8">
+                <h3 className="font-black uppercase text-primary underline underline-offset-[12px] decoration-slate-300" style={{ fontSize: '36pt' }}>{campusName}</h3>
             </div>
 
-            <p className="max-w-xl mx-auto text-md leading-relaxed">
+            <p className="max-w-2xl mx-auto text-xl leading-relaxed">
                 under the leadership of the Campus Director, has achieved <strong>100% Quality Documentation Parity</strong> 
                 across all assigned academic and administrative units for the Academic Year <strong>{year}</strong>.
             </p>
 
-            <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto pt-6">
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl shadow-sm">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Site Maturity Index</p>
-                    <span className="text-3xl font-black text-emerald-800">100.0%</span>
+            <div className="grid grid-cols-1 gap-6 max-w-md mx-auto pt-10">
+                <div className="bg-emerald-50 border-2 border-emerald-100 p-6 rounded-2xl shadow-md">
+                    <p className="text-[11pt] font-black uppercase tracking-widest text-emerald-700 mb-2">Site Maturity Index</p>
+                    <span className="text-5xl font-black text-emerald-800">100.0%</span>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <div className="flex items-center justify-center gap-3 text-lg font-black text-slate-600 uppercase tracking-tight">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                     <span>{units.length} Units Fully Verified</span>
                 </div>
             </div>
 
-            <p className="text-sm text-slate-500 pt-8 italic leading-relaxed">
+            <p className="text-lg text-slate-500 pt-12 italic leading-relaxed">
                 This achievement demonstrates the campus's profound commitment to academic excellence and 
                 administrative efficiency as mandated by the EOMS ISO 21001:2018 standards.
             </p>
         </div>
 
-        <div className="mt-20 grid grid-cols-2 gap-12">
+        <div className="mt-24 grid grid-cols-2 gap-16">
             <div className="text-center">
-                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qmsHead}</div>
-                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Head, QMS Unit</p>
+                <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '14pt' }}>{qmsHead}</div>
+                <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Head, QMS Unit</p>
             </div>
             <div className="text-center">
-                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qaoDirector}</div>
-                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Director, QAO (Noted By)</p>
+                <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '14pt' }}>{qaoDirector}</div>
+                <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Director, QAO (Noted By)</p>
             </div>
         </div>
 
-        <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+        <div className="mt-10 text-center text-[10pt] font-bold italic text-slate-500">
             This is a system-generated report; signature is not required.
         </div>
 
-        <div className="mt-auto pt-8 flex justify-between items-end text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
-            <div className="flex flex-col">
+        <div className="mt-auto pt-10 flex justify-between items-end text-[10pt] text-slate-400 uppercase font-bold tracking-tighter">
+            <div className="flex flex-col space-y-0.5">
                 <span>Verification Code: SITE-VER-{year}-{format(new Date(), 'HHmm')}</span>
                 <span>RSU-QAO-FOR-025 | REV 01-2025</span>
             </div>
