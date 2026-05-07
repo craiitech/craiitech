@@ -68,10 +68,10 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
             <FormField
               control={control}
               name="ched.copcStatus"
-              render={({ field }) => (
+              render={({ field: inputField }) => (
                 <FormItem>
                   <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">COPC Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit || !isAdmin}>
+                  <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit || !isAdmin}>
                     <FormControl><SelectTrigger className="h-11 font-bold bg-primary/5 border-primary/20"><SelectValue /></SelectTrigger></FormControl>
                     <SelectContent>
                       <SelectItem value="With COPC" className="font-bold text-emerald-600">Verified: With COPC</SelectItem>
@@ -88,13 +88,13 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 <FormField
                 control={control}
                 name="ched.copcAwardDate"
-                render={({ field }) => (
+                render={({ field: inputField }) => (
                     <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Date of Award</FormLabel>
                     <FormControl>
                         <div className="relative">
                         <Calendar className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input {...field} value={field.value || ''} type="date" className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
+                        <Input {...inputField} value={inputField.value || ''} type="date" className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -105,7 +105,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 <FormField
                 control={control}
                 name="ched.copcLink"
-                render={({ field }) => (
+                render={({ field: inputField }) => (
                     <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
                         Certificate Link (PDF)
@@ -114,7 +114,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     <FormControl>
                         <div className="relative">
                         <LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
+                        <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
                         </div>
                     </FormControl>
                     </FormItem>
@@ -137,11 +137,11 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 <FormField
                     control={control}
                     name="ched.boardApprovalMode"
-                    render={({ field }) => (
+                    render={({ field: inputField }) => (
                         <FormItem className="space-y-3">
                             <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Board Approval Context</FormLabel>
                             <FormControl>
-                                <RadioGroup onValueChange={field.onChange} value={field.value || 'sole'} className="flex flex-col space-y-1" disabled={!canEdit || !isAdmin}>
+                                <RadioGroup onValueChange={inputField.onChange} value={inputField.value || 'sole'} className="flex flex-col space-y-1" disabled={!canEdit || !isAdmin}>
                                     <div className="flex items-center space-x-2 p-3 rounded-xl border bg-muted/5 group cursor-pointer hover:border-primary/20">
                                         <RadioGroupItem value="sole" id="mode-sole" />
                                         <Label htmlFor="mode-sole" className="text-xs font-bold cursor-pointer">Institutional Program Approval</Label>
@@ -158,9 +158,9 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
 
                 {boardApprovalMode === 'sole' ? (
                     <div className="space-y-4">
-                        <FormField control={control} name="ched.boardApprovalLink" render={({ field }) => (
+                        <FormField control={control} name="ched.boardApprovalLink" render={({ field: inputField }) => (
                             <FormItem><FormLabel className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-2">BOR Resolution Link (GDrive) {boardApprovalLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}</FormLabel>
-                                <FormControl><div className="relative"><LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" /><Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} /></div></FormControl>
+                                <FormControl><div className="relative"><LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" /><Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} /></div></FormControl>
                             </FormItem>
                         )} />
                         <GDrivePreview url={boardApprovalLinkVal} title="Program BOR Resolution" />
@@ -186,16 +186,16 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     <div className="pt-6 border-t mt-6 space-y-4 border-destructive/20 bg-destructive/5 p-5 rounded-2xl">
                         <div className="flex items-center gap-2 text-destructive"><FileX className="h-5 w-5 text-destructive" /><h4 className="text-xs font-black uppercase tracking-tight">Phase-Out / Closure Authority</h4></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField control={control} name="ched.closureReferendumNumber" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><Hash className="h-3 w-3" /> Referendum No.</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 2024-042" className="h-9 text-xs bg-white font-mono font-bold" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
+                            <FormField control={control} name="ched.closureReferendumNumber" render={({ field: inputField }) => (
+                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><Hash className="h-3 w-3" /> Referendum No.</FormLabel><FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g. 2024-042" className="h-9 text-xs bg-white font-mono font-bold" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
                             )} />
-                            <FormField control={control} name="ched.closureApprovalDate" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Approval Date</FormLabel><FormControl><Input {...field} value={field.value || ''} type="date" className="h-9 text-xs bg-white" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
+                            <FormField control={control} name="ched.closureApprovalDate" render={({ field: inputField }) => (
+                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Approval Date</FormLabel><FormControl><Input {...inputField} value={inputField.value || ''} type="date" className="h-9 text-xs bg-white" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
                             )} />
                         </div>
-                        <FormField control={control} name="ched.closureResolutionLink" render={({ field }) => (
+                        <FormField control={control} name="ched.closureResolutionLink" render={({ field: inputField }) => (
                             <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2">Evidence: Closure Resolution (PDF) {closureLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}</FormLabel>
-                                <FormControl><div className="relative"><LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground opacity-50" /><Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-11 text-xs bg-white border-destructive/20" disabled={!canEdit || !isAdmin} /></div></FormControl>
+                                <FormControl><div className="relative"><LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground opacity-50" /><Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-11 text-xs bg-white border-destructive/20" disabled={!canEdit || !isAdmin} /></div></FormControl>
                             </FormItem>
                         )} />
                         <GDrivePreview url={closureLinkVal} title="Closure Resolution Evidence" />

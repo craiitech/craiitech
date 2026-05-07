@@ -72,16 +72,16 @@ function EnrollmentRecordCard({
                     <div key={sector} className="space-y-2 p-2 rounded-lg bg-white border shadow-sm">
                         <p className="text-[9px] font-black uppercase text-slate-700">{sector}</p>
                         <div className="grid grid-cols-2 gap-2">
-                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.male`} render={({ field }) => (
+                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.male`} render={({ field: inputField }) => (
                                 <div className="space-y-1">
                                     <Label className="text-[8px] uppercase font-bold text-muted-foreground">Male</Label>
-                                    <Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} />
+                                    <Input type="number" {...inputField} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => inputField.onChange(Number(e.target.value))} />
                                 </div>
                             )} />
-                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.female`} render={({ field }) => (
+                            <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.female`} render={({ field: inputField }) => (
                                 <div className="space-y-1">
                                     <Label className="text-[8px] uppercase font-bold text-muted-foreground">Female</Label>
-                                    <Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} />
+                                    <Input type="number" {...inputField} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => inputField.onChange(Number(e.target.value))} />
                                 </div>
                             )} />
                         </div>
@@ -113,11 +113,11 @@ function EnrollmentRecordCard({
                                 </Button>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.male`} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
+                                <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.male`} render={({ field: inputField }) => (
+                                    <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel><FormControl><Input type="number" {...inputField} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => inputField.onChange(Number(e.target.value))} /></FormControl></FormItem>
                                 )} />
-                                <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.female`} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel><FormControl><Input type="number" {...field} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl></FormItem>
+                                <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.female`} render={({ field: inputField }) => (
+                                    <FormItem><FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel><FormControl><Input type="number" {...inputField} className="h-7 text-[10px]" disabled={!canEdit} onChange={(e) => inputField.onChange(Number(e.target.value))} /></FormControl></FormItem>
                                 )} />
                                 <FormItem>
                                     <FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel>
@@ -380,7 +380,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                     <FormField
                         control={control}
                         name="ched.programCmoLink"
-                        render={({ field }) => (
+                        render={({ field: inputField }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
                                     CHED Memorandum Order (CMO) Link
@@ -389,7 +389,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                                 <FormControl>
                                     <div className="relative">
                                         <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit || !isAdmin} />
+                                        <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit || !isAdmin} />
                                     </div>
                                 </FormControl>
                                 <FormDescription className="text-[9px]">A single institutional standard reference for all program specializations.</FormDescription>
@@ -503,10 +503,10 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                         <FormField
                             control={control}
                             name="stats.graduationCount"
-                            render={({ field }) => (
+                            render={({ field: inputField }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase text-primary">AY Graduation Target</FormLabel>
-                                <FormControl><Input type="number" {...field} value={field.value || 0} className="h-10 text-lg font-black border-primary/30" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                <FormControl><Input type="number" {...inputField} value={inputField.value || 0} className="h-10 text-lg font-black border-primary/30" disabled={!canEdit} onChange={(e) => inputField.onChange(Number(e.target.value))} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
