@@ -33,13 +33,13 @@
     {
       "id": "swot-template",
       "description": "Official SWOT Analysis Template Sample",
-      "imageUrl": "/templates/Swot.png",
+      "imageUrl": "/templates/swot.png",
       "imageHint": "document template"
     },
     {
       "id": "nep-template",
       "description": "Needs and Expectations Template Sample",
-      "imageUrl": "/templates/Nep.png",
+      "imageUrl": "/templates/nep.png",
       "imageHint": "document template"
     },
     {
@@ -51,7 +51,7 @@
     {
       "id": "qom-template",
       "description": "Quality Objectives Monitoring Template Sample",
-      "imageUrl": "/templates/Objectives.png",
+      "imageUrl": "/templates/objectives.png",
       "imageHint": "document template"
     },
     {
@@ -63,13 +63,13 @@
     {
       "id": "roa-template",
       "description": "Risk Action Plan Template Sample",
-      "imageUrl": "/templates/Roap.png",
+      "imageUrl": "/templates/roap.png",
       "imageHint": "document template"
     },
     {
       "id": "general-template",
       "description": "General EOMS Document Template Sample",
-      "imageUrl": "/templates/Swot.png",
+      "imageUrl": "/templates/swot.png",
       "imageHint": "document template"
     }
   ]
