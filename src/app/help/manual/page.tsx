@@ -8,180 +8,166 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search, Database, History, Target, ShieldAlert, CheckCircle2, Info, Monitor, Trash2, Printer } from 'lucide-react';
+import { 
+    ShieldCheck, 
+    BookOpen, 
+    ClipboardCheck, 
+    FileText, 
+    TrendingUp, 
+    Search, 
+    Database, 
+    History, 
+    Target, 
+    ShieldAlert, 
+    CheckCircle2, 
+    Info, 
+    Monitor, 
+    Trash2, 
+    Printer, 
+    LayoutList, 
+    Compass, 
+    UserCheck, 
+    Gavel, 
+    Building2,
+    Users,
+    Activity,
+    Settings,
+    Layers,
+    Smartphone
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const manualSections = [
   {
-    role: 'Institutional Standards (All Users)',
+    role: 'Global System Navigation (All Users)',
+    icon: <Compass className="h-5 w-5 text-primary" />,
     sections: [
       {
-        title: 'Document Control & Revision Logic',
+        title: 'Understanding the System Sidebar',
         content: `
-          <p>The portal enforces strict ISO Document Control standards for all evidence logs:</p>
+          <p>The sidebar on the left is your primary gateway to the EOMS modules. Depending on your role, some menus may be hidden or read-only:</p>
           <ul class="list-disc space-y-2 pl-6">
-            <li><strong>Control Numbers:</strong> Standardized strings (e.g., RSU-UNIT-REV-DOC-DATE) generated automatically upon submission.</li>
-            <li><strong>Revision Tracking:</strong> Submissions start at <strong>Revision 00</strong>. Updates to existing or rejected records increment this automatically (Rev 01, 02, etc.).</li>
-            <li><strong>Draft vs. Final:</strong> Drafts are for content checking (raw docs). Finals are for official filing (signed PDFs).</li>
+            <li><strong>Home (Dashboard):</strong> Your daily cockpit. Shows maturity scores, pending tasks, and official announcements.</li>
+            <li><strong>Activity Log:</strong> Personal workspace for logging daily tasks and WFH sheets.</li>
+            <li><strong>EOMS Submission Hub:</strong> The core repository for the 6 mandatory EOMS documents (SWOT, OpPlan, ROR, etc.).</li>
+            <li><strong>Risk & Opportunity Registry:</strong> The digital database where individual risks must be analyzed before document submission.</li>
+            <li><strong>IQA / Unit Monitoring:</strong> Tools for internal audits and on-site facility inspections.</li>
+            <li><strong>Academic Programs:</strong> Detailed monitoring for CHED COPC, AACCUP levels, and student data.</li>
+            <li><strong>Settings:</strong> Admin-only module for managing users, campuses, and global system parameters.</li>
           </ul>
         `,
       },
       {
-        title: 'Academic Year (AY) Context',
+        title: 'Document Control & Revision Standards',
         content: `
-          <p>Analytics and registries are scoped by Academic Year. Ensure you have selected the correct <strong>AY Filter</strong> in your dashboard to view the relevant compliance matrix and stats.</p>
-        `,
-      },
-      {
-        title: 'Data Privacy & Account Deletion (RA 10173)',
-        content: `
-          <p>In accordance with the <strong>Data Privacy Act of 2012</strong>, users possess the Right to Erasure:</p>
+          <p>The portal enforces strict ISO Document Control standards for all evidence logs:</p>
           <ul class="list-disc space-y-2 pl-6">
-            <li><strong>Self-Initiated Deletion:</strong> Users can delete their personal accounts via the Profile workspace. This removes personal credentials and profile documents.</li>
-            <li><strong>Audit Persistence:</strong> To ensure institutional accountability, all <strong>Submissions</strong> and <strong>Activity Logs</strong> remain in the university registry linked to the user's institutional ID.</li>
+            <li><strong>Automated Control Numbers:</strong> Every submission is assigned a unique string (e.g., RSU-UNIT-REV-DOC-DATE) used for institutional tracking.</li>
+            <li><strong>Revision Logic:</strong> All documents start at <strong>Rev 00</strong>. Resubmissions or corrections automatically increment this to Rev 01, 02, etc.</li>
+            <li><strong>Draft vs. Final:</strong> 
+              <br/>- <strong>Draft:</strong> For preliminary content review. No signatures needed.
+              <br/>- <strong>Final:</strong> Officially signed, scanned PDF for institutional filing.
+            </li>
           </ul>
         `,
       }
     ],
   },
   {
-    role: 'Technical & App Usage',
-    sections: [
-      {
-        title: 'Standalone App Usage (PWA)',
-        content: `
-          <p>For a professional, non-browser workspace, it is recommended to install the portal as an application:</p>
-          <ul class="list-disc space-y-2 pl-6">
-            <li><strong>Installation:</strong> Follow the on-screen prompt or use the browser's "Add to Home Screen" feature.</li>
-            <li><strong>Benefits:</strong> Access the portal directly from your taskbar or home screen without the distraction of browser tabs.</li>
-          </ul>
-        `,
-      },
-      {
-        title: 'Archival Printing Standards',
-        content: `
-          <p>To ensure consistency in physical university archives, the following standards are enforced:</p>
-          <ul class="list-disc space-y-2 pl-6">
-            <li><strong>Paper Size:</strong> All Evidence Logs and CAR reports are formatted for <strong>Folio (8.5" x 13")</strong>.</li>
-            <li><strong>Margins:</strong> A strict <strong>0.5-inch margin</strong> is applied to all sides of printed documents.</li>
-            <li><strong>Typography:</strong> Font sizes are optimized (10pt - 12pt) for high-density legibility in printed form.</li>
-          </ul>
-        `,
-      }
-    ]
-  },
-  {
-    role: 'Unit Coordinators & ODIMOs',
+    role: 'Unit Coordinator & Unit ODIMO Guide',
+    icon: <UserCheck className="h-5 w-5 text-blue-600" />,
     sections: [
         {
-            title: 'Submitting the 6 Core EOMS Documents',
+            title: 'How to Submit EOMS Documents',
             content: `
-                <p>The system tracks six primary strategic documents per cycle:</p>
+                <p>Follow this standard workflow to maintain unit compliance:</p>
                 <ol class="list-decimal space-y-2 pl-6">
-                    <li>SWOT Analysis</li>
-                    <li>Needs and Expectation of Interested Parties</li>
-                    <li>Operational Plan</li>
-                    <li>Quality Objectives Monitoring</li>
-                    <li>Risk and Opportunity Registry</li>
-                    <li>Risk and Opportunity Action Plan</li>
+                    <li><strong>Preparation:</strong> Download the latest template from the "Download Templates" button in the Submission Hub.</li>
+                    <li><strong>Draft Submission:</strong> Upload a working Google Doc first to receive feedback from the Quality Assurance Office.</li>
+                    <li><strong>Refinement:</strong> Address auditor comments directly in your document.</li>
+                    <li><strong>Final Filing:</strong> Once the content is cleared, print, sign, scan to PDF, and submit as "Final" to achieve "Approved" status.</li>
                 </ol>
-                <p class="mt-2"><strong>The Action Plan Rule:</strong> If your Risk Registry entry magnitude is <strong>Low (1-4)</strong>, the Action Plan is N/A. Ratings of <strong>5-25 (Med/High)</strong> trigger a mandatory submission.</p>
+                <p class="mt-4 font-bold text-slate-800">The 6 Core Documents:</p>
+                <p class="text-xs">1. SWOT | 2. Needs & Expectations | 3. Operational Plan | 4. Quality Objectives | 5. Risk Registry | 6. Risk Action Plan (if Medium/High risk).</p>
             `
         },
         {
             title: 'Managing the Digital Risk Register',
             content: `
-                <p>Individual risks must be encoded in the database before document submission:</p>
+                <p>Individual risks must be encoded digitally <strong>BEFORE</strong> you can submit your formal ROR document:</p>
                 <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Baseline Analysis:</strong> Determine Likelihood and Consequence (1-5). Use the <strong>AI Suggest</strong> tool for mitigation strategies.</li>
-                    <li><strong>Post-Treatment:</strong> For closing risks, record the actual implementation results and residual impact.</li>
-                    <li><strong>Closure:</strong> Changing status to "Closed" signifies that mitigation is complete and verified.</li>
+                    <li><strong>Identification:</strong> Define the process objective and the specific risk/opportunity.</li>
+                    <li><strong>Assessment:</strong> Use the ROR Blue Column criteria for Likelihood and Consequence.</li>
+                    <li><strong>AI Assist:</strong> Use the "AI Suggest" button to generate ISO-aligned treatment strategies.</li>
+                    <li><strong>Final Cycle:</strong> You must update the "Post-Treatment Analysis" (Green Column) for all entries before your Final Cycle submission will be accepted.</li>
                 </ul>
             `
         },
         {
-            title: 'Program Monitoring Workspace',
+            title: 'Program Compliance Tracking',
             content: `
-                <p>Maintain five compliance pillars for degree offerings:</p>
+                <p>For academic units, ensure your assigned program offerings are updated annually:</p>
                 <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>CHED/RQAT:</strong> Upload COPC certificates and BOR resolutions. For phased-out programs, upload <strong>Closure Authority</strong> evidence.</li>
-                    <li><strong>Accreditation:</strong> Log AACCUP levels and survey results per specialization/major.</li>
-                    <li><strong>Faculty:</strong> Maintain a <strong>"SYSTEM REGISTERED USER"</strong> list with sex-disaggregated data.</li>
-                    <li><strong>Outcomes:</strong> Log graduation counts, Board Exam performance, and Tracer results.</li>
-                </ul>
-            `
-        },
-        {
-            title: 'Unit Forms & Records',
-            content: `
-                <p>Manage your unit's controlled forms roster:</p>
-                <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Registration:</strong> Apply for new form enrollment using the signed <strong>DRF (Document Registration Form)</strong>.</li>
-                    <li><strong>Roster Access:</strong> Only approved forms appear in the unit roster for download. All downloads are logged for quality auditing.</li>
+                    <li><strong>Authority:</strong> Keep your CHED COPC certificates and BOR resolutions updated.</li>
+                    <li><strong>Accreditation:</strong> Track AACCUP levels and respond to accreditor recommendations.</li>
+                    <li><strong>Outcomes:</strong> Log graduation counts, Board Exam results, and tracer study data in the Batch Data Hub.</li>
                 </ul>
             `
         }
     ]
   },
   {
-      role: 'Campus Directors & Supervisors',
+      role: 'Campus Director & Supervisor Guide',
+      icon: <Building2 className="h-5 w-5 text-amber-600" />,
       sections: [
           {
-              title: 'Consolidated Site Matrix',
+              title: 'Approving Submissions',
               content: `
-                <p>Oversight tools for site-level management:</p>
+                <p>As a supervisor, you are the final gatekeeper for site quality:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Site Maturity:</strong> View aggregate performance across all units in your campus.</li>
-                    <li><strong>Institutional Notices:</strong> Generate printable <strong>Notices of Compliance</strong> (for 100% parity) or <strong>Notices of Non-Compliance</strong> (to flag missing docs).</li>
-                    <li><strong>Unit Explorer:</strong> Drill down into specific unit profiles to verify individual document status.</li>
+                    <li><strong>Review Queue:</strong> Access "Submission Approval" to see pending documents from your campus.</li>
+                    <li><strong>Checklist:</strong> You must verify all points in the Approver's Compliance Checklist before clicking Approve.</li>
+                    <li><strong>Feedback:</strong> If a document is rejected, provide specific corrective instructions in the comments.</li>
                 </ul>
               `
           },
           {
-              title: 'Strategic Decision Support',
+              title: 'Site Performance & Notices',
               content: `
-                <p>Utilize visual data to drive improvements:</p>
+                <p>Utilize the Site Matrix to drive campus-wide improvement:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Survey Pipeline:</strong> Monitor color-coded quality targets and validity periods for academic programs.</li>
-                    <li><strong>GAD Compliance:</strong> Track sex-disaggregated institutional outputs (Enrollment, Faculty, Graduation).</li>
-                    <li><strong>Decision Resolution:</strong> Provide updates on actionable decisions assigned to your site from Management Reviews.</li>
+                    <li><strong>Monitoring:</strong> View the aggregate maturity index of all units in your site.</li>
+                    <li><strong>Notices:</strong> Generate printable <strong>Notices of Non-Compliance</strong> for units with missing requirements to ensure 100% documentation parity.</li>
+                    <li><strong>Actionable Decisions:</strong> Track the implementation of tasks assigned to your site from institutional Management Reviews.</li>
                 </ul>
               `
           }
       ]
   },
   {
-      role: 'Administrators',
+      role: 'System Administrator & Auditor Guide',
+      icon: <Gavel className="h-5 w-5 text-indigo-600" />,
       sections: [
-          {
-              title: 'Institutional Data & Backups',
-              content: `
-                <p>Ensure data redundancy and external audit readiness:</p>
-                 <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Institutional Snapshot:</strong> Generate a multi-sheet XLSX file containing all registries.</li>
-                    <li><strong>Audit Trail Export:</strong> Download the permanent system activity log (Who, What, When).</li>
-                    <li><strong>Manual Snapshots:</strong> High-priority for <strong>ISO 21001:2018 Clause 7.5</strong> compliance.</li>
-                </ul>
-              `
-          },
           {
               title: 'IQA Strategic Planning',
               content: `
-                <p>Manage the university-wide audit lifecycle:</p>
+                <p>Full lifecycle management of institutional audits:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Framework:</strong> Establish institutional audit plans and lead auditors.</li>
-                    <li><strong>Itineraries:</strong> Provision specific unit schedules and map ISO clauses to be verified.</li>
-                    <li><strong>Evidence Logs:</strong> Consolidate auditor findings into final Evidence Log reports for printing.</li>
+                    <li><strong>Planning:</strong> Create annual Audit Plans and define the Lead Auditor.</li>
+                    <li><strong>Itinerary:</strong> Provision individual unit sessions and map specific ISO clauses to be verified.</li>
+                    <li><strong>Evidence Logs:</strong> Consolidate findings into the final printable <strong>Evidence Log Sheets</strong>.</li>
                 </ul>
               `
           },
           {
-              title: 'Quality Reports & CARs',
+              title: 'System Configuration & User Control',
               content: `
-                <p>Formal oversight documentation:</p>
+                <p>High-level administrative functions in the Settings module:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>CAR Registry:</strong> Issue and track <strong>Corrective Action Requests</strong> based on non-conformances.</li>
-                    <li><strong>MR Outputs:</strong> Record decisions from Management Review sessions and assign accountability.</li>
-                    <li><strong>Vault Management:</strong> Maintain the institutional archive of EQA and IQA summary reports.</li>
+                    <li><strong>User Verification:</strong> Authenticate new personnel registrations and assign correct roles.</li>
+                    <li><strong>Institutional Data:</strong> Manage the directory of Campuses, Units, and Roles.</li>
+                    <li><strong>Backups:</strong> Download the total system archive (XLSX) and permanent Audit Trail logs.</li>
                 </ul>
               `
           }
@@ -191,73 +177,101 @@ const manualSections = [
 
 export default function UserManualPage() {
   return (
-    <Card className="shadow-lg border-primary/10">
-      <CardHeader className="bg-primary/5 border-b py-8">
-        <div className="flex items-center gap-3 mb-2">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <CardTitle className="text-3xl font-black uppercase tracking-tight">Institutional User Manual</CardTitle>
+    <Card className="shadow-lg border-primary/10 bg-background">
+      <CardHeader className="bg-primary/5 border-b py-8 px-10">
+        <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20">
+                    <BookOpen className="h-10 w-10" />
+                </div>
+                <div>
+                    <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">Institutional User Manual</h2>
+                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                        RSU EOMS Digital Portal Standard Operating Procedures
+                    </p>
+                </div>
+            </div>
+            <Badge variant="outline" className="h-6 px-4 font-black text-[10px] tracking-widest border-primary/30 text-primary uppercase">Version 2.5.0</Badge>
         </div>
-        <CardDescription className="text-base font-medium">
-          Official operating procedures for the RSU EOMS Digital Portal (ISO 21001:2018).
-        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <FileText className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">Core Reports</span>
-            </div>
-            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <Monitor className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">Standalone App</span>
-            </div>
-            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <Printer className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">Folio Printing</span>
-            </div>
-            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
-                <Trash2 className="h-6 w-6 text-primary" />
-                <span className="text-[9px] font-black uppercase">Data Privacy</span>
-            </div>
+      
+      <CardContent className="pt-10 px-10">
+        {/* Quick Nav Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            {[
+                { icon: <LayoutList />, title: 'Functionality', desc: 'Menu Overview' },
+                { icon: <Smartphone />, title: 'Accessibility', desc: 'PWD/App Usage' },
+                { icon: <Printer />, title: 'Archival', desc: 'Folio Standards' },
+                { icon: <ShieldAlert />, title: 'Privacy', desc: 'RA 10173 Compliance' }
+            ].map((item, i) => (
+                <div key={i} className="p-4 rounded-2xl border bg-muted/20 flex flex-col items-center gap-2 text-center group hover:bg-primary/5 transition-colors">
+                    <div className="h-10 w-10 rounded-xl bg-white border flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">{item.icon}</div>
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-black uppercase text-slate-800">{item.title}</p>
+                        <p className="text-[9px] text-muted-foreground font-bold">{item.desc}</p>
+                    </div>
+                </div>
+            ))}
         </div>
 
-        <Alert className="mb-10 bg-primary/5 border-primary/20">
+        <Alert className="mb-12 bg-primary/5 border-primary/20 shadow-sm">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          <AlertTitle className="font-bold text-primary uppercase text-xs">Security & Transparency Standards</AlertTitle>
-          <AlertDescription className="text-sm font-medium">
-            Every action—logins, document views, status transitions, and data exports—is recorded in the <strong>Permanent System Audit Log</strong>. This ensures institutional accountability and full traceability for external quality audits.
+          <AlertTitle className="font-black text-primary uppercase text-xs tracking-widest">Audit Transparency Protocol</AlertTitle>
+          <AlertDescription className="text-sm font-medium leading-relaxed mt-1">
+            Every institutional action—including logins, document views, status changes, and data exports—is recorded in the <strong>Permanent System Audit Log</strong>. This log is immutable and serves as primary evidence for external ISO quality certification.
           </AlertDescription>
         </Alert>
 
-        <Accordion type="multiple" className="w-full space-y-4">
-          {manualSections.map((roleSection) => (
-            <div key={roleSection.role} className="space-y-2">
-              <div className="flex items-center gap-2 mb-4 mt-8 bg-slate-50 p-3 rounded-lg border">
-                  <Target className="h-4 w-4 text-primary" />
+        <Accordion type="multiple" className="w-full space-y-6">
+          {manualSections.map((roleSection, idx) => (
+            <div key={roleSection.role} className="space-y-4">
+              <div className="flex items-center gap-3 mb-2 mt-8 bg-slate-50 p-4 rounded-xl border-l-4 border-primary shadow-sm">
+                  <div className="h-8 w-8 rounded-lg bg-white border flex items-center justify-center shadow-inner">
+                    {roleSection.icon}
+                  </div>
                   <h3 className="text-lg font-black uppercase tracking-widest text-slate-800">
                     {roleSection.role}
                   </h3>
               </div>
-              {roleSection.sections.map((section, index) => (
-                <AccordionItem key={`${roleSection.role}-${index}`} value={`${roleSection.role}-${index}`} className="border rounded-xl px-4 hover:bg-muted/10 transition-colors bg-white">
-                  <AccordionTrigger className="text-xs font-black uppercase hover:no-underline py-4 text-slate-700">{section.title}</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="prose prose-sm max-w-none text-muted-foreground space-y-3 pt-2 pb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: section.content }} />
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+              <div className="grid grid-cols-1 gap-3 pl-4">
+                {roleSection.sections.map((section, index) => (
+                    <AccordionItem 
+                        key={`${roleSection.role}-${index}`} 
+                        value={`${roleSection.role}-${index}`} 
+                        className="border rounded-2xl px-6 hover:bg-muted/5 transition-all bg-white shadow-sm"
+                    >
+                        <AccordionTrigger className="text-xs font-black uppercase hover:no-underline py-5 text-slate-700 tracking-tight group">
+                            <span className="group-hover:text-primary transition-colors">{section.title}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-6">
+                            <div 
+                                className="prose prose-sm max-w-none text-muted-foreground space-y-4 pt-2 leading-relaxed font-medium" 
+                                dangerouslySetInnerHTML={{ __html: section.content }} 
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+              </div>
             </div>
           ))}
         </Accordion>
       </CardContent>
-      <CardFooter className="bg-muted/10 border-t py-6 px-8">
-        <div className="flex items-start gap-4">
-            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-                <p className="text-xs font-black uppercase text-slate-800">Technical Support</p>
-                <p className="text-xs text-muted-foreground font-medium">
-                    For technical issues, bug reports, or access resets, please contact the <strong>Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)</strong> or use the internal Chatbot agent available on your dashboard.
+
+      <CardFooter className="bg-muted/30 border-t py-8 px-10 mt-12">
+        <div className="flex flex-col md:flex-row items-start gap-6 w-full">
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <Info className="h-6 w-6" />
+            </div>
+            <div className="space-y-2 flex-1">
+                <p className="text-xs font-black uppercase text-slate-800 tracking-[0.1em]">Technical & Operational Support</p>
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+                    For technical errors, password resets, or role adjustments, please contact the <strong>Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)</strong>. You may also utilize the internal AI Chatbot on your dashboard for contextual navigation help.
                 </p>
+            </div>
+            <div className="text-right shrink-0">
+                <p className="text-[10px] font-black uppercase text-slate-400">Project Integrity</p>
+                <p className="text-[9px] font-bold text-slate-400 italic">© 2025 RSU-CRAIITech Collaboration</p>
             </div>
         </div>
       </CardFooter>
