@@ -94,7 +94,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     <FormControl>
                         <div className="relative">
                         <Calendar className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input {...field} type="date" className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
+                        <Input {...field} value={field.value || ''} type="date" className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -114,7 +114,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     <FormControl>
                         <div className="relative">
                         <LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input {...field} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
+                        <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} />
                         </div>
                     </FormControl>
                     </FormItem>
@@ -225,10 +225,10 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                             {canEdit && isAdmin && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeRqat(index)}><Trash2 className="h-4 w-4" /></Button>}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField control={control} name={`ched.rqatVisits.${index}.date`} render={({ field: inputField }) => (
-                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Visit Timeline</FormLabel><FormControl><Input {...inputField} placeholder="e.g., October 2024" className="h-9 text-xs bg-white font-bold" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Visit Timeline</FormLabel><FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g., October 2024" className="h-9 text-xs bg-white font-bold" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
                                 )} />
                                 <FormField control={control} name={`ched.rqatVisits.${index}.result`} render={({ field: inputField }) => (
-                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Outcome</FormLabel><FormControl><Input {...inputField} placeholder="e.g., Compliant" className="h-9 text-xs bg-white font-bold" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Outcome</FormLabel><FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g., Compliant" className="h-9 text-xs bg-white font-bold" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
                                 )} />
                             </div>
                             <FormField control={control} name={`ched.rqatVisits.${index}.reportLink`} render={({ field: inputField }) => (

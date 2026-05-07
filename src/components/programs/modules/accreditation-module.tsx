@@ -329,7 +329,7 @@ function AccreditationRecordCard({
                                         <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Mandatory
                                     </Button>
                                     <Button type="button" size="sm" onClick={() => appendReco({ id: Math.random().toString(36).substr(2, 9), type: 'Enhancement', text: '', assignedUnitIds: [], status: 'Open' })} className="h-8 text-[9px] font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700">
-                                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Enhancement / Recommendations
+                                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Enhancement
                                     </Button>
                                 </div>
                             )}
@@ -374,7 +374,7 @@ function AccreditationRecordCard({
                                                 </div>
                                                 <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.text`} render={({ field: inputField }) => (
                                                     <FormItem>
-                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Enter the recommendation text here..." className="bg-white border-transparent shadow-sm text-xs font-medium leading-relaxed" disabled={!canEdit || !isAdmin} /></FormControl>
+                                                        <FormControl><Textarea {...inputField} value={inputField.value || ''} rows={3} placeholder="Enter the recommendation text here..." className="bg-white border-transparent shadow-sm text-xs font-medium leading-relaxed" disabled={!canEdit || !isAdmin} /></FormControl>
                                                     </FormItem>
                                                 )} />
                                             </div>
@@ -397,7 +397,7 @@ function AccreditationRecordCard({
                                                 <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.additionalInfo`} render={({ field: inputField }) => (
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Additional Action Notes / Area of Accreditation</FormLabel>
-                                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Internal tracking notes..." className="h-8 text-[10px] bg-white" disabled={!canEdit || !isAdmin} /></FormControl>
+                                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Internal tracking notes..." className="h-8 text-[10px] bg-white" disabled={!canEdit} /></FormControl>
                                                     </FormItem>
                                                 )} />
                                             </div>

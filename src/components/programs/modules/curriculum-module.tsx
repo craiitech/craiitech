@@ -259,7 +259,7 @@ function CurriculumRecordCard({
             render={({ field: inputField }) => (
               <FormItem>
                 <FormLabel className="text-[10px] font-bold uppercase">Revision Number</FormLabel>
-                <FormControl><Input {...inputField} placeholder="e.g. 2024-Rev01" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl>
+                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g. 2024-Rev01" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl>
               </FormItem>
             )}
           />
@@ -271,7 +271,7 @@ function CurriculumRecordCard({
             render={({ field: inputField }) => (
                 <FormItem>
                 <FormLabel className="text-[10px] font-bold uppercase">Date Implemented</FormLabel>
-                <FormControl><Input {...inputField} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl>
+                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl>
                 </FormItem>
             )}
         />
@@ -506,7 +506,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase text-primary">AY Graduation Target</FormLabel>
-                                <FormControl><Input type="number" {...field} className="h-10 text-lg font-black border-primary/30" disabled={!canEdit} /></FormControl>
+                                <FormControl><Input type="number" {...field} value={field.value || 0} className="h-10 text-lg font-black border-primary/30" disabled={!canEdit} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
