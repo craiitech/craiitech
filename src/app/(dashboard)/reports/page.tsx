@@ -37,7 +37,8 @@ import {
     Info,
     Target,
     CheckCircle2,
-    Zap
+    Zap,
+    Filter
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -134,6 +135,18 @@ export default function ReportsPage() {
   
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
+
+  /**
+   * ACADEMIC YEAR GENERATION
+   * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
+   */
+  const years = useMemo(() => {
+    const current = new Date().getFullYear();
+    const yrSet = new Set<number>();
+    for (let i = -2; i < 6; i++) yrSet.add(current - i);
+    allCycles?.forEach(c => yrSet.add(Number(c.year)));
+    return Array.from(yrSet).sort((a, b) => b - a);
+  }, [allCycles]);
 
   /**
    * NORMALIZED SUBMISSIONS
@@ -336,19 +349,26 @@ export default function ReportsPage() {
           <p className="text-muted-foreground text-sm">Comprehensive university-wide analytics and system directory.</p>
         </div>
         <div className="flex items-center gap-3">
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                <SelectTrigger className="w-[120px] h-9 bg-white font-bold shadow-sm">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {[2024, 2025, 2026, 2027, 2028].map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
-                </SelectContent>
-            </Select>
+            <div className="flex flex-col items-end">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                    <Filter className="h-2.5 w-2.5" /> Registry Year
+                </label>
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
             {isAdmin && (
-            <Button size="sm" onClick={handlePrint} className="h-9 shadow-lg shadow-primary/20">
-                <Printer className="mr-2 h-4 w-4" />
-                Print Data Log
-            </Button>
+            <div className="pt-4">
+                <Button size="sm" onClick={handlePrint} className="h-9 shadow-lg shadow-primary/20">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print Data Log
+                </Button>
+            </div>
             )}
         </div>
       </div>
@@ -663,7 +683,7 @@ export default function ReportsPage() {
             <div className="pt-6 border-t">
                 <SubmissionMatrixReport 
                     matrixData={matrixData}
-                    allCycles={allCycles}
+                    allCycles={allCycles || null}
                     selectedYear={selectedYear}
                     onYearChange={setSelectedYear}
                 />

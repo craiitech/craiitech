@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
+import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -41,8 +41,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-
-const currentYear = new Date().getFullYear();
 
 export default function AcademicProgramsPage() {
   const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor } = useUser();
@@ -90,6 +88,28 @@ export default function AcademicProgramsPage() {
         }
     }
   }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, userProfile?.campusId, userProfile?.unitId, isUserLoading]);
+
+  /**
+   * ACADEMIC YEAR GENERATION
+   * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
+   */
+  const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
+
+  const academicYears = useMemo(() => {
+    const current = new Date().getFullYear();
+    const years = new Set<number>();
+    
+    // Automatic & Buffer (Rec 1 & 2)
+    for (let i = -2; i < 6; i++) {
+        years.add(current - i);
+    }
+    
+    // Database Driven (Rec 3)
+    allCycles?.forEach(c => years.add(Number(c.year)));
+    
+    return Array.from(years).sort((a, b) => b - a);
+  }, [allCycles]);
 
   /**
    * SCOPED PROGRAM QUERY
@@ -184,7 +204,6 @@ export default function AcademicProgramsPage() {
   };
 
   const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingUnits || isLoadingCompliances;
-  const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
     <div className="space-y-6">

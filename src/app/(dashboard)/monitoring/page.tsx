@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, Timestamp, where } from 'firebase/firestore';
-import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
+import type { UnitMonitoringRecord, Campus, Unit, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -48,9 +48,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 
-const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
-
 export default function MonitoringPage() {
   const { user, isAdmin, isUserLoading, userProfile, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
@@ -82,6 +79,21 @@ export default function MonitoringPage() {
         }
     }
   }, [isGlobalAdmin, isCampusOfficial, isUnitOfficial, isUnitCoordinator, userProfile, isUserLoading]);
+
+  /**
+   * ACADEMIC YEAR GENERATION
+   * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
+   */
+  const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
+
+  const yearsList = useMemo(() => {
+    const current = new Date().getFullYear();
+    const yrSet = new Set<string>();
+    for (let i = -2; i < 6; i++) yrSet.add(String(current - i));
+    allCycles?.forEach(c => yrSet.add(String(c.year)));
+    return Array.from(yrSet).sort((a, b) => b.localeCompare(a));
+  }, [allCycles]);
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -221,11 +233,11 @@ export default function MonitoringPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="w-[120px]">
                         <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                            <SelectTrigger className="h-9"><CalendarSearch className="h-4 w-4 mr-2 opacity-50" /><SelectValue placeholder="Year" /></SelectTrigger>
-                            <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                            <SelectTrigger className="h-9 font-bold bg-white"><CalendarSearch className="h-4 w-4 mr-2 opacity-50" /><SelectValue placeholder="Year" /></SelectTrigger>
+                            <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
-                    {!isUnitOnlyView && <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9 font-bold"><FileDown className="mr-2 h-4 w-4" />Export</Button>}
+                    {!isUnitOnlyView && <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9 font-bold bg-white"><FileDown className="mr-2 h-4 w-4" />Export</Button>}
                     {canAddVisit && <Button size="sm" onClick={handleNewVisit} className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />New Visit</Button>}
                   </div>
                 </div>
@@ -233,7 +245,7 @@ export default function MonitoringPage() {
                     <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
                         <TabsTrigger value="performance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><LayoutDashboard className="h-4 w-4" /> Performance</TabsTrigger>
                         <TabsTrigger value="history" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><History className="h-4 w-4" /> Visit Log</TabsTrigger>
-                        <TabsTrigger value="findings" className="gap-2 text-[10px) font-black uppercase tracking-widest px-6 h-8"><AlertTriangle className="h-4 w-4" /> Gaps & Findings</TabsTrigger>
+                        <TabsTrigger value="findings" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><AlertTriangle className="h-4 w-4" /> Gaps & Findings</TabsTrigger>
                         {!isUnitOnlyView && <TabsTrigger value="explorer" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><SearchCode className="h-4 w-4" /> Explorer</TabsTrigger>}
                         {!isUnitOnlyView && <TabsTrigger value="item-analysis" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-4 w-4" /> Analysis</TabsTrigger>}
                     </TabsList>

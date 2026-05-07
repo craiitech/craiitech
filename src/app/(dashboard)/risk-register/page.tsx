@@ -34,6 +34,7 @@ import type {
     Signatories, 
     Submission, 
     UnitMonitoringRecord, 
+    Cycle
 } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, doc, getDocs, limit, orderBy, Timestamp, deleteDoc } from 'firebase/firestore';
@@ -70,9 +71,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
-const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
-
 export default function RiskRegisterPage() {
     const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor } = useUser();
     const searchParams = useSearchParams();
@@ -104,6 +102,21 @@ export default function RiskRegisterPage() {
             if (!isAdmin && !isSupervisor) setUnitFilter(userProfile.unitId);
         }
     }, [userProfile, isAdmin, isSupervisor, isUserLoading]);
+
+    /**
+     * ACADEMIC YEAR GENERATION
+     * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
+     */
+    const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+    const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
+
+    const yearsList = useMemo(() => {
+        const current = new Date().getFullYear();
+        const yrSet = new Set<number>();
+        for (let i = -2; i < 6; i++) yrSet.add(current - i);
+        allCycles?.forEach(c => yrSet.add(Number(c.year)));
+        return Array.from(yrSet).sort((a, b) => b - a);
+    }, [allCycles]);
 
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
@@ -214,7 +227,7 @@ export default function RiskRegisterPage() {
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
-                        {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        {yearsList.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
                     </SelectContent>
                     </Select>
                 </div>

@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Cycle } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation } from 'lucide-react';
+import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,10 +57,23 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   const canEdit = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo')));
 
   /**
+   * ACADEMIC YEAR GENERATION
+   * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
+   */
+  const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
+
+  const academicYears = useMemo(() => {
+    const current = new Date().getFullYear();
+    const years = new Set<number>();
+    for (let i = -2; i < 6; i++) years.add(current - i);
+    allCycles?.forEach(c => years.add(Number(c.year)));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [allCycles]);
+
+  /**
    * DATA PERSISTENCE STRATEGY:
    * We query ALL compliance records for this program.
-   * This allows us to find the current year's data AND harvest permanent data (CHED, Accreditations)
-   * from historical records if the current year is new.
    */
   const allProgramCompliancesQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'programCompliances'), where('programId', '==', program.id)) : null),
@@ -113,7 +126,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     if (currentId === lastResetId.current) return;
 
     if (activeRecord) {
-      // 1. Data exists for this year - Load it directly
       methods.reset({ 
         ...activeRecord, 
         academicYear: selectedAY,
@@ -121,19 +133,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         enrollmentRecords: activeRecord.enrollmentRecords || []
       });
     } else if (latestHistoricalRecord) {
-      // 2. No data for this year, but history exists - HARVEST PERMANENT DATA
       methods.reset({
         academicYear: selectedAY,
         programId: program.id,
         campusId: program.campusId,
         unitId: program.collegeId,
-        // CARRY OVER: Regulatory & Quality Evidence (The Permanent Stuff)
         ched: latestHistoricalRecord.ched || {},
         accreditationRecords: latestHistoricalRecord.accreditationRecords || [],
         curriculumRecords: latestHistoricalRecord.curriculumRecords || [],
         faculty: latestHistoricalRecord.faculty || { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
-        
-        // RESET: Annual Outcome Metrics (The Fresh Stuff)
         enrollmentRecords: [],
         stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
         graduationRecords: [], 
@@ -143,10 +151,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       
       toast({ 
         title: 'New Cycle Initialized', 
-        description: `Permanent regulatory evidence has been carried over from AY ${latestHistoricalRecord.academicYear}. Please update faculty and outcomes.`,
+        description: `Permanent regulatory evidence has been carried over from AY ${latestHistoricalRecord.academicYear}.`,
       });
     } else {
-      // 3. Complete fresh program log
       methods.reset({
         academicYear: selectedAY,
         ched: { 
@@ -180,7 +187,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
     
-    // Explicitly sync major IDs if per-major mode is used
     if (values.ched?.boardApprovalMode === 'per-major' && program.specializations) {
         values.ched.majorBoardApprovals = values.ched.majorBoardApprovals?.map((a: any, idx: number) => ({
             ...a,
@@ -207,8 +213,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     }
   };
 
-  const academicYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSave)} className="space-y-6">
@@ -216,10 +220,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <span className="text-sm font-semibold uppercase tracking-wider">Academic Monitoring System</span>
-            <Select value={String(selectedAY)} onValueChange={(v) => setSelectedAY(Number(v))}>
-              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Academic Year" /></SelectTrigger>
-              <SelectContent>{academicYears.map(year => <SelectItem key={year} value={String(year)}>AY {year}</SelectItem>)}</SelectContent>
-            </Select>
+            <div className="flex flex-col">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1 flex items-center gap-1">
+                    <Filter className="h-2.5 w-2.5" /> Registry Year
+                </label>
+                <Select value={String(selectedAY)} onValueChange={(v) => setSelectedAY(Number(v))}>
+                  <SelectTrigger className="w-[180px] h-9 bg-white font-bold"><SelectValue placeholder="Academic Year" /></SelectTrigger>
+                  <SelectContent>{academicYears.map(year => <SelectItem key={year} value={String(year)}>AY {year}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {!canEdit && <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">Read-Only</Badge>}
