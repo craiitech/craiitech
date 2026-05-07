@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -35,13 +36,13 @@ interface CampusNoticeProps {
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
  * Optimized for Folio (8.5 x 13) with 11pt typography and single spacing.
+ * Strictly follows the RSU memorandum signatory format.
  */
 export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead }: NoticeProps) {
   const isPresident = unitName.toLowerCase().includes('president');
   const isVP = unitName.toLowerCase().includes('vice president');
-  const isMainCampus = campusName.toLowerCase().includes('main campus');
 
-  let designationLine = '';
+  let designationLine = "THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR";
   let unitLine = unitName.toUpperCase();
   let campusLine = campusName.toUpperCase();
   let thruLine: string | null = null;
@@ -52,10 +53,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
   } else if (isVP) {
     designationLine = "THE VICE PRESIDENT";
     unitLine = unitName.toUpperCase();
-  } else if (isMainCampus) {
-    designationLine = "THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR";
-  } else {
-    designationLine = "UNIT COORDINATORS / DEPARTMENT HEAD / PROGRAM CHAIRS";
+  } else if (!campusName.toLowerCase().includes('main campus')) {
     thruLine = `THE CAMPUS DIRECTOR, ${campusName.toUpperCase()}`;
   }
 
@@ -74,7 +72,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
       <div className="flex justify-between mb-8">
         <div className="space-y-0.5">
-            <p className="font-bold">MEMORANDUM</p>
+            <p className="font-bold uppercase">MEMORANDUM</p>
             <p className="text-[9pt] font-mono">Ref No: RSU-QAO-NNC-{year}-{format(new Date(), 'MMdd')}</p>
         </div>
         <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
@@ -100,14 +98,14 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <div className="border-b border-black pb-2" />
 
         <div className="grid grid-cols-12 gap-2 pt-2">
-            <span className="col-span-1 font-bold uppercase">SUBJECT:</span>
-            <span className="col-span-11 font-black uppercase underline decoration-2 underline-offset-4">NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)</span>
+            <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
+            <span className="col-span-10 font-black uppercase underline decoration-2 underline-offset-4">NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)</span>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 text-justify">
         <p>
-            This is to formally inform your office that as of <strong>{format(new Date(), 'PPP')}</strong>, the 
+            This is to formally inform your office that as of <strong>{format(new Date(), 'MMMM do, yyyy')}</strong>, the 
             <strong> {unitName}</strong> has failed to complete the mandatory documentation requirements for the 
             Educational Organizations Management System (EOMS) aligned with ISO 21001:2018 for the Academic Year <strong>{year}</strong>.
         </p>
@@ -162,29 +160,29 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <p>For your immediate compliance and appropriate action.</p>
       </div>
 
-      {/* SINGLE LINE SIGNATORIES */}
-      <div className="mt-20 space-y-12">
+      {/* CORRECTED SIGNATORIES BLOCK AS PER SCREENSHOT */}
+      <div className="mt-20 space-y-10">
         <div className="border-t border-black pt-1 w-full">
-            <p className="uppercase font-bold">
-                <span style={{ fontSize: '11pt' }}>{qmsHead}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</span>
+            <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
             </p>
         </div>
         
         <div className="space-y-1">
-            <p className="font-bold uppercase text-[9pt] opacity-60">Noted by:</p>
+            <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
             <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold">
-                    <span style={{ fontSize: '11pt' }}>{qaoDirector}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office</span>
+                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                    {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
                 </p>
             </div>
         </div>
       </div>
 
-      <div className="mt-10 text-center text-[9pt] font-bold italic text-slate-500">
+      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900">
         This is a system-generated report; signature is not required.
       </div>
 
-      <div className="mt-auto pt-8 border-t border-slate-200 flex justify-between text-[9pt] text-slate-400 italic">
+      <div className="mt-auto pt-8 border-t border-slate-200 flex justify-between text-[9pt] text-slate-400 font-bold italic">
         <span>RSU-QAO-FOR-022 | Rev 02-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
@@ -194,9 +192,8 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
 /**
  * NOTICE OF COMPLIANCE TEMPLATE (UNIT LEVEL)
- * Optimized for Folio (8.5 x 13) with 11pt typography.
  */
-export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector, qmsHead }: NoticeProps) {
+export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, totalPossible, qaoDirector, qmsHead }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight border-[12px] border-double border-slate-200" style={{ fontSize: '11pt' }}>
       <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
@@ -209,7 +206,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
 
         <div className="text-center space-y-10 flex-1">
             <div className="flex justify-center">
-                <CheckCircle2 className="h-20 w-24 text-emerald-600" />
+                <ShieldCheck className="h-20 w-24 text-emerald-600" />
             </div>
             
             <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Notice of Compliance</h2>
@@ -231,16 +228,8 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
                 <div className="border-b border-emerald-200 pb-2">
                     <p className="text-[10pt] font-black uppercase tracking-widest text-emerald-700 mb-1">Institutional Verification Ledger</p>
                     <div className="flex items-center justify-center gap-3">
-                        <ShieldCheck className="h-6 w-6 text-emerald-600" />
-                        <span className="text-xl font-black text-emerald-800">{totalApproved} Approved Records</span>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 font-black uppercase text-emerald-600" style={{ fontSize: '9pt' }}>
-                    <div className="flex items-center gap-1">
-                        <Check className="h-3 w-3 stroke-[4]" /> 1st Cycle
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Check className="h-3 w-3 stroke-[4]" /> Final Cycle
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                        <span className="text-xl font-black text-emerald-800">{totalApproved} / {totalPossible} Approved Records</span>
                     </div>
                 </div>
             </div>
@@ -251,18 +240,21 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             </p>
         </div>
 
-        {/* SINGLE LINE SIGNATORIES */}
-        <div className="mt-20 space-y-8">
-            <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold text-left">
-                    <span style={{ fontSize: '11pt' }}>{qmsHead}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</span>
+        {/* CORRECTED SIGNATORIES BLOCK */}
+        <div className="mt-20 space-y-10">
+            <div className="border-t border-black pt-1 w-full text-left">
+                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                    {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
                 </p>
             </div>
             
-            <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold text-left">
-                    <span style={{ fontSize: '11pt' }}>{qaoDirector}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office (Noted By)</span>
-                </p>
+            <div className="space-y-1 text-left">
+                <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
+                <div className="border-t border-black pt-1 w-full">
+                    <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                        {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -304,7 +296,7 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
 
       <div className="flex justify-between mb-8">
         <div className="space-y-0.5">
-            <p className="font-bold">MEMORANDUM</p>
+            <p className="font-bold uppercase">MEMORANDUM</p>
             <p className="text-[9pt] font-mono">Ref No: RSU-QAO-CNNC-{year}-{format(new Date(), 'MMdd')}</p>
         </div>
         <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
@@ -319,12 +311,12 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
             </div>
         </div>
         <div className="grid grid-cols-12 gap-2 pt-2 border-t border-black mt-2">
-            <span className="col-span-1 font-bold uppercase">SUBJECT:</span>
-            <span className="col-span-11 font-black uppercase underline decoration-2 underline-offset-4">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
+            <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
+            <span className="col-span-10 font-black uppercase underline decoration-2 underline-offset-4">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 text-justify">
         <p>
             Respectfully submitted herewith is the <strong>Consolidated Compliance Status Report</strong> for the 
             <strong> {campusName}</strong> Academic Year <strong>{year}</strong>, as verified through the 
@@ -336,52 +328,12 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
                 <section className="space-y-4">
                     <h3 className="font-black text-[10pt] uppercase bg-slate-100 p-2 border-l-[4px] border-black">I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)</h3>
                     <div className="space-y-4">
-                        {nonCompliantUnits.map((unit, idx) => {
-                            const firstCycleDone = unit.missingFirst.length === 0;
-                            return (
-                                <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/30">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div className="flex flex-col">
-                                            <p className="font-black text-sm uppercase">{unit.name}</p>
-                                            {firstCycleDone && (
-                                                <p className="font-black text-green-600 uppercase" style={{ fontSize: '8pt' }}>First Cycle Status: Fully Compliant</p>
-                                            )}
-                                        </div>
-                                        <span className="font-black bg-white border border-black px-3 py-0.5 rounded text-[10pt]">{unit.score}% MATURITY</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {unit.missingFirst.length > 0 && (
-                                            <div className="p-2 bg-white/60 rounded border border-dashed border-slate-200">
-                                                <p className="font-black uppercase text-slate-500 underline mb-1" style={{ fontSize: '8pt' }}>Missing (1st Cycle):</p>
-                                                <ul className="list-disc pl-5 space-y-1" style={{ fontSize: '10pt' }}>
-                                                    {unit.missingFirst.map((m, i) => <li key={i}>{m}</li>)}
-                                                </ul>
-                                            </div>
-                                        )}
-                                        {unit.missingFinal.length > 0 && (
-                                            <div className="p-2 bg-white/60 rounded border border-dashed border-slate-200">
-                                                <p className="font-black uppercase text-slate-500 underline mb-1" style={{ fontSize: '8pt' }}>Missing (Final Cycle):</p>
-                                                <ul className="list-disc pl-5 space-y-1" style={{ fontSize: '10pt' }}>
-                                                    {unit.missingFinal.map((m, i) => <li key={i}>{m}</li>)}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
+                        {nonCompliantUnits.map((unit, idx) => (
+                            <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/30">
+                                <div className="flex justify-between items-center mb-2">
+                                    <p className="font-black text-sm uppercase">{unit.name}</p>
+                                    <span className="font-black bg-white border border-black px-3 py-0.5 rounded text-[10pt]">{unit.score}% MATURITY</span>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </section>
-            )}
-
-            {compliantUnits.length > 0 && (
-                <section className="space-y-3">
-                    <h3 className="font-black text-[10pt] uppercase bg-emerald-50 p-2 border-l-[4px] border-emerald-600 text-emerald-800">II. FULLY COMPLIANT UNITS (100% VERIFIED)</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                        {compliantUnits.map((unit, idx) => (
-                            <div key={idx} className="flex items-center gap-2 p-2 border border-emerald-100 rounded-lg bg-emerald-50/20">
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                <span className="font-black uppercase truncate text-[10pt]">{unit.name}</span>
                             </div>
                         ))}
                     </div>
@@ -389,35 +341,35 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
             )}
         </div>
 
-        <p className="pt-6">
+        <p>
             Campus Directors are urged to coordinate with the non-compliant units identified above to expedite the 
             completion of their documentation requirements.
         </p>
       </div>
 
-      {/* SINGLE LINE SIGNATORIES */}
+      {/* CORRECTED SIGNATORIES BLOCK */}
       <div className="mt-20 space-y-10">
-        <div className="border-t border-black pt-1 w-full">
-            <p className="uppercase font-bold">
-                <span style={{ fontSize: '11pt' }}>{qmsHead}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</span>
+        <div className="border-t border-black pt-1 w-full text-left">
+            <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
             </p>
         </div>
         
-        <div className="space-y-1">
-            <p className="font-bold uppercase text-[9pt] opacity-60">Noted by:</p>
+        <div className="space-y-1 text-left">
+            <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
             <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold">
-                    <span style={{ fontSize: '11pt' }}>{qaoDirector}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office</span>
+                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                    {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
                 </p>
             </div>
         </div>
       </div>
 
-      <div className="mt-10 text-center text-[9pt] font-bold italic text-slate-500">
+      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900">
         This is a system-generated report; signature is not required.
       </div>
 
-      <div className="mt-auto pt-8 border-t border-slate-200 flex justify-between text-[9pt] text-slate-400 italic">
+      <div className="mt-auto pt-8 border-t border-slate-200 flex justify-between text-[9pt] text-slate-400 font-bold italic">
         <span>RSU-QAO-FOR-024 | REV 01-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
@@ -464,18 +416,21 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
             </div>
         </div>
 
-        {/* SINGLE LINE SIGNATORIES */}
-        <div className="mt-20 space-y-8">
-            <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold">
-                    <span style={{ fontSize: '11pt' }}>{qmsHead}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</span>
+        {/* CORRECTED SIGNATORIES BLOCK */}
+        <div className="mt-20 space-y-10">
+            <div className="border-t border-black pt-1 w-full text-left">
+                <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                    {qmsHead}, <span className="font-black">HEAD, QUALITY MANAGEMENT SYSTEM UNIT</span>
                 </p>
             </div>
             
-            <div className="border-t border-black pt-1 w-full">
-                <p className="uppercase font-bold">
-                    <span style={{ fontSize: '11pt' }}>{qaoDirector}</span>, <span className="font-normal" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office (Noted By)</span>
-                </p>
+            <div className="space-y-1 text-left">
+                <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
+                <div className="border-t border-black pt-1 w-full">
+                    <p className="uppercase font-bold" style={{ fontSize: '11pt' }}>
+                        {qaoDirector}, <span className="font-black">DIRECTOR, QUALITY ASSURANCE OFFICE</span>
+                    </p>
+                </div>
             </div>
         </div>
 
