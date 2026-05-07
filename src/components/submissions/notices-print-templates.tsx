@@ -41,17 +41,21 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
   const isVP = unitName.toLowerCase().includes('vice president');
   const isMainCampus = campusName.toLowerCase().includes('main campus');
 
-  let forLine = '';
+  let designationLine = '';
+  let unitLine = unitName.toUpperCase();
+  let campusLine = campusName.toUpperCase();
   let thruLine: string | null = null;
 
   if (isPresident) {
-    forLine = "OFFICE OF THE UNIVERSITY PRESIDENT";
+    designationLine = "THE UNIVERSITY PRESIDENT";
+    unitLine = "OFFICE OF THE UNIVERSITY PRESIDENT";
   } else if (isVP) {
-    forLine = unitName.toUpperCase();
+    designationLine = "THE VICE PRESIDENT";
+    unitLine = unitName.toUpperCase();
   } else if (isMainCampus) {
-    forLine = `THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR, ${unitName.toUpperCase()}`;
+    designationLine = "THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR";
   } else {
-    forLine = `UNIT COORDINATORS / DEPARTMENT HEAD / PROGRAM CHAIRS, ${unitName.toUpperCase()}`;
+    designationLine = "UNIT COORDINATORS / DEPARTMENT HEAD / PROGRAM CHAIRS";
     thruLine = `THE CAMPUS DIRECTOR, ${campusName.toUpperCase()}`;
   }
 
@@ -76,20 +80,24 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
       </div>
 
-      <div className="space-y-6 mb-12">
+      <div className="space-y-4 mb-12">
         <div className="grid grid-cols-12 gap-2">
             <span className="col-span-1 font-bold uppercase">FOR:</span>
-            <span className="col-span-11 font-bold uppercase">{forLine}</span>
+            <div className="col-span-11 space-y-1">
+                <p className="font-bold uppercase">{designationLine}</p>
+                <p className="font-bold uppercase">{unitLine}</p>
+                <p className="font-bold uppercase">{campusLine}</p>
+            </div>
         </div>
         
-        {thruLine ? (
-            <div className="grid grid-cols-12 gap-2 border-b border-black pb-6">
+        {thruLine && (
+            <div className="grid grid-cols-12 gap-2">
                 <span className="col-span-1 font-bold uppercase">THRU:</span>
                 <span className="col-span-11 font-bold uppercase">{thruLine}</span>
             </div>
-        ) : (
-            <div className="border-b border-black pb-6" />
         )}
+
+        <div className="border-b border-black pb-4" />
 
         <div className="grid grid-cols-12 gap-2 pt-4">
             <span className="col-span-1 font-bold uppercase">SUBJECT:</span>
@@ -154,14 +162,14 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <p>For your immediate compliance and appropriate action.</p>
       </div>
 
-      <div className="mt-24 space-y-20">
-        <div className="w-80">
+      <div className="mt-24 flex justify-between gap-12 items-end">
+        <div className="w-72 text-center">
             <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qmsHead}</div>
             <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</p>
         </div>
         
-        <div className="w-80">
-            <p className="font-bold uppercase mb-6" style={{ fontSize: '10pt' }}>Noted by:</p>
+        <div className="w-72 text-center">
+            <p className="font-bold uppercase mb-8 text-left" style={{ fontSize: '10pt' }}>Noted by:</p>
             <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qaoDirector}</div>
             <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office</p>
         </div>
@@ -238,12 +246,12 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             </p>
         </div>
 
-        <div className="mt-24 grid grid-cols-2 gap-16">
-            <div className="text-center">
+        <div className="mt-24 flex justify-between gap-16 items-end">
+            <div className="w-72 text-center">
                 <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '13pt' }}>{qmsHead}</div>
                 <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Head, QMS Unit</p>
             </div>
-            <div className="text-center">
+            <div className="w-72 text-center">
                 <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '13pt' }}>{qaoDirector}</div>
                 <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Director, QAO (Noted By)</p>
             </div>
@@ -295,11 +303,14 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
       </div>
 
       <div className="space-y-6 mb-12">
-        <div className="grid grid-cols-12 gap-2 border-b-2 border-black pb-6">
+        <div className="grid grid-cols-12 gap-2">
             <span className="col-span-1 font-bold uppercase">FOR:</span>
-            <span className="col-span-11 font-black uppercase" style={{ fontSize: '14pt' }}>THE CAMPUS DIRECTOR, {campusName}</span>
+            <div className="col-span-11 space-y-1">
+                <p className="font-black uppercase" style={{ fontSize: '14pt' }}>THE CAMPUS DIRECTOR</p>
+                <p className="font-black uppercase" style={{ fontSize: '14pt' }}>{campusName}</p>
+            </div>
         </div>
-        <div className="grid grid-cols-12 gap-2 pt-4">
+        <div className="grid grid-cols-12 gap-2 pt-4 border-t border-black mt-4">
             <span className="col-span-1 font-bold uppercase">SUBJECT:</span>
             <span className="col-span-11 font-black uppercase underline decoration-2 underline-offset-4">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
         </div>
@@ -377,14 +388,14 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
         </p>
       </div>
 
-      <div className="mt-24 space-y-20">
-        <div className="w-80">
+      <div className="mt-24 flex justify-between gap-16 items-end">
+        <div className="w-72 text-center">
             <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qmsHead}</div>
             <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Head, Quality Management System Unit</p>
         </div>
         
-        <div className="w-80">
-            <p className="font-bold uppercase mb-6" style={{ fontSize: '10pt' }}>Noted by:</p>
+        <div className="w-72 text-center">
+            <p className="font-bold uppercase mb-8 text-left" style={{ fontSize: '10pt' }}>Noted by:</p>
             <div className="border-b-2 border-black font-bold uppercase text-center pb-1" style={{ fontSize: '13pt' }}>{qaoDirector}</div>
             <p className="uppercase font-bold mt-2 text-center" style={{ fontSize: '10pt' }}>Director, Quality Assurance Office</p>
         </div>
@@ -451,12 +462,12 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
             </p>
         </div>
 
-        <div className="mt-24 grid grid-cols-2 gap-16">
-            <div className="text-center">
+        <div className="mt-24 flex justify-between gap-16 items-end">
+            <div className="w-72 text-center">
                 <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '14pt' }}>{qmsHead}</div>
                 <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Head, QMS Unit</p>
             </div>
-            <div className="text-center">
+            <div className="w-72 text-center">
                 <div className="font-bold uppercase border-b-2 border-black pb-1 mb-2" style={{ fontSize: '14pt' }}>{qaoDirector}</div>
                 <p className="font-black uppercase tracking-widest text-slate-600" style={{ fontSize: '10pt' }}>Director, QAO (Noted By)</p>
             </div>
