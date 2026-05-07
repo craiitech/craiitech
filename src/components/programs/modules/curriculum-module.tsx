@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { GADSector } from '@/lib/types';
+import { useUser } from '@/firebase';
 
 interface CurriculumModuleProps {
   canEdit: boolean;
@@ -199,12 +200,14 @@ function CurriculumRecordCard({
   index, 
   control, 
   canEdit, 
+  isAdmin,
   onRemove, 
   programSpecializations 
 }: { 
   index: number; 
   control: any; 
   canEdit: boolean; 
+  isAdmin: boolean;
   onRemove: () => void; 
   programSpecializations?: { id: string, name: string }[] 
 }) {
@@ -213,7 +216,7 @@ function CurriculumRecordCard({
 
   return (
     <Card className="border-primary/10 shadow-sm overflow-hidden relative group">
-      {canEdit && (
+      {canEdit && isAdmin && (
         <Button 
           type="button" 
           variant="ghost" 
@@ -238,7 +241,7 @@ function CurriculumRecordCard({
             render={({ field: inputField }) => (
               <FormItem>
                 <FormLabel className="text-[10px] font-bold uppercase">Associated Specialization/Major</FormLabel>
-                <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit}>
+                <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit || !isAdmin}>
                   <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
                   <SelectContent>
                     <SelectItem value="General" className="font-bold">General Program / All Specializations</SelectItem>
@@ -256,7 +259,7 @@ function CurriculumRecordCard({
             render={({ field: inputField }) => (
               <FormItem>
                 <FormLabel className="text-[10px] font-bold uppercase">Revision Number</FormLabel>
-                <FormControl><Input {...inputField} placeholder="e.g. 2024-Rev01" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                <FormControl><Input {...inputField} placeholder="e.g. 2024-Rev01" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl>
               </FormItem>
             )}
           />
@@ -268,7 +271,7 @@ function CurriculumRecordCard({
             render={({ field: inputField }) => (
                 <FormItem>
                 <FormLabel className="text-[10px] font-bold uppercase">Date Implemented</FormLabel>
-                <FormControl><Input {...inputField} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                <FormControl><Input {...inputField} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl>
                 </FormItem>
             )}
         />
@@ -285,7 +288,7 @@ function CurriculumRecordCard({
               control={control}
               name={`curriculumRecords.${index}.isNotedByChed`}
               render={({ field: inputField }) => (
-                <FormControl><Switch checked={inputField.value} onCheckedChange={inputField.onChange} disabled={!canEdit} /></FormControl>
+                <FormControl><Switch checked={inputField.value} onCheckedChange={inputField.onChange} disabled={!canEdit || !isAdmin} /></FormControl>
               )}
             />
           </div>
@@ -303,7 +306,7 @@ function CurriculumRecordCard({
                   <FormControl>
                     <div className="relative">
                       <LinkIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
-                      <Input {...inputField} value={inputField.value || ''} placeholder="GDrive Proof Link..." className="pl-8 h-8 text-[10px] bg-white border-blue-100" disabled={!canEdit} />
+                      <Input {...inputField} value={inputField.value || ''} placeholder="GDrive Proof Link..." className="pl-8 h-8 text-[10px] bg-white border-blue-100" disabled={!canEdit || !isAdmin} />
                     </div>
                   </FormControl>
                 </FormItem>
@@ -318,7 +321,7 @@ function CurriculumRecordCard({
                   <FormControl>
                     <div className="relative">
                       <Calendar className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
-                      <Input {...inputField} value={inputField.value || ''} placeholder="e.g. Oct 24, 2024" className="pl-8 h-8 text-[10px] bg-white border-blue-100 font-bold" disabled={!canEdit} />
+                      <Input {...inputField} value={inputField.value || ''} placeholder="e.g. Oct 24, 2024" className="pl-8 h-8 text-[10px] bg-white border-blue-100 font-bold" disabled={!canEdit || !isAdmin} />
                     </div>
                   </FormControl>
                 </FormItem>
@@ -333,6 +336,7 @@ function CurriculumRecordCard({
 
 export function CurriculumModule({ canEdit, programSpecializations, focusMode = 'all' }: CurriculumModuleProps) {
   const { control, setValue, watch } = useFormContext();
+  const { isAdmin } = useUser();
   const programCmoLinkVal = watch('ched.programCmoLink');
 
   const { fields: curFields, append: appendCur, remove: removeCur } = useFieldArray({
@@ -385,7 +389,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                                 <FormControl>
                                     <div className="relative">
                                         <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
+                                        <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit || !isAdmin} />
                                     </div>
                                 </FormControl>
                                 <FormDescription className="text-[9px]">A single institutional standard reference for all program specializations.</FormDescription>
@@ -403,7 +407,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                     </h3>
                     <p className="text-[10px] text-muted-foreground font-medium">Log notation status and implementation details per specialization/major.</p>
                 </div>
-                {canEdit && (
+                {canEdit && isAdmin && (
                     <Button 
                         type="button" 
                         size="sm" 
@@ -430,6 +434,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                         index={index} 
                         control={control} 
                         canEdit={canEdit} 
+                        isAdmin={isAdmin}
                         onRemove={() => removeCur(index)} 
                         programSpecializations={programSpecializations} 
                     />

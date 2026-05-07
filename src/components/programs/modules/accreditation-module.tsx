@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Unit } from '@/lib/types';
 import { MultiSelector } from '@/components/qa-reports/multi-selector';
@@ -101,6 +101,7 @@ function AccreditationRecordCard({
   index, 
   control,
   canEdit, 
+  isAdmin,
   onRemove, 
   programSpecializations,
   units
@@ -108,6 +109,7 @@ function AccreditationRecordCard({
   index: number; 
   control: any;
   canEdit: boolean; 
+  isAdmin: boolean;
   onRemove: () => void, 
   programSpecializations?: { id: string, name: string }[],
   units: Unit[]
@@ -145,7 +147,7 @@ function AccreditationRecordCard({
                 <Badge variant="secondary" className="px-4 py-1 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border-primary/20">
                     Milestone Record #{index + 1}
                 </Badge>
-                {canEdit && (
+                {canEdit && isAdmin && (
                     <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:bg-destructive/10 h-7 text-[10px] font-bold uppercase">
                         <Trash2 className="h-3 w-3 mr-1.5" /> Remove Milestone
                     </Button>
@@ -164,7 +166,7 @@ function AccreditationRecordCard({
                     <CardContent className="space-y-4 pt-6">
                         <FormField control={control} name={`accreditationRecords.${index}.level`} render={({ field }) => (
                             <FormItem><FormLabel className="text-[10px] font-bold uppercase">Accreditation Level</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit || !isAdmin}>
                                     <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>{accreditationLevels.map(lvl => <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>)}</SelectContent>
                                 </Select>
@@ -177,7 +179,7 @@ function AccreditationRecordCard({
                                     Next Schedule / Validity Period
                                     {validityTextVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                 </FormLabel>
-                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Oct 2025" className="h-10 text-sm font-bold border-primary/20 bg-primary/5" disabled={!canEdit} /></FormControl>
+                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Oct 2025" className="h-10 text-sm font-bold border-primary/20 bg-primary/5" disabled={!canEdit || !isAdmin} /></FormControl>
                                 <FormDescription className="text-[9px]">Enter the official accreditation schedule or validity text.</FormDescription>
                             </FormItem>
                         )} />
@@ -186,7 +188,7 @@ function AccreditationRecordCard({
 
                         <FormField control={control} name={`accreditationRecords.${index}.lifecycleStatus`} render={({ field }) => (
                             <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit || !isAdmin}>
                                     <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="TBA">Archive / Historical</SelectItem>
@@ -200,7 +202,7 @@ function AccreditationRecordCard({
                         )} />
                         
                         <FormField control={control} name={`accreditationRecords.${index}.dateOfSurvey`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date of Survey</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Oct 12-14, 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
+                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date of Survey</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Oct 12-14, 2024" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
                         )} />
 
                         <FormField control={control} name={`accreditationRecords.${index}.certificateLink`} render={({ field }) => (
@@ -210,7 +212,7 @@ function AccreditationRecordCard({
                                     {certificateLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                 </FormLabel>
                                 <FormControl>
-                                    <div className="relative"><LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input {...field} value={field.value || ''} className="pl-9 h-9 text-xs" disabled={!canEdit} /></div>
+                                    <div className="relative"><LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input {...field} value={field.value || ''} className="pl-9 h-9 text-xs" disabled={!canEdit || !isAdmin} /></div>
                                 </FormControl>
                             </FormItem>
                         )} />
@@ -237,7 +239,7 @@ function AccreditationRecordCard({
                                                 type="button" 
                                                 variant="outline" 
                                                 size="sm" 
-                                                disabled={!canEdit}
+                                                disabled={!canEdit || !isAdmin}
                                                 onClick={() => toggleMajor(spec)}
                                                 className={cn(
                                                     "h-8 text-[10px] font-bold uppercase transition-all",
@@ -272,12 +274,12 @@ function AccreditationRecordCard({
                                         </div>
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.taskForce`} render={({ field: inputField }) => (
-                                                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-20 bg-white" disabled={!canEdit} /></FormControl>
+                                                <FormControl><Input {...field} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-20 bg-white" disabled={!canEdit || !isAdmin} /></FormControl>
                                             )} />
                                             <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.googleDriveLink`} render={({ field: inputField }) => (
                                                 <FormControl>
                                                     <div className="relative">
-                                                        <Input {...inputField} value={inputField.value || ''} placeholder="GDrive" className={cn("h-7 text-[9px] w-20 bg-white pr-5", inputField.value && "border-green-200")} disabled={!canEdit} />
+                                                        <Input {...inputField} value={inputField.value || ''} placeholder="GDrive" className={cn("h-7 text-[9px] w-20 bg-white pr-5", inputField.value && "border-green-200")} disabled={!canEdit || !isAdmin} />
                                                         {inputField.value && <CheckCircle2 className="absolute right-1.5 top-2 h-2.5 w-2.5 text-green-500" />}
                                                     </div>
                                                 </FormControl>
@@ -298,13 +300,13 @@ function AccreditationRecordCard({
                                 <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.grandMean`} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Grand Mean Score</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" {...field} value={field.value || 0} className="h-9 text-lg font-black tabular-nums bg-slate-50" disabled={!canEdit} /></FormControl>
+                                        <FormControl><Input type="number" step="0.01" {...field} value={field.value || 0} className="h-9 text-lg font-black tabular-nums bg-slate-50" disabled={!canEdit || !isAdmin} /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.descriptiveRating`} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Result String</FormLabel>
-                                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Highly Satisfactory" className="h-9 text-xs font-bold uppercase bg-slate-50" disabled={!canEdit} /></FormControl>
+                                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Highly Satisfactory" className="h-9 text-xs font-bold uppercase bg-slate-50" disabled={!canEdit || !isAdmin} /></FormControl>
                                     </FormItem>
                                 )} />
                             </div>
@@ -321,7 +323,7 @@ function AccreditationRecordCard({
                                 <ClipboardList className="h-5 w-5 text-primary" />
                                 Accreditor's Recommendations & Compliance Status
                             </CardTitle>
-                            {canEdit && (
+                            {canEdit && isAdmin && (
                                 <div className="flex gap-2">
                                     <Button type="button" size="sm" onClick={() => appendReco({ id: Math.random().toString(36).substr(2, 9), type: 'Mandatory', text: '', assignedUnitIds: [], status: 'Open' })} className="h-8 text-[9px] font-black uppercase tracking-widest bg-rose-600 hover:bg-rose-700">
                                         <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Mandatory
@@ -342,7 +344,7 @@ function AccreditationRecordCard({
                                         "p-5 rounded-2xl border transition-all relative group",
                                         type === 'Mandatory' ? "bg-rose-50/30 border-rose-100" : "bg-blue-50/30 border-blue-100"
                                     )}>
-                                        {canEdit && (
+                                        {canEdit && isAdmin && (
                                             <Button 
                                                 type="button" 
                                                 variant="ghost" 
@@ -372,7 +374,7 @@ function AccreditationRecordCard({
                                                 </div>
                                                 <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.text`} render={({ field: inputField }) => (
                                                     <FormItem>
-                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Enter the recommendation text here..." className="bg-white border-transparent shadow-sm text-xs font-medium leading-relaxed" disabled={!canEdit} /></FormControl>
+                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Enter the recommendation text here..." className="bg-white border-transparent shadow-sm text-xs font-medium leading-relaxed" disabled={!canEdit || !isAdmin} /></FormControl>
                                                     </FormItem>
                                                 )} />
                                             </div>
@@ -395,7 +397,7 @@ function AccreditationRecordCard({
                                                 <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.additionalInfo`} render={({ field: inputField }) => (
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Additional Action Notes / Area of Accreditation</FormLabel>
-                                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Internal tracking notes..." className="h-8 text-[10px] bg-white" disabled={!canEdit} /></FormControl>
+                                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Internal tracking notes..." className="h-8 text-[10px] bg-white" disabled={!canEdit || !isAdmin} /></FormControl>
                                                     </FormItem>
                                                 )} />
                                             </div>
@@ -420,6 +422,7 @@ function AccreditationRecordCard({
 export function AccreditationModule({ canEdit, programSpecializations }: { canEdit: boolean, programSpecializations?: { id: string, name: string }[] }) {
   const firestore = useFirestore();
   const { control } = useFormContext();
+  const { isAdmin } = useUser();
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
@@ -439,7 +442,7 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
             </h3>
             <p className="text-[10px] text-muted-foreground font-medium">Log distinct quality milestones for each major or the overall program offering.</p>
         </div>
-        {canEdit && (
+        {canEdit && isAdmin && (
             <Button 
                 type="button" 
                 size="sm" 
@@ -469,6 +472,7 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                 index={index} 
                 control={control}
                 canEdit={canEdit} 
+                isAdmin={isAdmin}
                 onRemove={() => remove(index)}
                 programSpecializations={programSpecializations}
                 units={units || []}
