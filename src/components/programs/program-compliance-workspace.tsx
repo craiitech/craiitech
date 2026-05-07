@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -57,13 +56,26 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
   const canEdit = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo')));
 
-  const compliancesQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'programCompliances'), where('programId', '==', program.id), where('academicYear', '==', selectedAY)) : null),
-    [firestore, program.id, selectedAY]
+  /**
+   * DATA PERSISTENCE STRATEGY:
+   * We query ALL compliance records for this program.
+   * This allows us to find the current year's data AND harvest permanent data (CHED, Accreditations)
+   * from historical records if the current year is new.
+   */
+  const allProgramCompliancesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'programCompliances'), where('programId', '==', program.id)) : null),
+    [firestore, program.id]
   );
-  const { data: records, isLoading: isLoadingRecords } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+  const { data: allRecords, isLoading: isLoadingRecords } = useCollection<ProgramComplianceRecord>(allProgramCompliancesQuery);
 
-  const activeRecord = records?.[0] || null;
+  const activeRecord = useMemo(() => {
+    return allRecords?.find(r => r.academicYear === selectedAY) || null;
+  }, [allRecords, selectedAY]);
+
+  const latestHistoricalRecord = useMemo(() => {
+    if (!allRecords || allRecords.length === 0) return null;
+    return [...allRecords].sort((a, b) => b.academicYear - a.academicYear)[0];
+  }, [allRecords]);
 
   const methods = useForm<any>({
     resolver: zodResolver(complianceSchema),
@@ -84,7 +96,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       },
       accreditationRecords: [],
       curriculumRecords: [],
-      enrollmentRecords: [], // Initialize new disaggregated array
+      enrollmentRecords: [],
       faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
       stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
       graduationRecords: [], tracerRecords: [], boardPerformance: []
@@ -93,18 +105,48 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
   const lastResetId = useRef<string | null>(null);
 
+  /**
+   * INITIALIZATION & CARRY-OVER LOGIC
+   */
   useEffect(() => {
-    const currentId = activeRecord ? `${activeRecord.id}-${selectedAY}` : `null-${selectedAY}`;
+    const currentId = activeRecord ? `${activeRecord.id}-${selectedAY}` : `new-${selectedAY}`;
     if (currentId === lastResetId.current) return;
 
     if (activeRecord) {
+      // 1. Data exists for this year - Load it directly
       methods.reset({ 
         ...activeRecord, 
         academicYear: selectedAY,
         curriculumRecords: activeRecord.curriculumRecords || [],
         enrollmentRecords: activeRecord.enrollmentRecords || []
       });
+    } else if (latestHistoricalRecord) {
+      // 2. No data for this year, but history exists - HARVEST PERMANENT DATA
+      methods.reset({
+        academicYear: selectedAY,
+        programId: program.id,
+        campusId: program.campusId,
+        unitId: program.collegeId,
+        // CARRY OVER: Regulatory & Quality Evidence (The Permanent Stuff)
+        ched: latestHistoricalRecord.ched || {},
+        accreditationRecords: latestHistoricalRecord.accreditationRecords || [],
+        curriculumRecords: latestHistoricalRecord.curriculumRecords || [],
+        faculty: latestHistoricalRecord.faculty || { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
+        
+        // RESET: Annual Outcome Metrics (The Fresh Stuff)
+        enrollmentRecords: [],
+        stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
+        graduationRecords: [], 
+        boardPerformance: [],
+        tracerRecords: []
+      });
+      
+      toast({ 
+        title: 'New Cycle Initialized', 
+        description: `Permanent regulatory evidence has been carried over from AY ${latestHistoricalRecord.academicYear}. Please update faculty and outcomes.`,
+      });
     } else {
+      // 3. Complete fresh program log
       methods.reset({
         academicYear: selectedAY,
         ched: { 
@@ -129,7 +171,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       });
     }
     lastResetId.current = currentId;
-  }, [activeRecord, selectedAY, methods]);
+  }, [activeRecord, latestHistoricalRecord, selectedAY, methods, program, toast]);
 
   const onSave = async (values: any) => {
     if (!firestore || !userProfile) return;
@@ -146,7 +188,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         })) || [];
     }
 
-    // SANITIZE AND ADD IDENTIFIERS FOR CROSS-QUERYING
     const sanitizedData = sanitizeForFirestore({ 
         ...values, 
         id: recordId,
