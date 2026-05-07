@@ -389,27 +389,18 @@ export function RiskFormDialog({
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
       <DialogContent className={cn("max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden", registryLink ? "lg:max-w-[1600px]" : "lg:max-w-7xl")} onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
         <div className="p-6 border-b shrink-0 bg-card shadow-sm">
-            <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary mb-1">
-                        <ShieldCheck className="h-5 w-5" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Risk Registry</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <DialogTitle className="text-xl">
-                            {activeRisk ? 'Manage' : 'Log New'} Assessment Record
-                        </DialogTitle>
-                        <Badge variant="secondary" className="h-6 px-3 bg-primary/10 text-primary border-primary/20 font-black text-xs">
-                            <Calendar className="h-3 w-3 mr-1.5" />
-                            AY {watchYear}
-                        </Badge>
-                    </div>
-                </div>
-                {!isMandatory && (
-                    <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8">
-                        <X className="h-4 w-4" />
-                    </Button>
-                )}
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Risk Registry</span>
+            </div>
+            <div className="flex items-center gap-3">
+                <DialogTitle className="text-xl">
+                    {activeRisk ? 'Manage' : 'Log New'} Assessment Record
+                </DialogTitle>
+                <Badge variant="secondary" className="h-6 px-3 bg-primary/10 text-primary border-primary/20 font-black text-xs">
+                    <Calendar className="h-3 w-3 mr-1.5" />
+                    AY {watchYear}
+                </Badge>
             </div>
         </div>
         <div className="flex-1 flex overflow-hidden">
@@ -506,10 +497,15 @@ export function RiskFormDialog({
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-lg font-bold flex items-center gap-2">
-                                    <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
-                                    {riskTypeValue} Analysis (Initial Baseline)
-                                </h3>
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
+                                        {riskTypeValue} Analysis (Based on ROR - First Cycle)
+                                    </h3>
+                                    <p className="text-[10px] text-muted-foreground font-medium italic pl-8">
+                                        Rate your {riskTypeValue} Based on your ROR Document (Blue Column) Only.
+                                    </p>
+                                </div>
                                 <Card>
                                   <CardContent className="space-y-4 pt-6">
                                     <div className="grid grid-cols-2 gap-4">
@@ -667,10 +663,15 @@ export function RiskFormDialog({
                             )}
 
                             <div className="space-y-4">
-                                <h3 className="text-lg font-bold flex items-center gap-2">
-                                    <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div>
-                                    Final Assessment (Post-Treatment Analysis)
-                                </h3>
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div>
+                                        Final Assessment (Base on ROR - Final Cycle)
+                                    </h3>
+                                    <p className="text-[10px] text-muted-foreground font-medium italic pl-8">
+                                        Re-Assess the {riskTypeValue} after you have implemented the Treatment Plan / Current Control (Green Column)
+                                    </p>
+                                </div>
                                 <Card className={cn("border-blue-200 bg-blue-50/5 shadow-md transition-all duration-1000", shouldHighlightFinal && "animate-blink-primary")}>
                                     <CardHeader className="bg-blue-50/50 border-b py-4">
                                         <CardTitle className="text-sm font-black uppercase text-blue-800">Final Execution & Impact Verification</CardTitle>
@@ -849,11 +850,11 @@ export function RiskFormDialog({
                                                     "h-4 text-[8px] font-black border-none px-1.5 shadow-none text-white",
                                                     r.type === 'Risk' ? (
                                                         r.preTreatment.rating === 'High' ? "bg-rose-600" : 
-                                                        r.preTreatment.rating === 'Medium' ? "bg-amber-500" : 
+                                                        r.preTreatment.rating === 'Medium' ? "bg-amber-50" : 
                                                         "bg-emerald-600"
                                                     ) : (
                                                         r.preTreatment.rating === 'High' ? "bg-emerald-600" : 
-                                                        r.preTreatment.rating === 'Medium' ? "bg-amber-500" : 
+                                                        r.preTreatment.rating === 'Medium' ? "bg-amber-50" : 
                                                         "bg-rose-600"
                                                     )
                                                 )}
