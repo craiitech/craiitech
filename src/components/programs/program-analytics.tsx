@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -6,6 +5,7 @@ import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, User, Accr
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '../ui/skeleton';
 import { 
     BarChart, 
     Bar, 
@@ -17,12 +17,12 @@ import {
     ResponsiveContainer, 
     Cell,
     LabelList,
-    PieChart,
+    PieChart, 
     Pie,
-    Radar,
-    RadarChart,
-    PolarGrid,
-    PolarAngleAxis,
+    Radar, 
+    RadarChart, 
+    PolarGrid, 
+    PolarAngleAxis, 
     PolarRadiusAxis,
     LineChart,
     Line
@@ -64,7 +64,8 @@ import {
     History,
     PieChart as LucidePieChart,
     LineChart as LucideLineChart,
-    BookOpen
+    BookOpen,
+    Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -75,6 +76,7 @@ import { doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
