@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -19,7 +18,8 @@ import {
     Building, 
     Trash2,
     Database,
-    Filter
+    Filter,
+    Info
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -85,10 +85,10 @@ export default function AcademicProgramsPage() {
             setCampusFilter(userProfile.campusId);
         } else if (isUnitViewer) {
             setCampusFilter(userProfile.campusId);
-            setUnitFilter(userProfile.unitId);
+            unitFilter === 'all' && setUnitFilter(userProfile.unitId);
         }
     }
-  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, userProfile?.campusId, userProfile?.unitId, isUserLoading]);
+  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, userProfile?.campusId, userProfile?.unitId, isUserLoading, unitFilter]);
 
   /**
    * ACADEMIC YEAR GENERATION
@@ -357,15 +357,46 @@ export default function AcademicProgramsPage() {
         </TabsContent>
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-            <ProgramRegistry 
-                programs={filteredPrograms} 
-                compliances={rawCompliances || []}
-                campuses={campuses || []} 
-                units={units || []} 
-                onEdit={handleEditProgram}
-                onDelete={setDeletingProgram}
-                canManage={canManage}
-            />
+            <Tabs defaultValue="active-registry" className="space-y-4">
+                <div className="bg-muted/30 px-4 py-1 border rounded-lg flex items-center justify-between">
+                    <TabsList className="bg-transparent h-8 p-0 gap-2">
+                        <TabsTrigger value="active-registry" className="h-7 text-[9px] font-black uppercase tracking-widest px-4">
+                            Active Portfolio
+                        </TabsTrigger>
+                        <TabsTrigger value="closed-registry" className="h-7 text-[9px] font-black uppercase tracking-widest px-4 data-[state=active]:bg-destructive data-[state=active]:text-white">
+                            Phased-Out Programs
+                        </TabsTrigger>
+                    </TabsList>
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
+                        <Info className="h-3 w-3 text-primary/40" />
+                        Registry segregation based on Operational Status
+                    </div>
+                </div>
+
+                <TabsContent value="active-registry" className="m-0">
+                    <ProgramRegistry 
+                        programs={filteredPrograms.filter(p => p.isActive)} 
+                        compliances={rawCompliances || []}
+                        campuses={campuses || []} 
+                        units={units || []} 
+                        onEdit={handleEditProgram}
+                        onDelete={setDeletingProgram}
+                        canManage={canManage}
+                    />
+                </TabsContent>
+
+                <TabsContent value="closed-registry" className="m-0">
+                    <ProgramRegistry 
+                        programs={filteredPrograms.filter(p => !p.isActive)} 
+                        compliances={rawCompliances || []}
+                        campuses={campuses || []} 
+                        units={units || []} 
+                        onEdit={handleEditProgram}
+                        onDelete={setDeletingProgram}
+                        canManage={canManage}
+                    />
+                </TabsContent>
+            </Tabs>
         </TabsContent>
       </Tabs>
 

@@ -25,19 +25,23 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
+  // Robustly determine if we are showing active or closed programs based on the input list
+  const isShowingActive = useMemo(() => {
+    if (programs.length === 0) return true;
+    return programs.every(p => p.isActive === true);
+  }, [programs]);
+
   if (programs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg border-dashed bg-muted/30 p-8 text-center">
         <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
             <BookOpen className="h-8 w-8 text-muted-foreground opacity-40" />
         </div>
-        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">No Programs Found</p>
-        <p className="text-xs text-muted-foreground mt-1 max-w-xs">There are no programs currently registered within your authorized scope.</p>
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">No {isShowingActive ? 'Active' : 'Phased-Out'} Programs Found</p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xs">There are no programs currently listed in this category within your authorized scope.</p>
       </div>
     );
   }
-
-  const isShowingActive = programs[0]?.isActive ?? true;
 
   return (
     <Card className="shadow-sm overflow-hidden border-primary/10">
@@ -49,21 +53,19 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               <TableHead className="text-[10px] font-black uppercase py-4">Campus</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">College / Unit</TableHead>
               
-              {isShowingActive && (
+              {isShowingActive ? (
                 <>
                   <TableHead className="text-center text-[10px] font-black uppercase py-4">Total Enrollment</TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase py-4">Graduates</TableHead>
                   <TableHead className="text-[10px] font-black uppercase py-4">Faculty Pool</TableHead>
                 </>
+              ) : (
+                <TableHead className="text-[10px] font-black uppercase py-4">Board Referendum No.</TableHead>
               )}
 
               <TableHead className="text-[10px] font-black uppercase py-4">COPC Award Date</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">Next Visit (AACCUP)</TableHead>
               
-              {!isShowingActive && (
-                <TableHead className="text-[10px] font-black uppercase py-4">Board Referendum No.</TableHead>
-              )}
-
               <TableHead className="text-[10px] font-black uppercase py-4">Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-4">Actions</TableHead>
             </TableRow>
@@ -170,7 +172,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     </div>
                   </TableCell>
 
-                  {isShowingActive && (
+                  {isShowingActive ? (
                     <>
                       <TableCell className="py-4 text-center">
                           <div className="flex flex-col items-center gap-1">
@@ -198,6 +200,13 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                         </div>
                       </TableCell>
                     </>
+                  ) : (
+                    <TableCell className="py-4">
+                        <div className="flex items-center gap-2">
+                            <Hash className="h-3 w-3 text-primary opacity-40" />
+                            <span className="text-xs font-black font-mono text-slate-700">{record?.ched?.closureReferendumNumber || '--'}</span>
+                        </div>
+                    </TableCell>
                   )}
                   
                   <TableCell className="py-4">
@@ -213,15 +222,6 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                         {nextVisit !== 'TBA' && nextVisit !== 'NEW PROGRAM' && <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground uppercase"><Clock className="h-2.5 w-2.5" /> Scheduled</div>}
                     </div>
                   </TableCell>
-
-                  {!isShowingActive && (
-                    <TableCell className="py-4">
-                        <div className="flex items-center gap-2">
-                            <Hash className="h-3 w-3 text-primary opacity-40" />
-                            <span className="text-xs font-black font-mono text-slate-700">{record?.ched?.closureReferendumNumber || '--'}</span>
-                        </div>
-                    </TableCell>
-                  )}
 
                   <TableCell className="py-4">
                     {program.isActive ? <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><Activity className="h-2.5 w-2.5" /> Active</Badge> : <Badge variant="destructive" className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><ShieldAlert className="h-2.5 w-2.5" /> Closed</Badge>}
