@@ -128,6 +128,7 @@ import { AccreditationRecommendationReport } from '@/components/programs/recomme
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { useToast } from '@/hooks/use-toast';
+import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -929,6 +930,8 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
+        <RiskOverdueWarning risks={risks} isLoading={isLoading} />
+
         <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
 
         {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
