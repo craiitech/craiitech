@@ -96,7 +96,7 @@ const COLORS = ['#1B6535', '#EAB308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316'
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
@@ -104,6 +104,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   const [recoSearch, setRecoSearch] = useState('');
   const [recoStatusFilter, setRecoStatusFilter] = useState('all');
   const [recoUnitFilter, setRecoUnitFilter] = useState('all');
+
+  // Roadmap State
+  const [roadmapSearch, setRoadmapSearch] = useState('');
+  const [roadmapCampusFilter, setRoadmapCampusFilter] = useState('all');
+  const [roadmapUnitFilter, setRoadmapUnitFilter] = useState('all');
 
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
@@ -273,6 +278,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             name: p.name,
             level: p.level,
             campus: campusMap.get(p.campusId) || '...',
+            campusId: p.campusId,
+            unitId: p.collegeId,
             currentLevel: rawLevel || (p.isNewProgram ? 'Not Yet Subject' : 'AWAITING RESULT'),
             validity: p.isNewProgram ? 'NEW PROGRAM' : (validityStr === 'TBA' ? 'AWAITING RESULT' : validityStr),
             status,
@@ -346,9 +353,48 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   }, [programs, compliances, campuses, campusMap, selectedYear]);
 
   /**
+   * FILTERED ROADMAP DATA
+   * 1. Role-based locking: Non-admins restricted to their authorized scope.
+   * 2. Admin Filtering: Search and Site-specific drill-down.
+   */
+  const filteredRoadmap = useMemo(() => {
+    if (!analytics?.roadmapData) return [];
+
+    return analytics.roadmapData.filter(item => {
+        // 1. Role-based Locking
+        if (!isAdmin && userProfile) {
+            // Site Supervisors (Director/ODIMO) - check campus
+            const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO');
+            if (isSiteOversight) {
+                if (item.campusId !== userProfile.campusId) return false;
+            } else {
+                // Unit level (Coordinator) - check specific unit
+                if (item.unitId !== userProfile.unitId) return false;
+            }
+        }
+
+        // 2. Admin Logic: Manual Filtering
+        if (isAdmin) {
+            if (roadmapCampusFilter !== 'all' && item.campusId !== roadmapCampusFilter) return false;
+            if (roadmapUnitFilter !== 'all' && item.unitId !== roadmapUnitFilter) return false;
+        }
+
+        // 3. Search Filter
+        if (roadmapSearch) {
+            const lowerSearch = roadmapSearch.toLowerCase();
+            return (
+                item.name.toLowerCase().includes(lowerSearch) ||
+                item.level.toLowerCase().includes(lowerSearch) ||
+                item.currentLevel.toLowerCase().includes(lowerSearch)
+            );
+        }
+
+        return true;
+    });
+  }, [analytics?.roadmapData, isAdmin, userProfile, userRole, roadmapSearch, roadmapCampusFilter, roadmapUnitFilter]);
+
+  /**
    * ACCREDITOR RECOMMENDATIONS FILTERED LOGIC
-   * 1. Role-based locking: Non-admins restricted to their unit.
-   * 2. STRICTOR SCOPE: Only include recommendations for Academic Units.
    */
   const filteredRecommendations = useMemo(() => {
     if (!analytics?.allRecommendations) return [];
@@ -356,32 +402,24 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const academicUnitIds = new Set(units.filter(u => u.category === 'Academic').map(u => u.id));
 
     return analytics.allRecommendations.filter(item => {
-        // 1. Role-based Lock & Academic-Only Filter
         if (!isAdmin && userProfile?.unitId) {
             const isAssigned = item.recommendation.assignedUnitIds?.includes(userProfile.unitId);
             if (!isAssigned) return false;
-            
-            // Only show if user's unit is Academic
             if (!academicUnitIds.has(userProfile.unitId)) return false;
         }
 
-        // 2. Admin Unit Filter (Already academic-only dropdown in UI)
         if (isAdmin && recoUnitFilter !== 'all') {
             const isAssigned = item.recommendation.assignedUnitIds?.includes(recoUnitFilter);
             if (!isAssigned) return false;
         }
 
-        // 3. Status Filter
         if (recoStatusFilter !== 'all' && item.recommendation.status !== recoStatusFilter) return false;
 
-        // 4. Search Filter
         if (recoSearch) {
             const lowerSearch = recoSearch.toLowerCase();
             if (!item.programName.toLowerCase().includes(lowerSearch) && !item.recommendation.text.toLowerCase().includes(lowerSearch)) return false;
         }
 
-        // 5. Academic Units Assignment Check: 
-        // We only care about recommendations that have at least one Academic Unit assignment
         const hasAcademicAssignment = item.recommendation.assignedUnitIds?.some(uid => academicUnitIds.has(uid));
         if (!hasAcademicAssignment && (item.recommendation.assignedUnitIds?.length || 0) > 0) return false;
 
@@ -390,7 +428,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         ...item,
         recommendation: {
             ...item.recommendation,
-            // Filter the displayed IDs to only show Academic ones in the UI
             assignedUnitIds: (item.recommendation.assignedUnitIds || []).filter(uid => academicUnitIds.has(uid))
         }
     }));
@@ -714,15 +751,17 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                       </Badge>
                                   </TableCell>
                                   <TableCell className="py-5 max-w-md">
-                                      <p className="text-[11px] font-bold text-slate-700 italic leading-relaxed">"{item.recommendation.text}"</p>
+                                      <p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>
                                       {item.recommendation.additionalInfo && (
-                                          <p className="text-[9px] text-muted-foreground mt-2 uppercase font-black tracking-tighter">Area: {item.recommendation.additionalInfo}</p>
+                                          <div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase">
+                                              <Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}
+                                          </div>
                                       )}
                                   </TableCell>
                                   <TableCell>
                                       <div className="flex flex-wrap gap-1">
-                                          {(item.recommendation.assignedUnitIds || []).map((uid: string) => (
-                                              <Badge key={uid} variant="outline" className="bg-white border-slate-200 text-slate-600 h-4 px-1 text-[8px] font-bold">
+                                          {(item.recommendation.assignedUnitIds || []).map(uid => (
+                                              <Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">
                                                   {unitMap.get(uid) || uid}
                                               </Badge>
                                           ))}
@@ -733,8 +772,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                       <Badge 
                                           className={cn(
                                               "h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm",
-                                              item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : 
-                                              item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
+                                              recoStatusFilter === 'Open' ? "bg-rose-600 text-white" : 
+                                              recoStatusFilter === 'In Progress' ? "bg-amber-500 text-amber-950" : 
                                               "bg-emerald-600 text-white"
                                           )}
                                       >
@@ -755,15 +794,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </Table>
               </ScrollArea>
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-3 px-8">
+          <CardFooter className="bg-muted/5 border-t py-4 px-8">
               <div className="flex items-start gap-4">
-                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                      <strong>Institutional Scope:</strong> This registry is filtered specifically for Academic Units. Non-academic assignments are excluded to ensure focus on program-level compliance and curriculum quality standards.
-                  </p>
+                  <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                      <p className="text-xs font-black uppercase text-emerald-900">Compliance Standard: AACCUP/ISO Parity</p>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                          This registry tracks the specific improvements mandated by external accreditors. Units identified in the "Accountable Units" column are responsible for submitting evidence logs of implementation through the relevant compliance modules.
+                      </p>
+                  </div>
               </div>
           </CardFooter>
       </Card>
+
+      <Separator />
 
       {/* 6. SURVEY ROADMAP REGISTRY */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
@@ -803,6 +847,50 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </div>
                   </div>
               </div>
+
+              {/* SEARCH & FILTER CONTROLS FOR ROADMAP */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search programs in pipeline..." 
+                        value={roadmapSearch} 
+                        onChange={(e) => setRoadmapSearch(e.target.value)} 
+                        className="h-9 pl-8 text-xs bg-white"
+                    />
+                </div>
+                {isAdmin ? (
+                    <>
+                        <Select value={roadmapCampusFilter} onValueChange={setRoadmapCampusFilter}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <div className="flex items-center gap-1.5"><School className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Campuses" /></div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Institutional View (All Sites)</SelectItem>
+                                {campuses.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={roadmapUnitFilter} onValueChange={setRoadmapUnitFilter}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <div className="flex items-center gap-1.5"><Building2 className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Academic Units" /></div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Academic Units</SelectItem>
+                                {units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (
+                                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </>
+                ) : (
+                    <div className="md:col-span-2 flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">
+                        <ShieldCheck className="h-3.5 w-3.5 mr-2" />
+                        Authorized View Locked: {unitMap.get(userProfile?.unitId || '') || campusMap.get(userProfile?.campusId || '')}
+                    </div>
+                )}
+              </div>
           </CardHeader>
           <CardContent className="p-0">
               <Tabs defaultValue="active" className="w-full">
@@ -814,10 +902,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </div>
 
                   <TabsContent value="active" className="m-0">
-                      <RoadmapTable data={analytics.roadmapData.filter(r => r.isActive)} campusMap={campusMap} />
+                      <RoadmapTable data={filteredRoadmap.filter(r => r.isActive)} campusMap={campusMap} />
                   </TabsContent>
                   <TabsContent value="closed" className="m-0">
-                      <RoadmapTable data={analytics.roadmapData.filter(r => !r.isActive)} campusMap={campusMap} />
+                      <RoadmapTable data={filteredRoadmap.filter(r => !r.isActive)} campusMap={campusMap} />
                   </TabsContent>
               </Tabs>
           </CardContent>
