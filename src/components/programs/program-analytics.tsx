@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, User, Signatories } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, User, Signatories, AccreditationRecommendation } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,9 @@ import {
     BookOpen,
     Scale,
     LayoutGrid,
-    CalendarDays
+    CalendarDays,
+    ClipboardCheck,
+    Printer
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -74,6 +76,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AccreditationRecommendationReport } from './recommendation-print-template';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -88,7 +92,15 @@ const COLORS = ['#1B6535', '#EAB308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316'
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const analytics = useMemo(() => {
     if (!programs.length) return null;
@@ -107,6 +119,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const globalPillarSums = { authority: 0, accreditation: 0, faculty: 0, curriculum: 0, outcomes: 0 };
     const roadmapData: any[] = [];
+    const allRecommendations: any[] = [];
     
     // Yearly Trends Calculation
     const copcByYear: Record<number, number> = {};
@@ -141,6 +154,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         const rawLevel = (currentMilestone?.level || 'Non Accredited').trim();
         const isAccredited = currentMilestone && rawLevel !== 'Non Accredited' && !rawLevel.includes('PSV') && rawLevel !== 'AWAITING RESULT';
         const hasCopc = record?.ched?.copcStatus === 'With COPC';
+
+        // Flatten recommendations for the registry
+        milestones.forEach(m => {
+            m.recommendations?.forEach(reco => {
+                allRecommendations.push({
+                    id: reco.id,
+                    programName: p.name,
+                    abbreviation: p.abbreviation,
+                    level: m.level,
+                    surveyDate: m.dateOfSurvey,
+                    recommendation: reco
+                });
+            });
+        });
 
         if (p.isActive) {
             activeCount++;
@@ -261,7 +288,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const facultyAttainmentData = [
         { name: 'Doctoral', value: attainmentCounts.Doctoral, fill: '#1B6535' },
         { name: 'Masters', value: attainmentCounts.Masters, fill: '#EAB308' },
-        { name: 'Bachelors', value: attainmentCounts.Bachelors, fill: '#8b5cf6' },
+        { name: 'Bachelors', value: attainmentCounts.Bachelors, fill: '#3b82f6' },
         { name: 'Others', value: attainmentCounts.Others, fill: '#f1f5f9' },
     ].filter(d => d.value > 0);
 
@@ -302,7 +329,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         currentYearAccreditationCount,
         dataIntegrityIndex: Math.round((programsWithRecordThisYear / (activeCount || 1)) * 100),
         roadmapForecastData,
+        accreditationYearCounts,
         roadmapData,
+        allRecommendations,
         overallQualityScore: Math.round(radarData.reduce((acc, curr) => acc + curr.score, 0) / 5),
         gadData: {
             enrollment: [{ name: 'Male', value: totalMaleEnrolled, fill: COLORS[0] }, { name: 'Female', value: totalFemaleEnrolled, fill: COLORS[2] }].filter(d => d.value > 0),
@@ -311,6 +340,53 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
     };
   }, [programs, compliances, campuses, campusMap, selectedYear]);
+
+  const handlePrintGaps = () => {
+    if (!analytics?.allRecommendations.length) {
+        toast({ title: "No Gaps Recorded", description: "There are no active accreditor recommendations for the current selection.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AccreditationRecommendationReport 
+                items={analytics.allRecommendations}
+                unitMap={unitMap}
+                scope="institutional"
+                year={selectedYear}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Accreditation Gaps Registry - AY ${selectedYear}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                        <style>
+                            @media print { 
+                                body { background: white; margin: 0; padding: 0; } 
+                                .no-print { display: none !important; } 
+                            } 
+                            body { font-family: serif; padding: 40px; color: black; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="no-print mb-8 flex justify-center">
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Gaps Registry</button>
+                        </div>
+                        <div id="print-content">
+                            ${reportHtml}
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) { console.error(e); }
+  };
 
   const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -366,7 +442,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       {/* 2. MATURITY RADAR, ATTAINMENT & PIPELINE FORECAST */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Institutional Maturity Profile */}
           <Card className="shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col h-full bg-white">
               <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
@@ -390,7 +465,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
 
-          {/* Faculty Educational Attainment (GAD) */}
           <Card className="shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col h-full bg-white">
               <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
                   <BookOpen className="h-4 w-4 text-emerald-600" />
@@ -414,7 +488,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
 
-          {/* Institutional Survey Pipeline */}
           <Card className="shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col h-full bg-white">
               <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-emerald-600" />
@@ -440,7 +513,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <Separator className="my-8" />
 
-      {/* 3. DETAILED PILLAR DEEP DIVES (Restored Trends) */}
+      {/* 3. DETAILED PILLAR DEEP DIVES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 overflow-hidden">
               <CardHeader className="bg-muted/5 border-b"><CardTitle className="text-sm font-black uppercase text-primary">Authority Maturity (COPC Trend)</CardTitle></CardHeader>
@@ -461,7 +534,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </Card>
       </div>
 
-      {/* 4. GAD SECTORAL Reach (Restored Summary) */}
+      {/* 4. GAD SECTORAL Reach */}
       <div className="space-y-4 pt-6">
           <div className="flex items-center gap-2 text-primary"><Users className="h-5 w-5" /><h3 className="text-lg font-black uppercase tracking-tight">Institutional GAD Reach Summary</h3></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -497,10 +570,140 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </div>
       </div>
 
-      {/* 5. SURVEY ROADMAP REGISTRY (Restored Dual-Tab Table) */}
+      <Separator />
+
+      {/* 5. RECOMMENDATIONS REGISTRY */}
+      <Card className="shadow-xl border-primary/10 overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-primary">
+                          <ClipboardCheck className="h-6 w-6" />
+                          <CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs font-medium">Consolidated institutional registry of mandatory and enhancement requirements.</CardDescription>
+                  </div>
+                  <Button onClick={handlePrintGaps} variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm">
+                      <Printer className="h-4 w-4" /> Print Institutional Gaps Registry
+                  </Button>
+              </div>
+          </CardHeader>
+          <CardContent className="p-0">
+              <ScrollArea className="h-[500px]">
+                  <Table>
+                      <TableHeader className="bg-muted/30 sticky top-0 z-10">
+                          <TableRow>
+                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Accountable Units</TableHead>
+                              <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {analytics.allRecommendations.map((item, idx) => (
+                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors">
+                                  <TableCell className="pl-8 py-5">
+                                      <div className="flex flex-col">
+                                          <span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span>
+                                          <Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell>
+                                      <Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">
+                                          {item.recommendation.type}
+                                      </Badge>
+                                  </TableCell>
+                                  <TableCell className="py-5 max-w-md">
+                                      <p className="text-[11px] font-bold text-slate-700 italic leading-relaxed">"{item.recommendation.text}"</p>
+                                      {item.recommendation.additionalInfo && (
+                                          <p className="text-[9px] text-muted-foreground mt-2 uppercase font-black tracking-tighter">Area: {item.recommendation.additionalInfo}</p>
+                                      )}
+                                  </TableCell>
+                                  <TableCell>
+                                      <div className="flex flex-wrap gap-1">
+                                          {(item.recommendation.assignedUnitIds || []).map((uid: string) => (
+                                              <Badge key={uid} variant="outline" className="bg-white border-slate-200 text-slate-600 h-4 px-1 text-[8px] font-bold">
+                                                  {unitMap.get(uid) || uid}
+                                              </Badge>
+                                          ))}
+                                          {!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}
+                                      </div>
+                                  </TableCell>
+                                  <TableCell className="text-right pr-8">
+                                      <Badge 
+                                          className={cn(
+                                              "h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm",
+                                              item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : 
+                                              item.recommendation.status === 'In Progress' ? "bg-amber-500 text-amber-950" : 
+                                              "bg-emerald-600 text-white"
+                                          )}
+                                      >
+                                          {item.recommendation.status}
+                                      </Badge>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                          {analytics.allRecommendations.length === 0 && (
+                              <TableRow>
+                                  <TableCell colSpan={5} className="h-40 text-center opacity-20">
+                                      <ListChecks className="h-10 w-10 mx-auto mb-2" />
+                                      <p className="text-[10px] font-black uppercase tracking-widest">No recommendations recorded for this year</p>
+                                  </TableCell>
+                              </TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </ScrollArea>
+          </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-8">
+              <div className="flex items-start gap-4">
+                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+                      <strong>Audit Consistency:</strong> These recommendations are extracted from verified accreditation milestones. Responsible units must submit implementation evidence via the portal to close these gaps.
+                  </p>
+              </div>
+          </CardFooter>
+      </Card>
+
+      {/* 6. SURVEY ROADMAP REGISTRY */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-6">
-              <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Detailed Pipeline)</CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-primary">
+                        <CalendarCheck className="h-5 w-5" />
+                        <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs font-medium">Strategic temporal view of accreditation targets.</CardDescription>
+                  </div>
+                  
+                  {/* DYNAMIC PIPELINE COUNTERS */}
+                  <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex bg-white rounded-2xl border shadow-sm p-3 gap-6">
+                          <div className="text-center px-1">
+                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L1}</p>
+                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level I</p>
+                          </div>
+                          <div className="text-center px-1">
+                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L2}</p>
+                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level II</p>
+                          </div>
+                          <div className="text-center px-1">
+                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L3}</p>
+                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level III</p>
+                          </div>
+                          <div className="text-center px-1 border-r pr-4 mr-2">
+                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L4}</p>
+                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level IV</p>
+                          </div>
+                          <div className="text-center bg-indigo-50 px-3 rounded-lg flex flex-col justify-center">
+                              <p className="text-sm font-black text-indigo-700 leading-none">{analytics.currentYearAccreditationCount}</p>
+                              <p className="text-[7px] font-black text-indigo-500 uppercase tracking-tighter mt-1">CURRENT YEAR CONDUCT</p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
           </CardHeader>
           <CardContent className="p-0">
               <Tabs defaultValue="active" className="w-full">
