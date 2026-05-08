@@ -5,6 +5,7 @@ import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, Cur
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '../ui/skeleton';
 import { 
     BarChart, 
     Bar, 
@@ -59,7 +60,13 @@ import {
     ClipboardCheck,
     Printer,
     ListChecks,
-    Search
+    Search,
+    X,
+    Check,
+    Monitor,
+    FileWarning,
+    ArrowUpRight,
+    Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -80,7 +87,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from './recommendation-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -181,6 +188,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             });
         });
 
+        const validityStr = currentMilestone?.statusValidityDate || (p.isNewProgram ? 'NEW PROGRAM' : 'AWAITING RESULT');
+        let status = 'AWAITING RESULT';
+        let sortYear = 9999;
+
         if (p.isActive) {
             activeCount++;
             if (isAccredited) activeAccredited++;
@@ -254,16 +265,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 totalMaleGrads += Number(grad.maleCount || 0);
                 totalFemaleGrads += Number(grad.femaleCount || 0);
             });
-        } else closedCount++;
 
-        const validityStr = currentMilestone?.statusValidityDate || (p.isNewProgram ? 'NEW PROGRAM' : 'AWAITING RESULT');
-        let status = 'AWAITING RESULT';
-        if (p.isActive) {
             if (p.isNewProgram) status = 'NEW PROGRAM';
             else if (validityStr && validityStr !== 'AWAITING RESULT' && validityStr !== 'TBA') {
                 const yearMatch = validityStr.match(/\d{4}/);
                 const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
                 if (dYear > 0) {
+                    sortYear = dYear;
                     accreditationYearCounts[dYear] = (accreditationYearCounts[dYear] || 0) + 1;
                     if (dYear === currentYearNum) currentYearAccreditationCount++;
                 }
@@ -271,7 +279,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 else if (dYear >= currentYearNum) status = 'COMPLIANT';
             }
             statusTotals[status as keyof typeof statusTotals]++;
-        } else status = 'CLOSED';
+        } else {
+            closedCount++;
+            status = 'CLOSED';
+        }
 
         roadmapData.push({
             id: p.id,
@@ -283,7 +294,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             currentLevel: rawLevel || (p.isNewProgram ? 'Not Yet Subject' : 'AWAITING RESULT'),
             validity: p.isNewProgram ? 'NEW PROGRAM' : (validityStr === 'TBA' ? 'AWAITING RESULT' : validityStr),
             status,
-            isActive: p.isActive
+            isActive: p.isActive,
+            isNewProgram: p.isNewProgram,
+            sortYear
         });
     });
 
@@ -355,42 +368,42 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   /**
    * FILTERED ROADMAP DATA
    * 1. Role-based locking: Non-admins restricted to their authorized scope.
-   * 2. Admin Filtering: Search and Site-specific drill-down.
+   * 2. Default sorting: Chronological ascending by year.
    */
   const filteredRoadmap = useMemo(() => {
     if (!analytics?.roadmapData) return [];
 
-    return analytics.roadmapData.filter(item => {
-        // 1. Role-based Locking
-        if (!isAdmin && userProfile) {
-            // Site Supervisors (Director/ODIMO) - check campus
-            const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO');
-            if (isSiteOversight) {
-                if (item.campusId !== userProfile.campusId) return false;
-            } else {
-                // Unit level (Coordinator) - check specific unit
-                if (item.unitId !== userProfile.unitId) return false;
+    return analytics.roadmapData
+        .filter(item => {
+            // 1. Role-based Locking
+            if (!isAdmin && userProfile) {
+                const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO');
+                if (isSiteOversight) {
+                    if (item.campusId !== userProfile.campusId) return false;
+                } else {
+                    if (item.unitId !== userProfile.unitId) return false;
+                }
             }
-        }
 
-        // 2. Admin Logic: Manual Filtering
-        if (isAdmin) {
-            if (roadmapCampusFilter !== 'all' && item.campusId !== roadmapCampusFilter) return false;
-            if (roadmapUnitFilter !== 'all' && item.unitId !== roadmapUnitFilter) return false;
-        }
+            // 2. Admin Logic Filtering
+            if (isAdmin) {
+                if (roadmapCampusFilter !== 'all' && item.campusId !== roadmapCampusFilter) return false;
+                if (roadmapUnitFilter !== 'all' && item.unitId !== roadmapUnitFilter) return false;
+            }
 
-        // 3. Search Filter
-        if (roadmapSearch) {
-            const lowerSearch = roadmapSearch.toLowerCase();
-            return (
-                item.name.toLowerCase().includes(lowerSearch) ||
-                item.level.toLowerCase().includes(lowerSearch) ||
-                item.currentLevel.toLowerCase().includes(lowerSearch)
-            );
-        }
+            // 3. Search Filter
+            if (roadmapSearch) {
+                const lowerSearch = roadmapSearch.toLowerCase();
+                return (
+                    item.name.toLowerCase().includes(lowerSearch) ||
+                    item.level.toLowerCase().includes(lowerSearch) ||
+                    item.currentLevel.toLowerCase().includes(lowerSearch)
+                );
+            }
 
-        return true;
-    });
+            return true;
+        })
+        .sort((a, b) => a.sortYear - b.sortYear || a.name.localeCompare(b.name));
   }, [analytics?.roadmapData, isAdmin, userProfile, userRole, roadmapSearch, roadmapCampusFilter, roadmapUnitFilter]);
 
   /**
@@ -491,111 +504,53 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
-      {/* 1. INSTITUTIONAL KPI HEADER CARDS */}
+      {/* 1. KPI HEADER CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-slate-50 border-primary/5 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span>
-                <LayoutGrid className="h-4 w-4 text-slate-300" />
-            </div>
+            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span><LayoutGrid className="h-4 w-4 text-slate-300" /></div>
             <div className="text-4xl font-black text-slate-900 leading-none">{analytics.activeCount} Active</div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">{analytics.closedCount} Closed Programs</p>
         </Card>
-
         <Card className="bg-emerald-50/30 border-emerald-100 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/60">COPC Performance</span>
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            </div>
+            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/60">COPC Performance</span><ShieldCheck className="h-4 w-4 text-emerald-400" /></div>
             <div className="text-4xl font-black text-emerald-600 leading-none">{analytics.activeCopc} Active</div>
             <p className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mt-2">Verified Authority</p>
         </Card>
-
         <Card className="bg-amber-50/30 border-amber-100 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/60">Quality Maturity</span>
-                <Trophy className="h-4 w-4 text-amber-400" />
-            </div>
+            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/60">Quality Maturity</span><Trophy className="h-4 w-4 text-amber-400" /></div>
             <div className="text-4xl font-black text-amber-600 leading-none">{analytics.activeAccredited} Active</div>
             <p className="text-[9px] font-bold text-amber-600/60 uppercase tracking-widest mt-2">Level I+ AACCUP</p>
         </Card>
-
         <Card className="bg-blue-50/30 border-blue-100 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60">Monitored Registry</span>
-                <Activity className="h-4 w-4 text-blue-400" />
-            </div>
+            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60">Monitored Registry</span><Activity className="h-4 w-4 text-blue-400" /></div>
             <div className="text-4xl font-black text-blue-600 leading-none">{analytics.dataIntegrityIndex}%</div>
             <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest mt-2">Data Integrity Index</p>
         </Card>
       </div>
 
-      {/* 2. MATURITY RADAR, ATTAINMENT & PIPELINE FORECAST */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col h-full bg-white">
-              <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Institutional Maturity Profile</CardTitle>
-              </CardHeader>
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white">
+              <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-600" /><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Strategic Maturity Profile</CardTitle></CardHeader>
               <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
                   <ChartContainer config={{}} className="h-[300px] w-full">
-                      <ResponsiveContainer>
-                          <RadarChart cx="50%" cy="50%" outerRadius="80%" data={analytics.radarData}>
-                              <PolarGrid strokeOpacity={0.1} />
-                              <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                              <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
-                              <Radar name="Maturity" dataKey="score" stroke="#1B6535" fill="#1B6535" fillOpacity={0.4} />
-                          </RadarChart>
-                      </ResponsiveContainer>
+                      <ResponsiveContainer><RadarChart cx="50%" cy="50%" outerRadius="80%" data={analytics.radarData}><PolarGrid strokeOpacity={0.1} /><PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} /><PolarRadiusAxis angle={30} domain={[0, 100]} hide /><Radar name="Maturity" dataKey="score" stroke="#1B6535" fill="#1B6535" fillOpacity={0.4} /></RadarChart></ResponsiveContainer>
                   </ChartContainer>
-                  <div className="text-center mt-6">
-                      <span className="text-5xl font-black text-emerald-600 tabular-nums">{analytics.overallQualityScore}%</span>
-                      <p className="text-[10px] font-black text-emerald-800 uppercase tracking-[0.15em] mt-1">Institutional Quality Score</p>
-                  </div>
+                  <div className="text-center mt-4"><span className="text-5xl font-black tabular-nums tracking-tighter text-primary">{analytics.overallQualityScore}%</span><p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.15em] mt-1">Institutional Quality Score</p></div>
               </CardContent>
           </Card>
-
-          <Card className="shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col h-full bg-white">
-              <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-emerald-600" />
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Faculty Educational Attainment (GAD)</CardTitle>
-              </CardHeader>
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white">
+              <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2"><BookOpen className="h-4 w-4 text-emerald-600" /><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Faculty Educational Attainment (GAD)</CardTitle></CardHeader>
               <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
                   <ChartContainer config={{}} className="h-[250px] w-full mb-8">
-                      <ResponsiveContainer>
-                          <PieChart>
-                              <Pie data={analytics.facultyAttainmentData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
-                                  {analytics.facultyAttainmentData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
-                              </Pie>
-                              <RechartsTooltip />
-                              <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                          </PieChart>
-                      </ResponsiveContainer>
+                      <ResponsiveContainer><PieChart><Pie data={analytics.facultyAttainmentData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.facultyAttainmentData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}</Pie><RechartsTooltip /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} /></PieChart></ResponsiveContainer>
                   </ChartContainer>
-                  <p className="text-[10px] text-muted-foreground italic leading-relaxed text-center px-4">
-                      Distribution of professional qualifications across the institutional faculty pool.
-                  </p>
               </CardContent>
           </Card>
-
-          <Card className="shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col h-full bg-white">
-              <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-emerald-600" />
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Institutional Survey Pipeline</CardTitle>
-              </CardHeader>
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white">
+              <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2"><CalendarDays className="h-4 w-4 text-emerald-600" /><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Institutional Survey Pipeline</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
                   <ChartContainer config={{}} className="h-[350px] w-full">
-                      <ResponsiveContainer>
-                          <BarChart data={analytics.roadmapForecastData} margin={{ left: 10, right: 10 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                              <XAxis dataKey="year" tick={{ fontSize: 12, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                              <RechartsTooltip content={<ChartTooltipContent />} />
-                              <Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}>
-                                  <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }} />
-                              </Bar>
-                          </BarChart>
-                      </ResponsiveContainer>
+                      <ResponsiveContainer><BarChart data={analytics.roadmapForecastData} margin={{ left: 10, right: 10 }}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 12, fontWeight: 'bold' }} axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}><LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }} /></Bar></BarChart></ResponsiveContainer>
                   </ChartContainer>
               </CardContent>
           </Card>
@@ -603,57 +558,38 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <Separator className="my-8" />
 
-      {/* 3. DETAILED PILLAR DEEP DIVES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 overflow-hidden">
               <CardHeader className="bg-muted/5 border-b"><CardTitle className="text-sm font-black uppercase text-primary">Authority Maturity (COPC Trend)</CardTitle></CardHeader>
-              <CardContent className="pt-8">
-                  <ChartContainer config={{}} className="h-[250px] w-full">
-                      <ResponsiveContainer><BarChart data={analytics.copcTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} /><YAxis hide /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}><LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }} /></Bar></BarChart></ResponsiveContainer>
-                  </ChartContainer>
-              </CardContent>
+              <CardContent className="pt-8"><ChartContainer config={{}} className="h-[250px] w-full"><ResponsiveContainer><BarChart data={analytics.copcTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} /><YAxis hide /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}><LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }} /></Bar></BarChart></ResponsiveContainer></ChartContainer></CardContent>
           </Card>
-
           <Card className="shadow-md border-primary/10 overflow-hidden">
               <CardHeader className="bg-muted/5 border-b"><CardTitle className="text-sm font-black uppercase text-indigo-700">Accreditation Excellence velocity</CardTitle></CardHeader>
-              <CardContent className="pt-8">
-                  <ChartContainer config={{}} className="h-[250px] w-full">
-                      <ResponsiveContainer><BarChart data={analytics.accreditationTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} /><YAxis hide /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40}><LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1e3a8a' }} /></Bar></BarChart></ResponsiveContainer>
-                  </ChartContainer>
-              </CardContent>
+              <CardContent className="pt-8"><ChartContainer config={{}} className="h-[250px] w-full"><ResponsiveContainer><BarChart data={analytics.accreditationTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} /><YAxis hide /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40}><LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1e3a8a' }} /></Bar></BarChart></ResponsiveContainer></ChartContainer></CardContent>
           </Card>
       </div>
 
-      {/* 4. GAD SECTORAL Reach */}
       <div className="space-y-4 pt-6">
           <div className="flex items-center gap-2 text-primary"><Users className="h-5 w-5" /><h3 className="text-lg font-black uppercase tracking-tight">Institutional GAD Reach Summary</h3></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="shadow-md border-primary/10 flex flex-col">
                   <CardHeader className="pb-2 border-b bg-blue-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution</CardTitle></CardHeader>
                   <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                      <ChartContainer config={{}} className="h-[200px] w-full">
-                          <ResponsiveContainer><PieChart><Pie data={analytics.gadData.enrollment} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.enrollment.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer>
-                      </ChartContainer>
+                      <ChartContainer config={{}} className="h-[200px] w-full"><ResponsiveContainer><PieChart><Pie data={analytics.gadData.enrollment} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.enrollment.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer></ChartContainer>
                       <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.students.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p></div>
                   </CardContent>
               </Card>
-
               <Card className="shadow-md border-primary/10 flex flex-col">
-                  <CardHeader className="pb-2 border-b bg-emerald-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><Briefcase className="h-4 w-4 text-emerald-600" /> System Registered Personnel</CardTitle></CardHeader>
+                  <CardHeader className="pb-2 border-b bg-emerald-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><Briefcase className="h-4 w-4 text-emerald-600" /> System Registered User</CardTitle></CardHeader>
                   <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                      <ChartContainer config={{}} className="h-[200px] w-full">
-                          <ResponsiveContainer><PieChart><Pie data={analytics.gadData.faculty} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.faculty.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer>
-                      </ChartContainer>
+                      <ChartContainer config={{}} className="h-[200px] w-full"><ResponsiveContainer><PieChart><Pie data={analytics.gadData.faculty} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.faculty.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer></ChartContainer>
                       <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.faculty.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p></div>
                   </CardContent>
               </Card>
-
               <Card className="shadow-md border-primary/10 flex flex-col">
                   <CardHeader className="pb-2 border-b bg-purple-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation Audit</CardTitle></CardHeader>
                   <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                      <ChartContainer config={{}} className="h-[200px] w-full">
-                          <ResponsiveContainer><PieChart><Pie data={analytics.gadData.grads} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.grads.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer>
-                      </ChartContainer>
+                      <ChartContainer config={{}} className="h-[200px] w-full"><ResponsiveContainer><PieChart><Pie data={analytics.gadData.grads} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.grads.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer></ChartContainer>
                       <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.grads.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p></div>
                   </CardContent>
               </Card>
@@ -662,234 +598,55 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <Separator />
 
-      {/* 5. RECOMMENDATIONS REGISTRY - ACADEMIC UNIT FOCUSED */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-muted/10 border-b py-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-primary">
-                          <ClipboardCheck className="h-6 w-6" />
-                          <CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle>
-                      </div>
-                      <CardDescription className="text-xs font-medium">
-                        Registry of accreditation gaps focused exclusively on Academic Units.
-                      </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button onClick={handlePrintGaps} variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm">
-                        <Printer className="h-4 w-4" /> 
-                        {isAdmin ? 'Print Institutional Gaps Registry' : 'Print Unit Compliance Report'}
-                    </Button>
-                  </div>
+                  <div className="space-y-1"><div className="flex items-center gap-2 text-primary"><ClipboardCheck className="h-6 w-6" /><CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle></div><CardDescription className="text-xs font-medium">Registry of accreditation gaps focused exclusively on Academic Units.</CardDescription></div>
+                  <Button onClick={handlePrintGaps} variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"><Printer className="h-4 w-4" /> {isAdmin ? 'Print Institutional Gaps Registry' : 'Print Unit Compliance Report'}</Button>
               </div>
-
-              {/* SEARCH & FILTER CONTROLS */}
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search recommendations..." 
-                        value={recoSearch} 
-                        onChange={(e) => setRecoSearch(e.target.value)} 
-                        className="h-9 pl-8 text-xs bg-white"
-                    />
-                </div>
-                <Select value={recoStatusFilter} onValueChange={setRecoStatusFilter}>
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                        <SelectValue placeholder="All Statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Implementation Statuses</SelectItem>
-                        <SelectItem value="Open">Open (Pending)</SelectItem>
-                        <SelectItem value="In Progress">In Progress</SelectItem>
-                        <SelectItem value="Closed">Closed (Complied)</SelectItem>
-                    </SelectContent>
-                </Select>
-                {isAdmin ? (
-                    <Select value={recoUnitFilter} onValueChange={setRecoUnitFilter}>
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Academic Units" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Institutional View (All Academic Units)</SelectItem>
-                            {units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (
-                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                ) : (
-                    <div className="flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">
-                        Locked to: {unitMap.get(userProfile?.unitId || '')}
-                    </div>
-                )}
+                <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input placeholder="Search recommendations..." value={recoSearch} onChange={(e) => setRecoSearch(e.target.value)} className="h-9 pl-8 text-xs bg-white"/></div>
+                <Select value={recoStatusFilter} onValueChange={setRecoStatusFilter}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Statuses" /></SelectTrigger><SelectContent><SelectItem value="all">All Implementation Statuses</SelectItem><SelectItem value="Open">Open (Pending)</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed (Complied)</SelectItem></SelectContent></Select>
+                {isAdmin ? (<Select value={recoUnitFilter} onValueChange={setRecoUnitFilter}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Academic Units" /></SelectTrigger><SelectContent><SelectItem value="all">Institutional View (All Academic Units)</SelectItem>{units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}</SelectContent></Select>) : (<div className="flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">Locked to: {unitMap.get(userProfile?.unitId || '')}</div>)}
               </div>
           </CardHeader>
           <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
-                  <Table>
-                      <TableHeader className="bg-muted/30 sticky top-0 z-10">
-                          <TableRow>
-                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Accountable Academic Units</TableHead>
-                              <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead>
-                          </TableRow>
-                      </TableHeader>
+                  <Table><TableHeader className="bg-muted/30 sticky top-0 z-10"><TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead><TableHead className="text-[10px] font-black uppercase">Type</TableHead><TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead><TableHead className="text-[10px] font-black uppercase">Accountable Academic Units</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                           {filteredRecommendations.map((item, idx) => (
-                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors">
-                                  <TableCell className="pl-8 py-5">
-                                      <div className="flex flex-col">
-                                          <span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span>
-                                          <Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell>
-                                      <Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">
-                                          {item.recommendation.type}
-                                      </Badge>
-                                  </TableCell>
-                                  <TableCell className="py-5 max-w-md">
-                                      <p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>
-                                      {item.recommendation.additionalInfo && (
-                                          <div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase">
-                                              <Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}
-                                          </div>
-                                      )}
-                                  </TableCell>
-                                  <TableCell>
-                                      <div className="flex flex-wrap gap-1">
-                                          {(item.recommendation.assignedUnitIds || []).map(uid => (
-                                              <Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">
-                                                  {unitMap.get(uid) || uid}
-                                              </Badge>
-                                          ))}
-                                          {!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="text-right pr-8">
-                                      <Badge 
-                                          className={cn(
-                                              "h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm",
-                                              recoStatusFilter === 'Open' ? "bg-rose-600 text-white" : 
-                                              recoStatusFilter === 'In Progress' ? "bg-amber-500 text-amber-950" : 
-                                              "bg-emerald-600 text-white"
-                                          )}
-                                      >
-                                          {item.recommendation.status}
-                                      </Badge>
-                                  </TableCell>
-                              </TableRow>
+                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors"><TableCell className="pl-8 py-5"><div className="flex flex-col"><span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span><Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge></div></TableCell><TableCell><Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">{item.recommendation.type}</Badge></TableCell><TableCell className="py-5 max-w-md"><p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>{item.recommendation.additionalInfo && (<div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase"><Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}</div>)}</TableCell><TableCell><div className="flex flex-wrap gap-1">{(item.recommendation.assignedUnitIds || []).map(uid => (<Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">{unitMap.get(uid) || uid}</Badge>))}{!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}</div></TableCell><TableCell className="text-right pr-8"><Badge className={cn("h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm", item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : "bg-emerald-600 text-white")}>{item.recommendation.status}</Badge></TableCell></TableRow>
                           ))}
-                          {filteredRecommendations.length === 0 && (
-                              <TableRow>
-                                  <TableCell colSpan={5} className="h-40 text-center opacity-20">
-                                      <ListChecks className="h-10 w-10 mx-auto mb-2" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest">No matching academic records found</p>
-                                  </TableCell>
-                              </TableRow>
-                          )}
                       </TableBody>
                   </Table>
               </ScrollArea>
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-4 px-8">
-              <div className="flex items-start gap-4">
-                  <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                      <p className="text-xs font-black uppercase text-emerald-900">Compliance Standard: AACCUP/ISO Parity</p>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                          This registry tracks the specific improvements mandated by external accreditors. Units identified in the "Accountable Units" column are responsible for submitting evidence logs of implementation through the relevant compliance modules.
-                      </p>
-                  </div>
-              </div>
-          </CardFooter>
       </Card>
 
       <Separator />
 
-      {/* 6. SURVEY ROADMAP REGISTRY */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-primary">
-                        <CalendarCheck className="h-5 w-5" />
-                        <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle>
-                      </div>
-                      <CardDescription className="text-xs font-medium">Strategic temporal view of accreditation targets.</CardDescription>
-                  </div>
-                  
-                  {/* DYNAMIC PIPELINE COUNTERS */}
+                  <div className="space-y-1"><div className="flex items-center gap-2 text-primary"><CalendarCheck className="h-5 w-5" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle></div><CardDescription className="text-xs font-medium">Strategic temporal view of accreditation targets.</CardDescription></div>
                   <div className="flex flex-wrap items-center gap-3">
                       <div className="flex bg-white rounded-2xl border shadow-sm p-3 gap-6">
-                          <div className="text-center px-1">
-                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L1}</p>
-                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level I</p>
-                          </div>
-                          <div className="text-center px-1">
-                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L2}</p>
-                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level II</p>
-                          </div>
-                          <div className="text-center px-1">
-                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L3}</p>
-                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level III</p>
-                          </div>
-                          <div className="text-center px-1 border-r pr-4 mr-2">
-                              <p className="text-xs font-black text-slate-900">{analytics.levelCounts.L4}</p>
-                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Level IV</p>
-                          </div>
-                          <div className="text-center bg-indigo-50 px-3 rounded-lg flex flex-col justify-center">
-                              <p className="text-sm font-black text-indigo-700 leading-none">{analytics.currentYearAccreditationCount}</p>
-                              <p className="text-[7px] font-black text-indigo-500 uppercase tracking-tighter mt-1">CURRENT YEAR CONDUCT</p>
-                          </div>
+                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L1}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level I</p></div>
+                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L2}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level II</p></div>
+                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L3}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level III</p></div>
+                          <div className="text-center px-1 border-r pr-4 mr-2"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L4}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level IV</p></div>
+                          <div className="text-center bg-indigo-50 px-3 rounded-lg flex flex-col justify-center"><p className="text-sm font-black text-indigo-700 leading-none">{analytics.currentYearAccreditationCount}</p><p className="text-[7px] font-black text-indigo-500 uppercase tracking-tighter mt-1">CURRENT YEAR CONDUCT</p></div>
                       </div>
                   </div>
               </div>
-
-              {/* SEARCH & FILTER CONTROLS FOR ROADMAP */}
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search programs in pipeline..." 
-                        value={roadmapSearch} 
-                        onChange={(e) => setRoadmapSearch(e.target.value)} 
-                        className="h-9 pl-8 text-xs bg-white"
-                    />
-                </div>
+                <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input placeholder="Search programs in pipeline..." value={roadmapSearch} onChange={(e) => setRoadmapSearch(e.target.value)} className="h-9 pl-8 text-xs bg-white"/></div>
                 {isAdmin ? (
                     <>
-                        <Select value={roadmapCampusFilter} onValueChange={setRoadmapCampusFilter}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <div className="flex items-center gap-1.5"><School className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Campuses" /></div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Institutional View (All Sites)</SelectItem>
-                                {campuses.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={roadmapUnitFilter} onValueChange={setRoadmapUnitFilter}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <div className="flex items-center gap-1.5"><Building2 className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Academic Units" /></div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Academic Units</SelectItem>
-                                {units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (
-                                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Select value={roadmapCampusFilter} onValueChange={setRoadmapCampusFilter}><SelectTrigger className="h-9 text-xs bg-white"><div className="flex items-center gap-1.5"><School className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Campuses" /></div></SelectTrigger><SelectContent><SelectItem value="all">Institutional View (All Sites)</SelectItem>{campuses.sort((a,b) => a.name.localeCompare(b.name)).map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
+                        <Select value={roadmapUnitFilter} onValueChange={setRoadmapUnitFilter}><SelectTrigger className="h-9 text-xs bg-white"><div className="flex items-center gap-1.5"><Building2 className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Academic Units" /></div></SelectTrigger><SelectContent><SelectItem value="all">All Academic Units</SelectItem>{units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}</SelectContent></Select>
                     </>
-                ) : (
-                    <div className="md:col-span-2 flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">
-                        <ShieldCheck className="h-3.5 w-3.5 mr-2" />
-                        Authorized View Locked: {unitMap.get(userProfile?.unitId || '') || campusMap.get(userProfile?.campusId || '')}
-                    </div>
-                )}
+                ) : (<div className="md:col-span-2 flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60"><ShieldCheck className="h-3.5 w-3.5 mr-2" />Authorized View Locked: {unitMap.get(userProfile?.unitId || '') || campusMap.get(userProfile?.campusId || '')}</div>)}
               </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -897,26 +654,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <div className="bg-muted/30 px-6 py-2 border-b">
                       <TabsList className="h-8 bg-background border p-0.5">
                           <TabsTrigger value="active" className="text-[10px] font-black uppercase px-6 h-7">Active Programs</TabsTrigger>
+                          <TabsTrigger value="new" className="text-[10px] font-black uppercase px-6 h-7">New Programs</TabsTrigger>
                           <TabsTrigger value="closed" className="text-[10px] font-black uppercase px-6 h-7">Closed Programs</TabsTrigger>
                       </TabsList>
                   </div>
-
-                  <TabsContent value="active" className="m-0">
-                      <RoadmapTable data={filteredRoadmap.filter(r => r.isActive)} campusMap={campusMap} />
-                  </TabsContent>
-                  <TabsContent value="closed" className="m-0">
-                      <RoadmapTable data={filteredRoadmap.filter(r => !r.isActive)} campusMap={campusMap} />
-                  </TabsContent>
+                  <TabsContent value="active" className="m-0"><RoadmapTable data={filteredRoadmap.filter(r => r.isActive && !r.isNewProgram)} campusMap={campusMap} /></TabsContent>
+                  <TabsContent value="new" className="m-0"><RoadmapTable data={filteredRoadmap.filter(r => r.isActive && r.isNewProgram)} campusMap={campusMap} /></TabsContent>
+                  <TabsContent value="closed" className="m-0"><RoadmapTable data={filteredRoadmap.filter(r => !r.isActive)} campusMap={campusMap} /></TabsContent>
               </Tabs>
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-3 px-8">
-              <div className="flex items-start gap-3">
-                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                      <strong>Guidance:</strong> This roadmap is automatically generated from verified accreditation milestones. Units must ensure that the "Current Level" matches their official AACCUP certificates to maintain roadmap integrity.
-                  </p>
-              </div>
-          </CardFooter>
       </Card>
     </div>
   );
@@ -958,7 +704,8 @@ function RoadmapTable({ data, campusMap }: { data: any[], campusMap: Map<string,
                                     "text-[10px] font-black uppercase border-none px-3 shadow-sm", 
                                     item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
                                     item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
-                                    "bg-blue-600 text-white"
+                                    item.status === 'NEW PROGRAM' ? "bg-blue-600 text-white" :
+                                    "bg-slate-500 text-white"
                                 )}>
                                     {item.status}
                                 </Badge>
