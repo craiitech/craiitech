@@ -22,9 +22,7 @@ import {
     RadarChart, 
     PolarGrid, 
     PolarAngleAxis, 
-    PolarRadiusAxis,
-    LineChart,
-    Line
+    PolarRadiusAxis
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { 
@@ -59,7 +57,8 @@ import {
     LayoutGrid,
     CalendarDays,
     ClipboardCheck,
-    Printer
+    Printer,
+    ListChecks
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -78,6 +77,7 @@ import {
 } from '@/components/ui/table';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from './recommendation-print-template';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -126,7 +126,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const accreditationByYear: Record<number, number> = {};
     const facultyAlignmentByYear: Record<number, { sum: number, count: number }> = {};
     
-    let totalProgramsWithBor = 0;
+    // Faculty Educational Attainment
+    const attainmentCounts = { Doctoral: 0, Masters: 0, Bachelors: 0, Others: 0 };
+
+    const uniqueFacultySet = new Set<string>();
 
     // GAD Totals
     let totalMaleEnrolled = 0;
@@ -136,11 +139,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     let totalOthersFaculty = 0;
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
-
-    // Faculty Educational Attainment
-    const attainmentCounts = { Doctoral: 0, Masters: 0, Bachelors: 0, Others: 0 };
-
-    const uniqueFacultySet = new Set<string>();
 
     programs.forEach(p => {
         const pId = String(p.id).toLowerCase().trim();
@@ -199,10 +197,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     else if (edu.includes('bachelor')) attainmentCounts.Bachelors++;
                     else attainmentCounts.Others++;
                 });
-            }
-
-            if (record?.ched?.boardApprovalLink || (record?.ched?.majorBoardApprovals && record.ched.majorBoardApprovals.length > 0)) {
-                totalProgramsWithBor++;
             }
 
             programRecords.forEach(r => {
@@ -333,6 +327,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         roadmapData,
         allRecommendations,
         overallQualityScore: Math.round(radarData.reduce((acc, curr) => acc + curr.score, 0) / 5),
+        totals: { students: totalMaleEnrolled + totalFemaleEnrolled, faculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty, grads: totalMaleGrads + totalFemaleGrads },
         gadData: {
             enrollment: [{ name: 'Male', value: totalMaleEnrolled, fill: COLORS[0] }, { name: 'Female', value: totalFemaleEnrolled, fill: COLORS[2] }].filter(d => d.value > 0),
             faculty: [{ name: 'Male', value: totalMaleFaculty, fill: COLORS[0] }, { name: 'Female', value: totalFemaleFaculty, fill: COLORS[2] }, { name: 'Others', value: totalOthersFaculty, fill: COLORS[1] }].filter(d => d.value > 0),
@@ -386,13 +381,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             printWindow.document.close();
         }
     } catch (e) { console.error(e); }
-  };
-
-  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
   };
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
