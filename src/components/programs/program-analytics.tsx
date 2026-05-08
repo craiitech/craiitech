@@ -22,7 +22,9 @@ import {
     RadarChart, 
     PolarGrid, 
     PolarAngleAxis, 
-    PolarRadiusAxis
+    PolarRadiusAxis,
+    LineChart,
+    Line
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { 
@@ -50,7 +52,10 @@ import {
     LayoutList,
     Building2,
     Filter,
-    Briefcase
+    Briefcase,
+    Gavel,
+    BookOpen,
+    Scale
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -99,6 +104,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const globalPillarSums = { authority: 0, accreditation: 0, faculty: 0, curriculum: 0, outcomes: 0 };
     const roadmapData: any[] = [];
     
+    // Yearly Trends Calculation
+    const copcByYear: Record<number, number> = {};
+    const accreditationByYear: Record<number, number> = {};
+    const facultyAlignmentByYear: Record<number, { sum: number, count: number }> = {};
+    
+    let totalProgramsWithBor = 0;
+
     // GAD Totals
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
@@ -112,9 +124,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     programs.forEach(p => {
         const pId = String(p.id).toLowerCase().trim();
-        const record = compliances.find(c => 
+        
+        // Find ALL compliance records for this program across years for trend analysis
+        const programRecords = compliances.filter(c => 
             String(c.programId || '').toLowerCase().trim() === pId
         );
+        
+        // Active Year record
+        const record = programRecords.find(c => c.academicYear === selectedYear);
         
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
@@ -137,10 +154,39 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (isAccredited || p.isNewProgram) globalPillarSums.accreditation += 100;
             if (record?.graduationRecords?.length) globalPillarSums.outcomes += 100;
             if (record?.curriculumRecords?.some(c => c.isNotedByChed)) globalPillarSums.curriculum += 100;
+            
+            let currentAlignment = 100;
             if (record?.faculty?.members?.length) {
                 const aligned = record.faculty.members.filter(m => m.isAlignedWithCMO === 'Aligned').length;
-                globalPillarSums.faculty += (aligned / (record.faculty.members.length || 1)) * 100;
+                currentAlignment = (aligned / (record.faculty.members.length || 1)) * 100;
+                globalPillarSums.faculty += currentAlignment;
             }
+
+            // BOR Registry
+            if (record?.ched?.boardApprovalLink || (record?.ched?.majorBoardApprovals && record.ched.majorBoardApprovals.length > 0)) {
+                totalProgramsWithBor++;
+            }
+
+            // Aggregate Trends from ALL available compliance records
+            programRecords.forEach(r => {
+                const yr = r.academicYear;
+                if (r.ched?.copcStatus === 'With COPC') {
+                    copcByYear[yr] = (copcByYear[yr] || 0) + 1;
+                }
+                
+                const rMilestones = r.accreditationRecords || [];
+                const rCurrent = rMilestones.find(m => m.lifecycleStatus === 'Current');
+                if (rCurrent && rCurrent.level !== 'Non Accredited') {
+                    accreditationByYear[yr] = (accreditationByYear[yr] || 0) + 1;
+                }
+
+                if (r.faculty?.members?.length) {
+                    if (!facultyAlignmentByYear[yr]) facultyAlignmentByYear[yr] = { sum: 0, count: 0 };
+                    const rAligned = r.faculty.members.filter(m => m.isAlignedWithCMO === 'Aligned').length;
+                    facultyAlignmentByYear[yr].sum += (rAligned / r.faculty.members.length) * 100;
+                    facultyAlignmentByYear[yr].count++;
+                }
+            });
 
             // GAD Aggregation
             const enrollmentRecords = record?.enrollmentRecords || [];
@@ -218,7 +264,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     ];
 
     const campusPerf = campuses.map(c => {
-        const cUnits = units.filter(u => u.campusIds?.includes(c.id));
         const cPrograms = programs.filter(p => p.campusId === c.id && p.isActive);
         const cMonitored = cPrograms.filter(p => compliances.some(rec => rec.programId === p.id && rec.academicYear === selectedYear)).length;
         const totalPossible = cPrograms.length;
@@ -234,6 +279,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         .map(([year, count]) => ({ year, count }))
         .sort((a, b) => a.year.localeCompare(b.year))
         .filter(d => parseInt(d.year) >= currentYearNum);
+
+    const copcTrendData = Object.entries(copcByYear).map(([year, count]) => ({ year, count })).sort((a,b) => a.year.localeCompare(b.year));
+    const accreditationTrendData = Object.entries(accreditationByYear).map(([year, count]) => ({ year, count })).sort((a,b) => a.year.localeCompare(b.year));
+    const facultyTrendData = Object.entries(facultyAlignmentByYear).map(([year, data]) => ({ year, rate: Math.round(data.sum / data.count) })).sort((a,b) => a.year.localeCompare(b.year));
+    
+    const borMaturityData = [
+        { name: 'With BOR Resolution', value: totalProgramsWithBor, fill: '#1B6535' },
+        { name: 'Missing Resolution', value: Math.max(0, activeCount - totalProgramsWithBor), fill: '#cbd5e1' }
+    ];
 
     const gadEnrollmentData = [
         { name: 'Male', value: totalMaleEnrolled, fill: COLORS[0] },
@@ -254,6 +308,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     return { 
         radarData,
         campusPerf,
+        copcTrendData,
+        accreditationTrendData,
+        borMaturityData,
+        facultyTrendData,
         gadEnrollmentData,
         gadFacultyData,
         gadGradsData,
@@ -281,6 +339,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* 1. KPIs HEADER */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden flex flex-col">
             <CardHeader className="pb-2"><div className="flex items-center justify-between"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Level Distribution</CardTitle><Award className="h-4 w-4 text-primary opacity-20" /></div></CardHeader>
@@ -322,11 +381,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
+      {/* 2. STRATEGIC RADAR & CAMPUS BENCHMARKING */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1 shadow-lg border-primary/10 overflow-hidden flex flex-col relative">
             <div className="absolute top-0 right-0 p-4 opacity-5"><TrendingUp className="h-20 w-20" /></div>
             <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Maturity Profile</CardTitle>
+                <CardTitle className="text-sm font-black uppercase tracking-tight text-primary">Maturity Profile (5 Pillars)</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col items-center justify-center pt-8">
                 <ChartContainer config={{}} className="h-[280px] w-full">
@@ -371,7 +431,109 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
-      <div className="space-y-4">
+      {/* 3. CHED, ACCREDITATION & GOVERNANCE PILLARS (Requested New Visuals) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* COPC Trend */}
+          <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+              <CardHeader className="bg-muted/5 border-b py-4">
+                  <div className="flex items-center gap-2 text-primary">
+                      <ShieldCheck className="h-5 w-5" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Authority (COPC Trend)</CardTitle>
+                  </div>
+              </CardHeader>
+              <CardContent className="pt-8 flex-1">
+                  <ChartContainer config={{}} className="h-[250px] w-full">
+                      <ResponsiveContainer>
+                          <BarChart data={analytics.copcTrendData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                              <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                              <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                              <RechartsTooltip content={<ChartTooltipContent />} />
+                              <Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}>
+                                  <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }} />
+                              </Bar>
+                          </BarChart>
+                      </ResponsiveContainer>
+                  </ChartContainer>
+              </CardContent>
+          </Card>
+
+          {/* Accreditation Trend */}
+          <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+              <CardHeader className="bg-muted/5 border-b py-4">
+                  <div className="flex items-center gap-2 text-indigo-700">
+                      <Trophy className="h-5 w-5" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Excellence Velocity</CardTitle>
+                  </div>
+              </CardHeader>
+              <CardContent className="pt-8 flex-1">
+                  <ChartContainer config={{}} className="h-[250px] w-full">
+                      <ResponsiveContainer>
+                          <BarChart data={analytics.accreditationTrendData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                              <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                              <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                              <RechartsTooltip content={<ChartTooltipContent />} />
+                              <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40}>
+                                  <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1e3a8a' }} />
+                              </Bar>
+                          </BarChart>
+                      </ResponsiveContainer>
+                  </ChartContainer>
+              </CardContent>
+          </Card>
+
+          {/* BOR Resolutions Maturity */}
+          <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+              <CardHeader className="bg-muted/5 border-b py-4">
+                  <div className="flex items-center gap-2 text-amber-600">
+                      <Gavel className="h-5 w-5" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Board Approval Maturity (BOR Registry)</CardTitle>
+                  </div>
+              </CardHeader>
+              <CardContent className="pt-6 flex-1 flex items-center justify-center">
+                  <ChartContainer config={{}} className="h-[200px] w-full">
+                      <ResponsiveContainer>
+                          <PieChart>
+                              <Pie data={analytics.borMaturityData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                  {analytics.borMaturityData.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                              </Pie>
+                              <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                          </PieChart>
+                      </ResponsiveContainer>
+                  </ChartContainer>
+              </CardContent>
+          </Card>
+
+          {/* Faculty Quality Alignment Trend */}
+          <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+              <CardHeader className="bg-muted/5 border-b py-4">
+                  <div className="flex items-center gap-2 text-primary">
+                      <Scale className="h-5 w-5" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Faculty Alignment Quality Index</CardTitle>
+                  </div>
+              </CardHeader>
+              <CardContent className="pt-8 flex-1">
+                  <ChartContainer config={{}} className="h-[250px] w-full">
+                      <ResponsiveContainer>
+                          <LineChart data={analytics.facultyTrendData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                              <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                              <YAxis domain={[0, 100]} unit="%" axisLine={false} tickLine={false} />
+                              <RechartsTooltip content={<ChartTooltipContent />} />
+                              <Line type="monotone" dataKey="rate" stroke="#1B6535" strokeWidth={3} dot={{ r: 4, fill: '#1B6535' }} activeDot={{ r: 6 }}>
+                                  <LabelList dataKey="rate" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: '10px', fontWeight: '900', fill: '#1B6535' }} />
+                              </Line>
+                          </LineChart>
+                      </ResponsiveContainer>
+                  </ChartContainer>
+              </CardContent>
+          </Card>
+      </div>
+
+      {/* 4. GAD & SECTORAL SUMMARY */}
+      <div className="space-y-4 pt-6">
           <div className="flex items-center gap-2 text-primary"><Users className="h-5 w-5" /><h3 className="text-lg font-black uppercase tracking-tight">Gender & Development (GAD) Summary</h3></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="shadow-md border-primary/10 flex flex-col">
@@ -380,7 +542,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <ChartContainer config={{}} className="h-[200px] w-full">
                           <ResponsiveContainer><PieChart><Pie data={analytics.gadEnrollmentData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadEnrollmentData.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer>
                       </ChartContainer>
-                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.students}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p></div>
+                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.students.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p></div>
                   </CardContent>
               </Card>
 
@@ -390,7 +552,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <ChartContainer config={{}} className="h-[200px] w-full">
                           <ResponsiveContainer><PieChart><Pie data={analytics.gadFacultyData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadFacultyData.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer>
                       </ChartContainer>
-                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.faculty}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Personnel Pool</p></div>
+                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.faculty.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Personnel Pool</p></div>
                   </CardContent>
               </Card>
 
@@ -400,12 +562,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <ChartContainer config={{}} className="h-[200px] w-full">
                           <ResponsiveContainer><PieChart><Pie data={analytics.gadGradsData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadGradsData.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer>
                       </ChartContainer>
-                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.grads}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p></div>
+                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.grads.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p></div>
                   </CardContent>
               </Card>
           </div>
       </div>
 
+      {/* 5. SURVEY ROADMAP PIPELINE */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-6">
               <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle>
