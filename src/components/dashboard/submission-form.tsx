@@ -4,7 +4,21 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle, ShieldCheck, ShieldAlert, FileText, LayoutList, Info, ArrowRight } from 'lucide-react';
+import { 
+    CheckCircle, 
+    XCircle, 
+    Loader2, 
+    HelpCircle, 
+    AlertTriangle, 
+    ShieldCheck, 
+    ShieldAlert, 
+    FileText, 
+    LayoutList, 
+    Info, 
+    ArrowRight,
+    ChevronDown,
+    ChevronUp
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -46,6 +60,7 @@ import { Badge } from '../ui/badge';
 import { getOfficialServerTime } from '@/lib/actions';
 import Link from 'next/link';
 import { ScrollArea } from '../ui/scroll-area';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
 
 const submissionSchema = z.object({
@@ -99,6 +114,7 @@ export function SubmissionForm({
   const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
   const [originalSubmitter, setOriginalSubmitter] = useState<AppUser | null>(null);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     setCurrentDate(new Date());
@@ -124,14 +140,17 @@ export function SubmissionForm({
   const targetCampusId = useMemo(() => isAdmin ? watchAdminCampus : userProfile?.campusId, [isAdmin, watchAdminCampus, userProfile?.campusId]);
 
   const digitalRisksQuery = useMemoFirebase(() => {
-    if (!firestore || !targetUnitId || !targetCampusId || !year || !isRorForm) return null;
+    const tUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
+    const tCampusId = isAdmin ? watchAdminCampus : userProfile?.campusId;
+    
+    if (!firestore || !tUnitId || !tCampusId || !year || !isRorForm) return null;
     return query(
       collection(firestore, 'risks'),
-      where('unitId', '==', targetUnitId),
-      where('campusId', '==', targetCampusId),
+      where('unitId', '==', tUnitId),
+      where('campusId', '==', tCampusId),
       where('year', '==', year)
     );
-  }, [firestore, targetUnitId, targetCampusId, year, isRorForm]);
+  }, [firestore, watchAdminUnit, watchAdminCampus, userProfile, year, isRorForm, isAdmin]);
 
   const { data: digitalRisks, isLoading: isLoadingDigitalRisks } = useCollection<Risk>(digitalRisksQuery);
   
@@ -200,7 +219,7 @@ export function SubmissionForm({
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: campuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const handleLinkValidation = async (link: string) => {
     if (!link || !link.startsWith('https://drive.google.com/') || !z.string().url().safeParse(link).success) {
@@ -523,9 +542,9 @@ export function SubmissionForm({
         </Alert>
 
         {isRorForm && !isLoadingDigitalRisks && !isDigitalComplete && (
-            <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-in slide-in-from-top-2 duration-500">
-                <ShieldAlert className="h-5 w-5 text-destructive" />
-                <AlertTitle className="font-black uppercase tracking-tight text-destructive">Digital Registry Block</AlertTitle>
+            <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-in slide-in-from-top-2 duration-500 shadow-lg overflow-hidden">
+                <ShieldAlert className="h-5 w-5 text-destructive animate-emergency-flash" />
+                <AlertTitle className="font-black uppercase tracking-tight text-destructive animate-emergency-flash">Digital Registry Block</AlertTitle>
                 <AlertDescription className="space-y-4 pt-1">
                     <p className="text-xs font-bold leading-relaxed">
                         Institutional quality standards require individual **Risks AND Opportunities** to be encoded digitally in the system BEFORE the formal document can be submitted for **AY {year}**.
@@ -534,11 +553,78 @@ export function SubmissionForm({
                         {!hasRisks && <li className="text-destructive">NO RISKS ENCODED</li>}
                         {!hasOpportunities && <li className="text-destructive">NO OPPORTUNITIES ENCODED</li>}
                     </ul>
-                    <Button size="sm" variant="destructive" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-destructive/20">
-                        <Link href="/risk-register">
-                            Go to Risk Register Registry
-                        </Link>
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <Button size="sm" variant="destructive" asChild className="w-full sm:w-auto h-9 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-destructive/20">
+                            <Link href="/risk-register">
+                                Go to Risk Register Registry
+                            </Link>
+                        </Button>
+                        <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setIsHelpOpen(!isHelpOpen)}
+                            className="w-full sm:w-auto h-9 font-black uppercase text-[10px] tracking-widest text-destructive hover:bg-destructive/10"
+                        >
+                            <HelpCircle className="h-4 w-4 mr-1.5" />
+                            Need Help?
+                            {isHelpOpen ? <ChevronUp className="ml-1.5 h-3 w-3" /> : <ChevronDown className="ml-1.5 h-3 w-3" />}
+                        </Button>
+                    </div>
+
+                    <Collapsible open={isHelpOpen}>
+                        <CollapsibleContent className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="mt-4 p-5 rounded-2xl border-2 border-destructive/20 bg-white space-y-4 shadow-inner">
+                                <div className="flex items-center gap-2 text-destructive">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Protocol: Fulfilling Digital Registry</h4>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div className="flex gap-3">
+                                            <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">1</div>
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-black uppercase text-slate-800">Module Access</p>
+                                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                                    Open the <strong>Risk & Opportunity Registry</strong> from the main menu.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">2</div>
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-black uppercase text-slate-800">Balanced Registry</p>
+                                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                                    Ensure at least one <strong>Risk</strong> and one <strong>Opportunity</strong> are registered for your unit.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex gap-3">
+                                            <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">3</div>
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-black uppercase text-slate-800">Baseline Analysis</p>
+                                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                                    For each entry, populate <strong>Section #2 (Initial Baseline)</strong> to match your ROR document exactly.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">4</div>
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-black uppercase text-slate-800">Final Validation</p>
+                                                <p className="text-[10px] text-slate-900 leading-relaxed font-bold">
+                                                    Return to this page to complete your document upload once the digital entries are verified.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
+
                     <div className="pt-2 border-t border-destructive/20 mt-2">
                         <p className="text-[9px] font-black uppercase text-destructive/70 tracking-widest">Registry Search Context:</p>
                         <p className="text-[9px] text-destructive/60 italic">Unit ID: {targetUnitId} | Site ID: {targetCampusId} | Year: {year}</p>
