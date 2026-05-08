@@ -4,7 +4,19 @@ import { useMemo, useState } from 'react';
 import type { Risk, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldCheck, AlertCircle, CheckCircle, Users, Info, HelpCircle, ChevronDown, ChevronUp, MousePointer2, ClipboardCheck } from 'lucide-react';
+import { 
+    ShieldCheck, 
+    AlertCircle, 
+    CheckCircle, 
+    Users, 
+    Info, 
+    HelpCircle, 
+    ChevronDown, 
+    ChevronUp, 
+    ChevronRight,
+    MousePointer2, 
+    ClipboardCheck 
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
