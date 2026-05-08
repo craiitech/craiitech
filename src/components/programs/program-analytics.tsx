@@ -47,9 +47,10 @@ import {
     CalendarCheck,
     ShieldAlert,
     Clock,
-    LayoutList as LayoutListIcon,
+    LayoutList,
     Building2,
-    Filter
+    Filter,
+    Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -268,12 +269,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     };
   }, [programs, compliances, campuses, units, campusMap, selectedYear]);
 
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
+  };
+
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
   if (!analytics) return null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      {/* 1. INSTITUTIONAL KPI GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden flex flex-col">
             <CardHeader className="pb-2"><div className="flex items-center justify-between"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Level Distribution</CardTitle><Award className="h-4 w-4 text-primary opacity-20" /></div></CardHeader>
@@ -399,7 +406,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </div>
       </div>
 
-      {/* 2. INSTITUTIONAL ROADMAP WORKSPACE */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-6">
               <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle>
@@ -482,4 +488,3 @@ function RoadmapTable({ data, campusMap }: { data: any[], campusMap: Map<string,
         </ScrollArea>
     );
 }
-
