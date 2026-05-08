@@ -45,7 +45,8 @@ import {
   CheckCircle2,
   ListChecks,
   MonitorCheck,
-  Target
+  Target,
+  ClipboardList
 } from 'lucide-react';
 import {
   useUser,
@@ -100,7 +101,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, endOfMonth } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
@@ -379,7 +380,7 @@ export default function HomePage() {
   const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
+    if (!firestore || !userProfile || !selectedYear) return null;
     const baseRef = collection(firestore, 'programCompliances');
     return query(baseRef, where('academicYear', '==', selectedYear));
   }, [firestore, userProfile, selectedYear]);
@@ -554,14 +555,32 @@ export default function HomePage() {
   }, [firestore, userRole, user]);
   const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
 
+  /**
+   * ACCREDITOR'S RECOMMENDATIONS (GAPS) LOGIC
+   * Scoped correctly for Unit, Campus, and Admin roles.
+   */
   const assignedRecommendations = useMemo(() => {
-    if (!allCompliances || !userProfile?.unitId) return [];
+    if (!allCompliances || !userProfile) return [];
     
     const results: any[] = [];
     allCompliances.forEach(record => {
         record.accreditationRecords?.forEach(milestone => {
             milestone.recommendations?.forEach(reco => {
-                if (reco.assignedUnitIds?.includes(userProfile.unitId) && reco.status !== 'Closed') {
+                if (reco.status === 'Closed') return;
+
+                let isRelevant = false;
+                if (isAdmin) {
+                    isRelevant = true;
+                } else if (isCampusSupervisor) {
+                    isRelevant = reco.assignedUnitIds?.some(uid => {
+                        const unit = allUnits?.find(u => u.id === uid);
+                        return unit?.campusIds?.includes(userProfile.campusId);
+                    });
+                } else {
+                    isRelevant = reco.assignedUnitIds?.includes(userProfile.unitId);
+                }
+
+                if (isRelevant) {
                     results.push({
                         programId: record.programId,
                         programName: allUnits?.find(u => u.id === record.programId)?.name || 'Academic Program',
@@ -573,7 +592,7 @@ export default function HomePage() {
         });
     });
     return results;
-  }, [allCompliances, userProfile?.unitId, allUnits]);
+  }, [allCompliances, userProfile, allUnits, isAdmin, isCampusSupervisor]);
 
   const handlePrintAssignedRecos = () => {
     if (assignedRecommendations.length === 0 || !userProfile) return;
@@ -588,15 +607,16 @@ export default function HomePage() {
                     recommendation: r.recommendation
                 }))}
                 unitMap={unitMap}
-                scope="unit"
+                scope={isAdmin ? "institutional" : "unit"}
                 year={selectedYear}
+                unitName={!isAdmin ? unitMap.get(userProfile.unitId) : undefined}
             />
         );
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>Unit Accreditation Gaps Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest">Click to Print Unit Recommendations</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`<html><head><title>Accreditation Gaps Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Folio Report</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (e) { console.error(e); }
@@ -877,15 +897,130 @@ export default function HomePage() {
     );
   }
 
+  const renderActionItems = () => {
+    const openCars = correctiveActionRequests?.filter(c => c.status !== 'Closed') || [];
+    const openDecisions = mrOutputs?.filter(o => 
+        (o.status === 'Open' || o.status === 'On-going' || o.status === 'Submit for Closure Verification') && 
+        o.assignments?.some(a => {
+            if (isAdmin) return true;
+            if (isCampusSupervisor) return a.campusId === userProfile?.campusId;
+            return a.unitId === userProfile?.unitId;
+        })
+    ) || [];
+
+    if (openCars.length === 0 && openDecisions.length === 0 && assignedRecommendations.length === 0) return null;
+
+    return (
+        <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <CardHeader className="pb-3 border-b border-destructive/10">
+                <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4" />
+                    Outstanding Quality Action Items
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Institutional findings requiring immediate resolution for AY {selectedYear}.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+                {/* CORRECTIVE ACTIONS (CAR) */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2 text-rose-600">
+                            <AlertTriangle className="h-4 w-4" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">Corrective Actions</h4>
+                        </div>
+                        <Badge variant="destructive" className="h-4 text-[8px] font-black">{openCars.length}</Badge>
+                    </div>
+                    {openCars.length > 0 ? (
+                        <div className="space-y-2">
+                            {openCars.slice(0, 3).map(car => (
+                                <div key={car.id} className="p-2.5 rounded-lg bg-white border border-rose-100 shadow-sm">
+                                    <p className="text-[10px] font-black text-slate-900 uppercase truncate">{car.carNumber}</p>
+                                    <p className="text-[10px] text-muted-foreground leading-tight italic line-clamp-2">"{car.descriptionOfNonconformance}"</p>
+                                </div>
+                            ))}
+                            <Button size="sm" variant="outline" asChild className="w-full h-8 text-[9px] font-black uppercase bg-white border-rose-200 text-rose-700 hover:bg-rose-50">
+                                <Link href="/qa-reports?tab=car">Resolve CARs</Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No open non-conformances.</p>
+                    )}
+                </div>
+
+                {/* MR DECISIONS */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2 text-indigo-600">
+                            <ListTodo className="h-4 w-4" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">MR Decisions</h4>
+                        </div>
+                        <Badge variant="outline" className="h-4 text-[8px] font-black border-indigo-200 text-indigo-700 bg-indigo-50">{openDecisions.length}</Badge>
+                    </div>
+                    {openDecisions.length > 0 ? (
+                        <div className="space-y-2">
+                            <ScrollArea className="h-[120px]">
+                                <div className="space-y-2 pr-2">
+                                    {openDecisions.map(o => (
+                                        <div key={o.id} className="p-2.5 rounded-lg bg-white border border-indigo-100 shadow-sm">
+                                            <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{o.description}"</p>
+                                            <div className="mt-1.5 flex items-center justify-between">
+                                                <Badge className={cn("h-3 text-[7px] font-black uppercase", o.status === 'Open' ? "bg-rose-500" : "bg-blue-500")}>{o.status}</Badge>
+                                                <span className="text-[8px] font-bold text-muted-foreground">{format(o.followUpDate instanceof Timestamp ? o.followUpDate.toDate() : new Date(o.followUpDate), 'MM/dd')}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            <Button size="sm" variant="outline" asChild className="w-full h-8 text-[9px] font-black uppercase bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                                <Link href="/qa-reports?tab=decisions">Update Progress</Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No pending decisions.</p>
+                    )}
+                </div>
+
+                {/* ACCREDITATION GAPS */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2 text-amber-600">
+                            <Award className="h-4 w-4" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">Accreditation Gaps</h4>
+                        </div>
+                        <Badge variant="outline" className="h-4 text-[8px] font-black border-amber-200 text-amber-700 bg-amber-50">{assignedRecommendations.length}</Badge>
+                    </div>
+                    {assignedRecommendations.length > 0 ? (
+                        <div className="space-y-2">
+                            <ScrollArea className="h-[120px]">
+                                <div className="space-y-2 pr-2">
+                                    {assignedRecommendations.map((r, i) => (
+                                        <div key={i} className="p-2.5 rounded-lg bg-white border border-amber-100 shadow-sm">
+                                            <p className="text-[8px] font-black text-amber-600 uppercase mb-1">{r.programName} ({r.level})</p>
+                                            <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{r.recommendation.text}"</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="w-full h-8 font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
+                                <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Folio Log
+                            </Button>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No academic gaps assigned.</p>
+                    )}
+                </div>
+            </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-2 px-6">
+                <p className="text-[8px] text-muted-foreground italic leading-tight">Registry of mandatory corrections and improvement directives from recent audits and management reviews.</p>
+            </CardFooter>
+        </Card>
+    );
+  };
+
   const renderUnitUserHome = () => {
     const currentUnit = allUnits?.find(u => u.id === userProfile?.unitId);
     
-    const openCars = correctiveActionRequests?.filter(c => c.status !== 'Closed') || [];
-    const openDecisions = mrOutputs?.filter(o => 
-        (o.status === 'Open' || o.status === 'On-going') && 
-        o.assignments?.some(a => a.unitId === userProfile?.unitId)
-    ) || [];
-
     return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
       {/* Institutional Header and Tabs */}
@@ -932,71 +1067,9 @@ export default function HomePage() {
         
         <RiskOverdueWarning risks={risks} isLoading={isLoading} />
 
-        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
+        {renderActionItems()}
 
-        {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
-            <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
-                        <ShieldAlert className="h-4 w-4" />
-                        Outstanding Quality Action Items
-                    </CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Institutional findings requiring unit implementation for AY {selectedYear}.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {openCars.length > 0 && (
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-destructive/10">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
-                                    <AlertTriangle className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 uppercase">Corrective Actions</p>
-                                    <p className="text-[10px] text-muted-foreground font-medium">{openCars.length} Open Requests</p>
-                                </div>
-                            </div>
-                            <Button size="sm" variant="outline" asChild className="h-7 text-[9px] font-black uppercase bg-white border-destructive/20 text-destructive hover:bg-destructive/5">
-                                <Link href="/qa-reports">Manage CARs</Link>
-                            </Button>
-                        </div>
-                    )}
-                    {openDecisions.length > 0 && (
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-primary/10">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                    <ListTodo className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 uppercase">MR Decisions</p>
-                                    <p className="text-[10px] text-muted-foreground font-medium">{openDecisions.length} Pending Actions</p>
-                                </div>
-                            </div>
-                            <Button size="sm" variant="outline" asChild className="h-7 text-[9px] font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5">
-                                <Link href="/qa-reports">View Decisions</Link>
-                            </Button>
-                        </div>
-                    )}
-                    {assignedRecommendations.length > 0 && (
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-amber-200">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                    <Award className="h-4 w-4 text-amber-600" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 uppercase">Accreditation Gaps</p>
-                                    <p className="text-[10px] text-muted-foreground font-medium">{assignedRecommendations.length} Assigned Recos</p>
-                                </div>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="h-7 font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
-                                <Printer className="h-3.5 w-3.5 mr-1" /> Print Log
-                            </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        )}
+        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
@@ -1226,6 +1299,8 @@ export default function HomePage() {
                     {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
                     {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
                 </div>
+
+                {renderActionItems()}
                 
                 {!isLoading && userProfile?.campusId && (
                     <StrategicSwotAnalysis 
@@ -1333,6 +1408,8 @@ export default function HomePage() {
           {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
           {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
+
+        {renderActionItems()}
         
         {!isLoading && (
             <StrategicSwotAnalysis 
