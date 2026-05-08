@@ -18,6 +18,10 @@ interface AccreditationRecommendationReportProps {
   unitName?: string;
 }
 
+/**
+ * ACCREDITATION RECOMMENDATION REPORT TEMPLATE
+ * Optimized for Folio (8.5 x 13) with 10-11pt base font.
+ */
 export function AccreditationRecommendationReport({ items, unitMap, scope, year, unitName }: AccreditationRecommendationReportProps) {
   const currentTitle = scope === 'institutional' 
     ? 'Institutional Accreditation Gaps Registry' 
@@ -26,86 +30,92 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
     : 'Program Accreditation Recommendations';
 
   return (
-    <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight">
+    <div className="p-0 text-black bg-white mx-auto font-serif leading-tight" style={{ width: '7.5in', fontSize: '11pt' }}>
       {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-black pb-6">
-        <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-        <h2 className="text-md font-semibold uppercase tracking-tight mt-1">Quality Assurance Office</h2>
-        <div className="mt-6">
-          <h2 className="text-lg font-black uppercase underline">{currentTitle}</h2>
-          {scope === 'unit' && unitName && (
-              <h3 className="text-2xl font-black uppercase text-blue-700 mt-2 tracking-tight">{unitName}</h3>
+      <div className="text-center mb-10 border-b-2 border-black pb-6">
+        <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Romblon State University</h1>
+        <h2 className="font-semibold uppercase tracking-tight mt-1" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
+        <div className="mt-8">
+          <h2 className="font-black uppercase underline decoration-2 underline-offset-4" style={{ fontSize: '13pt' }}>{currentTitle}</h2>
+          {unitName && (
+              <h3 className="font-black uppercase text-slate-900 mt-4 tracking-tight" style={{ fontSize: '16pt' }}>{unitName}</h3>
           )}
-          <p className="text-xs font-bold mt-1">ACADEMIC YEAR: {year}</p>
+          <p className="font-bold mt-2 uppercase tracking-widest" style={{ fontSize: '10pt' }}>ACADEMIC YEAR: {year}</p>
         </div>
       </div>
 
+      <p className="mb-6 text-justify italic" style={{ fontSize: '10pt' }}>
+        In alignment with the institutional Quality Management System (ISO 21001:2018) and AACCUP accreditation standards, 
+        the following items have been identified as mandatory requirements or enhancement areas. The identified accountable 
+        units are directed to implement necessary corrective or improvement actions.
+      </p>
+
       {/* Registry Table */}
-      <table className="w-full border-collapse border-2 border-black text-[9px] mb-8">
+      <table className="w-full border-collapse border-2 border-black mb-12">
         <thead>
           <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[20%]">Program Offering</th>
-            <th className="border border-black p-2 w-[10%]">Type</th>
-            <th className="border border-black p-2 w-[35%]">Accreditor's Recommendation</th>
-            <th className="border border-black p-2 w-[10%]">Status</th>
-            <th className="border border-black p-2 w-[25%]">Action Taken / Updates</th>
+            <th className="border border-black p-2 w-[22%]" style={{ fontSize: '10pt' }}>Program Offering</th>
+            <th className="border border-black p-2 w-[12%]" style={{ fontSize: '10pt' }}>Type</th>
+            <th className="border border-black p-2 w-[40%]" style={{ fontSize: '10pt' }}>Accreditor's Recommendation</th>
+            <th className="border border-black p-2 w-[11%]" style={{ fontSize: '10pt' }}>Status</th>
+            <th className="border border-black p-2 text-center" style={{ fontSize: '9pt' }}>Evidence / Initials</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, i) => (
             <tr key={i} className="border-b border-black">
               <td className="border border-black p-2 align-top">
-                <p className="font-black leading-tight">{item.programName}</p>
-                <p className="text-[7px] font-bold text-slate-500 mt-1 uppercase">
-                    Level: {item.level} | Survey: {item.surveyDate || 'TBA'}
+                <p className="font-black leading-tight uppercase" style={{ fontSize: '10pt' }}>{item.programName}</p>
+                <p className="text-slate-500 mt-1 uppercase font-bold" style={{ fontSize: '8pt' }}>
+                    {item.level} | {item.surveyDate || 'TBA'}
                 </p>
               </td>
-              <td className="border border-black p-2 text-center align-top font-bold uppercase text-[8px]">
+              <td className="border border-black p-2 text-center align-top font-bold uppercase" style={{ fontSize: '9pt' }}>
                 {item.recommendation.type}
               </td>
-              <td className="border border-black p-2 align-top italic leading-relaxed">
-                {item.recommendation.text}
+              <td className="border border-black p-2 align-top italic leading-relaxed" style={{ fontSize: '10pt' }}>
+                "{item.recommendation.text}"
                 {item.recommendation.additionalInfo && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 not-italic text-[7px] font-bold">
+                    <div className="mt-2 pt-2 border-t border-slate-100 not-italic font-bold" style={{ fontSize: '8pt' }}>
                         <span className="uppercase text-slate-400 mr-1">Admin Notes:</span>
                         {item.recommendation.additionalInfo}
                     </div>
                 )}
               </td>
-              <td className="border border-black p-2 text-center align-top font-black uppercase text-[8px]">
+              <td className="border border-black p-2 text-center align-top font-black uppercase" style={{ fontSize: '9pt' }}>
                 {item.recommendation.status}
               </td>
               <td className="border border-black p-2 align-top min-h-[60px]">
-                  {/* Blank space for manual updates */}
+                  {/* Space for manual evidence noting */}
               </td>
             </tr>
           ))}
           {items.length === 0 && (
-            <tr><td colSpan={5} className="p-8 text-center italic text-gray-400">No pending recommendations recorded for this cycle.</td></tr>
+            <tr><td colSpan={5} className="p-8 text-center italic text-gray-400">No active accreditation gaps recorded for this cycle.</td></tr>
           )}
         </tbody>
       </table>
 
-      {/* Footer Meta */}
-      <div className="mt-20 grid grid-cols-2 gap-20">
+      {/* Footer Signatories */}
+      <div className="mt-20 grid grid-cols-2 gap-20 px-8">
         <div className="text-center">
-          <p className="text-[10px] uppercase font-bold text-left mb-8 opacity-60">Generated by:</p>
-          <div className="border-b border-black font-bold text-sm pb-1 mb-1">
+          <p className="uppercase font-bold text-left mb-10 opacity-60" style={{ fontSize: '10pt' }}>Generated by:</p>
+          <div className="border-b-2 border-black font-black pb-1 mb-1 uppercase" style={{ fontSize: '11pt' }}>
             RSU EOMS PORTAL
           </div>
-          <p className="text-[10px] uppercase font-semibold">Institutional Digital Registry</p>
+          <p className="uppercase font-bold text-center" style={{ fontSize: '9pt' }}>Institutional Digital Registry</p>
         </div>
         <div className="text-center">
-          <p className="text-[10px] uppercase font-bold text-left mb-8 opacity-60">Verified by:</p>
-          <div className="border-b border-black font-bold text-sm pb-1 mb-1 min-h-[1rem]">
+          <p className="uppercase font-bold text-left mb-10 opacity-60" style={{ fontSize: '10pt' }}>Verified by:</p>
+          <div className="border-b-2 border-black font-black pb-1 mb-1 min-h-[1.2rem] uppercase" style={{ fontSize: '11pt' }}>
           </div>
-          <p className="text-[10px] uppercase font-semibold">Director, Quality Assurance Office</p>
+          <p className="uppercase font-bold text-center" style={{ fontSize: '9pt' }}>Director, Quality Assurance Office</p>
         </div>
       </div>
 
-      <div className="mt-16 text-[9px] text-gray-400 italic text-center border-t pt-4">
-        This is an official system-generated document issued via RSU EOMS Portal. 
-        Authenticated Accountability Registry AY {year}.
+      <div className="mt-24 text-[9pt] text-gray-400 italic text-center border-t pt-4 space-y-1">
+        <p>This is an official system-generated document issued via RSU EOMS Portal.</p>
+        <p className="font-bold">Institutional Accountability Registry AY {year}.</p>
       </div>
     </div>
   );

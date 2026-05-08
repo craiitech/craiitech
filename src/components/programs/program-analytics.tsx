@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, User, Signatories, AccreditationRecommendation } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, CorrectiveActionRequest, ManagementReviewOutput, AuditFinding, AccreditationRecommendation, User, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,8 @@ import {
     CalendarDays,
     ClipboardCheck,
     Printer,
-    ListChecks
+    ListChecks,
+    Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -78,6 +79,8 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from './recommendation-print-template';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -93,8 +96,14 @@ const COLORS = ['#1B6535', '#EAB308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316'
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { userProfile, isAdmin } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
+
+  // Reco State
+  const [recoSearch, setRecoSearch] = useState('');
+  const [recoStatusFilter, setRecoStatusFilter] = useState('all');
+  const [recoUnitFilter, setRecoUnitFilter] = useState('all');
 
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
@@ -336,19 +345,58 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     };
   }, [programs, compliances, campuses, campusMap, selectedYear]);
 
+  /**
+   * ACCREDITOR RECOMMENDATIONS FILTERED LOGIC
+   * Role-based locking: Non-admins are restricted to their own unit.
+   */
+  const filteredRecommendations = useMemo(() => {
+    if (!analytics?.allRecommendations) return [];
+    
+    return analytics.allRecommendations.filter(item => {
+        // 1. Role-based Lock
+        if (!isAdmin && userProfile?.unitId) {
+            const isAssigned = item.recommendation.assignedUnitIds?.includes(userProfile.unitId);
+            if (!isAssigned) return false;
+        }
+
+        // 2. Admin Unit Filter
+        if (isAdmin && recoUnitFilter !== 'all') {
+            const isAssigned = item.recommendation.assignedUnitIds?.includes(recoUnitFilter);
+            if (!isAssigned) return false;
+        }
+
+        // 3. Status Filter
+        if (recoStatusFilter !== 'all') {
+            if (item.recommendation.status !== recoStatusFilter) return false;
+        }
+
+        // 4. Search Filter
+        if (recoSearch) {
+            const lowerSearch = recoSearch.toLowerCase();
+            return (
+                item.programName.toLowerCase().includes(lowerSearch) ||
+                item.recommendation.text.toLowerCase().includes(lowerSearch)
+            );
+        }
+
+        return true;
+    });
+  }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter]);
+
   const handlePrintGaps = () => {
-    if (!analytics?.allRecommendations.length) {
-        toast({ title: "No Gaps Recorded", description: "There are no active accreditor recommendations for the current selection.", variant: "destructive" });
+    if (!filteredRecommendations.length) {
+        toast({ title: "No Gaps Recorded", description: "There are no active records matching the current selection.", variant: "destructive" });
         return;
     }
 
     try {
         const reportHtml = renderToStaticMarkup(
             <AccreditationRecommendationReport 
-                items={analytics.allRecommendations}
+                items={filteredRecommendations}
                 unitMap={unitMap}
-                scope="institutional"
+                scope={isAdmin && recoUnitFilter === 'all' ? "institutional" : "unit"}
                 year={selectedYear}
+                unitName={!isAdmin ? unitMap.get(userProfile?.unitId || '') : (recoUnitFilter !== 'all' ? unitMap.get(recoUnitFilter) : undefined)}
             />
         );
 
@@ -361,16 +409,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         <title>Accreditation Gaps Registry - AY ${selectedYear}</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
+                            @page { 
+                                size: 8.5in 13in !important; 
+                                margin: 0.5in !important; 
+                            }
                             @media print { 
-                                body { background: white; margin: 0; padding: 0; } 
+                                body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
                                 .no-print { display: none !important; } 
                             } 
-                            body { font-family: serif; padding: 40px; color: black; }
+                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
                         </style>
                     </head>
                     <body>
                         <div class="no-print mb-8 flex justify-center">
-                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Gaps Registry</button>
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Folio Report</button>
                         </div>
                         <div id="print-content">
                             ${reportHtml}
@@ -560,7 +612,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <Separator />
 
-      {/* 5. RECOMMENDATIONS REGISTRY */}
+      {/* 5. RECOMMENDATIONS REGISTRY - UPDATED WITH SEARCH & LOCKING */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-muted/10 border-b py-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -569,11 +621,57 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           <ClipboardCheck className="h-6 w-6" />
                           <CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle>
                       </div>
-                      <CardDescription className="text-xs font-medium">Consolidated institutional registry of mandatory and enhancement requirements.</CardDescription>
+                      <CardDescription className="text-xs font-medium">
+                        {isAdmin ? 'Institutional registry of all accreditation gaps.' : 'Remediation log for mandatory and enhancement requirements assigned to your unit.'}
+                      </CardDescription>
                   </div>
-                  <Button onClick={handlePrintGaps} variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm">
-                      <Printer className="h-4 w-4" /> Print Institutional Gaps Registry
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={handlePrintGaps} variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm">
+                        <Printer className="h-4 w-4" /> 
+                        {isAdmin ? 'Print Institutional Gaps Registry' : 'Print Unit Compliance Report'}
+                    </Button>
+                  </div>
+              </div>
+
+              {/* SEARCH & FILTER CONTROLS */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search recommendations..." 
+                        value={recoSearch} 
+                        onChange={(e) => setRecoSearch(e.target.value)} 
+                        className="h-9 pl-8 text-xs bg-white"
+                    />
+                </div>
+                <Select value={recoStatusFilter} onValueChange={setRecoStatusFilter}>
+                    <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Implementation Statuses</SelectItem>
+                        <SelectItem value="Open">Open (Pending)</SelectItem>
+                        <SelectItem value="In Progress">In Progress</SelectItem>
+                        <SelectItem value="Closed">Closed (Complied)</SelectItem>
+                    </SelectContent>
+                </Select>
+                {isAdmin ? (
+                    <Select value={recoUnitFilter} onValueChange={setRecoUnitFilter}>
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Responsible Units" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Institutional View (All Units)</SelectItem>
+                            {units.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
+                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <div className="flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">
+                        Locked to: {unitMap.get(userProfile?.unitId || '')}
+                    </div>
+                )}
               </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -589,7 +687,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {analytics.allRecommendations.map((item, idx) => (
+                          {filteredRecommendations.map((item, idx) => (
                               <TableRow key={idx} className="hover:bg-muted/20 transition-colors">
                                   <TableCell className="pl-8 py-5">
                                       <div className="flex flex-col">
@@ -623,7 +721,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                           className={cn(
                                               "h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm",
                                               item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : 
-                                              item.recommendation.status === 'In Progress' ? "bg-amber-500 text-amber-950" : 
+                                              item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
                                               "bg-emerald-600 text-white"
                                           )}
                                       >
@@ -632,11 +730,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                   </TableCell>
                               </TableRow>
                           ))}
-                          {analytics.allRecommendations.length === 0 && (
+                          {filteredRecommendations.length === 0 && (
                               <TableRow>
                                   <TableCell colSpan={5} className="h-40 text-center opacity-20">
                                       <ListChecks className="h-10 w-10 mx-auto mb-2" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest">No recommendations recorded for this year</p>
+                                      <p className="text-[10px] font-black uppercase tracking-widest">No recommendations found matching criteria</p>
                                   </TableCell>
                               </TableRow>
                           )}
@@ -647,7 +745,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <CardFooter className="bg-muted/5 border-t py-3 px-8">
               <div className="flex items-start gap-4">
                   <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+                  <p className="text-[9px] text-muted-foreground italic leading-relaxed">
                       <strong>Audit Consistency:</strong> These recommendations are extracted from verified accreditation milestones. Responsible units must submit implementation evidence via the portal to close these gaps.
                   </p>
               </div>
