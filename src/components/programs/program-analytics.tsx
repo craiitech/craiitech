@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, CorrectiveActionRequest, ManagementReviewOutput, AuditFinding, AccreditationRecommendation, User, Signatories } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, CorrectiveActionRequest, ManagementReviewOutput, AuditFinding, AccreditationRecommendation, User, Signatories, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
@@ -347,41 +347,54 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   /**
    * ACCREDITOR RECOMMENDATIONS FILTERED LOGIC
-   * Role-based locking: Non-admins are restricted to their own unit.
+   * 1. Role-based locking: Non-admins restricted to their unit.
+   * 2. STRICTOR SCOPE: Only include recommendations for Academic Units.
    */
   const filteredRecommendations = useMemo(() => {
     if (!analytics?.allRecommendations) return [];
     
+    const academicUnitIds = new Set(units.filter(u => u.category === 'Academic').map(u => u.id));
+
     return analytics.allRecommendations.filter(item => {
-        // 1. Role-based Lock
+        // 1. Role-based Lock & Academic-Only Filter
         if (!isAdmin && userProfile?.unitId) {
             const isAssigned = item.recommendation.assignedUnitIds?.includes(userProfile.unitId);
             if (!isAssigned) return false;
+            
+            // Only show if user's unit is Academic
+            if (!academicUnitIds.has(userProfile.unitId)) return false;
         }
 
-        // 2. Admin Unit Filter
+        // 2. Admin Unit Filter (Already academic-only dropdown in UI)
         if (isAdmin && recoUnitFilter !== 'all') {
             const isAssigned = item.recommendation.assignedUnitIds?.includes(recoUnitFilter);
             if (!isAssigned) return false;
         }
 
         // 3. Status Filter
-        if (recoStatusFilter !== 'all') {
-            if (item.recommendation.status !== recoStatusFilter) return false;
-        }
+        if (recoStatusFilter !== 'all' && item.recommendation.status !== recoStatusFilter) return false;
 
         // 4. Search Filter
         if (recoSearch) {
             const lowerSearch = recoSearch.toLowerCase();
-            return (
-                item.programName.toLowerCase().includes(lowerSearch) ||
-                item.recommendation.text.toLowerCase().includes(lowerSearch)
-            );
+            if (!item.programName.toLowerCase().includes(lowerSearch) && !item.recommendation.text.toLowerCase().includes(lowerSearch)) return false;
         }
 
+        // 5. Academic Units Assignment Check: 
+        // We only care about recommendations that have at least one Academic Unit assignment
+        const hasAcademicAssignment = item.recommendation.assignedUnitIds?.some(uid => academicUnitIds.has(uid));
+        if (!hasAcademicAssignment && (item.recommendation.assignedUnitIds?.length || 0) > 0) return false;
+
         return true;
-    });
-  }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter]);
+    }).map(item => ({
+        ...item,
+        recommendation: {
+            ...item.recommendation,
+            // Filter the displayed IDs to only show Academic ones in the UI
+            assignedUnitIds: (item.recommendation.assignedUnitIds || []).filter(uid => academicUnitIds.has(uid))
+        }
+    }));
+  }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter, units]);
 
   const handlePrintGaps = () => {
     if (!filteredRecommendations.length) {
@@ -612,7 +625,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <Separator />
 
-      {/* 5. RECOMMENDATIONS REGISTRY - UPDATED WITH SEARCH & LOCKING */}
+      {/* 5. RECOMMENDATIONS REGISTRY - ACADEMIC UNIT FOCUSED */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-muted/10 border-b py-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -622,7 +635,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           <CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle>
                       </div>
                       <CardDescription className="text-xs font-medium">
-                        {isAdmin ? 'Institutional registry of all accreditation gaps.' : 'Remediation log for mandatory and enhancement requirements assigned to your unit.'}
+                        Registry of accreditation gaps focused exclusively on Academic Units.
                       </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -658,11 +671,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 {isAdmin ? (
                     <Select value={recoUnitFilter} onValueChange={setRecoUnitFilter}>
                         <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Responsible Units" />
+                            <SelectValue placeholder="All Academic Units" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Institutional View (All Units)</SelectItem>
-                            {units.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
+                            <SelectItem value="all">Institutional View (All Academic Units)</SelectItem>
+                            {units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (
                                 <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                             ))}
                         </SelectContent>
@@ -682,7 +695,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Accountable Units</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Accountable Academic Units</TableHead>
                               <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead>
                           </TableRow>
                       </TableHeader>
@@ -734,7 +747,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <TableRow>
                                   <TableCell colSpan={5} className="h-40 text-center opacity-20">
                                       <ListChecks className="h-10 w-10 mx-auto mb-2" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest">No recommendations found matching criteria</p>
+                                      <p className="text-[10px] font-black uppercase tracking-widest">No matching academic records found</p>
                                   </TableCell>
                               </TableRow>
                           )}
@@ -746,7 +759,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <div className="flex items-start gap-4">
                   <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                      <strong>Audit Consistency:</strong> These recommendations are extracted from verified accreditation milestones. Responsible units must submit implementation evidence via the portal to close these gaps.
+                      <strong>Institutional Scope:</strong> This registry is filtered specifically for Academic Units. Non-academic assignments are excluded to ensure focus on program-level compliance and curriculum quality standards.
                   </p>
               </div>
           </CardFooter>
