@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Submission, Cycle, Unit } from '@/lib/types';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { TrendingUp, Target, Activity } from 'lucide-react';
 
