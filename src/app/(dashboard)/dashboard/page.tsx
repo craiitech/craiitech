@@ -37,7 +37,10 @@ import {
   CheckCircle2,
   ListChecks,
   MonitorCheck,
-  Target
+  Target,
+  MessageSquare,
+  Pencil,
+  Globe
 } from 'lucide-react';
 import {
   useUser,
@@ -121,6 +124,7 @@ import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
+import { useToast } from '@/hooks/use-toast';
 
 const statusVariant: Record<
   string,
@@ -190,6 +194,7 @@ function DashboardSkeleton() {
                                     {cap.icon}
                                 </div>
                                 <div className="space-y-0.5">
+                                    {/* @ts-ignore - Comp can be any valid lucide icon */}
                                     <h4 className="text-xs font-black uppercase text-slate-900">{cap.title}</h4>
                                     <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{cap.desc}"</p>
                                 </div>
