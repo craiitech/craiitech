@@ -117,14 +117,14 @@ export default function Home() {
                             href="https://www.certipedia.com/quality_marks/9000018803?locale=en" 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="transition-all hover:opacity-80 active:scale-95 mb-2"
+                            className="transition-all hover:opacity-90 active:scale-95 mb-2"
                         >
-                            <div className="relative h-[120px] w-[120px] rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-sm">
+                            <div className="relative h-[200px] w-[200px] overflow-hidden">
                                 <Image 
                                     src="/ISOlogo.jpg" 
                                     alt="ISO Certification Logo" 
                                     fill
-                                    className="object-contain p-2"
+                                    className="object-contain"
                                     priority
                                 />
                             </div>
