@@ -97,7 +97,9 @@ service cloud.firestore {
     }
 
     match /gadMainstreaming/{id} {
-      allow get, list, write: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn() && (isAdmin() || isSupervisor() || profile().get('role', '').matches('(?i).*coordinator.*'));
+      allow delete: if isAdmin();
     }
 
     match /gadActivities/{id} {

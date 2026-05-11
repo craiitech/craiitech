@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -16,11 +15,7 @@ import {
   Clock,
   Users,
   Megaphone,
-  Pencil,
   AlertCircle,
-  Eye,
-  Globe,
-  MessageSquare,
   ShieldCheck,
   AlertTriangle,
   BarChart,
@@ -30,24 +25,19 @@ import {
   Info,
   ClipboardCheck,
   TrendingUp,
-  Trophy,
   ShieldAlert,
   ListTodo,
   Printer,
-  ChevronRight,
   XCircle,
   Settings,
   Building2,
   Award,
   Loader2,
   Sparkles,
-  Search,
-  LayoutList,
   CheckCircle2,
   ListChecks,
   MonitorCheck,
-  Target,
-  ClipboardList
+  Target
 } from 'lucide-react';
 import {
   useUser,
@@ -129,7 +119,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
-import { useToast } from '@/hooks/use-toast';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
 
@@ -144,11 +133,6 @@ const statusVariant: Record<
   'awaiting approval': 'outline',
 };
 
-/**
- * ENHANCED DASHBOARD SKELETON LOADER
- * Displays comprehensive innovative guidance while synchronizing data.
- * Updated: Added abstract animated green and gold background.
- */
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 min-h-screen">
@@ -166,24 +150,14 @@ function DashboardSkeleton() {
         <Skeleton className="h-28 rounded-2xl" />
       </div>
 
-      {/* COMPREHENSIVE GUIDANCE OVERLAY */}
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/60 backdrop-blur-xl overflow-y-auto">
-        
-        {/* Animated Green and Gold Abstract Background Layer */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-            {/* Gold Institutional Blob */}
             <div className="absolute -top-[15%] -left-[10%] w-[70%] h-[70%] bg-yellow-400/20 rounded-full blur-[120px] animate-float-blob" />
-            
-            {/* Green Institutional Blob */}
             <div className="absolute -bottom-[15%] -right-[10%] w-[70%] h-[70%] bg-emerald-50/20 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '4s' }} />
-            
-            {/* Center Blending Blob */}
             <div className="absolute top-[25%] left-[25%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[100px] animate-float-blob" style={{ animationDelay: '2s' }} />
         </div>
 
         <div className="w-full max-w-4xl space-y-12 animate-in zoom-in duration-700 relative z-10">
-            
-            {/* Sync Header */}
             <div className="flex flex-col items-center gap-4 text-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
@@ -197,10 +171,7 @@ function DashboardSkeleton() {
                 </div>
             </div>
 
-            {/* Innovative Guidance Hub */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                {/* Left Side: System Capabilities */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
                         <Sparkles className="h-4 w-4 text-amber-500" />
@@ -227,7 +198,6 @@ function DashboardSkeleton() {
                     </div>
                 </div>
 
-                {/* Right Side: EOMS Mandate & Guidance */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
                         <FileText className="h-4 w-4 text-primary" />
@@ -268,7 +238,6 @@ function DashboardSkeleton() {
                 </div>
             </div>
 
-            {/* System Version Footer */}
             <div className="pt-8 border-t border-primary/10 flex justify-between items-center opacity-40">
                 <div className="flex items-center gap-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                     <Building2 className="h-3 w-3" />
@@ -552,10 +521,6 @@ export default function HomePage() {
   }, [firestore, userRole, user]);
   const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
 
-  /**
-   * ACCREDITOR'S RECOMMENDATIONS (GAPS) LOGIC
-   * Scoped correctly for Unit, Campus, and Admin roles.
-   */
   const assignedRecommendations = useMemo(() => {
     if (!allCompliances || !userProfile) return [];
     
@@ -919,7 +884,6 @@ export default function HomePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-                {/* CORRECTIVE ACTIONS (CAR) */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2 text-rose-600">
@@ -945,7 +909,6 @@ export default function HomePage() {
                     )}
                 </div>
 
-                {/* MR DECISIONS */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2 text-indigo-600">
@@ -978,7 +941,6 @@ export default function HomePage() {
                     )}
                 </div>
 
-                {/* ACCREDITATION GAPS */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2 text-amber-600">
@@ -1020,7 +982,6 @@ export default function HomePage() {
     
     return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-      {/* Institutional Header and Tabs */}
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
@@ -1245,7 +1206,6 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-        {/* Institutional Header and Tabs */}
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
@@ -1362,7 +1322,6 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-      {/* Institutional Header and Tabs */}
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
