@@ -112,20 +112,22 @@ export default function Home() {
             <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90vh] px-4">
                 <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl animate-in fade-in zoom-in duration-1000">
                     <div className="flex flex-col items-center gap-6">
-                        {/* Restored ISO Logo with Link to TUV Rheinland */}
+                        {/* ISO Logo with Official Certipedia Link */}
                         <a 
-                            href="https://www.tuv.com" 
+                            href="https://www.certipedia.com/quality_marks/9000018803?locale=en" 
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className="transition-all hover:opacity-80 active:scale-95 mb-2"
                         >
-                            <Image 
-                                src="/template/ISOlogo.jpg" 
-                                alt="ISO Certification Logo" 
-                                width={120} 
-                                height={120} 
-                                className="rounded-lg shadow-2xl border border-white/10"
-                            />
+                            <div className="relative h-[120px] w-[120px] rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-sm">
+                                <Image 
+                                    src="/template/ISOlogo.jpg" 
+                                    alt="ISO Certification Logo" 
+                                    fill
+                                    className="object-contain p-2"
+                                    priority
+                                />
+                            </div>
                         </a>
                         <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-sm text-white backdrop-blur-md">
                             <ShieldCheck className="h-4 w-4 text-primary" />
