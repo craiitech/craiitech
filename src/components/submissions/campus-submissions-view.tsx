@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -59,8 +60,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -69,7 +68,8 @@ import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@
 import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 const STATUS_COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',

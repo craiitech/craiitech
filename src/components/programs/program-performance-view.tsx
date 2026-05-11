@@ -5,8 +5,6 @@ import { useMemo, useState } from 'react';
 import type { 
     AcademicProgram, 
     ProgramComplianceRecord, 
-    AccreditationRecord, 
-    CurriculumRecord, 
     CorrectiveActionRequest, 
     ManagementReviewOutput, 
     AuditFinding,
@@ -25,33 +23,18 @@ import {
     CheckCircle2, 
     AlertCircle,
     Calculator,
-    Layers,
     History,
     Calendar,
-    ChevronRight,
     Target,
     Activity,
     PieChart as PieIcon,
     BookOpen,
     ShieldAlert,
     GraduationCap,
-    School,
     BarChart3,
     AlertTriangle,
     Info,
-    ArrowUpRight,
-    UserCircle,
-    Clock,
     Gavel,
-    UserCheck,
-    Briefcase,
-    CalendarDays,
-    FileX,
-    Hash,
-    Zap,
-    Scale,
-    Printer,
-    ListChecks,
     Check,
     Monitor,
     Eye,
@@ -77,16 +60,15 @@ import {
     Legend
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { Separator } from '../ui/separator';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -106,7 +88,6 @@ const COLORS: Record<string, string> = {
 };
 
 export function ProgramPerformanceView({ program, record, selectedYear, onResolveDeficiency }: ProgramPerformanceViewProps) {
-  const { isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
 
@@ -495,7 +476,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                           <ListChecks className="h-5 w-5" />
                           <CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle>
                       </div>
-                      <CardDescription className="text-xs">Consolidated registry of mandatory and enhancement requirements from all active milestones.</CardDescription>
+                      <CardDescription className="text-xs font-medium">Consolidated registry of mandatory and enhancement requirements from all active milestones.</CardDescription>
                   </div>
                   <Badge variant="outline" className="bg-white text-primary border-primary/20 h-6 px-4 font-black text-xs">
                       {analyticsData.recommendations.length} TOTAL ITEMS
@@ -548,7 +529,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                           className={cn(
                                               "h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm",
                                               reco.status === 'Open' ? "bg-rose-600 text-white" : 
-                                              reco.status === 'In Progress' ? "bg-amber-500 text-amber-950" : 
+                                              reco.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
                                               "bg-emerald-600 text-white"
                                           )}
                                       >

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -21,7 +22,6 @@ import {
     ArrowLeft, 
     ShieldAlert, 
     Info, 
-    Eye, 
     Image as ImageIcon,
     LayoutList,
     FileText
@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Link from 'next/link';
+import Link from 'link';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -52,17 +52,7 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
-
-
-export const submissionTypes = [
-  'SWOT Analysis',
-  'Needs and Expectation of Interested Parties',
-  'Operational Plan',
-  'Quality Objectives Monitoring',
-  'Risk and Opportunity Registry',
-  'Risk and Opportunity Action Plan'
-];
+import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -72,7 +62,6 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     'awaiting approval': 'outline',
     'n/a': 'secondary',
 }
-
 
 export default function NewSubmissionPage() {
   const { user, userProfile, userRole } = useUser();
@@ -339,9 +328,9 @@ export default function NewSubmissionPage() {
                 className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
                 asChild
             >
-                <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">
+                <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" /> Download Templates
-                </Link>
+                </a>
             </Button>
             <Button variant="outline" onClick={() => router.push('/submissions')} className="h-9 font-bold uppercase text-[10px] tracking-widest">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -465,7 +454,7 @@ export default function NewSubmissionPage() {
                             <span className="font-semibold">1. Download Templates:</span> All report templates are available in the official EOMS Google Drive folder. 
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                                 <Button variant="link" asChild className="p-0 h-auto font-bold">
-                                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">Access templates</Link>
+                                    <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">Access templates</a>
                                 </Button>
                             </div>
                         </div>

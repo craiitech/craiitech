@@ -1,12 +1,13 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Submission } from '@/lib/types';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { FileText, Info, Activity } from 'lucide-react';
+import { submissionTypes } from '@/lib/constants';
 
 interface CycleSubmissionBreakdownProps {
   allSubmissions: Submission[] | null;

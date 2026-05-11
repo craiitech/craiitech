@@ -17,12 +17,11 @@ import { Button } from '@/components/ui/button';
 import { X, CheckCircle, Circle, AlertCircle, Eye, Info } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { cn } from '@/lib/utils';
 import { StrategicSwotAnalysis } from '../submissions/strategic-swot-analysis';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
+import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 interface UnitSubmissionDetailCardProps {
   unitId: string;

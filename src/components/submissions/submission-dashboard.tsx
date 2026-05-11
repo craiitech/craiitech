@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -43,10 +44,10 @@ import {
 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isBefore, isAfter } from 'date-fns';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';
 import { cn } from '@/lib/utils';
+import { submissionTypes } from '@/lib/constants';
 
 interface SubmissionDashboardProps {
   submissions: Submission[];
@@ -78,7 +79,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
     const pending = submissions.filter(s => s.statusId === 'submitted').length;
     const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0;
 
-    const statusCounts: Record<string, number> = {};
+    const statusCounts: Record<string, string> = {};
     submissions.forEach(s => {
       statusCounts[s.statusId] = (statusCounts[s.statusId] || 0) + 1;
     });

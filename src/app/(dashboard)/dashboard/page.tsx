@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -103,7 +104,6 @@ import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
 import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { SubmissionSchedule } from '@/components/dashboard/submission-schedule';
 import { RiskStatusOverview } from '@/components/dashboard/risk-status-overview';
 import { OverdueWarning } from '@/components/dashboard/overdue-warning';
@@ -124,7 +124,7 @@ import { AccreditationRecommendationReport } from '@/components/programs/recomme
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
-import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
+import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 
 const statusVariant: Record<

@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import type { Submission, Unit, User as AppUser } from '@/lib/types';
@@ -8,8 +9,8 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Campus } from '@/lib/types';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Info, Zap, Target, Activity, Timer, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { submissionTypes } from '@/lib/constants';
 
 interface SubmissionAnalyticsProps {
   allSubmissions: Submission[] | null;

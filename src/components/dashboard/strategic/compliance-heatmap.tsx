@@ -4,12 +4,12 @@
 import { useMemo } from 'react';
 import type { Submission, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Check, X, Clock, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { submissionTypes } from '@/lib/constants';
 
 interface ComplianceHeatmapProps {
   units: Unit[];

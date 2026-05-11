@@ -4,15 +4,14 @@
 import { useMemo } from 'react';
 import type { Submission, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School, CheckCircle, Building, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 import { Timestamp } from 'firebase/firestore';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Button } from '../ui/button';
+import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 interface IncompleteCampusSubmissionsProps {
   allSubmissions: Submission[] | null;

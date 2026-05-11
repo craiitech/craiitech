@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -46,7 +47,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -54,6 +54,7 @@ import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templ
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
 import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
+import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 const COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',
@@ -75,7 +76,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50' 
+      final: 'bg-amber-100/40 hover:bg-blue-200/50' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40', 
