@@ -101,7 +101,9 @@ service cloud.firestore {
     }
 
     match /gadActivities/{id} {
-      allow get, list, create, update, delete: if isSignedIn();
+      allow get, list, delete: if isSignedIn();
+      allow create: if true; // Support public device-based entry
+      allow update: if isSignedIn();
     }
 
     match /unitPersonnelCensus/{id} {
@@ -177,7 +179,7 @@ service cloud.firestore {
     match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
 
     match /system/{docId} {
-      allow get: if isSignedIn(); // No more public read for settings/logo
+      allow get: if isSignedIn() || docId == 'settings' || docId == 'logo'; 
       allow list: if isSignedIn();
       allow write: if isAdmin();
     }
@@ -203,7 +205,7 @@ service cloud.firestore {
     }
 
     match /softwareEvaluations/{id} {
-      allow create: if true;
+      allow create: if true; // Allow stakeholders to evaluate
       allow get, list: if isSignedIn();
       allow update, delete: if isAdmin();
     }

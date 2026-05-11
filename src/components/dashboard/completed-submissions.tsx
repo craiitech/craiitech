@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -7,9 +8,9 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, Heart, CheckCircle2, Info, School } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface CompletedSubmissionsProps {
   allUnits: Unit[] | null;

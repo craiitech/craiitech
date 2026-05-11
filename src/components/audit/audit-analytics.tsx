@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -445,7 +446,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="completed" name="Completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={30}>
-                                <LabelList dataKey="completed" position="top" style={{ fontSize: '10px', fontWeight: '900' }} />
+                                <LabelList dataKey="completed" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#1B6535' }} />
                             </Bar>
                             <Bar dataKey="count" name="Assigned" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} barSize={30} />
                         </BarChart>

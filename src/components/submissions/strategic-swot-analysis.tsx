@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -31,7 +32,7 @@ import {
     School
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface StrategicSwotAnalysisProps {
   submissions: Submission[];

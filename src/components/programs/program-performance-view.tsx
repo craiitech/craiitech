@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -54,7 +55,8 @@ import {
     Check,
     Monitor,
     Eye,
-    ClipboardCheck
+    ClipboardCheck,
+    X
 } from 'lucide-react';
 import { 
     PieChart, 

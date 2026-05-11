@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -643,8 +644,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input placeholder="Search programs in pipeline..." value={roadmapSearch} onChange={(e) => setRoadmapSearch(e.target.value)} className="h-9 pl-8 text-xs bg-white"/></div>
                 {isAdmin ? (
                     <>
-                        <Select value={roadmapCampusFilter} onValueChange={setRoadmapCampusFilter}><SelectTrigger className="h-9 text-xs bg-white"><div className="flex items-center gap-1.5"><School className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Campuses" /></div></SelectTrigger><SelectContent><SelectItem value="all">Institutional View (All Sites)</SelectItem>{campuses.sort((a,b) => a.name.localeCompare(b.name)).map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
-                        <Select value={roadmapUnitFilter} onValueChange={setRoadmapUnitFilter}><SelectTrigger className="h-9 text-xs bg-white"><div className="flex items-center gap-1.5"><Building2 className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Academic Units" /></div></SelectTrigger><SelectContent><SelectItem value="all">All Academic Units</SelectItem>{units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}</SelectContent></Select>
+                        <Select value={roadmapCampusFilter} onValueChange={setRoadmapCampusFilter}><SelectTrigger className="h-9 text-xs bg-white"><div className="flex items-center gap-1.5"><School className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Campuses" /></div></SelectTrigger><SelectContent><SelectItem value="all" className="text-[10px] font-black">Institutional View (All Sites)</SelectItem>{campuses.sort((a,b) => a.name.localeCompare(b.name)).map(c => (<SelectItem key={c.id} value={c.id} className="text-[10px] font-bold">{c.name}</SelectItem>))}</SelectContent></Select>
+                        <Select value={roadmapUnitFilter} onValueChange={setRoadmapUnitFilter}><SelectTrigger className="h-9 text-xs bg-white"><div className="flex items-center gap-1.5"><Building2 className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Academic Units" /></div></SelectTrigger><SelectContent><SelectItem value="all" className="text-[10px] font-black">All Academic Units</SelectItem>{units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (<SelectItem key={u.id} value={u.id} className="text-[10px] font-bold">{u.name}</SelectItem>))}</SelectContent></Select>
                     </>
                 ) : (<div className="md:col-span-2 flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60"><ShieldCheck className="h-3.5 w-3.5 mr-2" />Authorized View Locked: {unitMap.get(userProfile?.unitId || '') || campusMap.get(userProfile?.campusId || '')}</div>)}
               </div>
@@ -692,7 +693,7 @@ function RoadmapTable({ data, campusMap }: { data: any[], campusMap: Map<string,
                                     <span className="text-[9px] font-black text-muted-foreground uppercase">{item.level}</span>
                                 </div>
                             </TableCell>
-                            <TableCell className="py-5 text-xs font-bold text-slate-600 uppercase">{item.campus}</TableCell>
+                            <TableCell className="py-5 text-xs font-bold text-slate-600 uppercase">{campusMap.get(item.campusId) || item.campus}</TableCell>
                             <TableCell className="py-5">
                                 <Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-white">
                                     {item.currentLevel}

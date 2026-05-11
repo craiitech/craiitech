@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -6,14 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School, CheckCircle, Building, Info } from 'lucide-react';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
+import { Timestamp } from 'firebase/firestore';
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { Button } from '../ui/button';
 
 interface IncompleteCampusSubmissionsProps {
   allSubmissions: Submission[] | null;

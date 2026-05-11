@@ -6,11 +6,11 @@ import type { Unit, Submission, Campus, User as AppUser, Cycle } from '@/lib/typ
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Star, Building, TrendingUp, Info } from 'lucide-react';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Progress } from '../ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface LeaderboardProps {
   allSubmissions: Submission[] | null;

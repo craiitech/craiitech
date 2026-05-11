@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -130,11 +131,7 @@ import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
-
-
-export const TOTAL_REPORTS_PER_CYCLE = 6;
-export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = TOTAL_REPORTS_PER_CYCLE * 2; 
-
+import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
 
 const statusVariant: Record<
   string,
@@ -965,7 +962,7 @@ export default function HomePage() {
                                         <div key={o.id} className="p-2.5 rounded-lg bg-white border border-indigo-100 shadow-sm">
                                             <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{o.description}"</p>
                                             <div className="mt-1.5 flex items-center justify-between">
-                                                <Badge className={cn("h-3 text-[7px] font-black uppercase", o.status === 'Open' ? "bg-rose-500" : "bg-blue-500")}>{o.status}</Badge>
+                                                <Badge className={cn("h-3 text-[7px] font-black uppercase", o.status === 'Open' ? "bg-rose-50" : "bg-blue-500")}>{o.status}</Badge>
                                                 <span className="text-[8px] font-bold text-muted-foreground">{format(o.followUpDate instanceof Timestamp ? o.followUpDate.toDate() : new Date(o.followUpDate), 'MM/dd')}</span>
                                             </div>
                                         </div>

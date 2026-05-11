@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
-import type { Submission, Unit } from '@/lib/types';
 import * as admin from 'firebase-admin';
 
 // This is to prevent Next.js from caching the response of this route
@@ -15,10 +14,15 @@ export async function GET(req: NextRequest) {
         }
         const idToken = authHeader.split('Bearer ')[1];
         
-        const decodedToken = await getAdminAuth().verifyIdToken(idToken);
+        const auth = getAdminAuth();
+        if (!auth) return NextResponse.json({ message: 'Internal Server Error: Auth service unavailable' }, { status: 500 });
+        
+        const decodedToken = await auth.verifyIdToken(idToken);
         const uid = decodedToken.uid;
 
         const firestore = getAdminFirestore();
+        if (!firestore) return NextResponse.json({ message: 'Internal Server Error: Firestore service unavailable' }, { status: 500 });
+
         const userDoc = await firestore.collection('users').doc(uid).get();
 
         if (!userDoc.exists) {
@@ -61,10 +65,12 @@ export async function GET(req: NextRequest) {
             // Convert Firestore Timestamps to serializable format (ISO string)
             const serializedData: Record<string, any> = { ...data, id: doc.id };
             for (const key in serializedData) {
-                if (serializedData[key] instanceof admin.firestore.Timestamp) {
-                    serializedData[key] = serializedData[key].toDate().toISOString();
-                } else if (serializedData[key]?.toDate && typeof serializedData[key].toDate === 'function') { // Handle client-side Timestamps if they slip through
-                    serializedData[key] = serializedData[key].toDate().toISOString();
+                const value = serializedData[key];
+                if (value instanceof admin.firestore.Timestamp) {
+                    serializedData[key] = value.toDate().toISOString();
+                } else if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
+                    // Handle plain objects that represent Timestamps
+                    serializedData[key] = new Date(value.seconds * 1000).toISOString();
                 }
             }
             submissions.push(serializedData);

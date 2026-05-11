@@ -8,8 +8,8 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Badge } from '../ui/badge';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface CampusUnitOverviewProps {
   allUnits: Unit[] | null;

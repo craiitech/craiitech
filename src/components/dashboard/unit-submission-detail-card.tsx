@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { StrategicSwotAnalysis } from '../submissions/strategic-swot-analysis';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface UnitSubmissionDetailCardProps {
   unitId: string;

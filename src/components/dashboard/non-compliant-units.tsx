@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -9,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Timestamp } from 'firebase/firestore';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { isAfter } from 'date-fns';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface NonCompliantUnitsProps {
   allCycles: Cycle[] | null;
