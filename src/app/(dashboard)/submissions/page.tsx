@@ -306,7 +306,6 @@ export default function SubmissionsPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <Tabs defaultValue="visual-insights" className="space-y-4">
-            {/* Branded Header Area */}
             <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
@@ -656,27 +655,27 @@ export default function SubmissionsPage() {
                 </TabsContent>
             )}
         </Tabs>
-      </div>
 
-      <FeedbackDialog isOpen={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} feedback={feedbackToShow} />
-      
-      <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Permanent Deletion</AlertDialogTitle>
-                <AlertDialogDescription>You are about to delete <strong>{deletingSubmission?.reportType}</strong>. This action is irreversible. Type <strong className="text-destructive">{challengeText}</strong> to proceed.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-2">
-                <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
-            </div>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Abort</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
-                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Record
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        <FeedbackDialog isOpen={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} feedback={feedbackToShow} />
+        
+        <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Permanent Deletion</AlertDialogTitle>
+                    <AlertDialogDescription>You are about to delete <strong>{deletingSubmission?.reportType}</strong>. This action is irreversible. Type <strong className="text-destructive">{challengeText}</strong> to proceed.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-2">
+                    <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Abort</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Record
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </TooltipProvider>
   );
 }

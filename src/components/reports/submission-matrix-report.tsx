@@ -117,7 +117,7 @@ export function SubmissionMatrixReport({
   }, [allCycles]);
   
   const handlePrintMatrix = () => {
-    setIsPrinting(true);
+    setIsPrinting(false);
     try {
         const html = ReactDOMServer.renderToStaticMarkup(
             <MatrixPrintView data={matrixData} year={selectedYear} />
