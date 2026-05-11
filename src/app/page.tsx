@@ -112,6 +112,7 @@ export default function Home() {
             <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90vh] px-4">
                 <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl animate-in fade-in zoom-in duration-1000">
                     <div className="flex flex-col items-center gap-6">
+                        {/* Restored ISO Logo with Link to TUV Rheinland */}
                         <a 
                             href="https://www.tuv.com" 
                             target="_blank" 
