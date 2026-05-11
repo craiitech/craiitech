@@ -40,7 +40,8 @@ import {
   Target,
   MessageSquare,
   Pencil,
-  Globe
+  Globe,
+  Eye
 } from 'lucide-react';
 import {
   useUser,
@@ -156,7 +157,7 @@ function DashboardSkeleton() {
 
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/60 backdrop-blur-xl overflow-y-auto">
         <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-            <div className="absolute -top-[15%] -left-[10%] w-[70%] h-[70%] bg-yellow-400/20 rounded-full blur-[120px] animate-float-blob" />
+            <div className="absolute top-[15%] -left-[10%] w-[70%] h-[70%] bg-yellow-400/20 rounded-full blur-[120px] animate-float-blob" />
             <div className="absolute -bottom-[15%] -right-[10%] w-[70%] h-[70%] bg-emerald-50/20 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '4s' }} />
             <div className="absolute top-[25%] left-[25%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[100px] animate-float-blob" style={{ animationDelay: '2s' }} />
         </div>
@@ -259,7 +260,7 @@ function DashboardSkeleton() {
 }
 
 export default function HomePage() {
-  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();

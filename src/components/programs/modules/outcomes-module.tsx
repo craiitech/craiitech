@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -57,7 +56,7 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
             <FormControl><SelectTrigger className="h-7 text-[9px] font-black uppercase bg-white border-primary/20"><SelectValue placeholder="General" /></SelectTrigger></FormControl>
             <SelectContent>
                 <SelectItem value="General">General Program</SelectItem>
-                {program?.specializations?.map(spec => <SelectItem key={spec.id} value={spec.id}>{spec.name}</SelectItem>)}
+                {(program?.specializations || []).map(spec => <SelectItem key={spec.id} value={spec.id}>{spec.name}</SelectItem>)}
             </SelectContent>
         </Select>
     )} />

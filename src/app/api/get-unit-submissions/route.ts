@@ -1,7 +1,5 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
-import * as admin from 'firebase-admin';
 
 // This is to prevent Next.js from caching the response of this route
 export const dynamic = 'force-dynamic';
@@ -15,13 +13,14 @@ export async function GET(req: NextRequest) {
         const idToken = authHeader.split('Bearer ')[1];
         
         const auth = getAdminAuth();
-        if (!auth) return NextResponse.json({ message: 'Internal Server Error: Auth service unavailable' }, { status: 500 });
+        const firestore = getAdminFirestore();
+        
+        if (!auth || !firestore) {
+            return NextResponse.json({ message: 'Internal Server Error: Firebase services unavailable' }, { status: 500 });
+        }
         
         const decodedToken = await auth.verifyIdToken(idToken);
         const uid = decodedToken.uid;
-
-        const firestore = getAdminFirestore();
-        if (!firestore) return NextResponse.json({ message: 'Internal Server Error: Firestore service unavailable' }, { status: 500 });
 
         const userDoc = await firestore.collection('users').doc(uid).get();
 
@@ -33,17 +32,16 @@ export async function GET(req: NextRequest) {
              return NextResponse.json({ message: 'User profile data is missing.' }, { status: 404 });
         }
 
-        // Let's find the main campus ID from the campuses collection.
+        // Check if user has coordinator/odimo permissions for Main Campus
         const campusesSnapshot = await firestore.collection('campuses').where('name', '==', 'Main Campus').limit(1).get();
         if (campusesSnapshot.empty) {
-            console.error("API Error: Main Campus not found in the database.");
             return NextResponse.json({ message: 'Configuration Error: Main Campus not found.' }, { status: 500 });
         }
         const mainCampusId = campusesSnapshot.docs[0].id;
         
         const isMainCampusCoordinator = userProfile.campusId === mainCampusId && (userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO');
         
-        if (!isMainCampusCoordinator) {
+        if (!isMainCampusCoordinator && userProfile.role !== 'Admin') {
             return NextResponse.json({ message: 'Forbidden: You do not have permission to view this data.' }, { status: 403 });
         }
         
@@ -59,21 +57,20 @@ export async function GET(req: NextRequest) {
 
         const submissionsSnapshot = await firestore.collection('submissions').where('unitName', '==', unitNameForQuery).get();
 
-        const submissions: any[] = [];
-        submissionsSnapshot.forEach(doc => {
+        const submissions = submissionsSnapshot.docs.map(doc => {
             const data = doc.data();
-            // Convert Firestore Timestamps to serializable format (ISO string)
-            const serializedData: Record<string, any> = { ...data, id: doc.id };
-            for (const key in serializedData) {
-                const value = serializedData[key];
-                if (value instanceof admin.firestore.Timestamp) {
-                    serializedData[key] = value.toDate().toISOString();
-                } else if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
-                    // Handle plain objects that represent Timestamps
-                    serializedData[key] = new Date(value.seconds * 1000).toISOString();
+            const id = doc.id;
+            
+            // Clean serialization for client consumption
+            const result: any = { ...data, id };
+            for (const key in result) {
+                if (result[key] && typeof result[key] === 'object' && '_seconds' in result[key]) {
+                    result[key] = new Date(result[key]._seconds * 1000).toISOString();
+                } else if (result[key] && typeof result[key].toDate === 'function') {
+                    result[key] = result[key].toDate().toISOString();
                 }
             }
-            submissions.push(serializedData);
+            return result;
         });
 
         return NextResponse.json(submissions, { status: 200 });

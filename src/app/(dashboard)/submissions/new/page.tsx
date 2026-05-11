@@ -52,6 +52,7 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 
 export const submissionTypes = [
