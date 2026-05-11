@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,7 +31,8 @@ import {
     ChevronLeft,
     TrendingUp,
     Info,
-    Search
+    Search,
+    Circle
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
@@ -216,10 +216,10 @@ export function UnitSubmissionsView({
     const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
-        { name: 'Approved', value: approved },
-        { name: 'Awaiting Approval', value: pending },
-        { name: 'Rejected', value: rejected },
-        { name: 'Missing', value: missingTotal }
+        { name: 'Approved', value: approved, fill: COLORS.Approved },
+        { name: 'Awaiting Approval', value: pending, fill: COLORS['Awaiting Approval'] },
+        { name: 'Rejected', value: rejected, fill: COLORS.Rejected },
+        { name: 'Missing', value: missingTotal, fill: COLORS.Missing }
     ].filter(d => d.value >= 0);
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
@@ -338,7 +338,7 @@ export function UnitSubmissionsView({
                               <PieChart>
                                   <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                                   <Pie data={unitData.chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
-                                      {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />)}
+                                      {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />)}
                                   </Pie>
                               </PieChart>
                           </ResponsiveContainer>

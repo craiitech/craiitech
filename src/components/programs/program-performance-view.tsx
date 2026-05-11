@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -39,7 +38,8 @@ import {
     Monitor,
     Eye,
     ClipboardCheck,
-    X
+    X,
+    FileX
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -151,6 +151,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
         if (m.sex === 'Others (LGBTQI++)') othersFaculty++;
     };
+
+    const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned' as const, sex: 'Female' as const };
 
     checkAlignment(record.faculty?.dean);
     if (record.faculty?.hasAssociateDean) checkAlignment(record.faculty?.associateDean);
@@ -343,7 +345,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                           <div className="p-6 space-y-4">
                               {analyticsData.gaps.length > 0 ? (
                                   analyticsData.gaps.map((gap, i) => (
-                                      <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group">
+                                      <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group" onClick={() => onResolveDeficiency?.(gap.target)}>
                                           <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
                                               <AlertTriangle className="h-5 w-5 text-destructive" />
                                           </div>
@@ -541,7 +543,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                           {analyticsData.recommendations.length === 0 && (
                               <TableRow>
                                   <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
-                                      <div className="flex flex-col items-center gap-2 opacity-20">
+                                      <div className="flex flex-col items-center justify-center gap-2 opacity-20">
                                           <ClipboardCheck className="h-10 w-10" />
                                           <p className="text-xs font-black uppercase tracking-widest">No recommendations recorded</p>
                                       </div>

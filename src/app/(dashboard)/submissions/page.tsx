@@ -51,7 +51,7 @@ import { SubmissionDashboard } from '@/components/submissions/submission-dashboa
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, normalizeReportType } from '@/lib/utils';
-import { submissionTypes } from './new/page';
+import { submissionTypes } from '@/lib/constants';
 import Link from 'next/link';
 
 const getYearCycleRowColor = (year: number, cycle: string) => {
@@ -677,6 +677,6 @@ export default function SubmissionsPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </TooltipProvider>
+    </div>
   );
 }
