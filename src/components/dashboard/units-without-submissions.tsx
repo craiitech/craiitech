@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -8,7 +7,8 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, AlertCircle, Send, Loader2, FileX, Info, School, CheckCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useFirestore } from '@/firebase';
 import { doc, writeBatch } from 'firebase/firestore';
@@ -234,7 +234,7 @@ export function UnitsWithoutSubmissions({
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel className="font-bold text-[10px] uppercase">Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleSendReminders} disabled={isSendingReminders} className="bg-primary">
                     {isSendingReminders ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
                     Yes, Send Reminders

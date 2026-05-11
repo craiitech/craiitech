@@ -668,7 +668,7 @@ export default function SubmissionsPage() {
                     <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
                 </div>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Abort</AlertDialogCancel>
+                    <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
                     <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
                         {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Record
                     </AlertDialogAction>
