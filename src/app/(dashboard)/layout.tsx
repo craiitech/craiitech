@@ -15,7 +15,7 @@ import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'rea
 import type { Campus, Unit, Submission } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, School } from 'lucide-react';
+import { Building2, School, Info } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';

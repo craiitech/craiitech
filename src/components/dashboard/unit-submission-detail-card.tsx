@@ -13,13 +13,13 @@ import type {
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, CheckCircle, Circle, AlertCircle, Eye } from 'lucide-react';
+import { X, CheckCircle, Circle, AlertCircle, Eye, Info } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { cn } from '@/lib/utils';
 import { StrategicSwotAnalysis } from '../submissions/strategic-swot-analysis';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 interface UnitSubmissionDetailCardProps {
@@ -63,6 +63,7 @@ export function UnitSubmissionDetailCard({
   selectedYear,
 }: UnitSubmissionDetailCardProps) {
   const firestore = useFirestore();
+  const { userProfile } = useUser();
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
 
   // Fetch contextual data for comprehensive SWOT with strict site context
@@ -100,7 +101,7 @@ export function UnitSubmissionDetailCard({
 
   /**
    * CORRECTIVE ACTION REQUESTS FETCHING
-   * Strictly scoped to unit AND site context.
+   * Strictly scoped to the selected unit AND campus site.
    */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !unitId || !campusId) return null;
