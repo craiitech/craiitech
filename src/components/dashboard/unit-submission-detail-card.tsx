@@ -67,7 +67,6 @@ export function UnitSubmissionDetailCard({
   const { userProfile } = useUser();
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
 
-  // Fetch contextual data for comprehensive SWOT with strict site context
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !unitId || !selectedYear || !campusId) return null;
     return query(
@@ -100,10 +99,6 @@ export function UnitSubmissionDetailCard({
   }, [firestore, unitId, campusId, selectedYear]);
   const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
-  /**
-   * CORRECTIVE ACTION REQUESTS FETCHING
-   * Strictly scoped to the selected unit AND campus site.
-   */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !unitId || !campusId) return null;
     return query(
@@ -115,15 +110,15 @@ export function UnitSubmissionDetailCard({
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
   const findingsQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId) return null;
+    if (!firestore) return null;
     return collection(firestore, 'auditFindings'); 
-  }, [firestore, unitId]);
+  }, [firestore]);
   const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
 
   const mrOutputsQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId || !campusId) return null;
+    if (!firestore) return null;
     return collection(firestore, 'managementReviewOutputs');
-  }, [firestore, unitId, campusId]);
+  }, [firestore]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   const unitSubmissions = useMemo(() => {
@@ -232,11 +227,6 @@ export function UnitSubmissionDetailCard({
             </div>
         </ScrollArea>
       </CardContent>
-      <div className="p-4 border-t bg-white rounded-b-lg">
-        <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-            This workspace provides direct oversight of verified records. Only <strong>Approved</strong> documents are marked as compliant.
-        </p>
-      </div>
     </Card>
   );
 }

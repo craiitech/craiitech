@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -31,7 +32,7 @@ export function OverdueWarning({ allCycles, submissions, isLoading }: OverdueWar
 
     return pastDueCycles.map(cycle => {
       // Get the user's submissions for this specific cycle
-      const userSubmissionsForCycle = submissions.filter(s => s.cycleId === cycle.id);
+      const userSubmissionsForCycle = submissions.filter(s => s.cycleId === cycle.name && s.year === cycle.year);
       const submittedTypes = new Set(userSubmissionsForCycle.map(s => s.reportType));
       
       // Find which required reports are missing
@@ -47,7 +48,7 @@ export function OverdueWarning({ allCycles, submissions, isLoading }: OverdueWar
         };
       }
       return null;
-    }).filter(Boolean); // Filter out nulls where cycles were complete
+    }).filter(Boolean); 
 
   }, [allCycles, submissions]);
 

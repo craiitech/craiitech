@@ -195,7 +195,6 @@ function DashboardSkeleton() {
                                     {cap.icon}
                                 </div>
                                 <div className="space-y-0.5">
-                                    {/* @ts-ignore - Comp can be any valid lucide icon */}
                                     <h4 className="text-xs font-black uppercase text-slate-900">{cap.title}</h4>
                                     <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{cap.desc}"</p>
                                 </div>

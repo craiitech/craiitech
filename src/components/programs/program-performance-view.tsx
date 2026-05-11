@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -151,8 +152,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
         if (m.sex === 'Others (LGBTQI++)') othersFaculty++;
     };
-
-    const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned' as const, sex: 'Female' as const };
 
     checkAlignment(record.faculty?.dean);
     if (record.faculty?.hasAssociateDean) checkAlignment(record.faculty?.associateDean);
@@ -345,7 +344,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                           <div className="p-6 space-y-4">
                               {analyticsData.gaps.length > 0 ? (
                                   analyticsData.gaps.map((gap, i) => (
-                                      <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group" onClick={() => onResolveDeficiency?.(gap.target)}>
+                                      <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group cursor-pointer" onClick={() => onResolveDeficiency?.(gap.target)}>
                                           <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
                                               <AlertTriangle className="h-5 w-5 text-destructive" />
                                           </div>
@@ -376,7 +375,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
       {/* 2. ANALYTICS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Enrollment Trend Chart */}
           <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center gap-2">
@@ -410,7 +408,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
               </CardFooter>
           </Card>
 
-          {/* Faculty & Outcomes Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
                   <CardHeader className="p-4 bg-muted/10 border-b"><CardTitle className="text-[10px] font-black uppercase text-center">Faculty Maturity Profile</CardTitle></CardHeader>
@@ -583,27 +580,27 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
           <CardContent className="p-0 flex-1 overflow-hidden">
               <ScrollArea className="h-[400px]">
                   <div className="divide-y">
-                      {analyticsData.evidenceRegistry.map((doc, idx) => (
+                      {analyticsData.evidenceRegistry.map((item, idx) => (
                           <div key={idx} className="p-4 hover:bg-muted/20 transition-colors group">
                               <div className="flex items-center justify-between gap-4">
                                   <div className="flex items-center gap-4 min-w-0 flex-1">
                                       <div className={cn(
                                           "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
-                                          doc.category === 'Regulatory' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
-                                          doc.category === 'Governance' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
-                                          doc.category === 'Quality' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                          item.category === 'Regulatory' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                          item.category === 'Governance' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
+                                          item.category === 'Quality' ? "bg-amber-50 border-amber-100 text-amber-600" :
                                           "bg-blue-50 border-blue-100 text-blue-600"
                                       )}>
                                           <FileText className="h-5 w-5" />
                                       </div>
                                       <div className="min-w-0 space-y-1">
                                           <div className="flex items-center gap-2">
-                                              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{doc.category}</span>
+                                              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{item.category}</span>
                                               <Badge variant="secondary" className="h-3 text-[7px] font-black uppercase bg-emerald-100 text-emerald-700 border-none">
                                                   <Check className="h-2 w-2 mr-0.5" /> VERIFIED
                                               </Badge>
                                           </div>
-                                          <p className="text-xs font-bold text-slate-800 truncate leading-tight">{doc.title}</p>
+                                          <p className="text-xs font-bold text-slate-800 truncate leading-tight">{item.title}</p>
                                       </div>
                                   </div>
                                   <div className="flex gap-2">
@@ -611,12 +608,12 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                         variant="outline" 
                                         size="sm" 
                                         className="h-8 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm"
-                                        onClick={() => setPreviewDoc({ title: doc.title, url: getEmbedUrl(doc.url) })}
+                                        onClick={() => setPreviewDoc({ title: item.title, url: getEmbedUrl(item.url) })}
                                       >
                                           <Eye className="h-3.5 w-3.5 mr-1.5" /> Preview
                                       </Button>
                                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
-                                          <a href={doc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                                          <a href={item.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
                                       </Button>
                                   </div>
                               </div>

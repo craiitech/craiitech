@@ -368,15 +368,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   /**
    * FILTERED ROADMAP DATA
-   * 1. Role-based locking: Non-admins restricted to their authorized scope.
-   * 2. Default sorting: Chronological ascending by year.
    */
   const filteredRoadmap = useMemo(() => {
     if (!analytics?.roadmapData) return [];
 
     return analytics.roadmapData
         .filter(item => {
-            // 1. Role-based Locking
             if (!isAdmin && userProfile) {
                 const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO');
                 if (isSiteOversight) {
@@ -386,13 +383,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 }
             }
 
-            // 2. Admin Logic Filtering
             if (isAdmin) {
                 if (roadmapCampusFilter !== 'all' && item.campusId !== roadmapCampusFilter) return false;
                 if (roadmapUnitFilter !== 'all' && item.unitId !== roadmapUnitFilter) return false;
             }
 
-            // 3. Search Filter
             if (roadmapSearch) {
                 const lowerSearch = roadmapSearch.toLowerCase();
                 return (
@@ -407,9 +402,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         .sort((a, b) => a.sortYear - b.sortYear || a.name.localeCompare(b.name));
   }, [analytics?.roadmapData, isAdmin, userProfile, userRole, roadmapSearch, roadmapCampusFilter, roadmapUnitFilter]);
 
-  /**
-   * ACCREDITOR RECOMMENDATIONS FILTERED LOGIC
-   */
   const filteredRecommendations = useMemo(() => {
     if (!analytics?.allRecommendations) return [];
     
@@ -473,14 +465,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         <title>Accreditation Gaps Registry - AY ${selectedYear}</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
-                            @page { 
-                                size: 8.5in 13in !important; 
-                                margin: 0.5in !important; 
-                            }
-                            @media print { 
-                                body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
-                                .no-print { display: none !important; } 
-                            } 
+                            @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                            @media print { body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } 
                             body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
                         </style>
                     </head>
@@ -504,8 +490,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      
-      {/* 1. KPI HEADER CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-slate-50 border-primary/5 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
             <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span><LayoutGrid className="h-4 w-4 text-slate-300" /></div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -62,7 +63,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     'n/a': 'secondary',
 }
 
-export function NewSubmissionPage() {
+export default function NewSubmissionPage() {
   const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();

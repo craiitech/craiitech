@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -24,7 +25,6 @@ interface LeaderboardProps {
 }
 
 const StarRating = ({ percentage }: { percentage: number }) => {
-  // 1 star for every 20%
   const starCount = Math.floor(percentage / 20);
   const stars = [];
   for (let i = 0; i < 5; i++) {
@@ -79,12 +79,10 @@ export function Leaderboard({
                 s.campusId === campus.id
             );
             
-            // Per-cycle calculation
             const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
             const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             
-            // CRITICAL: Count only APPROVED submissions for the leaderboard score
             const firstCycleApprovedCount = new Set(
                 campusUnitSubmissions
                     .filter(s => s.cycleId === 'first' && s.statusId === 'approved')
@@ -114,9 +112,8 @@ export function Leaderboard({
         });
     });
 
-
     return campusUnitProgress
-      .filter(item => item.percentage >= 1) // Show anything with progress
+      .filter(item => item.percentage >= 1) 
       .sort((a, b) => b.percentage - a.percentage);
 
   }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor, selectedYear]);
@@ -129,8 +126,6 @@ export function Leaderboard({
           <Skeleton className="h-4 w-3/4" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
         </CardContent>
       </Card>
@@ -193,18 +188,9 @@ export function Leaderboard({
             <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-center">
                 <TrendingUp className="h-8 w-8 mb-2 opacity-20" />
                 <p className="text-xs font-bold uppercase tracking-widest opacity-50">Pending Approvals</p>
-                <p className="text-[10px] mt-1">Units will appear here once submissions are verified by ODIMO.</p>
             </div>
         )}
       </CardContent>
-      <CardFooter className="bg-muted/5 border-t py-3">
-          <div className="flex items-start gap-2">
-              <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground italic leading-tight">
-                  Rankings are determined by the percentage of mandatory EOMS documents that have reached the <strong>Approved</strong> status. Mere submission without verification does not contribute to the performance index.
-              </p>
-          </div>
-      </CardFooter>
     </Card>
   );
 }
