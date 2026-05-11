@@ -121,7 +121,7 @@ export default function Home() {
                         >
                             <div className="relative h-[120px] w-[120px] rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-sm">
                                 <Image 
-                                    src="/template/ISOlogo.jpg" 
+                                    src="/ISOlogo.jpg" 
                                     alt="ISO Certification Logo" 
                                     fill
                                     className="object-contain p-2"
