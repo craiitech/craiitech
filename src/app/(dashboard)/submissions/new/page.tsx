@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -41,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Link from 'link';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -420,7 +419,7 @@ export default function NewSubmissionPage() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {isActionPlanNA ? (
-                                                    <Badge variant="secondary" className="text-[9px]">N/A</Badge>
+                                                    <Badge variant="secondary" className="text-[9px] h-4 py-0">N/A</Badge>
                                                 ) : submission && (
                                                     <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
                                                         {getStatusText(submission)}
