@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, AlertCircle, Send, Loader2, FileX, Info, School, CheckCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -215,7 +214,7 @@ export function UnitsWithoutSubmissions({
             </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="bg-muted/5 border-t py-3">
+      <CardFooter className="bg-muted/5 border-t py-3 px-6">
           <div className="flex items-start gap-2">
               <Info className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground italic leading-tight">
