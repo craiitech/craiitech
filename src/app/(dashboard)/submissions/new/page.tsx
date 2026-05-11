@@ -62,7 +62,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     'n/a': 'secondary',
 }
 
-export default function NewSubmissionPage() {
+export function NewSubmissionPage() {
   const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();

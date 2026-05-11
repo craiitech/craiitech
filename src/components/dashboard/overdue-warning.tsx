@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -7,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isAfter, differenceInDays } from 'date-fns';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { submissionTypes } from '@/lib/constants';
 
 interface OverdueWarningProps {
   allCycles: Cycle[] | null;
