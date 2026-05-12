@@ -105,7 +105,6 @@ export default function RiskRegisterPage() {
 
     /**
      * ACADEMIC YEAR GENERATION
-     * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
      */
     const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
     const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -156,11 +155,8 @@ export default function RiskRegisterPage() {
     const filteredRisks = useMemo(() => {
         if (!allRisks) return [];
         return allRisks.filter(risk => {
-            // Institutional Scoping (Role-based security already handled by Query, but we double-check here for UI consistency)
             if (!isAdmin && !isSupervisor && risk.unitId !== userProfile?.unitId) return false;
             if (isSupervisor && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
-
-            // UI Filter: Search
             if (searchTerm) {
                 const lowerSearch = searchTerm.toLowerCase();
                 const matchesSearch = risk.description.toLowerCase().includes(lowerSearch) || 
@@ -168,19 +164,10 @@ export default function RiskRegisterPage() {
                                      (risk.responsiblePersonName || '').toLowerCase().includes(lowerSearch);
                 if (!matchesSearch) return false;
             }
-
-            // UI Filter: Campus
             if (campusFilter !== 'all' && risk.campusId !== campusFilter) return false;
-
-            // UI Filter: Unit
             if (unitFilter !== 'all' && risk.unitId !== unitFilter) return false;
-
-            // UI Filter: Type (Risk vs Opportunity)
             if (typeFilter !== 'all' && risk.type !== typeFilter) return false;
-
-            // UI Filter: Rating (High, Medium, Low)
             if (ratingFilter !== 'all' && risk.preTreatment.rating !== ratingFilter) return false;
-
             return true;
         });
     }, [allRisks, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, userProfile]);
@@ -194,17 +181,16 @@ export default function RiskRegisterPage() {
         filteredRisks.forEach(risk => { if (!risksByUnit[risk.unitId]) risksByUnit[risk.unitId] = []; risksByUnit[risk.unitId].push(risk); });
 
         try {
-            const signatoryRef = doc(firestore!, 'system', 'signatories');
             const reportsHtml = Object.entries(risksByUnit).map(([uId, uRisks]) => {
                 const uName = unitMap.get(uId) || 'Unknown Unit';
                 const cName = campusMap.get(uRisks[0]?.campusId) || 'Institutional';
-                return renderToStaticMarkup(<div className="print-page-break mb-12"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} /></div>);
+                return renderToStaticMarkup(<div key={uId} className="print-page-break mb-12"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} /></div>);
             }).join('');
 
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.open();
-                printWindow.document.write(`<html><head><title>ROR Registry - ${selectedYear}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { @page { size: 13in 11in; margin: 0.5in; } body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Print Unit Forms (11x13)</button></div><div id="print-content">${reportsHtml}</div></body></html>`);
+                printWindow.document.write(`<html><head><title>ROR Registry - ${selectedYear}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { @page { size: 13in 8.5in; margin: 0.5in; } body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit RORs (Landscape Folio)</button></div><div id="print-content">${reportsHtml}</div></body></html>`);
                 printWindow.document.close();
             }
         } catch (err) { console.error(err); }
