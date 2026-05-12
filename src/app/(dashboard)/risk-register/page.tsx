@@ -185,7 +185,7 @@ export default function RiskRegisterPage() {
             const reportsHtml = Object.entries(risksByUnit).map(([uId, uRisks]) => {
                 const uName = unitMap.get(uId) || 'Unknown Unit';
                 const cName = campusMap.get(uRisks[0]?.campusId) || 'Institutional';
-                return renderToStaticMarkup(<div key={uId} className="print-page-break mb-12"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} /></div>);
+                return renderToStaticMarkup(<div key={uId} className="print-page-break"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} /></div>);
             }).join('');
 
             const printWindow = window.open('', '_blank');
@@ -197,11 +197,14 @@ export default function RiskRegisterPage() {
                         <title>ROR Registry - ${selectedYear}</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
+                            @page { 
+                                size: 13in 8.5in; 
+                                margin: 0; 
+                            }
                             @media print { 
-                                @page { size: 13in 8.5in; margin: 0.25in; }
-                                body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; } 
+                                body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; width: 13in; } 
                                 .no-print { display: none !important; } 
-                                .print-page-break { page-break-after: always; } 
+                                .print-page-break { page-break-after: always; width: 13in; height: 8.5in; padding: 0.25in; box-sizing: border-box; } 
                             } 
                             body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                         </style>

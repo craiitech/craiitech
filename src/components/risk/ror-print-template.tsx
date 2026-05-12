@@ -33,7 +33,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
   const isFinal = risks.some(r => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence));
 
   return (
-    <div className="p-0 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight border-none" style={{ width: '12in', fontSize: '11pt' }}>
+    <div className="p-0 text-black bg-white w-full mx-auto font-sans leading-tight border-none" style={{ fontSize: '11pt' }}>
       
       {/* Institutional Header */}
       <div className="flex flex-col items-center justify-center border-b-2 border-black pb-4 mb-4 text-center">
@@ -63,46 +63,46 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
         <div>Updated as of: <span className="underline underline-offset-4 ml-2">{format(new Date(), 'MMMM d, yyyy')}</span></div>
       </div>
 
-      {/* Main Matrix Table */}
+      {/* Main Matrix Table - Stretched to 100% width of the Landscape Folio */}
       <table className="w-full border-collapse border-2 border-black">
         <thead>
           <tr className="bg-slate-50">
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[10%]">Objective</th>
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[8%]">Objective</th>
             <th className="border-2 border-black p-2 text-center font-black uppercase w-[12%]">Risk (R) / Opportunity (O) Description and Causes</th>
             <th className="border-2 border-black p-2 text-center font-black uppercase w-[10%]">Current Controls/ Situation</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[3%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Likelihood *</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[3%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Consequence **</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[3%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Magnitude (L x C)</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[3%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Rating ***</div>
             </th>
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[15%]">Treatment Action Plan</th>
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[8%]">Responsible Person</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[14%]">Treatment Action Plan</th>
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[10%]">Responsible Person</th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Target Date</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Date Implemented</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Monitoring Score</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Likelihood *</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Consequence **</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Magnitude</div>
             </th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[4%]">
                 <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Rating ***</div>
             </th>
           </tr>
