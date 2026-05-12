@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -16,8 +17,8 @@ interface RORPrintTemplateProps {
 
 /**
  * RISK AND OPPORTUNITY REGISTER (ROR) PRINT TEMPLATE
- * Strictly reformatted for Landscape Folio (13" x 8.5") paper.
- * All columns are stretched to fill the 13-inch width.
+ * Strictly reformatted for Landscape Folio (13" x 8.5") paper based on official layout.
+ * Columns: 16 total. scoring headers are vertical.
  */
 export function RORPrintTemplate({ risks, unitName, campusName, year, signatories }: RORPrintTemplateProps) {
   const safeDate = (d: any) => {
@@ -31,11 +32,9 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
 
   const isFinal = risks.some(r => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence));
 
-  const isMainCampus = campusName.toLowerCase().includes('main campus') || campusName.toLowerCase().includes('site 1');
-  const approverTitle = isMainCampus ? 'UNIT HEAD / DIRECTOR' : 'CAMPUS DIRECTOR';
-
   return (
-    <div className="p-0 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight border-none" style={{ width: '12in', fontSize: '10pt' }}>
+    <div className="p-0 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight border-none" style={{ width: '12in', fontSize: '11pt' }}>
+      
       {/* Institutional Header */}
       <div className="flex flex-col items-center justify-center border-b-2 border-black pb-4 mb-4 text-center">
         <p className="text-[10px] uppercase font-bold">Republic of the Philippines</p>
@@ -46,14 +45,12 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
             <div className="flex items-center justify-center gap-8 mt-2 text-[12px] font-bold">
                 <span>FISCAL YEAR <span className="underline decoration-2 px-4">{year}</span></span>
                 <div className="flex items-center gap-3">
-                    <div className={cn("w-4 h-4 border-2 border-black flex items-center justify-center", !isFinal && "bg-black")}>
-                        {!isFinal && <div className="w-1.5 h-1.5 bg-white" />}
+                    <div className={cn("w-4 h-4 border-2 border-black flex items-center justify-center", !isFinal && "bg-black shadow-[inset_0_0_0_2px_white]")}>
                     </div>
                     <span>First Cycle</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className={cn("w-4 h-4 border-2 border-black flex items-center justify-center", isFinal && "bg-black")}>
-                        {isFinal && <div className="w-1.5 h-1.5 bg-white" />}
+                    <div className={cn("w-4 h-4 border-2 border-black flex items-center justify-center", isFinal && "bg-black shadow-[inset_0_0_0_2px_white]")}>
                     </div>
                     <span>Final Cycle</span>
                 </div>
@@ -66,98 +63,103 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
         <div>Updated as of: <span className="underline underline-offset-4 ml-2">{format(new Date(), 'MMMM d, yyyy')}</span></div>
       </div>
 
-      {/* Main Matrix Table - Stretched for 13in Landscape */}
-      <table className="w-full border-collapse border-2 border-black text-[9px]">
+      {/* Main Matrix Table */}
+      <table className="w-full border-collapse border-2 border-black">
         <thead>
-          <tr className="bg-slate-100">
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[100px]">Objective</th>
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[150px]">Risk (R) / Opportunity (O) Description and Causes</th>
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[120px]">Current Controls/ Situation</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Likelihood *</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Consequence **</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Magnitude (L x C)</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Rating ***</th>
-            <th className="border-2 border-black p-2 text-center font-black uppercase">Treatment Action Plan</th>
-            <th className="border-2 border-black p-2 text-center font-black uppercase w-[100px]">Responsible Person</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Target Date</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Date Implemented</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Monitoring Score</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Residual Likelihood *</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Residual Consequence **</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Residual Magnitude</th>
-            <th className="border-2 border-black p-1 text-center font-black uppercase w-[30px] [writing-mode:vertical-lr] rotate-180">Residual Rating ***</th>
+          <tr className="bg-slate-50">
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[10%]">Objective</th>
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[12%]">Risk (R) / Opportunity (O) Description and Causes</th>
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[10%]">Current Controls/ Situation</th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Likelihood *</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Consequence **</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Magnitude (L x C)</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Rating ***</div>
+            </th>
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[15%]">Treatment Action Plan</th>
+            <th className="border-2 border-black p-2 text-center font-black uppercase w-[8%]">Responsible Person</th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Target Date</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Date Implemented</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Monitoring Score</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Likelihood *</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Consequence **</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Magnitude</div>
+            </th>
+            <th className="border-2 border-black p-1 text-center font-black uppercase w-[25px]">
+                <div className="[writing-mode:vertical-rl] rotate-180 h-32 flex items-center justify-center mx-auto text-[9px]">Residual Rating ***</div>
+            </th>
           </tr>
         </thead>
-        <tbody>
-          <tr className="bg-slate-50 font-black text-center uppercase tracking-[0.3em]">
-            <td colSpan={16} className="py-1 border-2 border-black bg-rose-50 text-rose-800">I. Risks</td>
+        <tbody className="text-[10pt]">
+          <tr className="bg-slate-100 font-black text-center uppercase tracking-widest border-2 border-black">
+            <td colSpan={16} className="py-1">I. Risks</td>
           </tr>
           {riskEntries.map((r) => (
-            <tr key={r.id} className="h-16">
-              <td className="border border-black p-2 align-top">{r.objective}</td>
-              <td className="border border-black p-2 align-top font-bold">{r.description}</td>
-              <td className="border border-black p-2 align-top">{r.currentControls}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle bg-blue-50/30">{r.preTreatment.likelihood}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle bg-blue-50/30">{r.preTreatment.consequence}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-blue-50/30">{r.preTreatment.magnitude}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-blue-50/30">{r.preTreatment.rating?.charAt(0)}</td>
-              <td className="border border-black p-2 align-top">{r.treatmentAction}</td>
-              <td className="border border-black p-2 align-top text-center font-bold">{r.responsiblePersonName}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle whitespace-nowrap">{safeDate(r.targetDate)}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle bg-emerald-50/30">{r.postTreatment?.dateImplemented || ''}</td>
-              <td className="border border-black p-1 align-top italic text-[8px] bg-emerald-50/30">{r.monitoringScore}</td>
-              <td className="border border-black p-1 text-center align-middle bg-emerald-50/30">{r.postTreatment?.likelihood || ''}</td>
-              <td className="border border-black p-1 text-center align-middle bg-emerald-50/30">{r.postTreatment?.consequence || ''}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-emerald-50/30">{r.postTreatment?.magnitude || ''}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-emerald-50/30">{r.postTreatment?.rating?.charAt(0) || ''}</td>
+            <tr key={r.id} className="min-h-[60px] border-b border-black">
+              <td className="border border-black p-1.5 align-top">{r.objective}</td>
+              <td className="border border-black p-1.5 align-top font-bold">{r.description}</td>
+              <td className="border border-black p-1.5 align-top">{r.currentControls}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle bg-slate-50">{r.preTreatment.likelihood}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle bg-slate-50">{r.preTreatment.consequence}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.preTreatment.magnitude}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.preTreatment.rating?.charAt(0)}</td>
+              <td className="border border-black p-1.5 align-top whitespace-pre-wrap">{r.treatmentAction}</td>
+              <td className="border border-black p-1.5 align-top text-center font-black uppercase">{r.responsiblePersonName}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle">{safeDate(r.targetDate)}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle bg-slate-50">{r.postTreatment?.dateImplemented || ''}</td>
+              <td className="border border-black p-1 align-top italic text-[8px] bg-slate-50">{r.monitoringScore}</td>
+              <td className="border border-black p-0 text-center align-middle bg-slate-50">{r.postTreatment?.likelihood || ''}</td>
+              <td className="border border-black p-0 text-center align-middle bg-slate-50">{r.postTreatment?.consequence || ''}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.postTreatment?.magnitude || ''}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.postTreatment?.rating?.charAt(0) || ''}</td>
             </tr>
           ))}
-          {riskEntries.length === 0 && <tr><td colSpan={16} className="border border-black p-10 text-center text-slate-400 italic">No risk entries recorded in the digital register.</td></tr>}
+          {riskEntries.length === 0 && <tr><td colSpan={16} className="border border-black p-10 text-center text-slate-400 italic">No Risk entries recorded.</td></tr>}
 
-          <tr className="bg-slate-50 font-black text-center uppercase tracking-[0.3em]">
-            <td colSpan={16} className="py-1 border-2 border-black bg-emerald-50 text-emerald-800">II. Opportunities</td>
+          <tr className="bg-slate-100 font-black text-center uppercase tracking-widest border-2 border-black">
+            <td colSpan={16} className="py-1">II. Opportunities</td>
           </tr>
           {opportunityEntries.map((r) => (
-            <tr key={r.id} className="h-16">
-              <td className="border border-black p-2 align-top">{r.objective}</td>
-              <td className="border border-black p-2 align-top font-bold">{r.description}</td>
-              <td className="border border-black p-2 align-top">{r.currentControls}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle bg-blue-50/30">{r.preTreatment.likelihood}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle bg-blue-50/30">{r.preTreatment.consequence}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-blue-50/30">{r.preTreatment.magnitude}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-blue-50/30">{r.preTreatment.rating?.charAt(0)}</td>
-              <td className="border border-black p-2 align-top">{r.treatmentAction}</td>
-              <td className="border border-black p-2 align-top text-center font-bold">{r.responsiblePersonName}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle whitespace-nowrap">{safeDate(r.targetDate)}</td>
-              <td className="border border-black p-1 text-center font-bold align-middle bg-emerald-50/30">{r.postTreatment?.dateImplemented || ''}</td>
-              <td className="border border-black p-1 align-top italic text-[8px] bg-emerald-50/30">{r.monitoringScore}</td>
-              <td className="border border-black p-1 text-center align-middle bg-emerald-50/30">{r.postTreatment?.likelihood || ''}</td>
-              <td className="border border-black p-1 text-center align-middle bg-emerald-50/30">{r.postTreatment?.consequence || ''}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-emerald-50/30">{r.postTreatment?.magnitude || ''}</td>
-              <td className="border border-black p-1 text-center font-black align-middle bg-emerald-50/30">{r.postTreatment?.rating?.charAt(0) || ''}</td>
+            <tr key={r.id} className="min-h-[60px] border-b border-black">
+              <td className="border border-black p-1.5 align-top">{r.objective}</td>
+              <td className="border border-black p-1.5 align-top font-bold">{r.description}</td>
+              <td className="border border-black p-1.5 align-top">{r.currentControls}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle bg-slate-50">{r.preTreatment.likelihood}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle bg-slate-50">{r.preTreatment.consequence}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.preTreatment.magnitude}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.preTreatment.rating?.charAt(0)}</td>
+              <td className="border border-black p-1.5 align-top whitespace-pre-wrap">{r.treatmentAction}</td>
+              <td className="border border-black p-1.5 align-top text-center font-black uppercase">{r.responsiblePersonName}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle">{safeDate(r.targetDate)}</td>
+              <td className="border border-black p-0 text-center font-bold align-middle bg-slate-50">{r.postTreatment?.dateImplemented || ''}</td>
+              <td className="border border-black p-1 align-top italic text-[8px] bg-slate-50">{r.monitoringScore}</td>
+              <td className="border border-black p-0 text-center align-middle bg-slate-50">{r.postTreatment?.likelihood || ''}</td>
+              <td className="border border-black p-0 text-center align-middle bg-slate-50">{r.postTreatment?.consequence || ''}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.postTreatment?.magnitude || ''}</td>
+              <td className="border border-black p-0 text-center font-black align-middle bg-slate-50">{r.postTreatment?.rating?.charAt(0) || ''}</td>
             </tr>
           ))}
-          {opportunityEntries.length === 0 && <tr><td colSpan={16} className="border border-black p-10 text-center text-slate-400 italic">No opportunity entries recorded in the digital register.</td></tr>}
+          {opportunityEntries.length === 0 && <tr><td colSpan={16} className="border border-black p-10 text-center text-slate-400 italic">No Opportunity entries recorded.</td></tr>}
         </tbody>
       </table>
 
-      {/* Legend Block */}
-      <div className="mt-4 grid grid-cols-12 gap-4 text-[8.5px] leading-tight border-2 border-black p-3 bg-slate-50/50">
-        <div className="col-span-4 space-y-1">
-            <p className="font-black uppercase border-b border-black pb-0.5 mb-1">Likelihood (L) Scale:</p>
-            <p>1 - Rare | 2 - Low | 3 - Medium | 4 - High | 5 - Very High</p>
-        </div>
-        <div className="col-span-4 space-y-1">
-            <p className="font-black uppercase border-b border-black pb-0.5 mb-1">Consequence (C) Scale:</p>
-            <p>1 - Insignificant | 2 - Minor | 3 - Significant | 4 - Major | 5 - Catastrophic</p>
-        </div>
-        <div className="col-span-4 space-y-1">
-            <p className="font-black uppercase border-b border-black pb-0.5 mb-1">Rating (Magnitude) Scale:</p>
-            <p>L - Low (1-4) | M - Medium (5-9) | H - High (10-25)</p>
-        </div>
-      </div>
-
-      {/* Signatories Row */}
       <div className="mt-12 grid grid-cols-3 gap-20 text-center text-[11px] uppercase font-black">
         <div className="space-y-10">
             <p className="text-left font-bold text-[10px] opacity-60">Prepared by:</p>
@@ -181,7 +183,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
         </div>
       </div>
 
-      <div className="mt-16 flex justify-between items-end border-t-2 border-slate-200 pt-4 text-[9px] text-slate-400 font-bold italic">
+      <div className="mt-12 flex justify-between items-end border-t-2 border-slate-200 pt-4 text-[9px] text-slate-400 font-bold italic">
         <div className="space-y-0.5">
             <p className="not-italic font-black text-slate-900">Form: QAO-03-002 | REV 03-2025</p>
             <p>Creation Date: 2021-02-14 | Revision Date: 2025-02-10</p>
