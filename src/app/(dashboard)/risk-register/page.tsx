@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -176,6 +175,12 @@ export default function RiskRegisterPage() {
     const handleNewRisk = () => { setEditingRisk(null); setIsFormOpen(true); };
     const handleEditRisk = (risk: Risk) => { setEditingRisk(risk); setIsFormOpen(true); };
 
+    const signatoryRef = useMemoFirebase(
+      () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+      [firestore]
+    );
+    const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
     const handlePrintROR = () => {
         if (!filteredRisks.length || !userProfile) return;
         const risksByUnit: Record<string, Risk[]> = {};
@@ -185,33 +190,37 @@ export default function RiskRegisterPage() {
             const reportsHtml = Object.entries(risksByUnit).map(([uId, uRisks]) => {
                 const uName = unitMap.get(uId) || 'Unknown Unit';
                 const cName = campusMap.get(uRisks[0]?.campusId) || 'Institutional';
-                return renderToStaticMarkup(<div key={uId} className="print-page-break"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} /></div>);
+                return renderToStaticMarkup(<div key={uId} className="print-page-break"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} signatories={signatories || undefined} /></div>);
             }).join('');
 
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.open();
                 printWindow.document.write(`
+                    <!DOCTYPE html>
                     <html>
                     <head>
                         <title>ROR Registry - ${selectedYear}</title>
-                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
                             @page { 
                                 size: 13in 8.5in; 
                                 margin: 0; 
                             }
                             @media print { 
-                                body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; width: 13in; } 
+                                html, body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; width: 13in; overflow: visible; } 
                                 .no-print { display: none !important; } 
-                                .print-page-break { page-break-after: always; width: 13in; height: 8.5in; padding: 0.25in; box-sizing: border-box; } 
+                                .print-page-break { page-break-after: always; width: 13in; min-height: 8.5in; padding: 0.25in; box-sizing: border-box; overflow: hidden; display: block; position: relative; } 
                             } 
-                            body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                            body { font-family: sans-serif; background: #f9fafb; padding: 0; color: black; }
+                            table { border-collapse: collapse !important; table-layout: fixed !important; width: 100% !important; }
+                            td, th { overflow: hidden; word-wrap: break-word; }
                         </style>
                     </head>
                     <body>
-                        <div class="no-print mb-8 flex justify-center">
-                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit RORs (Landscape Folio)</button>
+                        <div class="no-print" style="padding: 20px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: center;">
+                            <button onclick="window.print()" style="padding: 12px 30px; background: #1B6535; color: white; border: none; border-radius: 8px; font-weight: 900; text-transform: uppercase; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                                Click to Print Unit RORs (Landscape Folio)
+                            </button>
                         </div>
                         <div id="print-content">
                             ${reportsHtml}
