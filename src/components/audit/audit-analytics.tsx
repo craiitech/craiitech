@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -55,7 +54,8 @@ import {
     LayoutList as LayoutListIcon,
     PieChart as PieIcon,
     CalendarDays,
-    ArrowUpDown
+    ArrowUpDown,
+    FileSignature
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -64,6 +64,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-template';
 import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
 import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
+import { AuditReceivingPrintTemplate } from './audit-receiving-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -259,6 +260,27 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             />
         );
         triggerPrint(reportHtml, `Auditor_Assignments_AY${selectedYear}`);
+    } catch (e) { console.error(e); }
+  };
+
+  const handlePrintReceivingForm = () => {
+    if (!analytics?.auditorData.length) {
+        toast({ title: "No Assignments", description: "There are no active auditors found for this year.", variant: "destructive" });
+        return;
+    }
+    try {
+        const auditorsList = analytics.auditorData.map(a => ({
+            name: a.name,
+            campuses: Array.from(new Set(a.assignments.map(asgn => asgn.campus)))
+        }));
+
+        const reportHtml = renderToStaticMarkup(
+            <AuditReceivingPrintTemplate 
+                auditors={auditorsList}
+                year={selectedYear}
+            />
+        );
+        triggerPrint(reportHtml, `Audit_Checklist_Receiving_Form_AY${selectedYear}`);
     } catch (e) { console.error(e); }
   };
 
@@ -525,6 +547,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     <Button onClick={handlePrintAuditorSchedule} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-indigo-200 text-indigo-700 gap-2 shadow-sm">
                         <CalendarDays className="h-4 w-4" /> Auditor Sched.
                     </Button>
+                    <Button onClick={handlePrintReceivingForm} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-emerald-50 border-emerald-200 text-emerald-700 gap-2 shadow-sm">
+                        <FileSignature className="h-4 w-4" /> Receiving Form
+                    </Button>
                     <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
                         <Printer className="h-4 w-4" /> Assignments
                     </Button>
@@ -551,7 +576,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
       <div className="p-4 bg-muted/5 border rounded-xl">
         <div className="flex items-start gap-4">
             <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+            <p className="text-[9px] text-muted-foreground leading-relaxed italic">
                 <strong>Administrative Guide:</strong> This dashboard provides institutional oversight of the Internal Quality Audit framework. Use the "Print Assignments" registry to issue official notices to the audit team. Non-conformance hotspots should be prioritized for Corrective Action Request (CAR) issuance in the main QA module.
             </p>
         </div>
