@@ -1,4 +1,3 @@
-
 'use client'
 import {
   Avatar,
@@ -10,6 +9,7 @@ import { useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Info } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',

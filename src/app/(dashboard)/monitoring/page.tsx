@@ -21,7 +21,8 @@ import {
     Search, 
     Building, 
     Layers, 
-    Filter 
+    Filter,
+    Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
@@ -127,8 +128,8 @@ export default function MonitoringPage() {
   const calculateCompliance = (record: UnitMonitoringRecord) => {
     if (!record.observations) return 0;
     const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
-    const available = applicable.filter(o => o.status === 'Available').length;
-    return applicable.length > 0 ? Math.round((available / applicable.length) * 100) : 0;
+    const available = applicable.filter(o => o.status === 'Available');
+    return applicable.length > 0 ? Math.round((available.length / applicable.length) * 100) : 0;
   };
 
   const filteredRecords = useMemo(() => {

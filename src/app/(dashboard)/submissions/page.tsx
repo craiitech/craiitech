@@ -1,6 +1,6 @@
 'use client';
 
-import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList, Info } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -358,7 +358,7 @@ export default function SubmissionsPage() {
                             <List className="h-4 w-4" /> Detailed Audit Log
                         </TabsTrigger>
                         {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Status</TabsTrigger>}
-                        {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
+                        {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px) font-black uppercase tracking-widest px-6 h-8">Site Matrix</TabsTrigger>}
                     </TabsList>
                 </ScrollArea>
             </div>
