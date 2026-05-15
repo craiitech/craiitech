@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -70,6 +69,7 @@ import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const STATUS_COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',
@@ -581,7 +581,7 @@ export function CampusSubmissionsView({
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="md:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8">
+                    <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8">
                         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6 text-center">Unit Verified Maturity</span>
                         <ChartContainer config={{}} className="h-[180px] w-[180px]">
                             <ResponsiveContainer>
