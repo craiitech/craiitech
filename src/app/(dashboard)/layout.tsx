@@ -91,6 +91,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
+  
+  // Persistent Guidance State
+  const [isGuidanceVisible, setIsGuidanceVisible] = useState(true);
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    const storedVisibility = localStorage.getItem('rsu_eoms_guidance_visible');
+    if (storedVisibility !== null) {
+      setIsGuidanceVisible(storedVisibility === 'true');
+    }
+    setHasHydrated(true);
+  }, []);
+
+  const toggleGuidance = useCallback(() => {
+    setIsGuidanceVisible(prev => {
+      const next = !prev;
+      localStorage.setItem('rsu_eoms_guidance_visible', String(next));
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && userProfile && userProfile.verified) {
@@ -270,18 +290,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarContent>
           </Sidebar>
           <SidebarInset className="overflow-hidden">
-            <Header notificationCount={notificationCount} />
+            <Header 
+                notificationCount={notificationCount} 
+                isGuidanceVisible={isGuidanceVisible}
+                onToggleGuidance={toggleGuidance}
+            />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-y-auto h-full pr-2">
                     {children}
                 </div>
-                {/* 
-                   Persistent Page Guidance Column
-                   Sticky and internally scrollable.
-                */}
-                <Suspense fallback={<div className="w-80 shrink-0" />}>
-                  <PageGuidance className="hidden lg:block h-full" />
-                </Suspense>
+                
+                {/* Persistent Dynamic Page Guidance Toggle */}
+                {hasHydrated && isGuidanceVisible && (
+                    <Suspense fallback={<div className="w-80 shrink-0" />}>
+                        <PageGuidance className="hidden lg:block h-full" />
+                    </Suspense>
+                )}
             </main>
             <Chatbot />
           </SidebarInset>
