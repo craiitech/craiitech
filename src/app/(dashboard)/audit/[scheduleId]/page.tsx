@@ -7,7 +7,23 @@ import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveAct
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, UserCheck, Calendar, ClipboardCheck } from 'lucide-react';
+import { 
+    Loader2, 
+    ArrowLeft, 
+    Save, 
+    Clock, 
+    Building2, 
+    User, 
+    PlusCircle, 
+    Database, 
+    Check, 
+    Printer, 
+    UserCheck, 
+    Calendar, 
+    ClipboardCheck,
+    PanelRightClose,
+    PanelRightOpen
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -62,6 +78,7 @@ export default function AuditExecutionPage() {
   const [isSavingSummary, setIsSavingSummary] = useState(false);
   const [isAddClauseOpen, setIsAddClauseOpen] = useState(false);
   const [selectedNewClauses, setSelectedNewClauses] = useState<string[]>([]);
+  const [isDossierVisible, setIsDossierVisible] = useState(true);
 
   const scheduleDocRef = useMemoFirebase(
     () => (firestore && scheduleId ? doc(firestore, 'auditSchedules', scheduleId as string) : null),
@@ -349,6 +366,15 @@ export default function AuditExecutionPage() {
             </div>
         </div>
         <div className="flex items-center gap-2">
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsDossierVisible(!isDossierVisible)}
+                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5"
+            >
+                {isDossierVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}
+                {isDossierVisible ? 'Hide Dossier' : 'Show Dossier'}
+            </Button>
             <Button variant="outline" size="sm" onClick={handlePrintLog} className="bg-white shadow-sm font-bold h-9">
                 <Printer className="mr-2 h-4 w-4" />
                 Print Evidence Log
@@ -359,8 +385,8 @@ export default function AuditExecutionPage() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className={cn("grid grid-cols-1 gap-6 transition-all duration-500", isDossierVisible ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
+        <div className={cn("space-y-6", isDossierVisible ? "lg:col-span-2" : "lg:col-span-1")}>
             <div className="space-y-6">
                 {/* STEP 1: CONDUCT VERIFICATION */}
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
@@ -514,115 +540,117 @@ export default function AuditExecutionPage() {
             </div>
         </div>
 
-        <div className="lg:col-span-1">
-            <Card className="sticky top-20 shadow-md border-primary/10">
-                <CardHeader className="bg-muted/30 border-b">
-                    <CardTitle className="text-sm font-black uppercase tracking-widest">Session Dossier</CardTitle>
-                </CardHeader>
-                 <CardContent className="space-y-6 pt-6">
-                    <div className="space-y-3">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Auditor</p>
-                            <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span>
+        {isDossierVisible && (
+            <div className="lg:col-span-1 animate-in fade-in slide-in-from-right-4 duration-500">
+                <Card className="sticky top-20 shadow-md border-primary/10">
+                    <CardHeader className="bg-muted/30 border-b">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest">Session Dossier</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Auditor</p>
+                                <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Auditee</p>
+                                <div className="flex items-center gap-2">
+                                    <Building2 className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-bold">{schedule.targetName}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p>
+                                <div className="flex items-center gap-2">
+                                    <UserCheck className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-medium text-slate-600">{schedule.auditeeHeadName || 'Not Specified'}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Itinerary Schedule</p>
+                                <div className="flex items-center gap-2 text-amber-600">
+                                    <Clock className="h-4 w-4" />
+                                    <span className="text-sm font-bold">{format(conductDate, 'PPp')}</span>
+                                </div>
                             </div>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Auditee</p>
-                            <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-bold">{schedule.targetName}</span>
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p>
-                            <div className="flex items-center gap-2">
-                                <UserCheck className="h-4 w-4 text-slate-400" />
-                                <span className="text-sm font-medium text-slate-600">{schedule.auditeeHeadName || 'Not Specified'}</span>
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Itinerary Schedule</p>
-                            <div className="flex items-center gap-2 text-amber-600">
-                                <Clock className="h-4 w-4" />
-                                <span className="text-sm font-bold">{format(conductDate, 'PPp')}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <Separator />
+                        
+                        <Separator />
 
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p>
-                            <Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2">
-                                        <PlusCircle className="h-3 w-3" /> Add More Clauses
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Add Clauses to Scope</DialogTitle>
-                                        <DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription>
-                                    </DialogHeader>
-                                    <div className="rounded-xl border shadow-sm overflow-hidden bg-background">
-                                        <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-                                            <div className="flex items-center border-b px-3 bg-white">
-                                                <CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" />
-                                            </div>
-                                            <CommandList className="max-h-[300px]">
-                                                <CommandEmpty className="p-4 text-center">
-                                                    <Database className="h-8 w-8 mx-auto opacity-10 mb-2" />
-                                                    <p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p>
-                                                </CommandEmpty>
-                                                <CommandGroup>
-                                                    {unusedClauses.map(c => {
-                                                        const isSelected = selectedNewClauses.includes(c.id);
-                                                        return (
-                                                            <CommandItem
-                                                                key={c.id}
-                                                                value={`${c.id} ${c.title}`}
-                                                                onSelect={() => toggleNewClauseSelection(c.id)}
-                                                                className="flex items-center gap-3 px-4 py-3 cursor-pointer"
-                                                            >
-                                                                <div className={cn(
-                                                                    "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
-                                                                    isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
-                                                                )}>
-                                                                    {isSelected && <Check className="h-3 w-3" />}
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
-                                                                    <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
-                                                                </div>
-                                                            </CommandItem>
-                                                        );
-                                                    })}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </div>
-                                    <DialogFooter className="pt-4">
-                                        <Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button>
-                                        <Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>
-                                            {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                            Add {selectedNewClauses.length} Clause(s)
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p>
+                                <Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2">
+                                            <PlusCircle className="h-3 w-3" /> Add More Clauses
                                         </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>Add Clauses to Scope</DialogTitle>
+                                            <DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="rounded-xl border shadow-sm overflow-hidden bg-background">
+                                            <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+                                                <div className="flex items-center border-b px-3 bg-white">
+                                                    <CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" />
+                                                </div>
+                                                <CommandList className="max-h-[300px]">
+                                                    <CommandEmpty className="p-4 text-center">
+                                                        <Database className="h-8 w-8 mx-auto opacity-10 mb-2" />
+                                                        <p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p>
+                                                    </CommandEmpty>
+                                                    <CommandGroup>
+                                                        {unusedClauses.map(c => {
+                                                            const isSelected = selectedNewClauses.includes(c.id);
+                                                            return (
+                                                                <CommandItem
+                                                                    key={c.id}
+                                                                    value={`${c.id} ${c.title}`}
+                                                                    onSelect={() => toggleNewClauseSelection(c.id)}
+                                                                    className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                                                                >
+                                                                    <div className={cn(
+                                                                        "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
+                                                                        isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
+                                                                    )}>
+                                                                        {isSelected && <Check className="h-3 w-3" />}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
+                                                                        <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
+                                                                    </div>
+                                                                </CommandItem>
+                                                            );
+                                                        })}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </div>
+                                        <DialogFooter className="pt-4">
+                                            <Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button>
+                                            <Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>
+                                                {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                Add {selectedNewClauses.length} Clause(s)
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {schedule.isoClausesToAudit.sort((a,b) => a.localeCompare(b, undefined, { numeric: true })).map(clauseId => (
+                                    <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2 bg-white">Clause {clauseId}</Badge>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
-                            {schedule.isoClausesToAudit.sort((a,b) => a.localeCompare(b, undefined, { numeric: true })).map(clauseId => (
-                                <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2 bg-white">Clause {clauseId}</Badge>
-                            ))}
-                        </div>
-                    </div>
-                 </CardContent>
-            </Card>
-        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
       </div>
     </div>
   );
