@@ -46,7 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ReactDOMServer from 'react-dom/server';
 import { AdminReport } from '@/components/reports/admin-report';
 import { SubmissionMatrixReport } from '@/components/reports/submission-matrix-report';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { submissionTypes } from '@/lib/constants';
 import { 
     BarChart, 
     Bar, 
@@ -59,10 +59,10 @@ import {
     Cell,
     PieChart,
     Pie,
-    Radar,
-    RadarChart,
-    PolarGrid,
-    PolarAngleAxis,
+    Radar, 
+    RadarChart, 
+    PolarGrid, 
+    PolarAngleAxis, 
     LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -421,7 +421,7 @@ export default function ReportsPage() {
                                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={visualAnalytics.radarData}>
                                         <PolarGrid strokeOpacity={0.1} />
                                         <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                        <Radar name="Maturity %" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4}>
+                                        <Radar name="Maturity %" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4} >
                                             <LabelList dataKey="A" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--primary))' }} formatter={(v: any) => `${v}%`} />
                                         </Radar>
                                         <Tooltip content={<ChartTooltipContent />} />
@@ -484,11 +484,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card className="shadow-md border-primary/10 flex flex-col">
-                            <CardHeader className="pb-2 border-b bg-blue-50/30">
-                                <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                                    <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution
-                                </CardTitle>
-                            </CardHeader>
+                            <CardHeader className="pb-2 border-b bg-blue-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution</CardTitle></CardHeader>
                             <CardContent className="pt-6 flex-1">
                                 <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
@@ -497,7 +493,7 @@ export default function ReportsPage() {
                                                 {visualAnalytics.gadEnrollmentData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
+                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -509,11 +505,7 @@ export default function ReportsPage() {
                         </Card>
 
                         <Card className="shadow-md border-primary/10 flex flex-col">
-                            <CardHeader className="pb-2 border-b bg-emerald-50/30">
-                                <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                                    <Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER
-                                </CardTitle>
-                            </CardHeader>
+                            <CardHeader className="pb-2 border-b bg-emerald-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER</CardTitle></CardHeader>
                             <CardContent className="pt-6 flex-1">
                                 <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
@@ -522,7 +514,7 @@ export default function ReportsPage() {
                                                 {visualAnalytics.gadFacultyData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
+                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -534,11 +526,7 @@ export default function ReportsPage() {
                         </Card>
 
                         <Card className="shadow-md border-primary/10 flex flex-col">
-                            <CardHeader className="pb-2 border-b bg-purple-50/30">
-                                <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation GAD Audit
-                                </CardTitle>
-                            </CardHeader>
+                            <CardHeader className="pb-2 border-b bg-purple-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation GAD Audit</CardTitle></CardHeader>
                             <CardContent className="pt-6 flex-1">
                                 <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
@@ -547,7 +535,7 @@ export default function ReportsPage() {
                                                 {visualAnalytics.gadGradsData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
+                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
