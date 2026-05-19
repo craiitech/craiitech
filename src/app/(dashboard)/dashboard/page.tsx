@@ -42,7 +42,8 @@ import {
   MessageSquare,
   Pencil,
   Globe,
-  Eye
+  Eye,
+  Search
 } from 'lucide-react';
 import {
   useUser,
@@ -444,6 +445,10 @@ export default function HomePage() {
       return collection(firestore, 'auditPlans');
   }, [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
+
+  // We need all schedules to properly filter findings by scope
+  const allSchedulesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditSchedules') : null), [firestore]);
+  const { data: allSchedules } = useCollection<AuditSchedule>(allSchedulesQuery);
 
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
@@ -875,7 +880,17 @@ export default function HomePage() {
         })
     ) || [];
 
-    if (openCars.length === 0 && openDecisions.length === 0 && assignedRecommendations.length === 0) return null;
+    // Filter OFIs based on scope
+    const relevantOfis = auditFindings?.filter(f => {
+        if (f.type !== 'Observation for Improvement') return false;
+        const schedule = allSchedules?.find(s => s.id === f.auditScheduleId);
+        if (!schedule) return false;
+        if (isAdmin) return true;
+        if (isCampusSupervisor) return schedule.campusId === userProfile?.campusId;
+        return schedule.targetId === userProfile?.unitId;
+    }) || [];
+
+    if (openCars.length === 0 && openDecisions.length === 0 && assignedRecommendations.length === 0 && relevantOfis.length === 0) return null;
 
     return (
         <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -888,7 +903,7 @@ export default function HomePage() {
                     Institutional findings requiring immediate resolution for AY {selectedYear}.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2 text-rose-600">
@@ -974,9 +989,39 @@ export default function HomePage() {
                         <p className="text-[10px] text-muted-foreground italic text-center py-4">No academic gaps assigned.</p>
                     )}
                 </div>
+
+                {/* NEW: Audit Observations (OFI) Block */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2 text-primary">
+                            <ClipboardCheck className="h-4 w-4" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">Audit observations</h4>
+                        </div>
+                        <Badge variant="outline" className="h-4 text-[8px] font-black border-primary/20 text-primary bg-primary/5">{relevantOfis.length}</Badge>
+                    </div>
+                    {relevantOfis.length > 0 ? (
+                        <div className="space-y-2">
+                            <ScrollArea className="h-[120px]">
+                                <div className="space-y-2 pr-2">
+                                    {relevantOfis.slice(0, 5).map(ofi => (
+                                        <div key={ofi.id} className="p-2.5 rounded-lg bg-white border border-primary/10 shadow-sm">
+                                            <p className="text-[8px] font-black text-primary uppercase mb-1">ISO Clause {ofi.isoClause}</p>
+                                            <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{ofi.description}"</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            <Button size="sm" variant="outline" asChild className="w-full h-8 text-[9px] font-black uppercase bg-white border-primary/20 text-primary">
+                                <Link href="/audit">Explore Audit Hub</Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No observations recorded.</p>
+                    )}
+                </div>
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-2 px-6">
-                <p className="text-[8px] text-muted-foreground italic leading-tight">Registry of mandatory corrections and improvement directives from recent audits and management reviews.</p>
+                <p className="text-[8px] text-muted-foreground italic leading-tight">Registry of mandatory corrections, observations, and improvement directives from recent audits and management reviews.</p>
             </CardFooter>
         </Card>
     );
