@@ -70,7 +70,7 @@ import { Badge } from '@/components/ui/badge';
 import { normalizeReportType } from '@/lib/utils';
 
 export default function ReportsPage() {
-  const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isUserLoading, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
 
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>('all');
@@ -118,7 +118,7 @@ export default function ReportsPage() {
   const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !canViewReports) return null;
+    if (!firestore || !canViewReports || !selectedYear) return null;
     return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
   }, [firestore, canViewReports, selectedYear]);
   const { data: allCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
@@ -138,7 +138,6 @@ export default function ReportsPage() {
 
   /**
    * ACADEMIC YEAR GENERATION
-   * Recommendations 1, 2, and 3: Automatic, Buffer (+2 look-ahead), and Database Driven (from cycles)
    */
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -342,46 +341,50 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Sticky Header Enforced */}
-      <div className="sticky top-[4rem] z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Institutional Reports</h2>
-          <p className="text-muted-foreground text-sm">Comprehensive university-wide analytics and system directory.</p>
-        </div>
-        <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
-                    <Filter className="h-2.5 w-2.5" /> Registry Year
-                </label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-            {isAdmin && (
-            <div className="pt-4">
-                <Button size="sm" onClick={handlePrint} className="h-9 shadow-lg shadow-primary/20">
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print Data Log
-                </Button>
-            </div>
-            )}
-        </div>
-      </div>
-
       <Tabs defaultValue="visuals" className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm w-fit">
-            <TabsTrigger value="visuals" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                <BarChart3 className="h-4 w-4" /> Strategic Insights
-            </TabsTrigger>
-            <TabsTrigger value="directory" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                <LayoutGrid className="h-4 w-4" /> System Directory
-            </TabsTrigger>
-        </TabsList>
+        {/* Sticky Header Enforced */}
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header print:hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Institutional Reports</h2>
+                  <p className="text-muted-foreground text-sm">Comprehensive university-wide analytics and system directory.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-end">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                            <Filter className="h-2.5 w-2.5" /> Registry Year
+                        </label>
+                        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                            <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {isAdmin && (
+                    <div className="pt-4">
+                        <Button size="sm" onClick={handlePrint} className="h-9 shadow-lg shadow-primary/20">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print Data Log
+                        </Button>
+                    </div>
+                    )}
+                </div>
+            </div>
+
+            <ScrollArea className="w-full">
+                <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+                    <TabsTrigger value="visuals" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <BarChart3 className="h-4 w-4" /> Strategic Insights
+                    </TabsTrigger>
+                    <TabsTrigger value="directory" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <LayoutGrid className="h-4 w-4" /> System Directory
+                    </TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
 
         <TabsContent value="visuals" className="space-y-6 animate-in fade-in duration-500">
             <Card className="border-primary/10 bg-primary/5">
@@ -561,7 +564,7 @@ export default function ReportsPage() {
                         <ChartContainer config={{}} className="h-[250px] w-full">
                             <ResponsiveContainer>
                                 <BarChart data={visualAnalytics.riskRatingData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                                     <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'black' }} />
                                     <YAxis tick={{ fontSize: 10 }} />
                                     <Tooltip content={<ChartTooltipContent />} />
