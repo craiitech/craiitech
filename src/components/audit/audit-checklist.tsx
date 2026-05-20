@@ -15,9 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import type { AuditFinding, ISOClause, CorrectiveActionRequest } from '@/lib/types';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -52,10 +52,12 @@ function ClauseForm({
   onSave: (data: any) => void,
   clauseCars: CorrectiveActionRequest[]
 }) {
-  const { user } = useUser();
+  const { user, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<ClauseFormData>({
     defaultValues: {
@@ -66,6 +68,7 @@ function ClauseForm({
     },
   });
 
+  const watchAll = form.watch();
   const watchType = form.watch('type');
 
   useEffect(() => {
@@ -85,13 +88,37 @@ function ClauseForm({
     }
   }, [watchType, clause.id, form]);
 
-  const onSubmit = async (values: ClauseFormData) => {
-    if (!firestore || !user || !values.type) {
-      toast({ title: "Incomplete", description: "Please select a finding type (C, OFI, or NC).", variant: 'destructive' });
-      return;
+  /**
+   * DEBOUNCED AUTO-SAVE LOGIC
+   */
+  useEffect(() => {
+    // Only save if the form has actual content and a type selected
+    if (!watchAll.type || !firestore || !user) return;
+
+    // Check if the current form values differ from the last finding (to prevent loops)
+    const hasChanged = 
+        watchAll.evidence !== (finding?.evidence || '') ||
+        watchAll.description !== (finding?.description || '') ||
+        watchAll.ncStatement !== (finding?.ncStatement || '') ||
+        watchAll.type !== (finding?.type || '');
+
+    if (hasChanged) {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        
+        saveTimeoutRef.current = setTimeout(() => {
+            performSave(watchAll);
+        }, 1500); // 1.5s debounce
     }
-    setIsSubmitting(true);
+
+    return () => {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [watchAll, finding, firestore, user]);
+
+  const performSave = async (values: ClauseFormData) => {
+    if (!firestore || !user || !values.type) return;
     
+    setIsSubmitting(true);
     const findingId = `${scheduleId}-${clause.id}`;
     const findingRef = doc(firestore, 'auditFindings', findingId);
 
@@ -103,7 +130,8 @@ function ClauseForm({
         description: values.description || (values.type === 'Non-Conformance' ? values.ncStatement : ''),
         evidence: values.evidence,
         authorId: user.uid,
-        createdAt: serverTimestamp(),
+        createdAt: finding?.createdAt || serverTimestamp(),
+        updatedAt: serverTimestamp(),
     };
 
     if (values.type === 'Non-Conformance') {
@@ -112,19 +140,24 @@ function ClauseForm({
 
     try {
         await setDoc(findingRef, findingData, { merge: true });
-        toast({ title: "Saved", description: `Finding for clause ${clause.id} has been saved.`});
+        setLastSaved(new Date());
         onSave(findingData); 
     } catch(error) {
-        console.error("Error saving finding: ", error);
-        toast({ title: "Error", description: "Could not save finding.", variant: 'destructive' });
+        console.error("Error auto-saving finding: ", error);
     } finally {
         setIsSubmitting(false);
     }
   };
 
+  const onSubmit = async (values: ClauseFormData) => {
+      // Manual trigger for the button
+      await performSave(values);
+      toast({ title: "Audit Progress Synced", description: `Finding for clause ${clause.id} saved.`});
+  };
+
   return (
     <div className="space-y-8">
-        {/* COMPLIANCE HISTORY NOTE (CARs) - Auditor Foresight mapped to Clause 10.1 */}
+        {/* COMPLIANCE HISTORY NOTE (CARs) */}
         <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary">
@@ -259,10 +292,28 @@ function ClauseForm({
                 />
             )}
 
-            <div className="flex justify-end pt-2">
-                <Button type="submit" disabled={isSubmitting} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+            <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2">
+                    {isSubmitting ? (
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
+                            <CloudUpload className="h-3 w-3" />
+                            Synchronizing Registry...
+                        </div>
+                    ) : lastSaved ? (
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Registry Logged ({format(lastSaved, 'HH:mm:ss')})
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground opacity-40">
+                            <CloudDownload className="h-3 w-3" />
+                            Awaiting verification entry
+                        </div>
+                    )}
+                </div>
+                <Button type="submit" disabled={isSubmitting || !watchType} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
                     {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin"/>}
-                    Commit Finding for Clause {clause.id}
+                    {lastSaved ? 'Force Sync Finding' : `Commit Clause ${clause.id}`}
                 </Button>
             </div>
         </form>
@@ -303,8 +354,6 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
             const findingType = findingsMap.get(clause.id)?.type;
             
             // NORMALIZED MATCHING:
-            // For Clause 10.1, show ALL unit non-conformances. 
-            // For other clauses, show only those specifically linked to that requirement using a robust comparison.
             const relevantCars = clause.id === '10.1' 
                 ? unitCars 
                 : unitCars.filter(c => {

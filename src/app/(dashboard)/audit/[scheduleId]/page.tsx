@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -22,10 +23,12 @@ import {
     Calendar, 
     ClipboardCheck,
     PanelRightClose,
-    PanelRightOpen
+    PanelRightOpen,
+    CloudUpload,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -79,6 +82,8 @@ export default function AuditExecutionPage() {
   const [isAddClauseOpen, setIsAddClauseOpen] = useState(false);
   const [selectedNewClauses, setSelectedNewClauses] = useState<string[]>([]);
   const [isDossierVisible, setIsDossierVisible] = useState(true);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const summarySaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scheduleDocRef = useMemoFirebase(
     () => (firestore && scheduleId ? doc(firestore, 'auditSchedules', scheduleId as string) : null),
@@ -145,6 +150,8 @@ export default function AuditExecutionPage() {
     },
   });
 
+  const watchAll = form.watch();
+
   useEffect(() => {
       if (schedule) {
           const startDate = schedule.scheduledDate?.toDate ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
@@ -163,8 +170,34 @@ export default function AuditExecutionPage() {
       }
   }, [schedule, form]);
 
+  /**
+   * SUMMARY AUTO-SAVE LOGIC
+   */
+  useEffect(() => {
+    if (!schedule || !scheduleDocRef) return;
 
-  const handleSaveSummary = async (values: z.infer<typeof summarySchema>) => {
+    // Detect changes in summary fields specifically
+    const hasChanged = 
+        watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
+        watchAll.summaryCommendable !== (schedule.summaryCommendable || '') ||
+        watchAll.summaryCompliance !== (schedule.summaryCompliance || '') ||
+        watchAll.summaryOFI !== (schedule.summaryOFI || '') ||
+        watchAll.summaryNC !== (schedule.summaryNC || '');
+
+    if (hasChanged) {
+        if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
+        
+        summarySaveTimeoutRef.current = setTimeout(() => {
+            handleSaveSummary(watchAll, true);
+        }, 2000); // 2s debounce for larger fields
+    }
+
+    return () => {
+        if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
+    };
+  }, [watchAll, schedule, scheduleDocRef]);
+
+  const handleSaveSummary = async (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
     setIsSavingSummary(true);
 
@@ -188,10 +221,12 @@ export default function AuditExecutionPage() {
         };
 
         await updateDoc(scheduleDocRef, updateData);
-        toast({ title: "Success", description: "Audit summary and conduct time updated. Session marked as Completed." });
+        setLastSaved(new Date());
+        if (!isAutoSave) {
+            toast({ title: "Success", description: "Audit summary and conduct time updated. Session marked as Completed." });
+        }
     } catch(error) {
         console.error("Error saving summary:", error);
-        toast({ title: "Error", description: "Could not save summary.", variant: 'destructive' });
     } finally {
         setIsSavingSummary(false);
     }
@@ -366,6 +401,19 @@ export default function AuditExecutionPage() {
             </div>
         </div>
         <div className="flex items-center gap-2">
+            <div className="mr-4 flex flex-col items-end">
+                {isSavingSummary ? (
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
+                        <CloudUpload className="h-3 w-3" />
+                        Syncing Summary...
+                    </div>
+                ) : lastSaved ? (
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Summary Logged ({format(lastSaved, 'HH:mm:ss')})
+                    </div>
+                ) : null}
+            </div>
             <Button 
                 variant="ghost" 
                 size="sm" 
@@ -530,7 +578,7 @@ export default function AuditExecutionPage() {
                         </Form>
                     </CardContent>
                     <CardFooter className="bg-slate-50 border-t py-6 px-8">
-                        <Button type="button" onClick={form.handleSubmit(handleSaveSummary)} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
+                        <Button type="button" onClick={form.handleSubmit((v) => handleSaveSummary(v))} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
                             {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             <Save className="mr-2 h-4 w-4"/>
                             Finalize Audit Report
