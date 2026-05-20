@@ -33,7 +33,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MoreHorizontal, ArrowUpDown, Search, Tags } from 'lucide-react';
+import { Loader2, MoreHorizontal, ArrowUpDown, Search, Tags, Undo2, CheckCircle2, Trash2 } from 'lucide-react';
 import type { Unit, Campus, User, UnitCategory } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -45,16 +45,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { EditUnitDialog } from './edit-unit-dialog';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
@@ -82,14 +72,9 @@ export function AdminUnitManagement() {
   const { isAdmin } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-  const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'ascending' });
-
-  const [stickyDeletingUnit, setStickyDeletingUnit] = useState<Unit | null>(null);
-  useEffect(() => {
-    if (deletingUnit) setStickyDeletingUnit(deletingUnit);
-  }, [deletingUnit]);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -210,17 +195,17 @@ export function AdminUnitManagement() {
         });
   };
 
-  const handleDeleteUnit = async () => {
-    if (!firestore || !deletingUnit) return;
+  const handleDeleteUnit = async (unit: Unit) => {
+    if (!firestore || !unit) return;
     setIsSubmitting(true);
-    const unitRef = doc(firestore, 'units', deletingUnit.id);
+    const unitRef = doc(firestore, 'units', unit.id);
     try {
         await deleteDoc(unitRef);
         toast({
             title: "Unit Deleted",
-            description: `The unit "${deletingUnit.name}" has been permanently removed.`,
+            description: `The unit "${unit.name}" has been permanently removed.`,
         });
-        setDeletingUnit(null);
+        setConfirmDeleteId(null);
     } catch (error) {
         console.error("Error deleting unit:", error);
         toast({
@@ -232,8 +217,6 @@ export function AdminUnitManagement() {
         setIsSubmitting(false);
     }
   };
-
-  const activeDeletingUnit = deletingUnit || stickyDeletingUnit;
 
   return (
     <>
@@ -341,26 +324,28 @@ export function AdminUnitManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('name')} className="-ml-4">
+                    <Button variant="ghost" onClick={() => requestSort('name')} className="-ml-4 text-[10px] font-black uppercase">
                         Name {getSortIndicator('name')}
                     </Button>
                   </TableHead>
                   <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('category')} className="-ml-4">
+                    <Button variant="ghost" onClick={() => requestSort('category')} className="-ml-4 text-[10px] font-black uppercase">
                         Category {getSortIndicator('category')}
                     </Button>
                   </TableHead>
                   <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('campusNames')} className="-ml-4">
+                    <Button variant="ghost" onClick={() => requestSort('campusNames')} className="-ml-4 text-[10px] font-black uppercase">
                         Campuses {getSortIndicator('campusNames')}
                     </Button>
                   </TableHead>
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase pr-6">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAndSortedUnits.map((unit) => (
-                  <TableRow key={unit.id}>
+                {filteredAndSortedUnits.map((unit) => {
+                  const isConfirming = confirmDeleteId === unit.id;
+                  return (
+                  <TableRow key={unit.id} className={cn("transition-colors", isConfirming && "bg-rose-50/50 hover:bg-rose-100/50")}>
                     <TableCell className="font-medium text-xs">{unit.name}</TableCell>
                     <TableCell>
                         <Badge variant="outline" className={cn("text-[9px] uppercase font-bold", categoryColors[unit.category || 'Administrative'])}>
@@ -370,26 +355,52 @@ export function AdminUnitManagement() {
                     <TableCell className="text-[10px] text-muted-foreground">
                       {getCampusNamesString(unit.campusIds)}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6">
+                      {isConfirming ? (
+                        <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="h-8 text-[10px] font-black uppercase text-muted-foreground hover:bg-slate-200"
+                                disabled={isSubmitting}
+                            >
+                                <Undo2 className="h-3 w-3 mr-1" />
+                                Abort
+                            </Button>
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => handleDeleteUnit(unit)}
+                                className="h-8 text-[10px] font-black uppercase bg-destructive text-white hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                Confirm?
+                            </Button>
+                        </div>
+                      ) : (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase">Unit Controls</DropdownMenuLabel>
                                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUnit(unit); }}>
-                                    Edit
+                                    Edit Unit Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setDeletingUnit(unit); }}>
-                                    Delete
+                                <DropdownMenuItem className="text-destructive font-bold" onSelect={(e) => { e.preventDefault(); setConfirmDeleteId(unit.id); }}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Unit
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -408,24 +419,6 @@ export function AdminUnitManagement() {
         isOpen={!!editingUnit}
         onOpenChange={(open) => !open && setEditingUnit(null)}
     />
-
-    <AlertDialog open={!!deletingUnit} onOpenChange={(open) => !open && setDeletingUnit(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the unit "{activeDeletingUnit?.name}".
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteUnit} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
     </>
   );
 }

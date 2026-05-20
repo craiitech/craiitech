@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal, Tags } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal, Tags, Undo2, CheckCircle2, UserX } from 'lucide-react';
 import type { Unit, UnitCategory } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -31,16 +31,6 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,20 +61,9 @@ export function DirectorUnitManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [unitToRemove, setUnitToRemove] = useState<Unit | null>(null);
-  const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const [stickyUnitToRemove, setStickyUnitToRemove] = useState<Unit | null>(null);
-  const [stickyUnitToDelete, setStickyUnitToDelete] = useState<Unit | null>(null);
-
-  useEffect(() => {
-    if (unitToRemove) setStickyUnitToRemove(unitToRemove);
-  }, [unitToRemove]);
-
-  useEffect(() => {
-    if (unitToDelete) setStickyUnitToDelete(unitToDelete);
-  }, [unitToDelete]);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -156,8 +135,8 @@ export function DirectorUnitManagement() {
     }
   };
 
-  const handleRemoveUnitFromCampus = async () => {
-    if (!firestore || !unitToRemove || !userProfile?.campusId) {
+  const handleRemoveUnitFromCampus = async (unit: Unit) => {
+    if (!firestore || !unit || !userProfile?.campusId) {
       return;
     }
     setIsSubmitting(true);
@@ -165,14 +144,15 @@ export function DirectorUnitManagement() {
     try {
       await requireClaims({ role: ['Campus Director'], campusId: true });
 
-      const unitRef = doc(firestore, 'units', unitToRemove.id);
+      const unitRef = doc(firestore, 'units', unit.id);
       const updateData = { campusIds: arrayRemove(userProfile.campusId) }; 
 
       await updateDoc(unitRef, updateData);
       toast({
         title: 'Unit Unassigned',
-        description: `"${unitToRemove.name}" has been removed from your campus.`,
+        description: `"${unit.name}" has been removed from your campus.`,
       });
+      setConfirmRemoveId(null);
     } catch (error) {
       console.error('Error removing unit:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not unassign unit.';
@@ -183,7 +163,6 @@ export function DirectorUnitManagement() {
       });
     } finally {
       setIsSubmitting(false);
-      setUnitToRemove(null);
     }
   };
   
@@ -230,13 +209,14 @@ export function DirectorUnitManagement() {
     }
   };
 
-  const handleDeleteUnit = async () => {
-    if (!firestore || !unitToDelete) return;
+  const handleDeleteUnit = async (unit: Unit) => {
+    if (!firestore || !unit) return;
     setIsSubmitting(true);
     try {
         await requireClaims({ role: ['Campus Director'], campusId: true });
-        await deleteDoc(doc(firestore, 'units', unitToDelete.id));
+        await deleteDoc(doc(firestore, 'units', unit.id));
         toast({ title: 'Success', description: 'Unit deleted successfully.' });
+        setConfirmDeleteId(null);
     } catch(error) {
         console.error("Error deleting unit:", error);
         const errorMessage = error instanceof Error ? error.message : 'Could not delete unit.';
@@ -247,7 +227,6 @@ export function DirectorUnitManagement() {
         });
     } finally {
         setIsSubmitting(false);
-        setUnitToDelete(null);
     }
   }
 
@@ -263,11 +242,7 @@ export function DirectorUnitManagement() {
     );
   }
 
-  const activeUnitToRemove = unitToRemove || stickyUnitToRemove;
-  const activeUnitToDelete = unitToDelete || stickyUnitToDelete;
-
   return (
-    <>
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
@@ -284,21 +259,50 @@ export function DirectorUnitManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Name</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Category</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {unitsInCampus.map((unit) => (
-                    <TableRow key={unit.id}>
+                  {unitsInCampus.map((unit) => {
+                    const isConfirmingDelete = confirmDeleteId === unit.id;
+                    const isConfirmingRemove = confirmRemoveId === unit.id;
+                    const isConfirming = isConfirmingDelete || isConfirmingRemove;
+
+                    return (
+                    <TableRow key={unit.id} className={cn("transition-colors", isConfirming && "bg-rose-50/50 hover:bg-rose-100/50")}>
                       <TableCell className="text-xs font-medium">{unit.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn("text-[9px] uppercase font-bold", categoryColors[unit.category || 'Administrative'])}>
                             {unit.category || 'Administrative'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-6">
+                        {isConfirming ? (
+                            <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                                 <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => { setConfirmDeleteId(null); setConfirmRemoveId(null); }}
+                                    className="h-8 text-[10px] font-black uppercase text-muted-foreground hover:bg-slate-200"
+                                    disabled={isSubmitting}
+                                >
+                                    <Undo2 className="h-3 w-3 mr-1" />
+                                    Abort
+                                </Button>
+                                <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={() => isConfirmingDelete ? handleDeleteUnit(unit) : handleRemoveUnitFromCampus(unit)}
+                                    className="h-8 text-[10px] font-black uppercase bg-destructive text-white hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                    {isConfirmingDelete ? 'Delete?' : 'Unassign?'}
+                                </Button>
+                            </div>
+                        ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -306,24 +310,26 @@ export function DirectorUnitManagement() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setUnitToRemove(unit); }}>
-                                <Trash2 className="mr-2 h-4 w-4" />
+                              <DropdownMenuLabel className="text-[10px] font-black uppercase">Campus Controls</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConfirmRemoveId(unit.id); }}>
+                                <UserX className="mr-2 h-4 w-4" />
                                 Unassign from Campus
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onSelect={(e) => { e.preventDefault(); setUnitToDelete(unit); }}
-                                className="text-destructive"
+                                onSelect={(e) => { e.preventDefault(); setConfirmDeleteId(unit.id); }}
+                                className="text-destructive font-bold"
                                 disabled={(unit.campusIds?.length ?? 0) > 1}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Unit
+                                Delete Unit Permanently
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -366,8 +372,8 @@ export function DirectorUnitManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Available University Units</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Available University Units</TableHead>
+                        <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -375,16 +381,16 @@ export function DirectorUnitManagement() {
                         return (
                             <TableRow key={unit.id}>
                               <TableCell className="text-xs">{unit.name}</TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right pr-6">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleAddUnitToCampus(unit)}
                                     disabled={isSubmitting}
-                                    className="h-7 text-[10px]"
+                                    className="h-7 text-[10px] font-black uppercase"
                                 >
-                                    {isSubmitting ? <Loader2 className="mr-2 h-3 w-3 animate-spin"/> : <PlusCircle className="mr-2 h-3 w-3" />}
-                                    Add to my Campus
+                                    {isSubmitting ? <Loader2 className="mr-2 h-3 w-3 animate-spin"/> : <PlusCircle className="mr-2 h-3 w-3 mr-1" />}
+                                    Assign
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -450,42 +456,6 @@ export function DirectorUnitManagement() {
         </CardContent>
       </Card>
     </div>
-    
-    <AlertDialog open={!!unitToRemove} onOpenChange={(isOpen) => !isOpen && setUnitToRemove(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This will remove the unit "{activeUnitToRemove?.name}" from your campus. Other campuses will not be affected.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRemoveUnitFromCampus} disabled={isSubmitting}>
-                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Continue
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-
-    <AlertDialog open={!!unitToDelete} onOpenChange={(isOpen) => !isOpen && setUnitToDelete(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Delete Unit Permanently?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the unit "{activeUnitToDelete?.name}". This is only allowed if the unit is not assigned to any other campus.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteUnit} disabled={isSubmitting}>
-                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete Permanently
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
     </>
   );
 }
