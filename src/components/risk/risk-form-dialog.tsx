@@ -35,7 +35,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, whe
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -186,6 +186,8 @@ export function RiskFormDialog({
   const selectedAdminCampusId = form.watch('adminCampusId');
   const selectedAdminUnitId = form.watch('adminUnitId');
   const riskTypeValue = form.watch('type');
+  const descriptionValue = form.watch('description');
+  const objectiveValue = form.watch('objective');
 
   const handleLoadRisk = (r: Risk | null) => {
     setActiveRisk(r);
@@ -258,10 +260,23 @@ export function RiskFormDialog({
 
   const { data: unitRisks } = useCollection<Risk>(unitRisksQuery);
 
+  /**
+   * DUPLICATION CHECK LOGIC
+   */
+  const duplicateConflict = useMemo(() => {
+    if (!descriptionValue || !unitRisks) return null;
+    const normalizedNew = descriptionValue.trim().toLowerCase();
+    
+    return unitRisks.find(r => {
+        // Skip comparing against the current risk record if editing
+        if (activeRisk && r.id === activeRisk.id) return false;
+        
+        return r.description.trim().toLowerCase() === normalizedNew;
+    });
+  }, [descriptionValue, unitRisks, activeRisk]);
+
   const likelihoodValue = form.watch('likelihood');
   const consequenceValue = form.watch('consequence');
-  const descriptionValue = form.watch('description');
-  const objectiveValue = form.watch('objective');
   const ptLikelihood = form.watch('postTreatmentLikelihood') || 1;
   const ptConsequence = form.watch('postTreatmentConsequence') || 1;
 
@@ -294,7 +309,7 @@ export function RiskFormDialog({
   }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user || !firestore || !userProfile) return;
+    if (!user || !firestore || !userProfile || duplicateConflict) return;
     setIsSubmitting(true);
     
     try {
@@ -380,7 +395,7 @@ export function RiskFormDialog({
     }
   };
 
-  const previewUrl = useMemo(() => {
+  const rorPreviewUrl = useMemo(() => {
     if (!registryLink) return null;
     return registryLink.replace('/view', '/preview').replace('?usp=sharing', '');
   }, [registryLink]);
@@ -389,18 +404,23 @@ export function RiskFormDialog({
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
       <DialogContent className={cn("max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden", registryLink ? "lg:max-w-[1600px]" : "lg:max-w-7xl")} onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
         <div className="p-6 border-b shrink-0 bg-card shadow-sm">
-            <div className="flex items-center gap-2 text-primary mb-1">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Risk Registry</span>
-            </div>
-            <div className="flex items-center gap-3">
-                <DialogTitle className="text-xl">
-                    {activeRisk ? 'Manage' : 'Log New'} Assessment Record
-                </DialogTitle>
-                <Badge variant="secondary" className="h-6 px-3 bg-primary/10 text-primary border-primary/20 font-black text-xs">
-                    <Calendar className="h-3 w-3 mr-1.5" />
-                    AY {watchYear}
-                </Badge>
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary mb-1">
+                        <ShieldCheck className="h-5 w-5" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Risk Registry</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <DialogTitle className="text-xl">
+                            {activeRisk ? 'Manage' : 'Log New'} Assessment Record
+                        </DialogTitle>
+                        <Badge variant="secondary" className="h-6 px-3 bg-primary/10 text-primary border-primary/20 font-black text-xs">
+                            <Calendar className="h-3 w-3 mr-1.5" />
+                            AY {watchYear}
+                        </Badge>
+                    </div>
+                </div>
+                {!isMandatory && <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8"><X className="h-4 w-4" /></Button>}
             </div>
         </div>
         <div className="flex-1 flex overflow-hidden">
@@ -408,6 +428,17 @@ export function RiskFormDialog({
                 <ScrollArea className="flex-1">
                     <Form {...form}>
                         <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-8">
+                            
+                            {duplicateConflict && (
+                                <Alert variant="destructive" className="animate-in slide-in-from-top-2 duration-500 shadow-md">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle className="font-black uppercase tracking-tight text-xs">Potential Duplication Conflict</AlertTitle>
+                                    <AlertDescription className="text-[11px] font-medium leading-relaxed">
+                                        This description exactly matches an existing <strong>{duplicateConflict.type}</strong> entry in the AY {watchYear} Registry for your unit. To ensure data integrity, duplicate entries are flagged. Please refine the description if this is a distinct factor.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
@@ -827,7 +858,7 @@ export function RiskFormDialog({
                                     className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5"
                                     onClick={() => handleLoadRisk(null)}
                                 >
-                                    <PlusCircle className="h-3 w-3" /> New Entry
+                                    <PlusCircle className="h-3.5 w-3.5" /> New Entry
                                 </Button>
                             </div>
                             <div className="space-y-2">
@@ -889,9 +920,9 @@ export function RiskFormDialog({
                                 </Button>
                             </CardHeader>
                             <CardContent className="p-0 flex-1 relative bg-white">
-                                {previewUrl && (
+                                {rorPreviewUrl && (
                                     <iframe 
-                                        src={previewUrl} 
+                                        src={rorPreviewUrl} 
                                         className="absolute inset-0 w-full h-full border-none bg-white"
                                         allow="autoplay"
                                         title="Risk Registry Document Source"
@@ -939,7 +970,7 @@ export function RiskFormDialog({
                 <Button 
                     form="risk-form" 
                     type="submit" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !!duplicateConflict}
                     className="min-w-[150px] shadow-lg shadow-primary/20"
                 >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
