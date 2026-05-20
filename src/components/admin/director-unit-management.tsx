@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,10 +23,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal, Tags, Undo2, CheckCircle2, UserX } from 'lucide-react';
-import type { Unit, UnitCategory } from '@/lib/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal, Undo2, CheckCircle2, UserX } from 'lucide-react';
+import type { Unit } from '@/lib/types';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
@@ -82,7 +80,6 @@ export function DirectorUnitManagement() {
         unit.campusIds?.includes(directorCampusId)
     );
     
-    // Available units are those NOT in the director's campus and matching the search term
     const availableUnits = allUnits.filter(unit => 
         !unit.campusIds?.includes(directorCampusId) &&
         unit.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -184,7 +181,7 @@ export function DirectorUnitManagement() {
       const newUnitData = {
           name: values.name,
           category: values.category,
-          campusIds: [userProfile.campusId], // Assign to current campus on creation
+          campusIds: [userProfile.campusId], 
           createdAt: serverTimestamp(),
       };
 
@@ -456,6 +453,5 @@ export function DirectorUnitManagement() {
         </CardContent>
       </Card>
     </div>
-    </>
   );
 }

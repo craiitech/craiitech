@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,8 +33,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MoreHorizontal, ArrowUpDown, Search, Tags, Undo2, CheckCircle2, Trash2 } from 'lucide-react';
-import type { Unit, Campus, User, UnitCategory } from '@/lib/types';
+import { Loader2, MoreHorizontal, ArrowUpDown, Search, Undo2, CheckCircle2, Trash2 } from 'lucide-react';
+import type { Unit, Campus, User } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -116,7 +116,6 @@ export function AdminUnitManagement() {
 
     let filtered = [...allUnits];
 
-    // Search filter
     if (searchTerm) {
         const lowercasedFilter = searchTerm.toLowerCase();
         filtered = filtered.filter(unit => 
@@ -126,7 +125,6 @@ export function AdminUnitManagement() {
         );
     }
     
-    // Sorting
     if (sortConfig !== null) {
       filtered.sort((a, b) => {
         let aValue: any, bValue: any;
