@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -127,6 +126,7 @@ import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
+import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
 
 const statusVariant: Record<
   string,
@@ -885,7 +885,7 @@ export default function HomePage() {
         if (f.type !== 'Observation for Improvement') return false;
         const schedule = allSchedules?.find(s => s.id === f.auditScheduleId);
         if (!schedule) return false;
-        if (isAdmin) return true;
+        if (isAdmin) true;
         if (isCampusSupervisor) return schedule.campusId === userProfile?.campusId;
         return schedule.targetId === userProfile?.unitId;
     }) || [];
@@ -1189,6 +1189,10 @@ export default function HomePage() {
                 </Select>
             </div>
         </div>
+
+        {/* OFFLINE CAPABILITY MANAGER FOR AUDITORS */}
+        <AuditorOfflineManager />
+
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
             {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}

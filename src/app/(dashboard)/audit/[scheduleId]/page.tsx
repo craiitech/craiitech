@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -25,7 +24,9 @@ import {
     PanelRightClose,
     PanelRightOpen,
     CloudUpload,
-    CheckCircle2
+    CheckCircle2,
+    Wifi,
+    WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -46,6 +47,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -76,6 +78,7 @@ export default function AuditExecutionPage() {
   const { scheduleId } = useParams();
   const firestore = useFirestore();
   const { userProfile, systemSettings } = useUser();
+  const isOnline = useNetworkStatus();
   const router = useRouter();
   const { toast } = useToast();
   const [isSavingSummary, setIsSavingSummary] = useState(false);
@@ -401,16 +404,22 @@ export default function AuditExecutionPage() {
             </div>
         </div>
         <div className="flex items-center gap-2">
+            {/* OFFLINE STATUS INDICATOR */}
+            <Badge variant={isOnline ? "outline" : "destructive"} className="h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 bg-white">
+                {isOnline ? <Wifi className="h-3 w-3 text-emerald-500" /> : <WifiOff className="h-3 w-3 animate-pulse" />}
+                {isOnline ? 'Online Sync Active' : 'Local Storage Mode'}
+            </Badge>
+
             <div className="mr-4 flex flex-col items-end">
                 {isSavingSummary ? (
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
                         <CloudUpload className="h-3 w-3" />
-                        Syncing Summary...
+                        {isOnline ? 'Syncing Summary...' : 'Caching locally...'}
                     </div>
                 ) : lastSaved ? (
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
                         <CheckCircle2 className="h-3 w-3" />
-                        Summary Logged ({format(lastSaved, 'HH:mm:ss')})
+                        {isOnline ? `Summary Logged (${format(lastSaved, 'HH:mm:ss')})` : `Saved to Device (${format(lastSaved, 'HH:mm:ss')})`}
                     </div>
                 ) : null}
             </div>

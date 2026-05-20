@@ -3,7 +3,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 import { useMemo, type DependencyList } from 'react';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -25,6 +25,19 @@ export function getSdks(firebaseApp: FirebaseApp) {
     });
   } catch (e) {
     firestore = getFirestore(firebaseApp);
+  }
+
+  // --- ENABLE PERSISTENT CACHE FOR OFFLINE USE ---
+  if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(firestore).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        // Multiple tabs open, persistence can only be enabled in one tab at a time.
+        console.warn('Firestore persistence: Multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        // The current browser does not support all of the features required to enable persistence
+        console.warn('Firestore persistence: Browser not supported.');
+      }
+    });
   }
 
   return {
