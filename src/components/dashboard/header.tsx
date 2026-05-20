@@ -1,13 +1,15 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useUser } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { Button } from '@/components/ui/button';
-import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNetworkStatus } from '@/hooks/use-network-status';
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -25,8 +27,10 @@ interface HeaderProps {
 export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance }: HeaderProps) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
+  const isOnline = useNetworkStatus();
+  const { user, userProfile, userRole } = useUser();
 
-  const { user, userProfile } = firebaseState;
+  const isAuditor = userRole === 'Auditor';
 
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Home';
@@ -56,6 +60,24 @@ export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance 
             <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800">{getPageTitle(pathname)}</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
+            {/* Global Offline Mode Indicator for Auditors */}
+            {isAuditor && (
+                <Badge 
+                    variant={isOnline ? "outline" : "destructive"} 
+                    className={cn(
+                        "hidden sm:flex h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 shadow-sm transition-all duration-500",
+                        isOnline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in"
+                    )}
+                >
+                    {isOnline ? (
+                        <Wifi className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                        <WifiOff className="h-3 w-3 animate-pulse" />
+                    )}
+                    {isOnline ? 'Online Registry' : 'Offline Mode Active'}
+                </Badge>
+            )}
+
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>

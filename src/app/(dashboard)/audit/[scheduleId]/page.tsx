@@ -26,7 +26,8 @@ import {
     CloudUpload,
     CheckCircle2,
     Wifi,
-    WifiOff
+    WifiOff,
+    ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -408,10 +409,23 @@ export default function AuditExecutionPage() {
         </div>
         <div className="flex items-center gap-2">
             {/* OFFLINE STATUS INDICATOR */}
-            <Badge variant={isOnline ? "outline" : "destructive"} className="h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 bg-white">
+            <Badge 
+                variant={isOnline ? "outline" : "destructive"} 
+                className={cn(
+                    "h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 transition-all",
+                    isOnline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in"
+                )}
+            >
                 {isOnline ? <Wifi className="h-3 w-3 text-emerald-500" /> : <WifiOff className="h-3 w-3 animate-pulse" />}
-                {isOnline ? 'Online Sync Active' : 'Local Storage Mode'}
+                {isOnline ? 'Online Sync Active' : 'Offline Mode (Local Storage)'}
             </Badge>
+
+            {!isOnline && (
+                <Badge variant="outline" className="h-9 px-3 font-bold uppercase text-[9px] bg-white text-destructive border-destructive/20 animate-pulse">
+                    <ShieldAlert className="h-3 w-3 mr-1" />
+                    SYNC REQUIRED LATER
+                </Badge>
+            )}
 
             <div className="mr-4 flex flex-col items-end">
                 {isSavingSummary ? (
@@ -499,9 +513,7 @@ export default function AuditExecutionPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} className="h-11 bg-white font-bold" />
-                                                </FormControl>
+                                                <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -512,9 +524,7 @@ export default function AuditExecutionPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} className="h-11 bg-white font-bold" />
-                                                </FormControl>
+                                                <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
