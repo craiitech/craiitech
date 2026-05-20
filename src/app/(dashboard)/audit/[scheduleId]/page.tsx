@@ -157,7 +157,6 @@ export default function AuditExecutionPage() {
 
   const watchAll = form.watch();
 
-  // ONLY reset the form on the initial load to prevent clobbering user input during auto-saves
   useEffect(() => {
       if (schedule && isInitialLoadRef.current) {
           const startDate = schedule.scheduledDate?.toDate ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
@@ -177,13 +176,9 @@ export default function AuditExecutionPage() {
       }
   }, [schedule, form]);
 
-  /**
-   * SUMMARY AUTO-SAVE LOGIC
-   */
   useEffect(() => {
     if (!schedule || !scheduleDocRef) return;
 
-    // Detect changes in summary fields specifically compared to the CURRENT document state
     const hasChanged = 
         watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
         watchAll.summaryCommendable !== (schedule.summaryCommendable || '') ||
@@ -196,7 +191,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 2000); // 2s debounce for larger fields
+        }, 2000);
     }
 
     return () => {
@@ -265,7 +260,6 @@ export default function AuditExecutionPage() {
 
   const handlePrintLog = () => {
     if (!schedule || !findings || !allIsoClauses) return;
-
     try {
         const reportHtml = renderToStaticMarkup(
             <AuditPrintTemplate 
@@ -276,7 +270,6 @@ export default function AuditExecutionPage() {
                 leadAuditorName={plan?.leadAuditorName}
             />
         );
-
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
@@ -287,23 +280,8 @@ export default function AuditExecutionPage() {
                     <title>IQA Evidence Log - ${schedule.targetName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { 
-                                margin: 0 !important; 
-                                padding: 0 !important; 
-                                background: white; 
-                                width: 100% !important;
-                                -webkit-print-color-adjust: exact;
-                            } 
-                            .no-print { display: none !important; }
-                            table { width: 100% !important; border-collapse: collapse !important; }
-                            thead { display: table-header-group !important; }
-                            tr { page-break-inside: avoid !important; }
-                        }
+                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                     </style>
                 </head>
@@ -311,301 +289,97 @@ export default function AuditExecutionPage() {
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print IQA Report</button>
                     </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${reportHtml}
-                    </div>
+                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
                 </body>
                 </html>
             `);
             printWindow.document.close();
         }
-    } catch (err) {
-        console.error("Print error:", err);
-        toast({ title: "Print Failed", description: "Could not generate the print template.", variant: "destructive" });
-    }
+    } catch (err) { console.error(err); }
   };
 
   const toggleNewClauseSelection = (clauseId: string) => {
-    setSelectedNewClauses(prev => 
-        prev.includes(clauseId) ? prev.filter(id => id !== clauseId) : [...prev, clauseId]
-    );
+    setSelectedNewClauses(prev => prev.includes(clauseId) ? prev.filter(id => id !== clauseId) : [...prev, clauseId]);
   };
 
   const handleFindingSync = (finding: any) => {
     const clauseId = finding.isoClause;
     const type = finding.type;
     const actualText = type === 'Non-Conformance' ? (finding.ncStatement || finding.description) : finding.description;
-    
     if (!actualText) return;
-
     const formattedEntry = `[Clause ${clauseId}]: ${actualText}`;
-    
-    const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
-        'summaryCommendable',
-        'summaryCompliance',
-        'summaryOFI',
-        'summaryNC'
-    ];
-
+    const summaryFields: (keyof z.infer<typeof summarySchema>)[] = ['summaryCommendable', 'summaryCompliance', 'summaryOFI', 'summaryNC'];
     let targetFieldName: keyof z.infer<typeof summarySchema> | null = null;
     if (type === 'Compliance') targetFieldName = 'summaryCompliance';
     else if (type === 'Observation for Improvement') targetFieldName = 'summaryOFI';
     else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
-
     if (!targetFieldName) return;
-
     summaryFields.forEach(fName => {
         if (fName === 'officerInCharge' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualEndTime') return;
         const val = form.getValues(fName) || '';
         const lines = val.split('\n').filter(l => l.trim() !== '');
         const updatedLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
-        
-        if (fName === targetFieldName) {
-            updatedLines.push(formattedEntry);
-        }
-        
+        if (fName === targetFieldName) updatedLines.push(formattedEntry);
         form.setValue(fName, updatedLines.join('\n'));
     });
   };
 
   const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
 
-  if (isLoading) {
-    return <LoadingSkeleton />;
-  }
-
-  if (!schedule) {
-    return (
-      <div className="text-center py-20">
-        <h2 className="text-2xl font-bold">Audit Schedule Not Found</h2>
-        <p className="text-muted-foreground mt-2">The schedule you are looking for does not exist.</p>
-        <Button className="mt-4" onClick={() => router.back()}>
-          <span>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </span>
-        </Button>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingSkeleton />;
+  if (!schedule) return null;
 
   const conductDate = schedule.scheduledDate instanceof Timestamp ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
 
   return (
     <div className="space-y-6">
-      {/* Sticky Header Enforced */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
             <div>
-            <h2 className="text-2xl font-bold tracking-tight">IQA - Evidence Log Sheet</h2>
-            <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                <Building2 className="h-3.5 w-3.5" />
-                {schedule.targetName} &bull; {format(conductDate, 'PPP')} @ {format(conductDate, 'hh:mm a')}
-            </p>
+                <h2 className="text-2xl font-bold tracking-tight">IQA - Evidence Log Sheet</h2>
+                <p className="text-muted-foreground flex items-center gap-2 text-sm"><Building2 className="h-3.5 w-3.5" />{schedule.targetName} &bull; {format(conductDate, 'PPP')} @ {format(conductDate, 'hh:mm a')}</p>
             </div>
         </div>
         <div className="flex items-center gap-2">
-            {/* OFFLINE STATUS INDICATOR */}
-            <Badge 
-                variant={isOnline ? "outline" : "destructive"} 
-                className={cn(
-                    "h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 transition-all",
-                    isOnline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in"
-                )}
-            >
+            <Badge variant={isOnline ? "outline" : "destructive"} className={cn("h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 transition-all", isOnline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in")}>
                 {isOnline ? <Wifi className="h-3 w-3 text-emerald-500" /> : <WifiOff className="h-3 w-3 animate-pulse" />}
                 {isOnline ? 'Online Sync Active' : 'Offline Mode (Local Storage)'}
             </Badge>
 
             {!isOnline && (
                 <Badge variant="outline" className="h-9 px-3 font-bold uppercase text-[9px] bg-white text-destructive border-destructive/20 animate-pulse">
-                    <ShieldAlert className="h-3 w-3 mr-1" />
-                    SYNC REQUIRED LATER
+                    <ShieldAlert className="h-3 w-3 mr-1" /> SYNC REQUIRED LATER
                 </Badge>
             )}
 
             <div className="mr-4 flex flex-col items-end">
                 {isSavingSummary ? (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
-                        <CloudUpload className="h-3 w-3" />
-                        {isOnline ? 'Syncing Summary...' : 'Caching locally...'}
-                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />{isOnline ? 'Syncing Summary...' : 'Caching locally...'}</div>
                 ) : lastSaved ? (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
-                        <CheckCircle2 className="h-3 w-3" />
-                        {isOnline ? `Summary Logged (${format(lastSaved, 'HH:mm:ss')})` : `Saved to Device (${format(lastSaved, 'HH:mm:ss')})`}
-                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />{isOnline ? `Summary Logged (${format(lastSaved, 'HH:mm:ss')})` : `Saved to Device (${format(lastSaved, 'HH:mm:ss')})`}</div>
                 ) : null}
             </div>
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsDossierVisible(!isDossierVisible)}
-                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5"
-            >
-                {isDossierVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}
-                {isDossierVisible ? 'Hide Dossier' : 'Show Dossier'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePrintLog} className="bg-white shadow-sm font-bold h-9">
-                <Printer className="mr-2 h-4 w-4" />
-                Print Evidence Log
-            </Button>
-            <Badge variant={schedule.status === 'Completed' ? 'default' : 'secondary'} className="h-9 px-4 font-black uppercase tracking-widest border-none shadow-sm">
-                {schedule.status}
-            </Badge>
+            <Button variant="ghost" size="sm" onClick={() => setIsDossierVisible(!isDossierVisible)} className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5">{isDossierVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}{isDossierVisible ? 'Hide Dossier' : 'Show Dossier'}</Button>
+            <Button variant="outline" size="sm" onClick={handlePrintLog} className="bg-white shadow-sm font-bold h-9"><Printer className="mr-2 h-4 w-4" />Print Evidence Log</Button>
+            <Badge variant={schedule.status === 'Completed' ? 'default' : 'secondary'} className="h-9 px-4 font-black uppercase tracking-widest border-none shadow-sm">{schedule.status}</Badge>
         </div>
       </div>
       
       <div className={cn("grid grid-cols-1 gap-6 transition-all duration-500", isDossierVisible ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
         <div className={cn("space-y-6", isDossierVisible ? "lg:col-span-2" : "lg:col-span-1")}>
             <div className="space-y-6">
-                {/* STEP 1: CONDUCT VERIFICATION */}
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
-                    <CardHeader className="bg-primary/5 border-b py-6">
-                        <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-                            <UserCheck className="h-6 w-6 text-primary" />
-                            1. Session Conduct Verification
-                        </CardTitle>
-                        <CardDescription className="font-medium">Verify the auditee representative and the actual time of audit conduct.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-8">
-                        <Form {...form}>
-                            <div className="space-y-6">
-                                <FormField
-                                    control={form.control}
-                                    name="officerInCharge"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
-                                            <FormControl>
-                                                <Input 
-                                                    {...field} 
-                                                    placeholder="Enter name of the actual representative present..." 
-                                                    className="h-11 font-black bg-white"
-                                                />
-                                            </FormControl>
-                                            <FormDescription className="text-[9px]">Pre-filled from itinerary. Update if a different representative was present.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="actualDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
-                                                <FormControl>
-                                                    <Input type="date" {...field} className="h-11 bg-white font-bold" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="actualStartTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
-                                                <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="actualEndTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
-                                                <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        </Form>
-                    </CardContent>
+                    <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><UserCheck className="h-6 w-6 text-primary" />1. Session Conduct Verification</CardTitle><CardDescription className="font-medium">Verify the auditee representative and the actual time of audit conduct.</CardDescription></CardHeader>
+                    <CardContent className="space-y-6 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="officerInCharge" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel><FormControl><Input {...field} placeholder="Enter name of the actual representative present..." className="h-11 font-black bg-white" /></FormControl><FormDescription className="text-[9px]">Pre-filled from itinerary. Update if a different representative was present.</FormDescription><FormMessage /></FormItem>)} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><FormField control={form.control} name="actualDate" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel><FormControl><Input type="date" {...field} className="h-11 bg-white font-bold" /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="actualStartTime" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel><FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="actualEndTime" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel><FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl><FormMessage /></FormItem>)} /></div></div></Form></CardContent>
                 </Card>
 
-                {/* STEP 2: EVIDENCE CHECKLIST */}
-                <AuditChecklist 
-                    scheduleId={schedule.id}
-                    clausesToAudit={clausesInScope}
-                    existingFindings={findings || []}
-                    onFindingSaved={handleFindingSync}
-                    unitCars={unitCars || []}
-                />
+                <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} />
 
-                {/* STEP 3: FINAL REPORT SUMMARY */}
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
-                    <CardHeader className="bg-primary/5 border-b py-6">
-                        <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-                            <ClipboardCheck className="h-6 w-6 text-primary" />
-                            2. Final Audit Report Summary
-                        </CardTitle>
-                        <CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8 pt-8">
-                        <Form {...form}>
-                            <div className="space-y-6">
-                                <FormField
-                                    control={form.control}
-                                    name="summaryCommendable"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel>
-                                            <FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="summaryCompliance"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel>
-                                            <FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="summaryOFI"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel>
-                                            <FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="summaryNC"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-black uppercase text-destructive">Non-Compliance / Non-Conformance (NC)</FormLabel>
-                                            <FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </Form>
-                    </CardContent>
-                    <CardFooter className="bg-slate-50 border-t py-6 px-8">
-                        <Button type="button" onClick={form.handleSubmit((v) => handleSaveSummary(v))} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
-                            {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            <Save className="mr-2 h-4 w-4"/>
-                            Finalize Audit Report
-                        </Button>
-                    </CardFooter>
+                    <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary" />2. Final Audit Report Summary</CardTitle><CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription></CardHeader>
+                    <CardContent className="space-y-8 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="summaryCommendable" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryCompliance" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryOFI" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl></FormItem>)} /><FormField control={form.control} name="summaryNC" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-destructive">Non-Compliance / Non-Conformance (NC)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl></FormItem>)} /></div></Form></CardContent>
+                    <CardFooter className="bg-slate-50 border-t py-6 px-8"><Button type="button" onClick={form.handleSubmit((v) => handleSaveSummary(v))} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">{isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}<Save className="mr-2 h-4 w-4"/>Finalize Audit Report</Button></CardFooter>
                 </Card>
             </div>
         </div>
@@ -613,109 +387,18 @@ export default function AuditExecutionPage() {
         {isDossierVisible && (
             <div className="lg:col-span-1 animate-in fade-in slide-in-from-right-4 duration-500">
                 <Card className="sticky top-20 shadow-md border-primary/10">
-                    <CardHeader className="bg-muted/30 border-b">
-                        <CardTitle className="text-sm font-black uppercase tracking-widest">Session Dossier</CardTitle>
-                    </CardHeader>
+                    <CardHeader className="bg-muted/30 border-b"><CardTitle className="text-sm font-black uppercase tracking-widest">Session Dossier</CardTitle></CardHeader>
                     <CardContent className="space-y-6 pt-6">
                         <div className="space-y-3">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Auditor</p>
-                                <div className="flex items-center gap-2">
-                                    <User className="h-4 w-4 text-primary" />
-                                    <span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Auditee</p>
-                                <div className="flex items-center gap-2">
-                                    <Building2 className="h-4 w-4 text-primary" />
-                                    <span className="text-sm font-bold">{schedule.targetName}</span>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p>
-                                <div className="flex items-center gap-2">
-                                    <UserCheck className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm font-medium text-slate-600">{schedule.auditeeHeadName || 'Not Specified'}</span>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Itinerary Schedule</p>
-                                <div className="flex items-center gap-2 text-amber-600">
-                                    <Clock className="h-4 w-4" />
-                                    <span className="text-sm font-bold">{format(conductDate, 'PPp')}</span>
-                                </div>
-                            </div>
+                            <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Auditor</p><div className="flex items-center gap-2"><User className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span></div></div>
+                            <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Auditee</p><div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{schedule.targetName}</span></div></div>
+                            <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p><div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-slate-400" /><span className="text-sm font-medium text-slate-600">{schedule.auditeeHeadName || 'Not Specified'}</span></div></div>
+                            <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Itinerary Schedule</p><div className="flex items-center gap-2 text-amber-600"><Clock className="h-4 w-4" /><span className="text-sm font-bold">{format(conductDate, 'PPp')}</span></div></div>
                         </div>
-                        
                         <Separator />
-
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p>
-                                <Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2">
-                                            <PlusCircle className="h-3 w-3" /> Add More Clauses
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md">
-                                        <DialogHeader>
-                                            <DialogTitle>Add Clauses to Scope</DialogTitle>
-                                            <DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription>
-                                        </DialogHeader>
-                                        <div className="rounded-xl border shadow-sm overflow-hidden bg-background">
-                                            <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-                                                <div className="flex items-center border-b px-3 bg-white">
-                                                    <CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" />
-                                                </div>
-                                                <CommandList className="max-h-[300px]">
-                                                    <CommandEmpty className="p-4 text-center">
-                                                        <Database className="h-8 w-8 mx-auto opacity-10 mb-2" />
-                                                        <p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p>
-                                                    </CommandEmpty>
-                                                    <CommandGroup>
-                                                        {unusedClauses.map(c => {
-                                                            const isSelected = selectedNewClauses.includes(c.id);
-                                                            return (
-                                                                <CommandItem
-                                                                    key={c.id}
-                                                                    value={`${c.id} ${c.title}`}
-                                                                    onSelect={() => toggleNewClauseSelection(c.id)}
-                                                                    className="flex items-center gap-3 px-4 py-3 cursor-pointer"
-                                                                >
-                                                                    <div className={cn(
-                                                                        "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
-                                                                        isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
-                                                                    )}>
-                                                                        {isSelected && <Check className="h-3 w-3" />}
-                                                                    </div>
-                                                                    <div className="min-w-0">
-                                                                        <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
-                                                                        <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            );
-                                                        })}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </div>
-                                        <DialogFooter className="pt-4">
-                                            <Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button>
-                                            <Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>
-                                                {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                                Add {selectedNewClauses.length} Clause(s)
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {schedule.isoClausesToAudit.sort((a,b) => a.localeCompare(b, undefined, { numeric: true })).map(clauseId => (
-                                    <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2 bg-white">Clause {clauseId}</Badge>
-                                ))}
-                            </div>
+                            <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p><Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}><DialogTrigger asChild><Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2"><PlusCircle className="h-3 w-3" /> Add More Clauses</Button></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Add Clauses to Scope</DialogTitle><DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription></DialogHeader><div className="rounded-xl border shadow-sm overflow-hidden bg-background"><Command className="bg-transparent" filter={(v, s) => v.toLowerCase().includes(s.toLowerCase()) ? 1 : 0}><div className="flex items-center border-b px-3 bg-white"><CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" /></div><CommandList className="max-h-[300px]"><CommandEmpty className="p-4 text-center"><Database className="h-8 w-8 mx-auto opacity-10 mb-2" /><p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p></CommandEmpty><CommandGroup>{unusedClauses.map(c => { const isSelected = selectedNewClauses.includes(c.id); return (<CommandItem key={c.id} value={`${c.id} ${c.title}`} onSelect={() => toggleNewClauseSelection(c.id)} className="flex items-center gap-3 px-4 py-3 cursor-pointer"><div className={cn("h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary border-primary text-white" : "border-slate-300")}>{isSelected && <Check className="h-3 w-3" />}</div><div className="min-w-0"><p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p><p className="text-[10px] text-muted-foreground truncate">{c.title}</p></div></CommandItem>); })}</CommandGroup></CommandList></Command></div><DialogFooter className="pt-4"><Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button><Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>{isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Add {selectedNewClauses.length} Clause(s)</Button></DialogFooter></DialogContent></Dialog></div>
+                            <div className="flex flex-wrap gap-1.5">{schedule.isoClausesToAudit.sort((a,b) => a.localeCompare(b, undefined, { numeric: true })).map(clauseId => (<Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2 bg-white">Clause {clauseId}</Badge>))}</div>
                         </div>
                     </CardContent>
                 </Card>
