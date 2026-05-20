@@ -42,7 +42,7 @@ import type {
     Cycle
 } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, doc, getDocs, limit, orderBy, Timestamp, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';
@@ -182,7 +182,6 @@ export default function RiskRegisterPage() {
     
     /**
      * DUPLICATE AUDIT LOGIC
-     * Groups risks by trimmed lowercase description to find redundant entries within the filtered set.
      */
     const duplicateGroups = useMemo(() => {
         const groups: Record<string, Risk[]> = {};
@@ -204,6 +203,11 @@ export default function RiskRegisterPage() {
             await deleteDoc(doc(firestore, 'risks', deletingRisk.id));
             toast({ title: 'Record Removed', description: 'The redundant entry has been successfully deleted.' });
             setDeletingRisk(null);
+            
+            // CRITICAL: Robust interaction unlock
+            setTimeout(() => {
+                document.body.style.pointerEvents = '';
+            }, 100);
         } catch (e) {
             toast({ title: 'Error', description: 'Could not delete entry.', variant: 'destructive' });
         } finally {
@@ -475,7 +479,10 @@ export default function RiskRegisterPage() {
                                                     <Button 
                                                         variant="ghost" 
                                                         size="sm" 
-                                                        onClick={() => setDeletingRisk(risk)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeletingRisk(risk);
+                                                        }}
                                                         className="h-7 text-[8px] font-black uppercase text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-all"
                                                     >
                                                         <Trash2 className="h-3 w-3 mr-1" />
@@ -541,7 +548,14 @@ export default function RiskRegisterPage() {
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-4">
                 <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteRisk} className="bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-destructive/20 h-10" disabled={isDeleting}>
+                <AlertDialogAction 
+                    onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteRisk();
+                    }} 
+                    className="bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-destructive/20 h-10" 
+                    disabled={isDeleting}
+                >
                     {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                     Confirm Deletion
                 </AlertDialogAction>
