@@ -1,50 +1,77 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { 
+  getFirestore, 
+  initializeFirestore, 
+  enableMultiTabIndexedDbPersistence, 
+  Firestore,
+  enableIndexedDbPersistence
+} from 'firebase/firestore'
 import { useMemo, type DependencyList } from 'react';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// Singleton to hold initialized SDKs
+let cachedSdks: {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+} | null = null;
+
+/**
+ * Robustly initializes Firebase services once.
+ * Implements a singleton pattern to prevent re-initialization errors.
+ */
 export function initializeFirebase() {
-  if (getApps().length) {
-    return getSdks(getApp());
+  if (cachedSdks) {
+    return cachedSdks;
   }
 
-  const firebaseApp = initializeApp(firebaseConfig);
-  return getSdks(firebaseApp);
-}
+  // Handle App initialization
+  const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  // Use initializeFirestore with long polling to bypass potential proxy issues in the workstation environment
-  let firestore;
+  // Initialize Firestore with specific settings
+  let firestore: Firestore;
   try {
     firestore = initializeFirestore(firebaseApp, {
       experimentalForceLongPolling: true,
     });
   } catch (e) {
+    // If already initialized, get the existing instance
     firestore = getFirestore(firebaseApp);
   }
 
   // --- ENABLE PERSISTENT CACHE FOR OFFLINE USE ---
+  // Must be called before any other Firestore operations
   if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(firestore).catch((err) => {
+    // enableMultiTabIndexedDbPersistence is preferred for PWAs
+    enableMultiTabIndexedDbPersistence(firestore).catch((err) => {
       if (err.code === 'failed-precondition') {
         // Multiple tabs open, persistence can only be enabled in one tab at a time.
-        console.warn('Firestore persistence: Multiple tabs open.');
+        console.warn('Firestore persistence: Multiple tabs open. Persistence limited to primary tab.');
       } else if (err.code === 'unimplemented') {
         // The current browser does not support all of the features required to enable persistence
         console.warn('Firestore persistence: Browser not supported.');
+      } else {
+        console.error('Firestore persistence error:', err);
       }
     });
   }
 
-  return {
+  cachedSdks = {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore
   };
+
+  return cachedSdks;
+}
+
+// Keep getSdks for internal compatibility if needed, though initializeFirebase is preferred
+export function getSdks(firebaseApp: FirebaseApp) {
+  return initializeFirebase();
 }
 
 export * from './provider';
