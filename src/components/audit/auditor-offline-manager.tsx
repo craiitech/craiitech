@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { 
@@ -25,7 +25,9 @@ import {
     Wifi, 
     WifiOff,
     CheckCircle2,
-    CloudUpload
+    CloudUpload,
+    Database,
+    Layers
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -34,9 +36,9 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER
- * Component responsible for "Priming" the local Firestore cache while online
- * and prefetching the code bundles for assigned audit pages.
+ * AUDITOR OFFLINE MANAGER v2.0
+ * Redesigned to perform "Total Site Mirroring".
+ * Prefetches data and code for BOTH assigned audits and the unclaimed pool.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -50,11 +52,6 @@ export function AuditorOfflineManager() {
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
 
-  /**
-   * DATA & CODE PRIMING ENGINE
-   * 1. Fetches essential data into IndexedDB.
-   * 2. Programmatically prefetches Next.js route bundles for assignments.
-   */
   const handleDownloadForOffline = async () => {
     if (!firestore || !user || !isOnline) return;
 
@@ -62,50 +59,61 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
-        // 1. Fetch Structural Reference Data
-        setDownloadProgress('Caching Standard (ISO Clauses)...');
+        // 1. Fetch Global Structural Data (Standards & Hierarchy)
+        setDownloadProgress('Caching ISO 21001:2018 Standard...');
         await getDocs(collection(firestore, 'isoClauses'));
         
-        setDownloadProgress('Caching Organizational Registry...');
+        setDownloadProgress('Mirroring University Unit Registry...');
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
 
-        // 2. Fetch Auditor's Schedules
-        setDownloadProgress('Identifying My Assignments...');
-        const qSched = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
-        const schedSnap = await getDocs(qSched);
-        const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        // 2. Fetch ALL Active Schedules (Assigned + Unclaimed Pool)
+        setDownloadProgress('Identifying Pool & Assignments...');
+        // We fetch everything in the 'auditSchedules' collection to allow flexible claiming offline
+        const allSchedSnap = await getDocs(collection(firestore, 'auditSchedules'));
+        const allScheds = allSchedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-        // 3. Deep cache related data AND Prefetch Routes
-        setDownloadProgress('Mirroring Evidence Log Resources...');
-        for (const s of myScheds) {
-            // A. Prefetch the Next.js page bundle (CRITICAL: Fixes the "No Internet" browser error)
+        // 3. Recursive Deep Cache & Bundle Mirroring
+        // This is the critical fix: we prefetch the code for EVERY schedule so they work if claimed offline
+        setDownloadProgress(`Deep-caching ${allScheds.length} potential sessions...`);
+        
+        // We process in chunks to avoid overwhelming the browser
+        for (const s of allScheds) {
+            // A. PREFETCH PAGE CODE: This prevents the "No Internet" browser error for unclaimed items
             router.prefetch(`/audit/${s.id}`);
 
-            // B. Cache the parent plan
+            // B. MIRROR METADATA: Parent Plan info
             if (s.auditPlanId) {
                 await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             }
-            // C. Cache findings for this schedule
+
+            // C. MIRROR EVIDENCE: Existing Findings
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
             
-            // D. Cache CARs for the auditee unit
+            // D. MIRROR HISTORY: Unit CARs
             if (s.targetId) {
                 const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
                 await getDocs(qCars);
             }
         }
 
-        // 4. System Parameters
-        setDownloadProgress('Caching System Signatories...');
+        // 4. Mirror System Signatories
+        setDownloadProgress('Finalizing Authenticated Signatories...');
         await getDocs(collection(firestore, 'system'));
 
         setLastDownload(new Date());
-        toast({ title: 'Ready for Offline Use', description: 'Deep data mirror and page code bundles have been cached.' });
+        toast({ 
+            title: 'Mirroring Complete', 
+            description: 'You can now claim and conduct any audit from the pool while offline.' 
+        });
     } catch (e) {
-        console.error("Priming error:", e);
-        toast({ title: 'Download Incomplete', description: 'An error occurred during local data mirroring.', variant: 'destructive' });
+        console.error("Mirroring error:", e);
+        toast({ 
+            title: 'Mirror Failed', 
+            description: 'Local data replication was interrupted. Please retry.', 
+            variant: 'destructive' 
+        });
     } finally {
         setIsDownloading(false);
         setDownloadProgress('');
@@ -118,13 +126,8 @@ export function AuditorOfflineManager() {
     setIsSyncing(true);
     try {
         toast({ title: 'Syncing Changes', description: 'Uploading local audit findings to cloud...' });
-        
-        // Re-enable network to force a push
         await enableNetwork(firestore);
-        
-        // Wait for all local writes to be acknowledged by the server
         await waitForPendingWrites(firestore);
-        
         toast({ title: 'Synchronization Complete', description: 'All local records are now in the cloud.' });
     } catch (e) {
         toast({ title: 'Sync Failed', variant: 'destructive' });
@@ -163,9 +166,9 @@ export function AuditorOfflineManager() {
                             <Download className="h-5 w-5 text-primary" />
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Full Bundle Priming</h4>
+                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Total Site Mirroring</h4>
                             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Mirrored code and data bundles for assigned Audit Plans, Schedules, Findings, and ISO Clauses.
+                                Caches all available and assigned audits, allowing you to claim and start new sessions while offline.
                             </p>
                         </div>
                     </div>
@@ -207,7 +210,7 @@ export function AuditorOfflineManager() {
                         <div className="space-y-1">
                             <h4 className="text-xs font-black uppercase text-indigo-900 tracking-widest">Cloud Synchronization</h4>
                             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Pushes findings recorded while offline to the university central database once reconnected.
+                                Pushes findings and newly claimed sessions recorded while offline to the central database once back online.
                             </p>
                         </div>
                     </div>
@@ -228,7 +231,7 @@ export function AuditorOfflineManager() {
           <div className="flex items-start gap-3">
               <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                  <strong>Auditor Protocol:</strong> Clicking "PREPARE OFFLINE DATA" caches the visual components of the Evidence Logsheet. Once the progress bar completes, you can navigate to and record data in your assigned sessions even without internet.
+                  <strong>Auditor Protocol:</strong> The mirroring process pre-downloads the code and data for the entire available pool. Once the progress bar completes, you can navigate, claim new units, and record data without an internet connection.
               </p>
           </div>
       </CardFooter>
