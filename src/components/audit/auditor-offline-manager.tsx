@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 /**
  * AUDITOR OFFLINE MANAGER
@@ -71,7 +72,6 @@ export function AuditorOfflineManager() {
         // 3. Cache findings for those schedules
         if (!schedSnap.empty) {
             setDownloadProgress('Caching Existing Findings...');
-            const scheduleIds = schedSnap.docs.map(d => d.id);
             // Firestore 'in' queries limited to 10. For prototype, we'll cache the collection.
             await getDocs(collection(firestore, 'auditFindings'));
         }
@@ -220,7 +220,7 @@ export function AuditorOfflineManager() {
       <CardFooter className="bg-muted/5 border-t py-3 px-8">
           <div className="flex items-start gap-3">
               <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+              <p className="text-[9px] text-muted-foreground italic leading-relaxed italic">
                   <strong>Auditor Protocol:</strong> Use "Download" before leaving for on-site conduct. While offline, your work is saved to an internal database on this browser. Always "Sync Online" when returning to HQ to finalize reports.
               </p>
           </div>
