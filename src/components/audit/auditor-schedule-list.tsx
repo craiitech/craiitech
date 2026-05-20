@@ -43,18 +43,24 @@ export function AuditorScheduleList({
 }: AuditorScheduleListProps) {
   const router = useRouter();
   
+  const campusMap = useMemo(() => {
+    const map = new Map(campuses.map(c => [c.id, c.name]));
+    map.set('university-wide', 'Institutional');
+    return map;
+  }, [campuses]);
+
   const getAuditeeName = (schedule: AuditSchedule) => {
-    if (schedule.targetType === 'Unit') {
-      const unit = units.find(u => u.id === schedule.targetId);
-      if (!unit) return 'Unknown Unit';
-      const campus = campuses.find(c => unit.campusIds?.includes(c.id));
-      return `${unit.name} (${campus?.name || '...'})`;
-    }
-    return schedule.targetName;
+    const campusName = campusMap.get(schedule.campusId) || '...';
+    // Use the explicit campus context from the schedule instead of re-deriving from Unit
+    return `${schedule.targetName} (${campusName})`;
   }
   
   const sortedSchedules = useMemo(() => {
-    return [...schedules].sort((a,b) => a.scheduledDate.toMillis() - b.scheduledDate.toMillis());
+    return [...schedules].sort((a,b) => {
+        const timeA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
+        const timeB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
+        return timeA - timeB;
+    });
   }, [schedules]);
 
   const handlePrintTemplate = (schedule: AuditSchedule, withData: boolean = false) => {
@@ -127,16 +133,16 @@ export function AuditorScheduleList({
     <Table>
       <TableHeader>
         <TableRow>
-            <TableHead className="text-[10px] font-black uppercase">Conduct Schedule</TableHead>
-            <TableHead className="text-[10px] font-black uppercase">Auditee Unit & Lead</TableHead>
-            <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-            <TableHead className="text-right text-[10px] font-black uppercase">Action</TableHead>
+            <TableHead className="text-[10px] font-black uppercase pl-6">Conduct Schedule</TableHead>
+            <TableHead className="text-[10px] font-black uppercase">Auditee Unit & Site Context</TableHead>
+            <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sortedSchedules.map(schedule => (
-            <TableRow key={schedule.id}>
-                <TableCell>
+            <TableRow key={schedule.id} className="hover:bg-muted/10 transition-colors">
+                <TableCell className="pl-6 py-4">
                     <div className="flex flex-col">
                         <span className="font-black text-xs text-slate-700">{format(schedule.scheduledDate.toDate(), 'MM/dd/yyyy')}</span>
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
@@ -157,12 +163,12 @@ export function AuditorScheduleList({
                         )}
                     </div>
                 </TableCell>
-                <TableCell>
-                    <Badge variant="secondary" className="text-[9px] uppercase font-black px-2 shadow-none border-none">
+                <TableCell className="text-center">
+                    <Badge variant="secondary" className="text-[9px] uppercase font-black px-3 shadow-none border-none">
                         {schedule.status}
                     </Badge>
                 </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
+                <TableCell className="text-right pr-6 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                         {!isClaimView && (
                             <>
