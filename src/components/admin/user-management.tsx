@@ -19,7 +19,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, Loader2, UserCheck, UserX, ArrowUpDown, Search } from 'lucide-react';
+import { 
+    MoreHorizontal, 
+    Loader2, 
+    UserCheck, 
+    UserX, 
+    ArrowUpDown, 
+    Search, 
+    Trash2, 
+    Undo2, 
+    CheckCircle2 
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,19 +37,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { EditUserDialog } from './edit-user-dialog';
@@ -53,6 +53,7 @@ import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Input } from '../ui/input';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 
 type FilterStatus = 'all' | 'pending' | 'verified';
@@ -68,17 +69,11 @@ export function UserManagement() {
   const { isAdmin } = useUser();
   const [filter, setFilter] = useState<FilterStatus>('pending');
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'firstName', direction: 'ascending' });
-
-  // Sticky state for alert dialogs to prevent freeze
-  const [stickyDeletingUser, setStickyDeletingUser] = useState<User | null>(null);
-  useEffect(() => {
-    if (deletingUser) setStickyDeletingUser(deletingUser);
-  }, [deletingUser]);
 
   const usersQuery = useMemoFirebase(
     () => (firestore && isAdmin ? collection(firestore, 'users') : null),
@@ -196,7 +191,7 @@ export function UserManagement() {
     } catch (error) {
       console.error('Error updating user status:', error);
        const contextualError = new FirestorePermissionError({
-          path: userRef.path, // The primary path being written to.
+          path: userRef.path,
           operation: 'write',
           requestResourceData: { verified: newStatus }
       });
@@ -204,26 +199,26 @@ export function UserManagement() {
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!firestore || !deletingUser) return;
+  const handleDeleteUser = async (targetUserId: string, email: string) => {
+    if (!firestore || !targetUserId) return;
     setIsSubmitting(true);
-    const userRef = doc(firestore, 'users', deletingUser.id);
+    const userRef = doc(firestore, 'users', targetUserId);
     try {
         await deleteDoc(userRef);
-        logSessionActivity(`Deleted user: ${deletingUser.email}`, {
+        logSessionActivity(`Deleted user: ${email}`, {
           action: 'delete_user',
-          details: { affectedUserId: deletingUser.id },
+          details: { affectedUserId: targetUserId },
         });
         toast({
             title: "User Deleted",
-            description: `${deletingUser.firstName} ${deletingUser.lastName} has been removed.`,
+            description: `${email} has been removed from the institutional registry.`,
         });
-        setDeletingUser(null);
+        setConfirmDeleteId(null);
     } catch (error) {
         console.error("Error deleting user:", error);
         toast({
             title: "Error",
-            description: "Could not delete user.",
+            description: "Could not delete user account.",
             variant: "destructive",
         });
     } finally {
@@ -250,8 +245,6 @@ export function UserManagement() {
     }
     return { variant: 'secondary', text: 'Inactive' };
   }
-
-  const activeDeletingUser = deletingUser || stickyDeletingUser;
 
   return (
     <>
@@ -317,16 +310,18 @@ export function UserManagement() {
                     </Button>
                 </TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
+                <TableHead className="text-right pr-6">
+                  Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => {
                 const status = getStatus(user);
+                const isConfirming = confirmDeleteId === user.id;
+
                 return (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className={cn("transition-colors", isConfirming && "bg-rose-50/50 hover:bg-rose-100/50")}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -356,49 +351,78 @@ export function UserManagement() {
                       {status.text}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="w-full">
-                                    <DropdownMenuItem
-                                    onSelect={(e) => { e.preventDefault(); handleToggleActivation(user); }}
-                                    disabled={!user.ndaAccepted && !user.verified}
-                                    >
-                                    {user.verified ? (
-                                        <><UserX className="mr-2 h-4 w-4" /> Deactivate Account</>
-                                    ) : (
-                                        <><UserCheck className="mr-2 h-4 w-4" /> Activate Account</>
+                  <TableCell className="text-right pr-6">
+                    {isConfirming ? (
+                        <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="h-8 text-[10px] font-black uppercase text-muted-foreground hover:bg-slate-200"
+                                disabled={isSubmitting}
+                            >
+                                <Undo2 className="h-3 w-3 mr-1" />
+                                Abort
+                            </Button>
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                className="h-8 text-[10px] font-black uppercase bg-destructive text-white hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                Confirm?
+                            </Button>
+                        </div>
+                    ) : (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                aria-haspopup="true"
+                                size="icon"
+                                variant="ghost"
+                                >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="w-full">
+                                            <DropdownMenuItem
+                                            onSelect={(e) => { e.preventDefault(); handleToggleActivation(user); }}
+                                            disabled={!user.ndaAccepted && !user.verified}
+                                            >
+                                            {user.verified ? (
+                                                <><UserX className="mr-2 h-4 w-4" /> Deactivate Account</>
+                                            ) : (
+                                                <><UserCheck className="mr-2 h-4 w-4" /> Activate Account</>
+                                            )}
+                                            </DropdownMenuItem>
+                                        </div>
+                                    </TooltipTrigger>
+                                    {(!user.ndaAccepted && !user.verified) && (
+                                        <TooltipContent>
+                                            <p>User has not accepted the NDA.</p>
+                                        </TooltipContent>
                                     )}
-                                    </DropdownMenuItem>
-                                </div>
-                            </TooltipTrigger>
-                             {(!user.ndaAccepted && !user.verified) && (
-                                <TooltipContent>
-                                    <p>User has not accepted the NDA.</p>
-                                </TooltipContent>
-                             )}
-                        </Tooltip>
-                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUser(user); }}>
-                            Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setDeletingUser(user); }}>
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                                </Tooltip>
+                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUser(user); }}>
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className="text-destructive font-bold" 
+                                    onSelect={(e) => { e.preventDefault(); setConfirmDeleteId(user.id); }}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
                 )
@@ -423,26 +447,6 @@ export function UserManagement() {
         campuses={campuses || []}
         units={units || []}
     />
-
-    <AlertDialog open={!!deletingUser} onOpenChange={(isOpen) => !isOpen && setDeletingUser(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the account for{' '}
-                    <span className="font-bold">{activeDeletingUser?.firstName} {activeDeletingUser?.lastName}</span>.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteUser} disabled={isSubmitting}>
-                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Continue
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-
     </>
   );
 }
