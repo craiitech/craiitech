@@ -24,7 +24,9 @@ import {
     School,
     AlertCircle,
     AlertTriangle,
-    CheckCircle2
+    CheckCircle2,
+    ShieldAlert,
+    ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -488,4 +490,3 @@ export default function RiskRegisterPage() {
     </div>
   );
 }
-
