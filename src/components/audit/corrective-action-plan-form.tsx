@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -15,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { Loader2, CalendarIcon } from 'lucide-react';
+import { Loader2, CalendarIcon, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 
 interface CorrectiveActionPlanFormProps {
   findingId: string;
@@ -36,6 +36,7 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
   const { user, userProfile, firestore } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const isOnline = useNetworkStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const usersQuery = useMemoFirebase(() => {
@@ -66,7 +67,7 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
 
     try {
         await addDoc(collection(firestore, 'correctiveActionPlans'), capData);
-        toast({ title: 'Success', description: 'Corrective Action Plan submitted.' });
+        toast({ title: isOnline ? 'Success' : 'Saved Locally', description: isOnline ? 'Corrective Action Plan submitted.' : 'Plan saved to device and awaiting sync.' });
         router.push('/audit');
     } catch(error) {
         console.error("Error submitting CAP:", error);
@@ -152,9 +153,18 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
             />
         </div>
          <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Plan
+            <Button type="submit" disabled={isSubmitting} className="min-w-[140px] shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-10">
+                {isSubmitting ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isOnline ? 'Submitting...' : 'Caching locally...'}
+                    </>
+                ) : (
+                    <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Submit Corrective Action Plan
+                    </>
+                )}
             </Button>
         </div>
       </form>

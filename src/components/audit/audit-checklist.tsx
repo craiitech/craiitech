@@ -23,6 +23,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { format } from 'date-fns';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 
 interface AuditChecklistProps {
   scheduleId: string;
@@ -55,6 +56,7 @@ function ClauseForm({
   const { user, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const isOnline = useNetworkStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -72,7 +74,6 @@ function ClauseForm({
   const watchAll = form.watch();
   const watchType = form.watch('type');
 
-  // ONLY reset the form on initial load or if the finding ID (clause) changes
   useEffect(() => {
       if (isInitialLoadRef.current || (finding && finding.isoClause !== clause.id)) {
           form.reset({
@@ -85,7 +86,6 @@ function ClauseForm({
       }
   }, [finding, form, clause.id]);
 
-  // When NC is selected, auto-fill the template if empty
   useEffect(() => {
     if (watchType === 'Non-Conformance' && !form.getValues('ncStatement')) {
         const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
@@ -93,14 +93,9 @@ function ClauseForm({
     }
   }, [watchType, clause.id, form]);
 
-  /**
-   * DEBOUNCED AUTO-SAVE LOGIC
-   */
   useEffect(() => {
-    // Only save if the form has actual content and a type selected
     if (!watchAll.type || !firestore || !user) return;
 
-    // Check if the current form values differ from the last finding (to prevent loops)
     const hasChanged = 
         watchAll.evidence !== (finding?.evidence || '') ||
         watchAll.description !== (finding?.description || '') ||
@@ -112,7 +107,7 @@ function ClauseForm({
         
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 1500); // 1.5s debounce
+        }, 1500); 
     }
 
     return () => {
@@ -155,14 +150,12 @@ function ClauseForm({
   };
 
   const onSubmit = async (values: ClauseFormData) => {
-      // Manual trigger for the button
       await performSave(values);
-      toast({ title: "Audit Progress Synced", description: `Finding for clause ${clause.id} saved.`});
+      toast({ title: isOnline ? "Audit Progress Synced" : "Saved Locally", description: `Finding for clause ${clause.id} has been recorded.`});
   };
 
   return (
     <div className="space-y-8">
-        {/* COMPLIANCE HISTORY NOTE (CARs) */}
         <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary">
@@ -302,12 +295,12 @@ function ClauseForm({
                     {isSubmitting ? (
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
                             <CloudUpload className="h-3 w-3" />
-                            Synchronizing Registry...
+                            {isOnline ? 'Synchronizing Registry...' : 'Caching locally...'}
                         </div>
                     ) : lastSaved ? (
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
                             <CheckCircle2 className="h-3 w-3" />
-                            Registry Logged ({format(lastSaved, 'HH:mm:ss')})
+                            {isOnline ? `Registry Logged (${format(lastSaved, 'HH:mm:ss')})` : `Saved to Device (${format(lastSaved, 'HH:mm:ss')})`}
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground opacity-40">
@@ -358,7 +351,6 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
             const hasFinding = findingsMap.has(clause.id);
             const findingType = findingsMap.get(clause.id)?.type;
             
-            // NORMALIZED MATCHING:
             const relevantCars = clause.id === '10.1' 
                 ? unitCars 
                 : unitCars.filter(c => {
