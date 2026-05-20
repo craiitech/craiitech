@@ -26,7 +26,8 @@ import {
     AlertTriangle,
     CheckCircle2,
     ShieldAlert,
-    ChevronRight
+    ChevronRight,
+    Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -61,7 +62,7 @@ import {
     DialogHeader, 
     DialogTitle,
     DialogFooter
-} from '@/components/ui/dialog';
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -82,6 +83,8 @@ export default function RiskRegisterPage() {
     
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
+    const [deletingRisk, setDeletingRisk] = useState<Risk | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [searchTerm, setSearchTerm] = useState('');
     const [isDuplicateAuditOpen, setIsDuplicateAuditOpen] = useState(false);
@@ -193,6 +196,20 @@ export default function RiskRegisterPage() {
 
     const handleNewRisk = () => { setEditingRisk(null); setIsFormOpen(true); };
     const handleEditRisk = (risk: Risk) => { setEditingRisk(risk); setIsFormOpen(true); };
+
+    const handleDeleteRisk = async () => {
+        if (!firestore || !deletingRisk) return;
+        setIsDeleting(true);
+        try {
+            await deleteDoc(doc(firestore, 'risks', deletingRisk.id));
+            toast({ title: 'Record Removed', description: 'The redundant entry has been successfully deleted.' });
+            setDeletingRisk(null);
+        } catch (e) {
+            toast({ title: 'Error', description: 'Could not delete entry.', variant: 'destructive' });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const signatoryRef = useMemoFirebase(
       () => (firestore ? doc(firestore, 'system', 'signatories') : null),
@@ -392,7 +409,7 @@ export default function RiskRegisterPage() {
                         risks={filteredRisks} 
                         usersMap={new Map()} 
                         onEdit={handleEditRisk} 
-                        onDelete={() => {}} 
+                        onDelete={setDeletingRisk} 
                         isAdmin={isAdmin} 
                         isSupervisor={isSupervisor} 
                         campusMap={campusMap} 
@@ -414,14 +431,14 @@ export default function RiskRegisterPage() {
       {/* --- DUPLICATE AUDIT DIALOG --- */}
       <Dialog open={isDuplicateAuditOpen} onOpenChange={setIsDuplicateAuditOpen}>
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-            <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+            <div className="p-6 border-b bg-slate-50 shrink-0">
                 <div className="flex items-center gap-2 text-rose-600 mb-1">
                     <ShieldAlert className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Data Integrity</span>
                 </div>
-                <DialogTitle>Duplicate Analysis: {unitMap.get(unitFilter) || 'Active Scope'}</DialogTitle>
-                <DialogDescription className="text-xs">The following entries share identical descriptions. Redundant data should be resolved to maintain audit parity.</DialogDescription>
-            </DialogHeader>
+                <h3 className="text-lg font-bold">Duplicate Analysis: {unitMap.get(unitFilter) || 'Active Scope'}</h3>
+                <p className="text-xs text-muted-foreground mt-1">The following entries share identical descriptions. Redundant data should be resolved to maintain audit parity.</p>
+            </div>
 
             <ScrollArea className="flex-1 bg-white">
                 <div className="p-8 space-y-8">
@@ -446,14 +463,25 @@ export default function RiskRegisterPage() {
                                                         <span className="text-[9px] text-muted-foreground font-medium italic">Logged by: {risk.responsiblePersonName || 'Personnel'}</span>
                                                     </div>
                                                 </div>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    onClick={() => { handleEditRisk(risk); setIsDuplicateAuditOpen(false); }}
-                                                    className="h-7 text-[8px] font-black uppercase text-primary hover:bg-primary/5 opacity-0 group-hover:opacity-100 transition-all"
-                                                >
-                                                    Modify Entry
-                                                </Button>
+                                                <div className="flex gap-2">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        onClick={() => { handleEditRisk(risk); setIsDuplicateAuditOpen(false); }}
+                                                        className="h-7 text-[8px] font-black uppercase text-primary hover:bg-primary/5 opacity-0 group-hover:opacity-100 transition-all"
+                                                    >
+                                                        Modify
+                                                    </Button>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        onClick={() => setDeletingRisk(risk)}
+                                                        className="h-7 text-[8px] font-black uppercase text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-all"
+                                                    >
+                                                        <Trash2 className="h-3 w-3 mr-1" />
+                                                        Delete
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -487,6 +515,33 @@ export default function RiskRegisterPage() {
       </Dialog>
 
       <RiskFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} risk={editingRisk} unitUsers={[]} allUnits={allUnits || []} allCampuses={allCampuses || []} />
+
+      <AlertDialog open={!!deletingRisk} onOpenChange={(open) => !open && setDeletingRisk(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <div className="flex items-center gap-2 text-destructive mb-2">
+                    <Trash2 className="h-6 w-6" />
+                    <AlertDialogTitle>Delete Registry Entry?</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="space-y-4">
+                    <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                        You are about to remove the entry: <br/>
+                        <strong className="text-destructive font-black">"{deletingRisk?.description}"</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">
+                        This action is irreversible and will remove the record from the AY {selectedYear} registry.
+                    </p>
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-4">
+                <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteRisk} className="bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-destructive/20 h-10" disabled={isDeleting}>
+                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    Confirm Deletion
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
