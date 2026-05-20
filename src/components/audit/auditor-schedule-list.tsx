@@ -202,7 +202,7 @@ export function AuditorScheduleList({
                                 asChild
                                 className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4"
                             >
-                                <Link href={`/audit/${schedule.id}`}>
+                                <Link href={`/audit/${schedule.id}`} prefetch={true}>
                                     Open Evidence Log
                                 </Link>
                             </Button>

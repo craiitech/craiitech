@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useFirestore, useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 import { 
     collection, 
     getDocs, 
@@ -10,7 +11,6 @@ import {
     where, 
     doc,
     enableNetwork, 
-    disableNetwork,
     waitForPendingWrites
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,10 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
     Download, 
-    RefreshCw, 
     ShieldCheck, 
     Loader2, 
-    Database, 
     Info, 
     CloudOff, 
     Wifi, 
@@ -38,12 +36,13 @@ import { format } from 'date-fns';
 /**
  * AUDITOR OFFLINE MANAGER
  * Component responsible for "Priming" the local Firestore cache while online
- * and managing manual sync operations.
+ * and prefetching the code bundles for assigned audit pages.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
-  const { user, userProfile } = useUser();
+  const { user } = useUser();
   const { toast } = useToast();
+  const router = useRouter();
   const isOnline = useNetworkStatus();
   
   const [isDownloading, setIsDownloading] = useState(false);
@@ -52,9 +51,9 @@ export function AuditorOfflineManager() {
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
 
   /**
-   * DATA PRIMING ENGINE
-   * Iterates through essential audit collections to ensure they are cached locally.
-   * Enhanced: Now performs deep caching for assigned schedules.
+   * DATA & CODE PRIMING ENGINE
+   * 1. Fetches essential data into IndexedDB.
+   * 2. Programmatically prefetches Next.js route bundles for assignments.
    */
   const handleDownloadForOffline = async () => {
     if (!firestore || !user || !isOnline) return;
@@ -77,19 +76,21 @@ export function AuditorOfflineManager() {
         const schedSnap = await getDocs(qSched);
         const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-        // 3. Deep cache related data for each assignment
-        // This ensures the audit page has everything it needs without touching the network
+        // 3. Deep cache related data AND Prefetch Routes
         setDownloadProgress('Mirroring Evidence Log Resources...');
         for (const s of myScheds) {
-            // Cache the parent plan
+            // A. Prefetch the Next.js page bundle (CRITICAL: Fixes the "No Internet" browser error)
+            router.prefetch(`/audit/${s.id}`);
+
+            // B. Cache the parent plan
             if (s.auditPlanId) {
                 await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             }
-            // Cache findings for this schedule
+            // C. Cache findings for this schedule
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
             
-            // Cache CARs for the auditee unit (required by the checklist history)
+            // D. Cache CARs for the auditee unit
             if (s.targetId) {
                 const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
                 await getDocs(qCars);
@@ -101,7 +102,7 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'system'));
 
         setLastDownload(new Date());
-        toast({ title: 'Ready for Offline Use', description: 'Deep data mirror has been created for your assignments.' });
+        toast({ title: 'Ready for Offline Use', description: 'Deep data mirror and page code bundles have been cached.' });
     } catch (e) {
         console.error("Priming error:", e);
         toast({ title: 'Download Incomplete', description: 'An error occurred during local data mirroring.', variant: 'destructive' });
@@ -142,7 +143,7 @@ export function AuditorOfflineManager() {
                     <CardTitle className="text-sm font-black uppercase tracking-tight">Offline Audit Workspace</CardTitle>
                 </div>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                    Prepare your device for audit conduct in low-connectivity areas.
+                    Prepare your device for audit conduct in zero-connectivity environments.
                 </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -162,9 +163,9 @@ export function AuditorOfflineManager() {
                             <Download className="h-5 w-5 text-primary" />
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Deep Priming Engine</h4>
+                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Full Bundle Priming</h4>
                             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Copies assigned Audit Plans, Schedules, Findings, and ISO Clauses to your device's permanent local storage.
+                                Mirrored code and data bundles for assigned Audit Plans, Schedules, Findings, and ISO Clauses.
                             </p>
                         </div>
                     </div>
@@ -191,7 +192,7 @@ export function AuditorOfflineManager() {
                     {lastDownload && (
                         <div className="flex items-center gap-2 pt-2 text-[9px] font-bold text-emerald-600">
                             <CheckCircle2 className="h-3 w-3" />
-                            Mirror created: {format(lastDownload, 'PP p')}
+                            Ready for Offline: {format(lastDownload, 'PP p')}
                         </div>
                     )}
                 </div>
@@ -219,12 +220,6 @@ export function AuditorOfflineManager() {
                         {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CloudUpload className="h-4 w-4 mr-2" />}
                         SYNC ONLINE NOW
                     </Button>
-                    {!isOnline && (
-                        <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 flex items-center gap-3">
-                            <CloudOff className="h-4 w-4 text-rose-600" />
-                            <p className="text-[10px] text-rose-700 font-bold uppercase leading-none">Sync Disabled (Offline)</p>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
@@ -232,8 +227,8 @@ export function AuditorOfflineManager() {
       <CardFooter className="bg-muted/5 border-t py-3 px-8">
           <div className="flex items-start gap-3">
               <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground italic leading-relaxed italic">
-                  <strong>Auditor Protocol:</strong> Use "PREPARE OFFLINE DATA" before leaving for on-site conduct. While offline, your work is saved to an internal database. Always "SYNC ONLINE" when returning to HQ to finalize reports.
+              <p className="text-[9px] text-muted-foreground italic leading-relaxed">
+                  <strong>Auditor Protocol:</strong> Clicking "PREPARE OFFLINE DATA" caches the visual components of the Evidence Logsheet. Once the progress bar completes, you can navigate to and record data in your assigned sessions even without internet.
               </p>
           </div>
       </CardFooter>
