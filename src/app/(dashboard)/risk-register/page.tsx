@@ -27,7 +27,8 @@ import {
     CheckCircle2,
     ShieldAlert,
     ChevronRight,
-    Edit
+    Edit,
+    Undo2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -88,6 +89,9 @@ export default function RiskRegisterPage() {
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [searchTerm, setSearchTerm] = useState('');
     const [isDuplicateAuditOpen, setIsDuplicateAuditOpen] = useState(false);
+    
+    // Inline Confirmation State for Duplicate Audit
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     
     // Core Filters
     const [campusFilter, setCampusFilter] = useState<string>('all');
@@ -196,15 +200,25 @@ export default function RiskRegisterPage() {
     const handleNewRisk = () => { setEditingRisk(null); setIsFormOpen(true); };
     const handleEditRisk = (risk: Risk) => { setEditingRisk(risk); setIsFormOpen(true); };
 
-    const handleDeleteRisk = async () => {
-        if (!firestore || !deletingRisk) return;
+    /**
+     * Optimized Delete Logic:
+     * - Uses an explicit pointer-event reset to prevent freeze.
+     * - Handles both inline (Audit) and global (Table) deletions.
+     */
+    const handleDeleteRisk = async (targetRiskId?: string) => {
+        const riskId = targetRiskId || deletingRisk?.id;
+        if (!firestore || !riskId) return;
+        
         setIsDeleting(true);
         try {
-            await deleteDoc(doc(firestore, 'risks', deletingRisk.id));
-            toast({ title: 'Record Removed', description: 'The redundant entry has been successfully deleted.' });
-            setDeletingRisk(null);
+            await deleteDoc(doc(firestore, 'risks', riskId));
+            toast({ title: 'Record Removed', description: 'The entry has been successfully deleted from the registry.' });
             
-            // CRITICAL: Robust interaction unlock
+            // Cleanup states
+            setDeletingRisk(null);
+            setConfirmDeleteId(null);
+            
+            // FAIL-SAFE: Force restore pointer events if Radix UI locks the body
             setTimeout(() => {
                 document.body.style.pointerEvents = '';
             }, 100);
@@ -441,7 +455,7 @@ export default function RiskRegisterPage() {
                     <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Data Integrity</span>
                 </div>
                 <h3 className="text-lg font-bold">Duplicate Analysis: {unitMap.get(unitFilter) || 'Active Scope'}</h3>
-                <p className="text-xs text-muted-foreground mt-1">The following entries share identical descriptions. Redundant data should be resolved to maintain audit parity.</p>
+                <p className="text-xs text-muted-foreground mt-1">Identified identical descriptions. Use the inline confirmation to resolve redundant records.</p>
             </div>
 
             <ScrollArea className="flex-1 bg-white">
@@ -458,39 +472,68 @@ export default function RiskRegisterPage() {
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-2 pl-8">
-                                        {list.map(risk => (
-                                            <div key={risk.id} className="flex items-center justify-between p-3 rounded-lg bg-white border border-rose-200/50 shadow-sm group">
+                                        {list.map(risk => {
+                                            const isConfirming = confirmDeleteId === risk.id;
+                                            return (
+                                            <div key={risk.id} className={cn(
+                                                "flex items-center justify-between p-3 rounded-lg border transition-all shadow-sm group",
+                                                isConfirming ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-rose-200/50"
+                                            )}>
                                                 <div className="flex items-center gap-3">
-                                                    <Badge variant="secondary" className="h-5 text-[8px] font-black uppercase bg-primary/5 text-primary">{risk.type}</Badge>
+                                                    <Badge variant="secondary" className={cn("h-5 text-[8px] font-black uppercase", isConfirming ? "bg-white/20 text-white" : "bg-primary/5 text-primary")}>{risk.type}</Badge>
                                                     <div className="flex flex-col">
-                                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter tabular-nums">LOG ID: {risk.id.substring(0,8)}</span>
-                                                        <span className="text-[9px] text-muted-foreground font-medium italic">Logged by: {risk.responsiblePersonName || 'Personnel'}</span>
+                                                        <span className={cn("text-[10px] font-black uppercase tracking-tighter tabular-nums", isConfirming ? "text-white" : "text-slate-700")}>LOG ID: {risk.id.substring(0,8)}</span>
+                                                        <span className={cn("text-[9px] font-medium italic", isConfirming ? "text-white/80" : "text-muted-foreground")}>Logged by: {risk.responsiblePersonName || 'Personnel'}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        onClick={() => { handleEditRisk(risk); setIsDuplicateAuditOpen(false); }}
-                                                        className="h-7 text-[8px] font-black uppercase text-primary hover:bg-primary/5 opacity-0 group-hover:opacity-100 transition-all"
-                                                    >
-                                                        Modify
-                                                    </Button>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setDeletingRisk(risk);
-                                                        }}
-                                                        className="h-7 text-[8px] font-black uppercase text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-all"
-                                                    >
-                                                        <Trash2 className="h-3 w-3 mr-1" />
-                                                        Delete
-                                                    </Button>
+                                                    {isConfirming ? (
+                                                        <>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => setConfirmDeleteId(null)}
+                                                                className="h-7 text-[8px] font-black uppercase text-white hover:bg-white/10"
+                                                                disabled={isDeleting}
+                                                            >
+                                                                <Undo2 className="h-3 w-3 mr-1" />
+                                                                Abort
+                                                            </Button>
+                                                            <Button 
+                                                                variant="default" 
+                                                                size="sm" 
+                                                                onClick={() => handleDeleteRisk(risk.id)}
+                                                                className="h-7 text-[8px] font-black uppercase bg-white text-rose-600 hover:bg-slate-50"
+                                                                disabled={isDeleting}
+                                                            >
+                                                                {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                                                Yes, Delete
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => { handleEditRisk(risk); setIsDuplicateAuditOpen(false); }}
+                                                                className="h-7 text-[8px] font-black uppercase text-primary hover:bg-primary/5 opacity-0 group-hover:opacity-100 transition-all"
+                                                            >
+                                                                Modify
+                                                            </Button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => setConfirmDeleteId(risk.id)}
+                                                                className="h-7 text-[8px] font-black uppercase text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-all"
+                                                            >
+                                                                <Trash2 className="h-3 w-3 mr-1" />
+                                                                Delete
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 </div>
                             ))}
