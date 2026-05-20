@@ -77,7 +77,7 @@ const summarySchema = z.object({
 export default function AuditExecutionPage() {
   const { scheduleId } = useParams();
   const firestore = useFirestore();
-  const { userProfile, systemSettings } = useUser();
+  const { userProfile } = useUser();
   const isOnline = useNetworkStatus();
   const router = useRouter();
   const { toast } = useToast();
@@ -87,6 +87,7 @@ export default function AuditExecutionPage() {
   const [isDossierVisible, setIsDossierVisible] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const summarySaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   const scheduleDocRef = useMemoFirebase(
     () => (firestore && scheduleId ? doc(firestore, 'auditSchedules', scheduleId as string) : null),
@@ -155,8 +156,9 @@ export default function AuditExecutionPage() {
 
   const watchAll = form.watch();
 
+  // ONLY reset the form on the initial load to prevent clobbering user input during auto-saves
   useEffect(() => {
-      if (schedule) {
+      if (schedule && isInitialLoadRef.current) {
           const startDate = schedule.scheduledDate?.toDate ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
           const endDate = schedule.endScheduledDate?.toDate ? schedule.endScheduledDate.toDate() : new Date(schedule.endScheduledDate);
           
@@ -170,6 +172,7 @@ export default function AuditExecutionPage() {
             summaryOFI: schedule.summaryOFI || '',
             summaryNC: schedule.summaryNC || '',
           });
+          isInitialLoadRef.current = false;
       }
   }, [schedule, form]);
 
@@ -179,7 +182,7 @@ export default function AuditExecutionPage() {
   useEffect(() => {
     if (!schedule || !scheduleDocRef) return;
 
-    // Detect changes in summary fields specifically
+    // Detect changes in summary fields specifically compared to the CURRENT document state
     const hasChanged = 
         watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
         watchAll.summaryCommendable !== (schedule.summaryCommendable || '') ||
@@ -385,7 +388,7 @@ export default function AuditExecutionPage() {
     );
   }
 
-  const conductDate = schedule.scheduledDate.toDate();
+  const conductDate = schedule.scheduledDate instanceof Timestamp ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
 
   return (
     <div className="space-y-6">

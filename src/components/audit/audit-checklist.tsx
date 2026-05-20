@@ -58,6 +58,7 @@ function ClauseForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   const form = useForm<ClauseFormData>({
     defaultValues: {
@@ -71,14 +72,18 @@ function ClauseForm({
   const watchAll = form.watch();
   const watchType = form.watch('type');
 
+  // ONLY reset the form on initial load or if the finding ID (clause) changes
   useEffect(() => {
-      form.reset({
-        evidence: finding?.evidence || '',
-        description: finding?.description || '',
-        ncStatement: finding?.ncStatement || '',
-        type: finding?.type || '',
-      })
-  }, [finding, form]);
+      if (isInitialLoadRef.current || (finding && finding.isoClause !== clause.id)) {
+          form.reset({
+            evidence: finding?.evidence || '',
+            description: finding?.description || '',
+            ncStatement: finding?.ncStatement || '',
+            type: finding?.type || '',
+          });
+          isInitialLoadRef.current = false;
+      }
+  }, [finding, form, clause.id]);
 
   // When NC is selected, auto-fill the template if empty
   useEffect(() => {
