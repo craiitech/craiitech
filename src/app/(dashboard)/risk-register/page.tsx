@@ -22,7 +22,9 @@ import {
     ShieldCheck,
     Trash2,
     School,
-    AlertCircle
+    AlertCircle,
+    AlertTriangle,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -80,6 +82,7 @@ export default function RiskRegisterPage() {
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [searchTerm, setSearchTerm] = useState('');
+    const [isDuplicateAuditOpen, setIsDuplicateAuditOpen] = useState(false);
     
     // Core Filters
     const [campusFilter, setCampusFilter] = useState<string>('all');
@@ -172,6 +175,20 @@ export default function RiskRegisterPage() {
         });
     }, [allRisks, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, userProfile]);
     
+    /**
+     * DUPLICATE AUDIT LOGIC
+     * Groups risks by trimmed lowercase description to find redundant entries within the filtered set.
+     */
+    const duplicateGroups = useMemo(() => {
+        const groups: Record<string, Risk[]> = {};
+        filteredRisks.forEach(r => {
+            const desc = r.description.trim().toLowerCase();
+            if (!groups[desc]) groups[desc] = [];
+            groups[desc].push(r);
+        });
+        return Object.entries(groups).filter(([_, list]) => list.length > 1);
+    }, [filteredRisks]);
+
     const handleNewRisk = () => { setEditingRisk(null); setIsFormOpen(true); };
     const handleEditRisk = (risk: Risk) => { setEditingRisk(risk); setIsFormOpen(true); };
 
@@ -254,7 +271,27 @@ export default function RiskRegisterPage() {
                     </SelectContent>
                     </Select>
                 </div>
-                <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto"><Button variant="outline" size="sm" onClick={handlePrintROR} disabled={isLoading || filteredRisks.length === 0} className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"><Printer className="mr-2 h-4 w-4" />Print Registry</Button>{!isSupervisor && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}</div>
+                <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setIsDuplicateAuditOpen(true)}
+                        className={cn(
+                            "h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest gap-2",
+                            duplicateGroups.length > 0 ? "text-rose-600 border-rose-200 hover:bg-rose-50" : "text-primary border-primary/20"
+                        )}
+                    >
+                        <Search className="h-4 w-4" />
+                        Audit Duplicates
+                        {duplicateGroups.length > 0 && (
+                            <Badge variant="destructive" className="ml-1 h-4 px-1 min-w-[1.25rem] flex items-center justify-center text-[9px] font-black">
+                                {duplicateGroups.length}
+                            </Badge>
+                        )}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handlePrintROR} disabled={isLoading || filteredRisks.length === 0} className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"><Printer className="mr-2 h-4 w-4" />Print Registry</Button>
+                    {!isSupervisor && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}
+                </div>
                 </div>
             </div>
             <ScrollArea className="w-full">
@@ -371,7 +408,84 @@ export default function RiskRegisterPage() {
             </Card>
         </TabsContent>
       </Tabs>
+
+      {/* --- DUPLICATE AUDIT DIALOG --- */}
+      <Dialog open={isDuplicateAuditOpen} onOpenChange={setIsDuplicateAuditOpen}>
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+            <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+                <div className="flex items-center gap-2 text-rose-600 mb-1">
+                    <ShieldAlert className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Data Integrity</span>
+                </div>
+                <DialogTitle>Duplicate Analysis: {unitMap.get(unitFilter) || 'Active Scope'}</DialogTitle>
+                <DialogDescription className="text-xs">The following entries share identical descriptions. Redundant data should be resolved to maintain audit parity.</DialogDescription>
+            </DialogHeader>
+
+            <ScrollArea className="flex-1 bg-white">
+                <div className="p-8 space-y-8">
+                    {duplicateGroups.length > 0 ? (
+                        <div className="space-y-6">
+                            {duplicateGroups.map(([desc, list], idx) => (
+                                <div key={idx} className="p-5 rounded-2xl border-2 border-rose-100 bg-rose-50/10 space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black uppercase text-rose-700 tracking-widest">Conflicting Description</p>
+                                            <p className="text-sm font-bold text-slate-900 leading-relaxed italic">"{desc}"</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2 pl-8">
+                                        {list.map(risk => (
+                                            <div key={risk.id} className="flex items-center justify-between p-3 rounded-lg bg-white border border-rose-200/50 shadow-sm group">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant="secondary" className="h-5 text-[8px] font-black uppercase bg-primary/5 text-primary">{risk.type}</Badge>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter tabular-nums">LOG ID: {risk.id.substring(0,8)}</span>
+                                                        <span className="text-[9px] text-muted-foreground font-medium italic">Logged by: {risk.responsiblePersonName || 'Personnel'}</span>
+                                                    </div>
+                                                </div>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => { handleEditRisk(risk); setIsDuplicateAuditOpen(false); }}
+                                                    className="h-7 text-[8px] font-black uppercase text-primary hover:bg-primary/5 opacity-0 group-hover:opacity-100 transition-all"
+                                                >
+                                                    Modify Entry
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                            <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+                                <CheckCircle2 className="h-10 w-10" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-lg font-black uppercase text-slate-800">Registry Integrity Verified</h4>
+                                <p className="text-sm text-muted-foreground max-w-xs font-medium">No redundant descriptions detected for the current unit and fiscal year.</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+
+            <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+                <div className="flex w-full items-center justify-between">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest italic flex items-center gap-2">
+                        <Info className="h-3.5 w-3.5" />
+                        Audit Context: AY {selectedYear} | Unit: {unitMap.get(unitFilter) || 'All'}
+                    </p>
+                    <Button variant="outline" size="sm" className="h-9 px-6 font-black uppercase text-[10px] tracking-widest bg-white" onClick={() => setIsDuplicateAuditOpen(false)}>Close Audit</Button>
+                </div>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <RiskFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} risk={editingRisk} unitUsers={[]} allUnits={allUnits || []} allCampuses={allCampuses || []} />
     </div>
   );
 }
+

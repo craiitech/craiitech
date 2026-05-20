@@ -35,7 +35,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, whe
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2, AlertTriangle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -308,6 +308,18 @@ export function RiskFormDialog({
     }
   }
 
+  const handleManualDuplicateCheck = () => {
+      if (!descriptionValue) {
+          toast({ title: "Input Required", description: "Please enter a description to verify.", variant: "destructive" });
+          return;
+      }
+      if (duplicateConflict) {
+          toast({ title: "Conflict Detected", description: "A record with this identical description already exists in the registry.", variant: "destructive" });
+      } else {
+          toast({ title: "Uniqueness Verified", description: "No duplicate descriptions found for this unit and year." });
+      }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore || !userProfile || duplicateConflict) return;
     setIsSubmitting(true);
@@ -509,7 +521,18 @@ export function RiskFormDialog({
                                     )} />
                                     <FormField control={form.control} name="description" render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel className="font-bold">Description of {riskTypeValue}</FormLabel>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <FormLabel className="font-bold">Description of {riskTypeValue}</FormLabel>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={handleManualDuplicateCheck}
+                                                className="h-7 text-[8px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary gap-1.5"
+                                            >
+                                                <Search className="h-3 w-3" /> Scan for Existing
+                                            </Button>
+                                        </div>
                                         <FormControl>
                                           <Textarea {...field} value={field.value || ''} placeholder="Explain the potential risk or opportunity in detail." />
                                         </FormControl>
