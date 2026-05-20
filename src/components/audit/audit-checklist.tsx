@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -23,6 +22,7 @@ import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { clauseQuestions } from '@/lib/audit-questions';
+import { format } from 'date-fns';
 
 interface AuditChecklistProps {
   scheduleId: string;
