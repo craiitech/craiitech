@@ -46,7 +46,8 @@ import {
     RefreshCcw,
     Edit,
     ArrowRight,
-    XCircle
+    XCircle,
+    Undo2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -155,7 +156,7 @@ export default function SubmissionDetailPage() {
   const [rotation, setRotation] = useState(0);
   const [isAdminReviewOverride, setIsAdminReviewOverride] = useState(false);
   const [isRiskSyncOpen, setIsRiskSyncOpen] = useState(false);
-  const [isBridgePromptOpen, setIsBridgePromptOpen] = useState(false);
+  const [showBridgeChoices, setShowBridgeChoices] = useState(false);
   const [verifyingRiskId, setVerifyingRiskId] = useState<string | null>(null);
 
   const [newLink, setNewLink] = useState('');
@@ -445,7 +446,7 @@ export default function SubmissionDetailPage() {
   }, [submission, isApprover, isAdmin, isAdminReviewOverride]);
 
   const handleOpenRiskBridge = () => {
-    if (existingRisks && existingRisks.length > 0) setIsBridgePromptOpen(true);
+    if (existingRisks && existingRisks.length > 0) setShowBridgeChoices(true);
     else setIsRiskSyncOpen(true);
   };
 
@@ -655,15 +656,77 @@ export default function SubmissionDetailPage() {
                           ) : <div className="py-16 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No digital entries found</p></div>}
                       </ScrollArea>
                   </CardContent>
-                  <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center"><p className="text-[9px] text-muted-foreground font-medium italic">Integrated QMS Data synchronization Layer</p>{isAdmin && <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black uppercase gap-1 text-primary" onClick={handleOpenRiskBridge}><PlusCircle className="h-3 w-3" /> Manage Digital Records</Button>}</CardFooter>
+                  <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center">
+                    <p className="text-[9px] text-muted-foreground font-medium italic">Integrated QMS Data synchronization Layer</p>
+                    {isAdmin && (
+                      <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black uppercase gap-1 text-primary" onClick={handleOpenRiskBridge}>
+                        <PlusCircle className="h-3 w-3" /> Manage Digital Records
+                      </Button>
+                    )}
+                  </CardFooter>
               </Card>
           )}
           
           {isAdmin && (
               <div className="space-y-4">
                   {isRiskRegistry && (
-                      <Card className="border-primary/20 bg-primary/5 shadow-sm">
-                          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6"><div className="flex items-start gap-3"><ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" /><div className="space-y-1"><p className="text-sm font-bold text-slate-900">Admin: Risk Registry Bridge</p><p className="text-xs text-muted-foreground">Directly log the entries from this document into the system risk registry.</p></div></div><Button onClick={handleOpenRiskBridge} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700"><PlusCircle className="h-4 w-4" />Record in Risk Registry</Button></CardContent>
+                      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+                          <CardContent className="p-6">
+                            {showBridgeChoices ? (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="flex items-center justify-between border-b pb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                                <ListChecks className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-sm font-black uppercase text-primary">Registry Bridge Protocol</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{existingRisks?.length || 0} Entries Detected for {submission.unitName}</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowBridgeChoices(false)}>
+                                            <Undo2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <Button 
+                                            onClick={() => { setIsRiskSyncOpen(true); setShowBridgeChoices(false); }}
+                                            className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest shadow-lg bg-indigo-600 hover:bg-indigo-700"
+                                        >
+                                            <PlusCircle className="h-5 w-5" />
+                                            Record New Entry
+                                        </Button>
+                                        <Button 
+                                            variant="outline"
+                                            asChild
+                                            className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
+                                        >
+                                            <Link href={`/risk-register?unitId=${submission.unitId}&year=${submission.year}`}>
+                                                <ShieldCheck className="h-5 w-5" />
+                                                Manage Existing / Add More
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                    
+                                    <p className="text-[10px] text-muted-foreground italic text-center font-medium">Select "Record New Entry" to use the rapid entry wizard for a specific item from this document.</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div className="flex items-start gap-3">
+                                        <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-slate-900">Admin: Risk Registry Bridge</p>
+                                            <p className="text-xs text-muted-foreground">Directly log the entries from this document into the system risk registry.</p>
+                                        </div>
+                                    </div>
+                                    <Button onClick={handleOpenRiskBridge} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
+                                        <PlusCircle className="h-4 w-4" />
+                                        Record in Risk Registry
+                                    </Button>
+                                </div>
+                            )}
+                          </CardContent>
                       </Card>
                   )}
                   {submission.statusId === 'rejected' && !isAdminReviewOverride && (
@@ -766,10 +829,6 @@ export default function SubmissionDetailPage() {
             </Card>
         </div>
       </div>
-
-      <AlertDialog open={isBridgePromptOpen} onOpenChange={setIsBridgePromptOpen}>
-        <AlertDialogContent><AlertDialogHeader><div className="flex items-center gap-2 text-primary mb-2"><ListChecks className="h-5 w-5" /><AlertDialogTitle>Existing Risk Entries Detected</AlertDialogTitle></div><AlertDialogDescription className="text-sm">There are already <strong>{existingRisks?.length}</strong> entries logged for <strong>{submission.unitName}</strong>. Would you like to record a <strong>new</strong> entry, or manage the <strong>existing</strong> register?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => { setIsBridgePromptOpen(false); setIsRiskSyncOpen(true); }} className="border-primary text-primary hover:bg-primary/5">Manage Existing / Add More</AlertDialogCancel><AlertDialogAction onClick={() => { setIsBridgePromptOpen(false); setIsRiskSyncOpen(true); }} className="bg-primary">Record New Entry</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-      </AlertDialog>
 
       {isAdmin && isRiskSyncOpen && submission && (<RiskFormDialog isOpen={isRiskSyncOpen} onOpenChange={setIsRiskSyncOpen} risk={null} unitUsers={unitUsers || []} allUnits={allUnits || []} allCampuses={allCampuses || []} defaultYear={submission.year} defaultUnitId={submission.unitId} defaultCampusId={submission.campusId} registryLink={submission.googleDriveLink} />)}
     </div>
