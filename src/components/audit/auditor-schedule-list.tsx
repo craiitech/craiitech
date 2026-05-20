@@ -2,7 +2,7 @@
 
 import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding } from '@/lib/types';
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Table,
   TableBody,
@@ -41,7 +41,6 @@ export function AuditorScheduleList({
     isClaimView, 
     onClaimAudit 
 }: AuditorScheduleListProps) {
-  const router = useRouter();
   
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -51,7 +50,6 @@ export function AuditorScheduleList({
 
   const getAuditeeName = (schedule: AuditSchedule) => {
     const campusName = campusMap.get(schedule.campusId) || '...';
-    // Use the explicit campus context from the schedule instead of re-deriving from Unit
     return `${schedule.targetName} (${campusName})`;
   }
   
@@ -67,7 +65,6 @@ export function AuditorScheduleList({
     const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
     const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
     
-    // Filter findings for this specific schedule if printing with data
     const scheduleFindings = withData 
         ? findings.filter(f => f.auditScheduleId === schedule.id)
         : [];
@@ -199,8 +196,15 @@ export function AuditorScheduleList({
                                 <Check className="h-3.5 w-3.5 mr-1.5" /> Claim Audit
                             </Button>
                         ) : (
-                            <Button variant="default" size="sm" onClick={() => router.push(`/audit/${schedule.id}`)} className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4">
-                                Open Evidence Log
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                asChild
+                                className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4"
+                            >
+                                <Link href={`/audit/${schedule.id}`}>
+                                    Open Evidence Log
+                                </Link>
                             </Button>
                         )}
                     </div>
