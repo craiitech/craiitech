@@ -516,8 +516,14 @@ export default function RiskRegisterPage() {
 
       <RiskFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} risk={editingRisk} unitUsers={[]} allUnits={allUnits || []} allCampuses={allCampuses || []} />
 
-      <AlertDialog open={!!deletingRisk} onOpenChange={(open) => !open && setDeletingRisk(null)}>
-        <AlertDialogContent>
+      <AlertDialog 
+        open={!!deletingRisk} 
+        onOpenChange={(open) => !open && setDeletingRisk(null)}
+      >
+        <AlertDialogContent 
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+        >
             <AlertDialogHeader>
                 <div className="flex items-center gap-2 text-destructive mb-2">
                     <Trash2 className="h-6 w-6" />
