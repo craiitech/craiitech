@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } fro
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
@@ -25,6 +27,16 @@ export function SidebarNav({
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
   const { isAdmin, userRole, isSupervisor } = useUser();
+  const [isForcedOffline, setIsForcedOffline] = useState(false);
+
+  useEffect(() => {
+    const checkState = () => {
+        setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+    };
+    checkState();
+    window.addEventListener('storage', checkState);
+    return () => window.removeEventListener('storage', checkState);
+  }, []);
 
   const handleLogout = () => {
     router.push('/logout');
@@ -32,8 +44,7 @@ export function SidebarNav({
 
   /**
    * OFFLINE CONDUCT PROTOCOL
-   * When offline, we restrict navigation to only the core audit execution routes
-   * to ensure data integrity and prevent browser "No Internet" errors.
+   * When offline (actual or forced), we restrict navigation to only the core audit execution routes.
    */
   const ALLOWED_OFFLINE_ROUTES = [
     '/dashboard',
@@ -41,13 +52,13 @@ export function SidebarNav({
   ];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
-    if (!isOnline) {
+    if (!isOnline || isForcedOffline) {
         const isAllowed = ALLOWED_OFFLINE_ROUTES.some(r => href.startsWith(r));
         if (!isAllowed) {
             e.preventDefault();
             toast({
                 title: "Focused Conduct Mode Active",
-                description: "While offline, only the Home and IQA Conduct modules are enabled to ensure secure data entry in the field.",
+                description: "While offline or locked, only the Home and IQA Conduct modules are enabled to ensure data integrity.",
                 variant: "destructive"
             });
         }
@@ -195,7 +206,7 @@ export function SidebarNav({
       <SidebarMenu className="flex-1">
         {visibleRoutes.map((route) => {
           const isAllowedOffline = ALLOWED_OFFLINE_ROUTES.some(r => route.href.startsWith(r));
-          const isDisabled = !isOnline && !isAllowedOffline;
+          const isDisabled = (!isOnline || isForcedOffline) && !isAllowedOffline;
 
           return (
             <SidebarMenuItem key={route.href}>
@@ -233,7 +244,7 @@ export function SidebarNav({
                   onClick={(e) => handleNavClick(e, '/help')}
                   className={cn(
                     "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
-                    !isOnline && "opacity-20 cursor-not-allowed"
+                    (!isOnline || isForcedOffline) && "opacity-20 cursor-not-allowed"
                   )}
                 >
                   <Link href="/help">

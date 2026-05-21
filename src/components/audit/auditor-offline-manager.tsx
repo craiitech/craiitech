@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import {
     where, 
     doc,
     enableNetwork, 
+    disableNetwork,
     waitForPendingWrites
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -32,6 +34,9 @@ import {
     LayoutGrid,
     BookOpen,
     ClipboardCheck,
+    Lock,
+    Unlock,
+    Activity,
     X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -41,44 +46,48 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v2.8 (High-Visibility Preparation)
- * Performs "Full Workspace Handshake" with a prominent safety warning during data mirror.
+ * AUDITOR OFFLINE MANAGER v3.0 (Forced Offline Protocol)
+ * Manages local data mirroring and network state locking.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const isOnline = useNetworkStatus();
   
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isNetworkDisabled, setIsNetworkDisabled] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
 
-  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours in milliseconds
+  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours
 
-  // 1. Load persistent mirror timestamp on mount
   useEffect(() => {
     const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
     if (storedTime) {
         const date = new Date(storedTime);
-        if (!isNaN(date.getTime())) {
-            setLastDownload(date);
-        }
+        if (!isNaN(date.getTime())) setLastDownload(date);
     }
-  }, []);
+
+    // Check if network was previously disabled manually
+    const storedNetState = localStorage.getItem('rsu_eoms_net_disabled');
+    if (storedNetState === 'true' && firestore) {
+        disableNetwork(firestore);
+        setIsNetworkDisabled(true);
+    }
+  }, [firestore]);
 
   const handleDownloadForOffline = async () => {
     if (!firestore || !user || !isOnline) return;
 
-    // 2. CHECK FOR EXISTING FRESH MIRROR
     if (lastDownload) {
         const diff = Date.now() - lastDownload.getTime();
         if (diff < MIRROR_EXPIRY_MS) {
             toast({
                 title: 'Workspace Up-to-Date',
-                description: `Your local mirror is fresh (created ${format(lastDownload, 'p')}). Using existing local version.`,
+                description: `Your local mirror is fresh (created ${format(lastDownload, 'p')}).`,
             });
             return;
         }
@@ -88,222 +97,176 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
-        // 3. Prefetch Application Code (The "Menus")
         setDownloadProgress('Caching Workspace Logic...');
         const routes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/manuals', '/eoms-policy-manual', '/activity-log'];
         routes.forEach(route => router.prefetch(route));
 
-        // 4. Mirror Structural Data
         setDownloadProgress('Mirroring University Registry...');
         await getDocs(collection(firestore, 'isoClauses'));
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
         await getDocs(collection(firestore, 'system'));
 
-        // 5. Mirror IQA Content Hub (All Active/Available sessions)
-        setDownloadProgress('Mirroring Audit Itineraries...');
+        setDownloadProgress('Mirroring Audit Content...');
         const allSchedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = allSchedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         for (const s of allScheds) {
             router.prefetch(`/audit/${s.id}`);
-            if (s.auditPlanId) {
-                await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
-            }
+            if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
         }
 
-        // 6. Mirror Operational Content (Risk & Monitoring)
-        setDownloadProgress('Mirroring Risk & Monitoring Logs...');
+        setDownloadProgress('Mirroring Operational Logs...');
         await getDocs(collection(firestore, 'risks'));
         await getDocs(collection(firestore, 'unitMonitoringRecords'));
         await getDocs(collection(firestore, 'procedureManuals'));
         await getDocs(collection(firestore, 'eomsPolicyManuals'));
 
-        // 7. Persist Timestamp
         const now = new Date();
         setLastDownload(now);
         localStorage.setItem('rsu_eoms_last_mirror_time', now.toISOString());
 
         toast({ 
             title: 'Workspace Handshake Complete', 
-            description: 'Application code and data are now stored locally. You can safely navigate the conduct menus offline.' 
+            description: 'Application logic and data are now stored locally.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
-        toast({ 
-            title: 'Mirror Failed', 
-            description: 'Local data replication was interrupted. Please retry.', 
-            variant: 'destructive' 
-        });
+        toast({ title: 'Mirror Failed', variant: 'destructive' });
     } finally {
         setIsDownloading(false);
         setDownloadProgress('');
     }
   };
 
-  const handleSyncOnline = async () => {
-    if (!firestore || !isOnline) return;
-    
-    setIsSyncing(true);
-    try {
-        toast({ title: 'Syncing Changes', description: 'Uploading local records to university cloud...' });
-        await enableNetwork(firestore);
-        await waitForPendingWrites(firestore);
-        toast({ title: 'Synchronization Complete', description: 'Institutional database is now up to date.' });
-    } catch (e) {
-        toast({ title: 'Sync Failed', variant: 'destructive' });
-    } finally {
-        setIsSyncing(false);
-    }
+  const toggleNetworkLock = async (forceOffline: boolean) => {
+      if (!firestore) return;
+      
+      if (forceOffline) {
+          await disableNetwork(firestore);
+          setIsNetworkDisabled(true);
+          localStorage.setItem('rsu_eoms_net_disabled', 'true');
+          toast({ title: 'Network Locked: Offline', description: 'System is now in pure local mode. Cloud sync is disabled.' });
+      } else {
+          setIsSyncing(true);
+          try {
+              await enableNetwork(firestore);
+              await waitForPendingWrites(firestore);
+              setIsNetworkDisabled(false);
+              localStorage.setItem('rsu_eoms_net_disabled', 'false');
+              toast({ title: 'System Online', description: 'Network restored and data synchronized.' });
+          } catch(e) {
+              toast({ title: 'Sync Error', variant: 'destructive' });
+          } finally {
+              setIsSyncing(false);
+          }
+      }
   };
 
   return (
     <>
-    {/* --- PERSISTENT DANGER ALERT DURING DOWNLOAD --- */}
     {isDownloading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-500">
-            <Card className="w-full max-w-xl border-destructive border-4 shadow-[0_0_100px_rgba(220,38,38,0.5)] bg-white animate-in zoom-in duration-300 overflow-hidden">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+            <Card className="w-full max-w-xl border-destructive border-4 shadow-2xl bg-white">
                 <CardHeader className="text-center space-y-4 pb-2 bg-destructive/10 border-b-2 border-destructive">
-                    <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse shadow-xl">
+                    <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse">
                         <ShieldAlert className="h-12 w-12" />
                     </div>
-                    <div className="space-y-1">
-                        <CardTitle className="text-3xl font-black uppercase text-destructive tracking-tighter animate-emergency-flash">
-                            SYSTEM MIRRORING IN PROGRESS
-                        </CardTitle>
-                        <Badge variant="destructive" className="h-6 px-4 font-black uppercase tracking-widest text-[10px]">Institutional Safety Gate</Badge>
-                    </div>
+                    <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">
+                        SYSTEM MIRRORING ACTIVE
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-8 px-10 pb-10 space-y-8">
-                    <div className="text-center space-y-2">
-                        <p className="text-lg font-black text-slate-900 leading-tight">
-                            The portal is currently downloading the official registry for offline conduct.
-                        </p>
-                        <p className="text-sm font-bold text-rose-600 italic">
-                            "Please remain on this screen to ensure data integrity."
-                        </p>
-                    </div>
-
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between text-[11px] font-black text-primary uppercase tracking-[0.2em]">
+                        <div className="flex items-center justify-between text-[11px] font-black text-primary uppercase">
                             <span>{downloadProgress}</span>
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span className="animate-pulse">Active Handshake</span>
-                            </div>
+                            <Loader2 className="h-4 w-4 animate-spin" />
                         </div>
-                        <Progress value={undefined} className="h-3 bg-muted" />
+                        <Progress value={undefined} className="h-3" />
                     </div>
-
-                    <div className="p-5 rounded-2xl bg-destructive border-2 border-destructive text-white shadow-lg space-y-2">
-                        <div className="flex items-center gap-2 justify-center mb-1">
-                            <Info className="h-4 w-4" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest">Crucial Protocol Warning</h4>
-                        </div>
-                        <p className="text-[11px] font-bold leading-relaxed text-center">
-                            DO NOT CLOSE THE BROWSER, REFRESH THE PAGE, OR DISCONNECT FROM THE NETWORK UNTIL THIS PROCESS IS FINALIZED.
-                        </p>
-                    </div>
+                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive">
+                        DO NOT CLOSE OR REFRESH THE PAGE UNTIL COMPLETE.
+                    </p>
                 </CardContent>
             </Card>
         </div>
     )}
 
-    <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
+    <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
       <CardHeader className="bg-primary/10 border-b py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-                <div className="flex items-center gap-2 text-primary">
-                    <ShieldCheck className="h-5 w-5" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Total conduct mirroring</CardTitle>
-                </div>
+                <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    Workspace Offline Control Hub
+                </CardTitle>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                    Prepare your device for full-featured auditing in zero-connectivity sites.
+                    Lock the system into local mode to prevent connectivity interruptions.
                 </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-                <Badge variant={isOnline ? 'default' : 'destructive'} className="h-6 px-3 font-black uppercase text-[10px] gap-2 border-none">
-                    {isOnline ? <Wifi className="h-3 w-3 text-emerald-500" /> : <WifiOff className="h-3 w-3 animate-pulse" />}
-                    {isOnline ? 'Cloud Link Active' : 'Offline Workspace'}
-                </Badge>
-            </div>
+            <Badge variant={isNetworkDisabled ? 'destructive' : 'default'} className="h-6 px-3 font-black uppercase text-[10px] gap-2 border-none">
+                {isNetworkDisabled ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                {isNetworkDisabled ? 'NETWORK LOCKED: OFFLINE' : 'CLOUD SYNC ACTIVE'}
+            </Badge>
         </div>
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-                <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
-                    <div className="flex items-start gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <Download className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Workspace Handshake</h4>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Mirror the entire Conduct Workspace (IQA, Monitoring, Risk) and prefetch code to prevent browser errors while offline.
-                            </p>
-                        </div>
+            <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
+                <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Download className="h-5 w-5 text-primary" />
                     </div>
-                    
-                    <Button 
-                        onClick={handleDownloadForOffline} 
-                        disabled={!isOnline || isDownloading}
-                        className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
-                    >
-                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                        PREPARE FULL WORKSPACE
-                    </Button>
-                    
-                    {lastDownload && (
-                        <div className="flex items-center gap-2 pt-2 text-[9px] font-bold text-emerald-600">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Mirror created: {format(lastDownload, 'PP p')}
-                        </div>
-                    )}
+                    <div className="space-y-1">
+                        <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
+                        <p className="text-[10px] text-muted-foreground italic">Prepare local repository (Last handshake: {lastDownload ? format(lastDownload, 'p') : 'Never'}).</p>
+                    </div>
                 </div>
+                <Button 
+                    onClick={handleDownloadForOffline} 
+                    disabled={!isOnline || isDownloading || isNetworkDisabled}
+                    className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
+                >
+                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                    PREPARE FULL WORKSPACE
+                </Button>
             </div>
 
-            <div className="space-y-6">
-                <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
-                    <div className="flex items-start gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                            <CloudUpload className="h-5 w-5 text-indigo-600" />
-                        </div>
-                        <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-indigo-900 tracking-widest">Global Synchronization</h4>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Once back online, push your local findings and claimed units to the central university registry.
-                            </p>
-                        </div>
+            <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
+                <div className="flex items-start gap-4">
+                    <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", isNetworkDisabled ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600")}>
+                        {isNetworkDisabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
                     </div>
+                    <div className="space-y-1">
+                        <h4 className="text-xs font-black uppercase text-slate-800">2. Network State Control</h4>
+                        <p className="text-[10px] text-muted-foreground italic">Toggle between Local Storage and Cloud Synchronization.</p>
+                    </div>
+                </div>
+                {isNetworkDisabled ? (
                     <Button 
                         variant="outline"
-                        onClick={handleSyncOnline} 
-                        disabled={!isOnline || isSyncing || isDownloading}
+                        onClick={() => toggleNetworkLock(false)} 
+                        disabled={!isOnline || isSyncing}
                         className="w-full h-11 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50"
                     >
-                        {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CloudUpload className="h-4 w-4 mr-2" />}
-                        SYNC TO CLOUD
+                        {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
+                        SYNC TO CLOUD & UNLOCK
                     </Button>
-                </div>
+                ) : (
+                    <Button 
+                        variant="outline"
+                        onClick={() => toggleNetworkLock(true)} 
+                        className="w-full h-11 border-rose-200 text-rose-600 font-black uppercase text-[10px] tracking-widest hover:bg-rose-50"
+                    >
+                        <CloudOff className="mr-2 h-4 w-4" />
+                        FORCE OFFLINE MODE
+                    </Button>
+                )}
             </div>
         </div>
       </CardContent>
-      <CardFooter className="bg-muted/5 border-t py-3 px-8">
-          <div className="flex items-start gap-3">
-              <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                      <strong>Operational Guide:</strong> Running the "Handshake" while online ensures that the "IQA Conduct", "Unit Monitoring", and "Risk Register" routes remain interactive even if you lose connectivity.
-                  </p>
-                  <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-tight">
-                      System Version 2.8: High-Visibility Mirroring Enabled.
-                  </p>
-              </div>
-          </div>
-      </CardFooter>
     </Card>
     </>
   );

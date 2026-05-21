@@ -9,7 +9,7 @@ import {
   initializeFirestore, 
   enableMultiTabIndexedDbPersistence, 
   Firestore,
-  enableIndexedDbPersistence
+  CACHE_SIZE_UNLIMITED
 } from 'firebase/firestore'
 import { useMemo, type DependencyList } from 'react';
 
@@ -32,11 +32,12 @@ export function initializeFirebase() {
   // Handle App initialization
   const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-  // Initialize Firestore with specific settings
+  // Initialize Firestore with specific settings for heavy offline use
   let firestore: Firestore;
   try {
     firestore = initializeFirestore(firebaseApp, {
       experimentalForceLongPolling: true,
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED, // Ensure large audit databases fit locally
     });
   } catch (e) {
     // If already initialized, get the existing instance

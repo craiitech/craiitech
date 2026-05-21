@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -6,7 +7,7 @@ import { UserNav } from '@/components/dashboard/user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { Button } from '@/components/ui/button';
-import { PanelRightClose, PanelRightOpen, Wifi, WifiOff } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useState, useEffect } from 'react';
 
 interface HeaderProps {
     notificationCount: number;
@@ -23,14 +25,23 @@ interface HeaderProps {
     onToggleGuidance: () => void;
 }
 
-
 export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance }: HeaderProps) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
   const isOnline = useNetworkStatus();
   const { user, userProfile, userRole } = useUser();
+  const [isForcedOffline, setIsForcedOffline] = useState(false);
 
   const isAuditor = userRole === 'Auditor';
+
+  useEffect(() => {
+    const checkState = () => {
+        setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+    };
+    checkState();
+    window.addEventListener('storage', checkState);
+    return () => window.removeEventListener('storage', checkState);
+  }, []);
 
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Home';
@@ -52,7 +63,6 @@ export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance 
     return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : '';
   }
 
-
   return (
     <header className={cn("flex h-16 items-center justify-between px-4 lg:px-8 bg-card sticky top-0 z-30 institutional-header")}>
         <div className="flex items-center gap-2 min-w-0">
@@ -63,18 +73,20 @@ export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance 
             {/* Global Offline Mode Indicator for Auditors */}
             {isAuditor && (
                 <Badge 
-                    variant={isOnline ? "outline" : "destructive"} 
+                    variant={isOnline && !isForcedOffline ? "outline" : "destructive"} 
                     className={cn(
                         "hidden sm:flex h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 shadow-sm transition-all duration-500",
-                        isOnline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in"
+                        isOnline && !isForcedOffline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in"
                     )}
                 >
-                    {isOnline ? (
+                    {isForcedOffline ? (
+                        <Lock className="h-3 w-3" />
+                    ) : isOnline ? (
                         <Wifi className="h-3 w-3 text-emerald-500" />
                     ) : (
                         <WifiOff className="h-3 w-3 animate-pulse" />
                     )}
-                    {isOnline ? 'Online Registry' : 'Offline Mode Active'}
+                    {isForcedOffline ? 'FORCED OFFLINE' : isOnline ? 'Online Registry' : 'Offline Mode Active'}
                 </Badge>
             )}
 
