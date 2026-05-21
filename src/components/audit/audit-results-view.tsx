@@ -75,7 +75,6 @@ export function AuditResultsView({
   const router = useRouter();
   
   const [isProcessingReport, setIsProcessingReport] = useState(false);
-  const [processingFindingId, setProcessingFindingId] = useState<string | null>(null);
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
@@ -140,63 +139,21 @@ export function AuditResultsView({
         });
   }, [kpis, cars]);
 
-  const handleIssueCarFromFinding = async (item: any) => {
-    if (!firestore || !userProfile || !isAdmin) return;
-    
+  /**
+   * NAVIGATION BRIDGE
+   * Instead of background creation, we navigate to the CAR module with parameters
+   */
+  const handleNavigateToIssueCar = (item: any) => {
     const { finding, schedule } = item;
-    const confirm = window.confirm(`Generate official Corrective Action Request (CAR) for ${schedule?.targetName} based on Clause ${finding.isoClause}?`);
-    if (!confirm) return;
-
-    setProcessingFindingId(finding.id);
-
-    try {
-        // 1. Get count for CAR number sequencing
-        const carCountQuery = await getDocs(collection(firestore, 'correctiveActionRequests'));
-        const nextNum = carCountQuery.size + 1;
-        const carNumber = `${selectedYear}-${String(nextNum).padStart(3, '0')}`;
-
-        const carData = {
-            findingId: finding.id,
-            carNumber,
-            source: 'Audit Finding',
-            natureOfFinding: 'NC',
-            procedureTitle: schedule?.procedureDescription || 'Internal Quality Audit Finding',
-            initiator: schedule?.auditorName || 'IQA Auditor',
-            concerningClause: finding.isoClause,
-            concerningTopManagementName: 'Unit Head',
-            descriptionOfNonconformance: finding.ncStatement || finding.description,
-            unitId: schedule?.targetId || '',
-            campusId: schedule?.campusId || '',
-            unitHead: schedule?.auditeeHeadName || 'Unit Head',
-            requestDate: serverTimestamp(),
-            timeLimitForReply: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 Days default
-            preparedBy: userProfile.firstName + ' ' + userProfile.lastName,
-            approvedBy: signatories?.qaoDirector || 'Director, QAO',
-            status: 'Open',
-            year: selectedYear,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        };
-
-        const carCollectionRef = collection(firestore, 'correctiveActionRequests');
-        addDoc(carCollectionRef, carData)
-            .then(() => {
-                toast({ title: 'CAR Issued', description: `Request ${carNumber} has been logged in the QA Reports module.` });
-            })
-            .catch(async (error) => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: carCollectionRef.path,
-                    operation: 'create',
-                    requestResourceData: carData
-                }));
-            });
-
-    } catch (e) {
-        console.error(e);
-        toast({ title: 'Bridge Error', description: 'Could not generate CAR.', variant: 'destructive' });
-    } finally {
-        setProcessingFindingId(null);
-    }
+    
+    const params = new URLSearchParams();
+    params.set('tab', 'car');
+    params.set('action', 'new');
+    params.set('findingId', finding.id);
+    params.set('scheduleId', finding.auditScheduleId);
+    
+    // Explicitly navigate to the CAR registry with "New" mode enabled
+    router.push(`/qa-reports?${params.toString()}`);
   };
 
   const handlePrintConsolidated = () => {
@@ -355,7 +312,7 @@ export function AuditResultsView({
                                           <Button 
                                             variant="outline" 
                                             size="sm" 
-                                            className="h-8 text-[9px] font-black uppercase bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                                            className="h-8 text-[9px] font-black uppercase tracking-widest bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
                                             onClick={() => router.push('/qa-reports?tab=car')}
                                           >
                                               <Target className="h-3.5 w-3.5" /> View Linked CAR
@@ -363,15 +320,10 @@ export function AuditResultsView({
                                       ) : (
                                           <Button 
                                             size="sm" 
-                                            onClick={() => handleIssueCarFromFinding(item)}
-                                            disabled={processingFindingId === item.finding.id}
+                                            onClick={() => handleNavigateToIssueCar(item)}
                                             className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"
                                           >
-                                              {processingFindingId === item.finding.id ? (
-                                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                              ) : (
-                                                  <Gavel className="h-3.5 w-3.5" />
-                                              )}
+                                              <Gavel className="h-3.5 w-3.5" />
                                               Issue CAR Now
                                           </Button>
                                       )}
