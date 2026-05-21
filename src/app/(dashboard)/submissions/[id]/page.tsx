@@ -47,7 +47,9 @@ import {
     Edit,
     ArrowRight,
     XCircle,
-    Undo2
+    Undo2,
+    PanelRightClose,
+    PanelRightOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -158,6 +160,7 @@ export default function SubmissionDetailPage() {
   const [isRiskSyncOpen, setIsRiskSyncOpen] = useState(false);
   const [showBridgeChoices, setShowBridgeChoices] = useState(false);
   const [verifyingRiskId, setVerifyingRiskId] = useState<string | null>(null);
+  const [isHistoryVisible, setIsHistoryVisible] = useState(true);
 
   const [newLink, setNewLink] = useState('');
   const [newComment, setNewComment] = useState('');
@@ -468,16 +471,27 @@ export default function SubmissionDetailPage() {
   return (
     <div className="space-y-4">
        {/* Sticky Header Enforced */}
-       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
-            <p className="text-muted-foreground text-sm">Reviewing: {submission.reportType}</p>
+       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
+              <p className="text-muted-foreground text-sm">Reviewing: {submission.reportType}</p>
+            </div>
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsHistoryVisible(!isHistoryVisible)} 
+            className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5"
+          >
+            {isHistoryVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}
+            {isHistoryVisible ? 'Hide History' : 'Show History'}
+          </Button>
        </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+      <div className={cn("grid grid-cols-1 gap-8 transition-all duration-500", isHistoryVisible ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
+        <div className={cn("space-y-6", isHistoryVisible ? "lg:col-span-2" : "lg:col-span-1")}>
           {submission.isDraft && (
               <Alert className="bg-blue-50 border-blue-200 animate-in slide-in-from-top-2 duration-500 shadow-md">
                   <LayoutList className="h-5 w-5 text-blue-600" />
@@ -745,7 +759,7 @@ export default function SubmissionDetailPage() {
                 )}
                 <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
                     <CardHeader className="bg-primary/5 border-b"><CardTitle>{submission.isDraft ? 'Review Determination' : 'Final Determination'}</CardTitle><CardDescription>Provide context or constructive feedback for the unit coordinator.</CardDescription></CardHeader>
-                    <CardContent className="space-y-4 pt-6"><div><Label htmlFor="feedback">Official Comments</Label><Textarea id="feedback" placeholder={submission.isDraft ? "Suggest corrections..." : "Enter approval notes or rejection findings..."} value={feedback} onChange={(e) => setFeedback(e.target.value)} disabled={isSubmitting} className="min-h-[120px]" /></div></CardContent>
+                    <CardContent className="space-y-4 pt-6"><div><Label htmlFor="feedback">Official Comments</Label><Textarea id="feedback" placeholder={submission.isDraft ? "Suggest corrections..." : "Enter approval notes or rejection findings..."} value={feedback} onChange={(e) => setFeedback(target => setFeedback(e.target.value))} disabled={isSubmitting} className="min-h-[120px]" /></div></CardContent>
                     <CardFooter className="flex justify-end gap-3 pt-2 bg-muted/5 border-t py-4"><Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}{submission.isDraft ? 'Request Draft Changes' : 'Reject Submission'}</Button><Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className={cn("shadow-lg font-black", submission.isDraft ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200" : "shadow-primary/20")}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}{submission.isDraft ? 'Clear Draft for Finalization' : 'Approve Record'}</Button></CardFooter>
                 </Card>
             </>
@@ -822,12 +836,14 @@ export default function SubmissionDetailPage() {
           )}
         </div>
 
-        <div className="space-y-4">
-            <Card className="shadow-md">
-                <CardHeader className="border-b"><CardTitle className="text-md">Conversation History</CardTitle><CardDescription className="text-[10px] uppercase font-bold tracking-widest">Official audit trail</CardDescription></CardHeader>
-                <CardContent className="space-y-4 pt-6">{Array.isArray(submission.comments) && submission.comments.length > 0 ? (<div className="space-y-6">{submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (<div key={index} className="flex gap-3"><Avatar className="h-8 w-8 shrink-0"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{comment.authorName.charAt(0)}</AvatarFallback></Avatar><div className="flex-1 min-w-0"><div className="flex justify-between items-center gap-2"><p className="text-xs font-bold truncate">{comment.authorName}</p><p className="text-[10px] text-muted-foreground whitespace-nowrap">{getFormattedDate(comment.createdAt)}</p></div><p className="text-[10px] text-muted-foreground italic mb-1">({comment.authorRole})</p><p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-md border border-dashed">{comment.text}</p></div></div>))}</div>) : (<div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2"><History className="h-8 w-8 opacity-10" /><p className="text-xs">No comments logged for this submission.</p></div>)}</CardContent>
-            </Card>
-        </div>
+        {isHistoryVisible && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                <Card className="shadow-md">
+                    <CardHeader className="border-b"><CardTitle className="text-md">Conversation History</CardTitle><CardDescription className="text-[10px] uppercase font-bold tracking-widest">Official audit trail</CardDescription></CardHeader>
+                    <CardContent className="space-y-4 pt-6">{Array.isArray(submission.comments) && submission.comments.length > 0 ? (<div className="space-y-6">{submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (<div key={index} className="flex gap-3"><Avatar className="h-8 w-8 shrink-0"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{comment.authorName.charAt(0)}</AvatarFallback></Avatar><div className="flex-1 min-w-0"><div className="flex justify-between items-center gap-2"><p className="text-xs font-bold truncate">{comment.authorName}</p><p className="text-[10px] text-muted-foreground whitespace-nowrap">{getFormattedDate(comment.createdAt)}</p></div><p className="text-[10px] text-muted-foreground italic mb-1">({comment.authorRole})</p><p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-md border border-dashed">{comment.text}</p></div></div>))}</div>) : (<div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2"><History className="h-8 w-8 opacity-10" /><p className="text-xs">No comments logged for this submission.</p></div>)}</CardContent>
+                </Card>
+            </div>
+        )}
       </div>
 
       {isAdmin && isRiskSyncOpen && submission && (<RiskFormDialog isOpen={isRiskSyncOpen} onOpenChange={setIsRiskSyncOpen} risk={null} unitUsers={unitUsers || []} allUnits={allUnits || []} allCampuses={allCampuses || []} defaultYear={submission.year} defaultUnitId={submission.unitId} defaultCampusId={submission.campusId} registryLink={submission.googleDriveLink} />)}
