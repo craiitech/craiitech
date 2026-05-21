@@ -40,16 +40,19 @@ import {
     Activity,
     X,
     Search,
-    FileCheck
+    FileCheck,
+    AlertTriangle,
+    ArrowRight
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v3.8 (Deep Registry Verification)
+ * AUDITOR OFFLINE MANAGER v4.0 (Proactive Mirror Recovery)
  * Manages local data mirroring, network state locking, and explicit cache validation.
  */
 export function AuditorOfflineManager() {
@@ -66,6 +69,7 @@ export function AuditorOfflineManager() {
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<'none' | 'found' | 'expired'>('none');
+  const [hasScanned, setHasScanned] = useState(false);
 
   const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours
 
@@ -125,6 +129,7 @@ export function AuditorOfflineManager() {
         const now = new Date();
         setLastDownload(now);
         setMirrorStatus('found');
+        setHasScanned(true);
         localStorage.setItem('rsu_eoms_last_mirror_time', now.toISOString());
 
         toast({ 
@@ -147,6 +152,7 @@ export function AuditorOfflineManager() {
   const handleSearchMirror = async () => {
     if (!firestore) return;
     setIsScanning(true);
+    setHasScanned(true);
     
     try {
         // 1. Verify Firestore Cache Registry
@@ -168,7 +174,7 @@ export function AuditorOfflineManager() {
             setMirrorStatus('none');
             toast({
                 title: 'No Mirror Detected',
-                description: 'Local repository is empty. Please prepare the workspace.',
+                description: 'Local repository is empty.',
                 variant: 'destructive'
             });
         }
@@ -280,7 +286,7 @@ export function AuditorOfflineManager() {
                 </div>
 
                 {/* VISUAL MIRROR STATUS */}
-                {mirrorStatus !== 'none' && (
+                {mirrorStatus !== 'none' ? (
                     <div className={cn(
                         "p-3 rounded-xl border flex items-center justify-between transition-all animate-in zoom-in duration-300",
                         mirrorStatus === 'found' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
@@ -297,6 +303,31 @@ export function AuditorOfflineManager() {
                             </div>
                         </div>
                         {mirrorStatus === 'found' && <Badge className="bg-emerald-600 h-4 text-[7px] font-black">LOCAL ACTIVE</Badge>}
+                    </div>
+                ) : hasScanned && (
+                    <div className="animate-in slide-in-from-top-4 duration-500">
+                        <Alert variant="destructive" className="bg-rose-50 border-rose-200 shadow-sm">
+                            <AlertTriangle className="h-4 w-4 text-rose-600" />
+                            <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-rose-800">Local Mirror Not Found</AlertTitle>
+                            <AlertDescription className="space-y-4 pt-1">
+                                <p className="text-[11px] font-medium text-rose-700 leading-relaxed italic">
+                                    "No cached institutional data was detected on this device. Would you like to download a fresh copy of the online mirror now?"
+                                </p>
+                                <Button 
+                                    size="sm" 
+                                    variant="destructive" 
+                                    onClick={handleDownloadForOffline}
+                                    disabled={!isOnline}
+                                    className="h-8 w-full font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-rose-200"
+                                >
+                                    <Download className="h-3.5 w-3.5" />
+                                    Prepare Workspace Now
+                                </Button>
+                                {!isOnline && (
+                                    <p className="text-[9px] font-bold text-rose-600 text-center uppercase tracking-tighter">Requires Internet Connection to Prepare</p>
+                                )}
+                            </AlertDescription>
+                        </Alert>
                     </div>
                 )}
 
