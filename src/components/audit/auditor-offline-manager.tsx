@@ -52,7 +52,7 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v4.0 (Proactive Mirror Recovery)
+ * AUDITOR OFFLINE MANAGER v4.5 (Mirror Guard Protocol)
  * Manages local data mirroring, network state locking, and explicit cache validation.
  */
 export function AuditorOfflineManager() {
@@ -145,21 +145,14 @@ export function AuditorOfflineManager() {
     }
   };
 
-  /**
-   * SCAN LOCAL REGISTRY
-   * Explicitly attempts to read from cache to prove mirroring success.
-   */
   const handleSearchMirror = async () => {
     if (!firestore) return;
     setIsScanning(true);
     setHasScanned(true);
     
     try {
-        // 1. Verify Firestore Cache Registry
         const unitsRef = collection(firestore, 'units');
         const cacheSnapshot = await getDocsFromCache(query(unitsRef, limit(1)));
-
-        // 2. Check Persisted Timestamp
         const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
 
         if (!cacheSnapshot.empty && storedTime) {
@@ -188,6 +181,16 @@ export function AuditorOfflineManager() {
 
   const toggleNetworkLock = async (forceOffline: boolean) => {
       if (!firestore) return;
+      
+      // PROTECTION LAYER: Ensure mirror exists before allowing forced offline
+      if (forceOffline && mirrorStatus === 'none') {
+          toast({
+              variant: "destructive",
+              title: "Preparation Required",
+              description: "Cannot force offline mode because no local data mirror was detected. Please click 'Prepare Full Workspace' first while connected to the internet.",
+          });
+          return;
+      }
       
       if (forceOffline) {
           await disableNetwork(firestore);
@@ -299,7 +302,7 @@ export function AuditorOfflineManager() {
                                 <p className={cn("text-[10px] font-black uppercase", mirrorStatus === 'found' ? "text-emerald-700" : "text-amber-700")}>
                                     {mirrorStatus === 'found' ? 'READY FOR CONDUCT' : 'MIRROR EXPIRED'}
                                 </p>
-                                <p className="text-[9px] font-bold text-slate-500">Last Sync: {lastDownload ? format(lastDownload, 'PP p') : '--'}</p>
+                                <p className="text-[9px] font-bold text-slate-500">Last Sync: {lastDownload ? format(lastDownload, 'p') : '--'}</p>
                             </div>
                         </div>
                         {mirrorStatus === 'found' && <Badge className="bg-emerald-600 h-4 text-[7px] font-black">LOCAL ACTIVE</Badge>}
