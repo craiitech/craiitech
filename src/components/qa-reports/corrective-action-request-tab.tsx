@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp, where, arrayUnion, getDoc, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, where, arrayUnion, getDoc, getDocs } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, AuditFinding, AuditSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -140,13 +140,22 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
+
+  const years = useMemo(() => {
+    const current = new Date().getFullYear();
+    const yrs = [];
+    for (let i = 0; i < 5; i++) {
+      yrs.push(String(current - i));
+    }
+    return yrs;
+  }, []);
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -197,10 +206,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
   });
 
-  /**
-   * INCOMING BRIDGE DETECTION
-   * Listens for parameters from the IQA module to pre-fill a new CAR.
-   */
   useEffect(() => {
     const action = searchParams.get('action');
     const findingId = searchParams.get('findingId');
@@ -244,7 +249,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     });
                     
                     setIsDialogOpen(true);
-                    // Clear the params so a refresh doesn't keep opening the dialog
                     const newParams = new URLSearchParams(searchParams.toString());
                     newParams.delete('action');
                     newParams.delete('findingId');
@@ -432,7 +436,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
                     </div>
-                    <div id="print-content" style="padding: 0.1in;">
+                    <div id="print-content">
                         ${reportHtml}
                     </div>
                 </body>
@@ -622,8 +626,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <ListChecks className="h-10 w-10" />
                                 <p className="text-xs font-bold uppercase tracking-widest">No results found</p>
                             </div>
-                        </TableCell>
-                    </TableRow>
+                        </TableRow>
                     )}
                 </TableBody>
                 </Table>
@@ -635,7 +638,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   return (
     <div className="space-y-6">
-      {/* KPI Section Omitted for brevity, kept consistent with previous version */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
@@ -647,7 +649,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <CardContent className="flex-1"><div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div><p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Status</p></CardContent>
         </Card>
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In-Progress</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In Progress</CardTitle></CardHeader>
             <CardContent className="flex-1"><div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div><p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p></CardContent>
         </Card>
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
@@ -684,7 +686,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
             <div className="w-full md:w-48 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Calendar className="h-2.5 w-2.5" /> Fiscal Year</label>
-                <Select value={yearFilter} onValueChange={setYearFilter}><SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm"><SelectValue placeholder="All Years" /></SelectTrigger><SelectContent><SelectItem value="all">All Years</SelectItem>{years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}</SelectContent></Select>
+                <Select value={yearFilter} onValueChange={setYearFilter}>
+                  <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
+                    <SelectValue placeholder="All Years" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
             </div>
           </div>
         </div>
@@ -716,7 +726,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingReport(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
@@ -794,7 +804,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             
                             <Separator />
                             
-                            {/* Root Cause & Actions registries Omitted for space, kept identical to previous stable version */}
                             <div className="pt-6 space-y-4">
                                 <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary" /><h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis</h4></div>
                                 <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
@@ -842,7 +851,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <div className="space-y-6">
                                     <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">III. Follow-up Result Registry</h5>
                                     {followUpFields.map((field, index) => {
-                                        const currentResult = form.watch(`followUpLogs.${index}.result`) || '';
                                         return (
                                         <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
