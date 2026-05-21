@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,7 +12,8 @@ import {
     doc,
     enableNetwork, 
     disableNetwork,
-    waitForPendingWrites
+    waitForPendingWrites,
+    limit
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,8 @@ import {
     Lock,
     Unlock,
     Activity,
-    X
+    X,
+    Search
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -46,8 +47,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v3.0 (Forced Offline Protocol)
- * Manages local data mirroring and network state locking.
+ * AUDITOR OFFLINE MANAGER v3.5 (Enhanced with Local Mirror Search)
+ * Manages local data mirroring, network state locking, and mirror validation.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -57,6 +58,7 @@ export function AuditorOfflineManager() {
   const isOnline = useNetworkStatus();
   
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isNetworkDisabled, setIsNetworkDisabled] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
@@ -141,6 +143,44 @@ export function AuditorOfflineManager() {
     }
   };
 
+  /**
+   * SEARCH AND VALIDATE LOCAL MIRROR
+   * Explicitly looks for the latest mirrored files in the local cache.
+   */
+  const handleSearchMirror = async () => {
+    if (!firestore) return;
+    setIsScanning(true);
+    
+    try {
+        // 1. Check timestamp in localStorage
+        const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
+        
+        // 2. Perform a verify read from cache to ensure IndexedDB is holding data
+        // We look for any unit record to prove data presence
+        const q = query(collection(firestore, 'units'), limit(1));
+        const snap = await getDocs(q);
+
+        if (storedTime && !snap.empty) {
+            const date = new Date(storedTime);
+            setLastDownload(date);
+            toast({
+                title: 'Local Mirror Located',
+                description: `Found valid offline files from ${format(date, 'PPP p')}.`,
+            });
+        } else {
+            toast({
+                title: 'No Mirror Detected',
+                description: 'Local repository is empty or expired. Please prepare the workspace.',
+                variant: 'destructive'
+            });
+        }
+    } catch (e) {
+        toast({ title: 'Scan Error', description: 'Could not verify local cache state.', variant: 'destructive' });
+    } finally {
+        setIsScanning(false);
+    }
+  };
+
   const toggleNetworkLock = async (forceOffline: boolean) => {
       if (!firestore) return;
       
@@ -215,14 +255,26 @@ export function AuditorOfflineManager() {
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
-                <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Download className="h-5 w-5 text-primary" />
+                <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <Download className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="space-y-1">
+                            <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
+                            <p className="text-[10px] text-muted-foreground italic">Prepare local repository (Last handshake: {lastDownload ? format(lastDownload, 'p') : 'Never'}).</p>
+                        </div>
                     </div>
-                    <div className="space-y-1">
-                        <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
-                        <p className="text-[10px] text-muted-foreground italic">Prepare local repository (Last handshake: {lastDownload ? format(lastDownload, 'p') : 'Never'}).</p>
-                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={handleSearchMirror} 
+                        disabled={isScanning || isDownloading}
+                        className="h-9 w-9 text-primary hover:bg-primary/5"
+                        title="Search for latest mirrored files"
+                    >
+                        {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
                 </div>
                 <Button 
                     onClick={handleDownloadForOffline} 
