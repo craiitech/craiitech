@@ -28,7 +28,10 @@ import {
     CloudUpload,
     Database,
     Layers,
-    ShieldAlert
+    ShieldAlert,
+    LayoutGrid,
+    BookOpen,
+    ClipboardCheck
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -37,10 +40,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v2.5 (Resilience Upgrade)
- * Redesigned to perform "Total Site Mirroring".
- * Prefetches data and code for BOTH assigned audits and the unclaimed pool.
- * Added: Resilience status to confirm local files are preserved during network drops.
+ * AUDITOR OFFLINE MANAGER v2.6 (Navigation Hardening)
+ * Performs "Full Workspace Handshake" to prevent browser navigation errors.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -61,22 +62,23 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
-        // 1. Fetch Global Structural Data (Standards & Hierarchy)
-        setDownloadProgress('Caching ISO 21001:2018 Standard...');
+        // 1. Prefetch Application Code (The "Menus")
+        setDownloadProgress('Caching Workspace Logic...');
+        const routes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/manuals', '/eoms-policy-manual', '/activity-log'];
+        routes.forEach(route => router.prefetch(route));
+
+        // 2. Mirror Structural Data
+        setDownloadProgress('Mirroring University Registry...');
         await getDocs(collection(firestore, 'isoClauses'));
-        
-        setDownloadProgress('Mirroring University Unit Registry...');
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
+        await getDocs(collection(firestore, 'system'));
 
-        // 2. Fetch ALL Active Schedules (Assigned + Unclaimed Pool)
-        setDownloadProgress('Identifying Pool & Assignments...');
+        // 3. Mirror IQA Content Hub
+        setDownloadProgress('Mirroring Audit Itineraries...');
         const allSchedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = allSchedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-        // 3. Recursive Deep Cache & Bundle Mirroring
-        setDownloadProgress(`Deep-caching ${allScheds.length} potential sessions...`);
-        
         for (const s of allScheds) {
             router.prefetch(`/audit/${s.id}`);
             if (s.auditPlanId) {
@@ -84,20 +86,19 @@ export function AuditorOfflineManager() {
             }
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
-            if (s.targetId) {
-                const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
-                await getDocs(qCars);
-            }
         }
 
-        // 4. Mirror System Signatories
-        setDownloadProgress('Finalizing Authenticated Signatories...');
-        await getDocs(collection(firestore, 'system'));
+        // 4. Mirror Operational Content (Risk & Monitoring)
+        setDownloadProgress('Mirroring Risk & Monitoring Logs...');
+        await getDocs(collection(firestore, 'risks'));
+        await getDocs(collection(firestore, 'unitMonitoringRecords'));
+        await getDocs(collection(firestore, 'procedureManuals'));
+        await getDocs(collection(firestore, 'eomsPolicyManuals'));
 
         setLastDownload(new Date());
         toast({ 
-            title: 'Mirroring Complete', 
-            description: 'You can now claim and conduct any audit from the pool while offline.' 
+            title: 'Workspace Handshake Complete', 
+            description: 'Application code and data are now stored locally. You can safely navigate the conduct menus offline.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
@@ -117,10 +118,10 @@ export function AuditorOfflineManager() {
     
     setIsSyncing(true);
     try {
-        toast({ title: 'Syncing Changes', description: 'Uploading local audit findings to cloud...' });
+        toast({ title: 'Syncing Changes', description: 'Uploading local records to university cloud...' });
         await enableNetwork(firestore);
         await waitForPendingWrites(firestore);
-        toast({ title: 'Synchronization Complete', description: 'All local records are now in the cloud.' });
+        toast({ title: 'Synchronization Complete', description: 'Institutional database is now up to date.' });
     } catch (e) {
         toast({ title: 'Sync Failed', variant: 'destructive' });
     } finally {
@@ -135,16 +136,16 @@ export function AuditorOfflineManager() {
             <div className="space-y-1">
                 <div className="flex items-center gap-2 text-primary">
                     <ShieldCheck className="h-5 w-5" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Offline Audit Workspace</CardTitle>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Total conduct mirroring</CardTitle>
                 </div>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                    Prepare your device for audit conduct in zero-connectivity environments.
+                    Prepare your device for full-featured auditing in zero-connectivity sites.
                 </CardDescription>
             </div>
             <div className="flex items-center gap-2">
                 <Badge variant={isOnline ? 'default' : 'destructive'} className="h-6 px-3 font-black uppercase text-[10px] gap-2 border-none">
-                    {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                    {isOnline ? 'Network Connected' : 'Offline Mode'}
+                    {isOnline ? <Wifi className="h-3 w-3 text-emerald-500" /> : <WifiOff className="h-3 w-3 animate-pulse" />}
+                    {isOnline ? 'Cloud Link Active' : 'Offline Workspace'}
                 </Badge>
             </div>
         </div>
@@ -158,9 +159,9 @@ export function AuditorOfflineManager() {
                             <Download className="h-5 w-5 text-primary" />
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Total Site Mirroring</h4>
+                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-widest">Workspace Handshake</h4>
                             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Caches all available and assigned audits, allowing you to claim and start new sessions while offline.
+                                Mirror the entire Conduct Workspace (IQA, Monitoring, Risk) and prefetch code to prevent browser errors while offline.
                             </p>
                         </div>
                     </div>
@@ -180,14 +181,14 @@ export function AuditorOfflineManager() {
                             className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
                         >
                             <Download className="h-4 w-4 mr-2" />
-                            PREPARE OFFLINE DATA
+                            PREPARE FULL WORKSPACE
                         </Button>
                     )}
                     
                     {lastDownload && (
                         <div className="flex items-center gap-2 pt-2 text-[9px] font-bold text-emerald-600">
                             <CheckCircle2 className="h-3 w-3" />
-                            Mirror created: {format(lastDownload, 'PP p')}
+                            Workspace Mirrored: {format(lastDownload, 'PP p')}
                         </div>
                     )}
                 </div>
@@ -200,9 +201,9 @@ export function AuditorOfflineManager() {
                             <CloudUpload className="h-5 w-5 text-indigo-600" />
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-indigo-900 tracking-widest">Cloud Synchronization</h4>
+                            <h4 className="text-xs font-black uppercase text-indigo-900 tracking-widest">Global Synchronization</h4>
                             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                Pushes findings and newly claimed sessions recorded while offline to the central database once back online.
+                                Once back online, push your local findings and claimed units to the central university registry.
                             </p>
                         </div>
                     </div>
@@ -213,7 +214,7 @@ export function AuditorOfflineManager() {
                         className="w-full h-11 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50"
                     >
                         {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CloudUpload className="h-4 w-4 mr-2" />}
-                        SYNC ONLINE NOW
+                        SYNC TO CLOUD
                     </Button>
                 </div>
             </div>
@@ -224,10 +225,10 @@ export function AuditorOfflineManager() {
               <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                      <strong>Resilience Verified:</strong> The portal is configured for intermittent connectivity. If the network drops while you are typing, your work remains stored in the local mirror (IndexedDB).
+                      <strong>Operational Guide:</strong> Running the "Handshake" while online ensures that the "IQA Conduct", "Unit Monitoring", and "Risk Register" routes remain interactive even if you lose connectivity.
                   </p>
                   <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-tight">
-                      Data survives page refreshes and browser restarts.
+                      System Version 2.6: Navigation Guard Enabled.
                   </p>
               </div>
           </div>

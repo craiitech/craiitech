@@ -5,9 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck, WifiOff } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
+import { useNetworkStatus } from '@/hooks/use-network-status';
+import { useToast } from '@/hooks/use-toast';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
@@ -20,10 +22,37 @@ export function SidebarNav({
 }: SidebarNavProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const isOnline = useNetworkStatus();
+  const { toast } = useToast();
   const { isAdmin, userRole, isSupervisor } = useUser();
 
   const handleLogout = () => {
     router.push('/logout');
+  };
+
+  // Define which routes are specifically mirrored for offline use
+  const OFFLINE_WORKSPACE_ROUTES = [
+    '/dashboard',
+    '/audit',
+    '/monitoring',
+    '/manuals',
+    '/eoms-policy-manual',
+    '/risk-register',
+    '/activity-log'
+  ];
+
+  const handleNavClick = (e: React.MouseEvent, href: string) => {
+    if (!isOnline) {
+        const isWorkspaceRoute = OFFLINE_WORKSPACE_ROUTES.some(r => href.startsWith(r));
+        if (!isWorkspaceRoute) {
+            e.preventDefault();
+            toast({
+                title: "Area Unavailable Offline",
+                description: "This module requires an active internet connection. Please return to the mirrored conduct workspace.",
+                variant: "destructive"
+            });
+        }
+    }
   };
 
   const allRoutes = [
@@ -165,26 +194,35 @@ export function SidebarNav({
   return (
     <div className={cn("flex flex-col h-full", className)} {...props}>
       <SidebarMenu className="flex-1">
-        {visibleRoutes.map((route) => (
-          <SidebarMenuItem key={route.href}>
-            <SidebarMenuButton 
-              asChild 
-              isActive={route.active} 
-              tooltip={route.label}
-              className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
-            >
-              <Link href={route.href}>
-                {route.icon}
-                <span>{route.label}</span>
-                {route.showBadge && notificationCount > 0 && (
-                  <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                    {notificationCount}
-                  </SidebarMenuBadge>
+        {visibleRoutes.map((route) => {
+          const isMirrored = OFFLINE_WORKSPACE_ROUTES.some(r => route.href.startsWith(r));
+          const isDisabled = !isOnline && !isMirrored;
+
+          return (
+            <SidebarMenuItem key={route.href}>
+                <SidebarMenuButton 
+                asChild 
+                isActive={route.active} 
+                tooltip={route.label}
+                onClick={(e) => handleNavClick(e, route.href)}
+                className={cn(
+                    "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
+                    isDisabled && "opacity-30 cursor-not-allowed grayscale"
                 )}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
+                >
+                <Link href={route.href}>
+                    {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
+                    <span>{route.label}</span>
+                    {route.showBadge && notificationCount > 0 && (
+                    <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                        {notificationCount}
+                    </SidebarMenuBadge>
+                    )}
+                </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
