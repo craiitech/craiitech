@@ -13,7 +13,8 @@ import {
     enableNetwork, 
     disableNetwork,
     waitForPendingWrites,
-    limit
+    limit,
+    getDocsFromCache
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,8 @@ import {
     Unlock,
     Activity,
     X,
-    Search
+    Search,
+    FileCheck
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -47,8 +49,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v3.6 (Enhanced Visibility)
- * Manages local data mirroring, network state locking, and mirror validation.
+ * AUDITOR OFFLINE MANAGER v3.8 (Deep Registry Verification)
+ * Manages local data mirroring, network state locking, and explicit cache validation.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -63,6 +65,7 @@ export function AuditorOfflineManager() {
   const [isNetworkDisabled, setIsNetworkDisabled] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
+  const [mirrorStatus, setMirrorStatus] = useState<'none' | 'found' | 'expired'>('none');
 
   const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours
 
@@ -70,7 +73,11 @@ export function AuditorOfflineManager() {
     const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
     if (storedTime) {
         const date = new Date(storedTime);
-        if (!isNaN(date.getTime())) setLastDownload(date);
+        if (!isNaN(date.getTime())) {
+            setLastDownload(date);
+            const diff = Date.now() - date.getTime();
+            setMirrorStatus(diff > MIRROR_EXPIRY_MS ? 'expired' : 'found');
+        }
     }
 
     // Check if network was previously disabled manually
@@ -79,21 +86,10 @@ export function AuditorOfflineManager() {
         disableNetwork(firestore);
         setIsNetworkDisabled(true);
     }
-  }, [firestore]);
+  }, [firestore, MIRROR_EXPIRY_MS]);
 
   const handleDownloadForOffline = async () => {
     if (!firestore || !user || !isOnline) return;
-
-    if (lastDownload) {
-        const diff = Date.now() - lastDownload.getTime();
-        if (diff < MIRROR_EXPIRY_MS) {
-            toast({
-                title: 'Workspace Up-to-Date',
-                description: `Your local mirror is fresh (created ${format(lastDownload, 'p')}).`,
-            });
-            return;
-        }
-    }
 
     setIsDownloading(true);
     setDownloadProgress('Initializing local repository...');
@@ -128,6 +124,7 @@ export function AuditorOfflineManager() {
 
         const now = new Date();
         setLastDownload(now);
+        setMirrorStatus('found');
         localStorage.setItem('rsu_eoms_last_mirror_time', now.toISOString());
 
         toast({ 
@@ -144,37 +141,40 @@ export function AuditorOfflineManager() {
   };
 
   /**
-   * SEARCH AND VALIDATE LOCAL MIRROR
-   * Explicitly looks for the latest mirrored files in the local cache.
+   * SCAN LOCAL REGISTRY
+   * Explicitly attempts to read from cache to prove mirroring success.
    */
   const handleSearchMirror = async () => {
     if (!firestore) return;
     setIsScanning(true);
     
     try {
-        // 1. Check timestamp in localStorage
-        const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
-        
-        // 2. Perform a verify read from cache to ensure IndexedDB is holding data
-        const q = query(collection(firestore, 'units'), limit(1));
-        const snap = await getDocs(q);
+        // 1. Verify Firestore Cache Registry
+        const unitsRef = collection(firestore, 'units');
+        const cacheSnapshot = await getDocsFromCache(query(unitsRef, limit(1)));
 
-        if (storedTime && !snap.empty) {
+        // 2. Check Persisted Timestamp
+        const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
+
+        if (!cacheSnapshot.empty && storedTime) {
             const date = new Date(storedTime);
             setLastDownload(date);
+            setMirrorStatus('found');
             toast({
-                title: 'Local Mirror Located',
-                description: `Found valid offline files from ${format(date, 'PPP p')}.`,
+                title: 'Local Mirror Verified',
+                description: `Successfully located valid offline data from ${format(date, 'p')}.`,
             });
         } else {
+            setMirrorStatus('none');
             toast({
                 title: 'No Mirror Detected',
-                description: 'Local repository is empty or expired. Please prepare the workspace.',
+                description: 'Local repository is empty. Please prepare the workspace.',
                 variant: 'destructive'
             });
         }
     } catch (e) {
-        toast({ title: 'Scan Error', description: 'Could not verify local cache state.', variant: 'destructive' });
+        setMirrorStatus('none');
+        toast({ title: 'Scan Error', description: 'Could not access local database cache.', variant: 'destructive' });
     } finally {
         setIsScanning(false);
     }
@@ -245,14 +245,17 @@ export function AuditorOfflineManager() {
                     Lock the system into local mode to prevent connectivity interruptions.
                 </CardDescription>
             </div>
-            <Badge variant={isNetworkDisabled ? 'destructive' : 'default'} className="h-6 px-3 font-black uppercase text-[10px] gap-2 border-none">
-                {isNetworkDisabled ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                {isNetworkDisabled ? 'NETWORK LOCKED: OFFLINE' : 'CLOUD SYNC ACTIVE'}
-            </Badge>
+            <div className="flex items-center gap-2">
+                <Badge variant={isNetworkDisabled ? 'destructive' : 'default'} className="h-6 px-3 font-black uppercase text-[10px] gap-2 border-none">
+                    {isNetworkDisabled ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                    {isNetworkDisabled ? 'NETWORK LOCKED: OFFLINE' : 'CLOUD SYNC ACTIVE'}
+                </Badge>
+            </div>
         </div>
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* 1. MIRROR CONTENT SECTION */}
             <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
                 <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -261,7 +264,7 @@ export function AuditorOfflineManager() {
                         </div>
                         <div className="space-y-1">
                             <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
-                            <p className="text-[10px] text-muted-foreground italic">Prepare local repository (Last handshake: {lastDownload ? format(lastDownload, 'p') : 'Never'}).</p>
+                            <p className="text-[10px] text-muted-foreground italic">Prepare local repository for field conduct.</p>
                         </div>
                     </div>
                     <Button 
@@ -275,16 +278,39 @@ export function AuditorOfflineManager() {
                         Scan Local Registry
                     </Button>
                 </div>
+
+                {/* VISUAL MIRROR STATUS */}
+                {mirrorStatus !== 'none' && (
+                    <div className={cn(
+                        "p-3 rounded-xl border flex items-center justify-between transition-all animate-in zoom-in duration-300",
+                        mirrorStatus === 'found' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                    )}>
+                        <div className="flex items-center gap-3">
+                            <div className={cn("h-7 w-7 rounded-full flex items-center justify-center", mirrorStatus === 'found' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
+                                {mirrorStatus === 'found' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                            </div>
+                            <div className="space-y-0.5">
+                                <p className={cn("text-[10px] font-black uppercase", mirrorStatus === 'found' ? "text-emerald-700" : "text-amber-700")}>
+                                    {mirrorStatus === 'found' ? 'READY FOR CONDUCT' : 'MIRROR EXPIRED'}
+                                </p>
+                                <p className="text-[9px] font-bold text-slate-500">Last Sync: {lastDownload ? format(lastDownload, 'PP p') : '--'}</p>
+                            </div>
+                        </div>
+                        {mirrorStatus === 'found' && <Badge className="bg-emerald-600 h-4 text-[7px] font-black">LOCAL ACTIVE</Badge>}
+                    </div>
+                )}
+
                 <Button 
                     onClick={handleDownloadForOffline} 
                     disabled={!isOnline || isDownloading || isNetworkDisabled}
                     className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
                 >
                     {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                    PREPARE FULL WORKSPACE
+                    {mirrorStatus === 'found' ? 'REFRESH LOCAL MIRROR' : 'PREPARE FULL WORKSPACE'}
                 </Button>
             </div>
 
+            {/* 2. NETWORK LOCK SECTION */}
             <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
                 <div className="flex items-start gap-4">
                     <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", isNetworkDisabled ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600")}>
@@ -315,6 +341,12 @@ export function AuditorOfflineManager() {
                         FORCE OFFLINE MODE
                     </Button>
                 )}
+                <div className="p-3 bg-muted/20 rounded-lg border border-dashed flex gap-2">
+                    <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[9px] text-muted-foreground leading-tight italic">
+                        Enable "Force Offline" during actual conduct to prevent UI hangs if the university Wi-Fi is unstable.
+                    </p>
+                </div>
             </div>
         </div>
       </CardContent>
