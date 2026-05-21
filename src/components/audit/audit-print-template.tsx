@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -83,7 +84,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
           <tr className="bg-slate-100">
             <th className="border border-black p-2 text-center w-[70px] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
             <th className="border border-black p-2 text-left uppercase font-black" style={{ fontSize: '10pt' }}>Requirements & Observations (Objective Evidence)</th>
-            <th className="border border-black p-2 text-center w-[90px] uppercase font-black" style={{ fontSize: '10pt' }}>Findings (C, NC, OFI)</th>
+            <th className="border border-black p-2 text-center w-[90px] uppercase font-black" style={{ fontSize: '10pt' }}>Findings (C, NC, OFI, N/A)</th>
           </tr>
         </thead>
         <tbody>
@@ -121,10 +122,13 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                       <span className={cn(
                           "text-base",
                           finding.type === 'Non-Conformance' ? "text-red-600" : 
-                          finding.type === 'Compliance' ? "text-green-600" : "text-amber-600"
+                          finding.type === 'Compliance' ? "text-green-600" : 
+                          finding.type === 'Not Applicable' ? "text-slate-400" :
+                          "text-amber-600"
                       )}>
                           {finding.type === 'Compliance' ? 'C' : 
-                           finding.type === 'Non-Conformance' ? 'NC' : 'OFI'}
+                           finding.type === 'Non-Conformance' ? 'NC' : 
+                           finding.type === 'Not Applicable' ? 'N/A' : 'OFI'}
                       </span>
                   ) : ''}
                 </td>
@@ -184,7 +188,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
       {/* Pagination & Control Footer */}
       <div className="mt-12 pt-4 border-t border-slate-200 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '9pt' }}>
-        <span>RSU-QAO-IQA-LOG | REV 02-2025</span>
+        <span>RSU-QAO-IQA-LOG | REV 03-2025</span>
         <span className="font-bold">Page 1 of 1</span>
         <span>Issued by: {leadAuditorName || qaoDirectorName}</span>
       </div>

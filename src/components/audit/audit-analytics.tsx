@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -86,6 +87,7 @@ const COLORS = {
     Compliance: 'hsl(142 71% 45%)',
     OFI: 'hsl(48 96% 53%)',
     NC: 'hsl(var(--destructive))',
+    NA: 'hsl(var(--muted-foreground))'
 };
 
 export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, campuses, users, isLoading, selectedYear }: AuditAnalyticsProps) {
@@ -120,21 +122,26 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     const leadAuditorName = yearPlans.length > 0 ? yearPlans[0].leadAuditorName : undefined;
     const activePlan = yearPlans.length > 0 ? yearPlans[0] : null;
 
-    const counts = { Compliance: 0, OFI: 0, NC: 0 };
+    const counts = { Compliance: 0, OFI: 0, NC: 0, NA: 0 };
     yearFindings.forEach(f => {
         if (f.type === 'Compliance') counts.Compliance++;
         else if (f.type === 'Observation for Improvement') counts.OFI++;
         else if (f.type === 'Non-Conformance') counts.NC++;
+        else if (f.type === 'Not Applicable') counts.NA++;
     });
+    
     const findingsData = [
         { name: 'Compliance', value: counts.Compliance, fill: COLORS.Compliance },
         { name: 'OFI', value: counts.OFI, fill: COLORS.OFI },
         { name: 'Non-Conformance', value: counts.NC, fill: COLORS.NC },
+        { name: 'Not Applicable', value: counts.NA, fill: COLORS.NA },
     ].filter(d => d.value > 0);
 
     const clauseStats: Record<string, number> = {};
     yearFindings.forEach(f => {
-        clauseStats[f.isoClause] = (clauseStats[f.isoClause] || 0) + 1;
+        if (f.type !== 'Not Applicable') {
+            clauseStats[f.isoClause] = (clauseStats[f.isoClause] || 0) + 1;
+        }
     });
     const clauseData = Object.entries(clauseStats)
         .map(([id, count]) => ({ id, count }))
@@ -148,6 +155,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     };
 
     yearFindings.forEach(f => {
+        if (f.type === 'Not Applicable') return; // Skip N/A in maturity bars
         const schedule = yearSchedules.find(s => s.id === f.auditScheduleId);
         const cat = schedule?.processCategory || 'Operation Processes';
         if (findingsByCategory[cat]) {
@@ -194,7 +202,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     const unitResults: Record<string, { total: number, nc: number, score: number }> = {};
     
     yearSchedules.forEach(s => {
-        const unitFindings = yearFindings.filter(f => f.auditScheduleId === s.id);
+        const unitFindings = yearFindings.filter(f => f.auditScheduleId === s.id && f.type !== 'Not Applicable');
         if (unitFindings.length === 0) return;
 
         const c = unitFindings.filter(f => f.type === 'Compliance').length;
@@ -475,7 +483,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3">
+            <CardFooter className="bg-muted/5 border-t py-3 px-6">
                 <p className="text-[9px] text-muted-foreground italic text-center w-full">Tracking workload distribution and session finalization per auditor.</p>
             </CardFooter>
         </Card>

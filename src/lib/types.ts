@@ -244,7 +244,7 @@ export type AuditFinding = {
     id: string;
     auditScheduleId: string;
     isoClause: string;
-    type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance';
+    type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance' | 'Not Applicable';
     description: string; // Used for general description or Compliance/OFI notes
     evidence: string;
     ncStatement?: string; // New: Formal statement for Non-Conformance

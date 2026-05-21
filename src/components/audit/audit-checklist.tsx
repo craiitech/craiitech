@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -37,7 +38,7 @@ interface ClauseFormData {
   evidence: string;
   description: string;
   ncStatement: string;
-  type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance' | '';
+  type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance' | 'Not Applicable' | '';
 }
 
 function ClauseForm({ 
@@ -211,7 +212,7 @@ function ClauseForm({
                 </ul>
             </div>
 
-            {/* FIELD 1: OBJECTIVE AUDIT EVIDENCE (Moved to top per request) */}
+            {/* FIELD 1: OBJECTIVE AUDIT EVIDENCE */}
             <FormField
             control={form.control}
             name="evidence"
@@ -226,7 +227,7 @@ function ClauseForm({
             )}
             />
 
-            {/* FIELD 2: AUDIT VERIFICATION RESULT (Now between Evidence and Description) */}
+            {/* FIELD 2: AUDIT VERIFICATION RESULT */}
             <FormField
             control={form.control}
             name="type"
@@ -247,13 +248,17 @@ function ClauseForm({
                                 <RadioGroupItem value="Non-Conformance" id={`nc-${clause.id}`} />
                                 <Label htmlFor={`nc-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-destructive cursor-pointer">Non-Conformance (NC)</Label>
                             </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Not Applicable" id={`na-${clause.id}`} />
+                                <Label htmlFor={`na-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-muted-foreground cursor-pointer">Not Applicable (N/A)</Label>
+                            </div>
                         </RadioGroup>
                     </FormControl>
                 </FormItem>
             )}
             />
 
-            {/* FIELD 3: DETAILED DESCRIPTION / NC STATEMENT (Conditional based on Result) */}
+            {/* FIELD 3: DETAILED DESCRIPTION / NC STATEMENT */}
             {watchType === 'Non-Conformance' && (
                 <FormField
                     control={form.control}
@@ -287,7 +292,7 @@ function ClauseForm({
                         <FormItem className="animate-in fade-in duration-300">
                             <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">3. Detailed Description of Finding</FormLabel>
                             <FormControl>
-                                <Textarea {...field} rows={3} placeholder="Provide further context or notes regarding this finding..." className="bg-white border-slate-200 text-xs" disabled={isSubmitting} />
+                                <Textarea {...field} rows={3} placeholder={watchType === 'Not Applicable' ? "Briefly explain why this clause is not applicable to this unit..." : "Provide further context or notes regarding this finding..."} className="bg-white border-slate-200 text-xs" disabled={isSubmitting} />
                             </FormControl>
                         </FormItem>
                     )}
@@ -391,10 +396,11 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                                 "h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110",
                                 findingType === 'Compliance' ? 'bg-emerald-600 text-white' : 
                                 findingType === 'Non-Conformance' ? 'bg-destructive text-white' : 
+                                findingType === 'Not Applicable' ? 'bg-slate-500 text-white' :
                                 'bg-amber-50 text-amber-950'
                             )}
                         >
-                            {findingType === 'Compliance' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : 'OFI'} RECORDED
+                            {findingType === 'Compliance' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : findingType === 'Not Applicable' ? 'N/A' : 'OFI'} RECORDED
                         </Badge>
                     )}
                   </div>

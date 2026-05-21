@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -20,10 +21,11 @@ interface FindingsListProps {
   isAuditor: boolean;
 }
 
-const typeVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
+const typeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   'Non-Conformance': 'destructive',
   'Observation for Improvement': 'secondary',
   'Compliance': 'default',
+  'Not Applicable': 'outline',
 };
 
 export function FindingsList({ findings, schedules, correctiveActionPlans, isAuditor }: FindingsListProps) {
