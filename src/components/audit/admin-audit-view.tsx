@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -5,16 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy } from 'lucide-react';
+import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding } from '@/lib/types';
+import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
 import { AuditPlanCloneDialog } from './audit-plan-clone-dialog';
 import { AuditPlanList } from './audit-plan-list';
 import { AuditAnalytics } from './audit-analytics';
+import { AuditResultsView } from './audit-results-view';
 import { seedIsoClausesClient } from '@/lib/iso-seeder';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -83,6 +85,9 @@ export function AdminAuditView() {
 
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const carsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'correctiveActionRequests') : null), [firestore]);
+  const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carsQuery);
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -165,7 +170,7 @@ export function AdminAuditView() {
     }
   }
   
-  const isLoading = isLoadingPlans || isLoadingCampuses || isLoadingUsers || isLoadingUnits || isLoadingSchedules || isLoadingClauses || isLoadingFindings;
+  const isLoading = isLoadingPlans || isLoadingCampuses || isLoadingUsers || isLoadingUnits || isLoadingSchedules || isLoadingClauses || isLoadingFindings || isLoadingCars;
 
   return (
     <div className="space-y-6">
@@ -208,6 +213,9 @@ export function AdminAuditView() {
                     </TabsTrigger>
                     <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <ListChecks className="h-3.5 w-3.5" /> Itinerary Management
+                    </TabsTrigger>
+                    <TabsTrigger value="results" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                        <ClipboardCheck className="h-3.5 w-3.5" /> Audit Results & CAR Bridge
                     </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -274,6 +282,19 @@ export function AdminAuditView() {
                     )}
                 </CardContent>
             </Card>
+        </TabsContent>
+
+        <TabsContent value="results" className="animate-in fade-in duration-500">
+            <AuditResultsView 
+                selectedYear={selectedYear}
+                plans={auditPlans || []}
+                schedules={schedules || []}
+                findings={findings || []}
+                units={units || []}
+                campuses={campuses || []}
+                cars={cars || []}
+                isLoading={isLoading}
+            />
         </TabsContent>
       </Tabs>
 

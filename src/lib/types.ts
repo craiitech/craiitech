@@ -370,6 +370,7 @@ export type CAREffectivenessAudit = {
 
 export type CorrectiveActionRequest = {
     id: string;
+    findingId?: string; // New: Link to source audit finding
     carNumber: string;
     ncReportNumber?: string;
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
