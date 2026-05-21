@@ -54,9 +54,9 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v5.1 (Deep Mirror Protocol)
+ * AUDITOR OFFLINE MANAGER v5.2
  * Manages local data mirroring, network state locking, and aggressive code prefetching.
- * Now features a collapsible UI with persistent status badges.
+ * Fix: Removed duplicate buttons in Mirror Content section.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -370,14 +370,17 @@ export function AuditorOfflineManager() {
                         </div>
                     )}
 
-                    <Button 
-                        onClick={handleDownloadForOffline} 
-                        disabled={!isOnline || isDownloading || isNetworkDisabled}
-                        className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
-                    >
-                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                        {mirrorStatus === 'found' ? 'REFRESH LOCAL MIRROR' : 'PREPARE FULL WORKSPACE'}
-                    </Button>
+                    {/* Button Refinement: Hide bottom button if the "Mirror Missing" alert is already showing its own action button */}
+                    {!(mirrorStatus === 'none' && hasScanned) && (
+                        <Button 
+                            onClick={handleDownloadForOffline} 
+                            disabled={!isOnline || isDownloading || isNetworkDisabled}
+                            className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
+                        >
+                            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                            {mirrorStatus === 'found' ? 'REFRESH LOCAL MIRROR' : 'PREPARE FULL WORKSPACE'}
+                        </Button>
+                    )}
                 </div>
 
                 <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
