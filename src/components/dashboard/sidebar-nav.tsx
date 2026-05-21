@@ -18,8 +18,8 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
 export function SidebarNav({
   className,
   notificationCount,
-  ...props
-}: SidebarNavProps) {
+  ...props: SidebarNavProps
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const isOnline = useNetworkStatus();
@@ -30,25 +30,24 @@ export function SidebarNav({
     router.push('/logout');
   };
 
-  // Define which routes are specifically mirrored for offline use
-  const OFFLINE_WORKSPACE_ROUTES = [
+  /**
+   * OFFLINE CONDUCT PROTOCOL
+   * When offline, we restrict navigation to only the core audit execution routes
+   * to ensure data integrity and prevent browser "No Internet" errors.
+   */
+  const ALLOWED_OFFLINE_ROUTES = [
     '/dashboard',
-    '/audit',
-    '/monitoring',
-    '/manuals',
-    '/eoms-policy-manual',
-    '/risk-register',
-    '/activity-log'
+    '/audit'
   ];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     if (!isOnline) {
-        const isWorkspaceRoute = OFFLINE_WORKSPACE_ROUTES.some(r => href.startsWith(r));
-        if (!isWorkspaceRoute) {
+        const isAllowed = ALLOWED_OFFLINE_ROUTES.some(r => href.startsWith(r));
+        if (!isAllowed) {
             e.preventDefault();
             toast({
-                title: "Area Unavailable Offline",
-                description: "This module requires an active internet connection. Please return to the mirrored conduct workspace.",
+                title: "Focused Conduct Mode Active",
+                description: "While offline, only the Home and IQA Conduct modules are enabled to ensure secure data entry in the field.",
                 variant: "destructive"
             });
         }
@@ -195,8 +194,8 @@ export function SidebarNav({
     <div className={cn("flex flex-col h-full", className)} {...props}>
       <SidebarMenu className="flex-1">
         {visibleRoutes.map((route) => {
-          const isMirrored = OFFLINE_WORKSPACE_ROUTES.some(r => route.href.startsWith(r));
-          const isDisabled = !isOnline && !isMirrored;
+          const isAllowedOffline = ALLOWED_OFFLINE_ROUTES.some(r => route.href.startsWith(r));
+          const isDisabled = !isOnline && !isAllowedOffline;
 
           return (
             <SidebarMenuItem key={route.href}>
@@ -207,13 +206,13 @@ export function SidebarNav({
                 onClick={(e) => handleNavClick(e, route.href)}
                 className={cn(
                     "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
-                    isDisabled && "opacity-30 cursor-not-allowed grayscale"
+                    isDisabled && "opacity-20 cursor-not-allowed grayscale pointer-events-auto"
                 )}
                 >
                 <Link href={route.href}>
                     {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
                     <span>{route.label}</span>
-                    {route.showBadge && notificationCount > 0 && (
+                    {route.showBadge && notificationCount > 0 && !isDisabled && (
                     <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
                         {notificationCount}
                     </SidebarMenuBadge>
@@ -231,7 +230,11 @@ export function SidebarNav({
                   asChild 
                   isActive={pathname.startsWith('/help')}
                   tooltip="Help"
-                  className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
+                  onClick={(e) => handleNavClick(e, '/help')}
+                  className={cn(
+                    "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
+                    !isOnline && "opacity-20 cursor-not-allowed"
+                  )}
                 >
                   <Link href="/help">
                     <HelpCircle />
