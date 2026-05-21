@@ -42,7 +42,9 @@ import {
     Search,
     FileCheck,
     AlertTriangle,
-    ArrowRight
+    ArrowRight,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -52,8 +54,9 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v5.0 (Deep Mirror Protocol)
+ * AUDITOR OFFLINE MANAGER v5.1 (Deep Mirror Protocol)
  * Manages local data mirroring, network state locking, and aggressive code prefetching.
+ * Now features a collapsible UI with persistent status badges.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -62,6 +65,7 @@ export function AuditorOfflineManager() {
   const router = useRouter();
   const isOnline = useNetworkStatus();
   
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -116,18 +120,12 @@ export function AuditorOfflineManager() {
         // 3. DEEP MIRROR & AGGRESSIVE PREFETCH
         setDownloadProgress('Caching Conduct Workspace...');
         for (const s of myScheds) {
-            // Fetch the specific Plan
             if (s.auditPlanId) {
                 await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             }
-            
-            // Mirror existing findings to prevent blank pages
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
-
-            // AGGRESSIVE: Prefetch the actual route code
             router.prefetch(`/audit/${s.id}`);
-            // Small delay to allow the prefetcher to initiate chunk downloads
             await new Promise(resolve => setTimeout(resolve, 200));
         }
 
@@ -259,7 +257,7 @@ export function AuditorOfflineManager() {
         </div>
     )}
 
-    <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
+    <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden transition-all duration-500">
       <CardHeader className="bg-primary/10 border-b py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -268,133 +266,160 @@ export function AuditorOfflineManager() {
                     Workspace Offline Control Hub
                 </CardTitle>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                    Lock the system into local mode to prevent connectivity interruptions.
+                    Manage institutional data mirroring and connectivity state.
                 </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-                <Badge variant={isNetworkDisabled ? 'destructive' : 'default'} className="h-6 px-3 font-black uppercase text-[10px] gap-2 border-none">
-                    {isNetworkDisabled ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                    {isNetworkDisabled ? 'NETWORK LOCKED: OFFLINE' : 'CLOUD SYNC ACTIVE'}
+            <div className="flex items-center gap-3">
+                {/* 1. Mirror Readiness Badge */}
+                <Badge variant={mirrorStatus === 'found' ? 'default' : 'outline'} className={cn(
+                    "h-7 px-3 font-black uppercase text-[9px] gap-2 transition-all",
+                    mirrorStatus === 'found' ? "bg-emerald-600 text-white border-none" : "bg-white text-muted-foreground border-slate-200"
+                )}>
+                    {mirrorStatus === 'found' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Database className="h-3.5 w-3.5 opacity-40" />}
+                    {mirrorStatus === 'found' ? 'Mirror Ready' : 'No Local Mirror'}
                 </Badge>
+
+                {/* 2. Network State Badge */}
+                <Badge variant={isNetworkDisabled ? 'destructive' : 'outline'} className={cn(
+                    "h-7 px-3 font-black uppercase text-[9px] gap-2 transition-all",
+                    isNetworkDisabled ? "bg-rose-600 text-white border-none" : "bg-white text-primary border-primary/20"
+                )}>
+                    {isNetworkDisabled ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                    {isNetworkDisabled ? 'Network Locked' : 'Cloud Sync Active'}
+                </Badge>
+
+                {/* 3. Collapse Toggle */}
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="h-8 px-3 text-[10px] font-black uppercase text-primary hover:bg-primary/10 border border-primary/10"
+                >
+                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 mr-1.5" /> : <ChevronDown className="h-3.5 w-3.5 mr-1.5" />}
+                    {isExpanded ? 'Hide Controls' : 'Manage Workspace'}
+                </Button>
             </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
-                <div className="flex items-start justify-between">
+      
+      {isExpanded && (
+          <CardContent className="p-6 animate-in slide-in-from-top-2 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                <Download className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
+                                <p className="text-[10px] text-muted-foreground italic">Prepare local repository for field conduct.</p>
+                            </div>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleSearchMirror} 
+                            disabled={isScanning || isDownloading}
+                            className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm"
+                        >
+                            {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                            Scan Local Registry
+                        </Button>
+                    </div>
+
+                    {mirrorStatus !== 'none' ? (
+                        <div className={cn(
+                            "p-3 rounded-xl border flex items-center justify-between transition-all animate-in zoom-in duration-300",
+                            mirrorStatus === 'found' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                        )}>
+                            <div className="flex items-center gap-3">
+                                <div className={cn("h-7 w-7 rounded-full flex items-center justify-center", mirrorStatus === 'found' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
+                                    {mirrorStatus === 'found' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className={cn("text-[10px] font-black uppercase", mirrorStatus === 'found' ? "text-emerald-700" : "text-amber-700")}>
+                                        {mirrorStatus === 'found' ? 'READY FOR CONDUCT' : 'MIRROR EXPIRED'}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-slate-500">Last Sync: {lastDownload ? format(lastDownload, 'p') : '--'}</p>
+                                </div>
+                            </div>
+                            {mirrorStatus === 'found' && <Badge className="bg-emerald-600 h-4 text-[7px] font-black">LOCAL ACTIVE</Badge>}
+                        </div>
+                    ) : hasScanned && (
+                        <div className="animate-in slide-in-from-top-4 duration-500">
+                            <Alert variant="destructive" className="bg-rose-50 border-rose-200 shadow-sm">
+                                <AlertTriangle className="h-4 w-4 text-rose-600" />
+                                <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-rose-800">Local Mirror Not Found</AlertTitle>
+                                <AlertDescription className="space-y-4 pt-1">
+                                    <p className="text-[11px] font-medium text-rose-700 leading-relaxed italic">
+                                        "No cached institutional data was detected on this device. Would you like to download a fresh copy of the online mirror now?"
+                                    </p>
+                                    <Button 
+                                        size="sm" 
+                                        variant="destructive" 
+                                        onClick={handleDownloadForOffline}
+                                        disabled={!isOnline}
+                                        className="h-8 w-full font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-rose-200"
+                                    >
+                                        <Download className="h-3.5 w-3.5" />
+                                        Prepare Workspace Now
+                                    </Button>
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    )}
+
+                    <Button 
+                        onClick={handleDownloadForOffline} 
+                        disabled={!isOnline || isDownloading || isNetworkDisabled}
+                        className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
+                    >
+                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                        {mirrorStatus === 'found' ? 'REFRESH LOCAL MIRROR' : 'PREPARE FULL WORKSPACE'}
+                    </Button>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
                     <div className="flex items-start gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <Download className="h-5 w-5 text-primary" />
+                        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", isNetworkDisabled ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600")}>
+                            {isNetworkDisabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
-                            <p className="text-[10px] text-muted-foreground italic">Prepare local repository for field conduct.</p>
+                            <h4 className="text-xs font-black uppercase text-slate-800">2. Network State Control</h4>
+                            <p className="text-[10px] text-muted-foreground italic">Toggle between Local Storage and Cloud Synchronization.</p>
                         </div>
                     </div>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleSearchMirror} 
-                        disabled={isScanning || isDownloading}
-                        className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm"
-                    >
-                        {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                        Scan Local Registry
-                    </Button>
-                </div>
-
-                {mirrorStatus !== 'none' ? (
-                    <div className={cn(
-                        "p-3 rounded-xl border flex items-center justify-between transition-all animate-in zoom-in duration-300",
-                        mirrorStatus === 'found' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
-                    )}>
-                        <div className="flex items-center gap-3">
-                            <div className={cn("h-7 w-7 rounded-full flex items-center justify-center", mirrorStatus === 'found' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
-                                {mirrorStatus === 'found' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                            </div>
-                            <div className="space-y-0.5">
-                                <p className={cn("text-[10px] font-black uppercase", mirrorStatus === 'found' ? "text-emerald-700" : "text-amber-700")}>
-                                    {mirrorStatus === 'found' ? 'READY FOR CONDUCT' : 'MIRROR EXPIRED'}
-                                </p>
-                                <p className="text-[9px] font-bold text-slate-500">Last Sync: {lastDownload ? format(lastDownload, 'p') : '--'}</p>
-                            </div>
-                        </div>
-                        {mirrorStatus === 'found' && <Badge className="bg-emerald-600 h-4 text-[7px] font-black">LOCAL ACTIVE</Badge>}
+                    {isNetworkDisabled ? (
+                        <Button 
+                            variant="outline"
+                            onClick={() => toggleNetworkLock(false)} 
+                            disabled={!isOnline || isSyncing}
+                            className="w-full h-11 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50"
+                        >
+                            {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
+                            SYNC TO CLOUD & UNLOCK
+                        </Button>
+                    ) : (
+                        <Button 
+                            variant="outline"
+                            onClick={() => toggleNetworkLock(true)} 
+                            className="w-full h-11 border-rose-200 text-rose-600 font-black uppercase text-[10px] tracking-widest hover:bg-rose-50"
+                        >
+                            <CloudOff className="mr-2 h-4 w-4" />
+                            FORCE OFFLINE MODE
+                        </Button>
+                    )}
+                    <div className="p-3 bg-muted/20 rounded-lg border border-dashed flex gap-2">
+                        <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground leading-tight italic">
+                            Enable "Force Offline" during actual conduct to prevent UI hangs if the university Wi-Fi is unstable.
+                        </p>
                     </div>
-                ) : hasScanned && (
-                    <div className="animate-in slide-in-from-top-4 duration-500">
-                        <Alert variant="destructive" className="bg-rose-50 border-rose-200 shadow-sm">
-                            <AlertTriangle className="h-4 w-4 text-rose-600" />
-                            <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-rose-800">Local Mirror Not Found</AlertTitle>
-                            <AlertDescription className="space-y-4 pt-1">
-                                <p className="text-[11px] font-medium text-rose-700 leading-relaxed italic">
-                                    "No cached institutional data was detected on this device. Would you like to download a fresh copy of the online mirror now?"
-                                </p>
-                                <Button 
-                                    size="sm" 
-                                    variant="destructive" 
-                                    onClick={handleDownloadForOffline}
-                                    disabled={!isOnline}
-                                    className="h-8 w-full font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-rose-200"
-                                >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Prepare Workspace Now
-                                </Button>
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                )}
-
-                <Button 
-                    onClick={handleDownloadForOffline} 
-                    disabled={!isOnline || isDownloading || isNetworkDisabled}
-                    className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
-                >
-                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                    {mirrorStatus === 'found' ? 'REFRESH LOCAL MIRROR' : 'PREPARE FULL WORKSPACE'}
-                </Button>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
-                <div className="flex items-start gap-4">
-                    <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", isNetworkDisabled ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600")}>
-                        {isNetworkDisabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
-                    </div>
-                    <div className="space-y-1">
-                        <h4 className="text-xs font-black uppercase text-slate-800">2. Network State Control</h4>
-                        <p className="text-[10px] text-muted-foreground italic">Toggle between Local Storage and Cloud Synchronization.</p>
-                    </div>
-                </div>
-                {isNetworkDisabled ? (
-                    <Button 
-                        variant="outline"
-                        onClick={() => toggleNetworkLock(false)} 
-                        disabled={!isOnline || isSyncing}
-                        className="w-full h-11 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50"
-                    >
-                        {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
-                        SYNC TO CLOUD & UNLOCK
-                    </Button>
-                ) : (
-                    <Button 
-                        variant="outline"
-                        onClick={() => toggleNetworkLock(true)} 
-                        className="w-full h-11 border-rose-200 text-rose-600 font-black uppercase text-[10px] tracking-widest hover:bg-rose-50"
-                    >
-                        <CloudOff className="mr-2 h-4 w-4" />
-                        FORCE OFFLINE MODE
-                    </Button>
-                )}
-                <div className="p-3 bg-muted/20 rounded-lg border border-dashed flex gap-2">
-                    <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[9px] text-muted-foreground leading-tight italic">
-                        Enable "Force Offline" during actual conduct to prevent UI hangs if the university Wi-Fi is unstable.
-                    </p>
                 </div>
             </div>
-        </div>
-      </CardContent>
+          </CardContent>
+      )}
     </Card>
     </>
   );
