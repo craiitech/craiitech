@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, where, arrayUnion, getDoc, getDocs } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, AuditFinding, AuditSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,6 +75,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { useSearchParams, useRouter } from 'next/navigation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -450,18 +457,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
   };
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
-
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile || !liveCar) return;
     setIsSubmitting(true);
@@ -626,7 +621,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <ListChecks className="h-10 w-10" />
                                 <p className="text-xs font-bold uppercase tracking-widest">No results found</p>
                             </div>
-                        </TableRow>
+                        </TableCell>
+                    </TableRow>
                     )}
                 </TableBody>
                 </Table>
@@ -726,7 +722,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingReport(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
