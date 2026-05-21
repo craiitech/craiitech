@@ -648,6 +648,7 @@ export default function HomePage() {
     isLoadingUnits ||
     isLoadingCampuses ||
     isLoadingGlobalSettings ||
+    isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
     isLoadingUsers ||
@@ -1145,7 +1146,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </Tabs>
+      </TabsContent>
       <TabsContent value="history">
         <Card>
           <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
@@ -1479,8 +1480,8 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
-        <RiskMatrix allRisks={allRisks} selectedYear={selectedYear} />
-        <RiskFunnel allRisks={allRisks} selectedYear={selectedYear} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
         <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
