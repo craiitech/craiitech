@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, where, arrayUnion, getDoc, getDocs } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, AuditFinding, AuditSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -559,6 +559,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
@@ -865,7 +877,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
 
             <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l divide-y overflow-hidden">
-                <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 flex flex-col min-w-0">
                     <div className="p-4 bg-white border-b shrink-0 h-12 flex items-center gap-2">
                         <MessageSquare className="h-4 w-4 text-primary" />
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Discussion Log</h4>
