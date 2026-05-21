@@ -31,7 +31,8 @@ import {
     ShieldAlert,
     LayoutGrid,
     BookOpen,
-    ClipboardCheck
+    ClipboardCheck,
+    X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -40,8 +41,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v2.7 (Smart Caching)
- * Performs "Full Workspace Handshake" only if data is older than 2 hours.
+ * AUDITOR OFFLINE MANAGER v2.8 (High-Visibility Preparation)
+ * Performs "Full Workspace Handshake" with a prominent safety warning during data mirror.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -99,7 +100,7 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'campuses'));
         await getDocs(collection(firestore, 'system'));
 
-        // 5. Mirror IQA Content Hub
+        // 5. Mirror IQA Content Hub (All Active/Available sessions)
         setDownloadProgress('Mirroring Audit Itineraries...');
         const allSchedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = allSchedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
@@ -159,6 +160,57 @@ export function AuditorOfflineManager() {
   };
 
   return (
+    <>
+    {/* --- PERSISTENT DANGER ALERT DURING DOWNLOAD --- */}
+    {isDownloading && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-500">
+            <Card className="w-full max-w-xl border-destructive border-4 shadow-[0_0_100px_rgba(220,38,38,0.5)] bg-white animate-in zoom-in duration-300 overflow-hidden">
+                <CardHeader className="text-center space-y-4 pb-2 bg-destructive/10 border-b-2 border-destructive">
+                    <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse shadow-xl">
+                        <ShieldAlert className="h-12 w-12" />
+                    </div>
+                    <div className="space-y-1">
+                        <CardTitle className="text-3xl font-black uppercase text-destructive tracking-tighter animate-emergency-flash">
+                            SYSTEM MIRRORING IN PROGRESS
+                        </CardTitle>
+                        <Badge variant="destructive" className="h-6 px-4 font-black uppercase tracking-widest text-[10px]">Institutional Safety Gate</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-8 px-10 pb-10 space-y-8">
+                    <div className="text-center space-y-2">
+                        <p className="text-lg font-black text-slate-900 leading-tight">
+                            The portal is currently downloading the official registry for offline conduct.
+                        </p>
+                        <p className="text-sm font-bold text-rose-600 italic">
+                            "Please remain on this screen to ensure data integrity."
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between text-[11px] font-black text-primary uppercase tracking-[0.2em]">
+                            <span>{downloadProgress}</span>
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span className="animate-pulse">Active Handshake</span>
+                            </div>
+                        </div>
+                        <Progress value={undefined} className="h-3 bg-muted" />
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-destructive border-2 border-destructive text-white shadow-lg space-y-2">
+                        <div className="flex items-center gap-2 justify-center mb-1">
+                            <Info className="h-4 w-4" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">Crucial Protocol Warning</h4>
+                        </div>
+                        <p className="text-[11px] font-bold leading-relaxed text-center">
+                            DO NOT CLOSE THE BROWSER, REFRESH THE PAGE, OR DISCONNECT FROM THE NETWORK UNTIL THIS PROCESS IS FINALIZED.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )}
+
     <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
       <CardHeader className="bg-primary/10 border-b py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -195,24 +247,14 @@ export function AuditorOfflineManager() {
                         </div>
                     </div>
                     
-                    {isDownloading ? (
-                        <div className="space-y-2 pt-2">
-                            <div className="flex items-center justify-between text-[10px] font-black text-primary uppercase">
-                                <span>{downloadProgress}</span>
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            </div>
-                            <Progress value={50} className="h-1.5" />
-                        </div>
-                    ) : (
-                        <Button 
-                            onClick={handleDownloadForOffline} 
-                            disabled={!isOnline}
-                            className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
-                        >
-                            <Download className="h-4 w-4 mr-2" />
-                            PREPARE FULL WORKSPACE
-                        </Button>
-                    )}
+                    <Button 
+                        onClick={handleDownloadForOffline} 
+                        disabled={!isOnline || isDownloading}
+                        className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                    >
+                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                        PREPARE FULL WORKSPACE
+                    </Button>
                     
                     {lastDownload && (
                         <div className="flex items-center gap-2 pt-2 text-[9px] font-bold text-emerald-600">
@@ -239,7 +281,7 @@ export function AuditorOfflineManager() {
                     <Button 
                         variant="outline"
                         onClick={handleSyncOnline} 
-                        disabled={!isOnline || isSyncing}
+                        disabled={!isOnline || isSyncing || isDownloading}
                         className="w-full h-11 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50"
                     >
                         {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CloudUpload className="h-4 w-4 mr-2" />}
@@ -257,11 +299,12 @@ export function AuditorOfflineManager() {
                       <strong>Operational Guide:</strong> Running the "Handshake" while online ensures that the "IQA Conduct", "Unit Monitoring", and "Risk Register" routes remain interactive even if you lose connectivity.
                   </p>
                   <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-tight">
-                      System Version 2.7: Smart Mirroring Enabled.
+                      System Version 2.8: High-Visibility Mirroring Enabled.
                   </p>
               </div>
           </div>
       </CardFooter>
     </Card>
+    </>
   );
 }
