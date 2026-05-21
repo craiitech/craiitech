@@ -52,8 +52,8 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v4.5 (Mirror Guard Protocol)
- * Manages local data mirroring, network state locking, and explicit cache validation.
+ * AUDITOR OFFLINE MANAGER v5.0 (Deep Mirror Protocol)
+ * Manages local data mirroring, network state locking, and aggressive code prefetching.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -99,32 +99,49 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
-        setDownloadProgress('Caching Workspace Logic...');
-        const routes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/manuals', '/eoms-policy-manual', '/activity-log'];
-        routes.forEach(route => router.prefetch(route));
-
-        setDownloadProgress('Mirroring University Registry...');
+        // 1. MIRROR CORE SYSTEM DATA
+        setDownloadProgress('Mirroring University Standards...');
         await getDocs(collection(firestore, 'isoClauses'));
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
-        await getDocs(collection(firestore, 'system'));
+        await getDoc(doc(firestore, 'system', 'signatories'));
+        await getDoc(doc(firestore, 'system', 'settings'));
 
-        setDownloadProgress('Mirroring Audit Content...');
-        const allSchedSnap = await getDocs(collection(firestore, 'auditSchedules'));
-        const allScheds = allSchedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        // 2. MIRROR PERSONAL AUDIT ITINERARY (Critical for Conduct)
+        setDownloadProgress('Mirroring Audit Itinerary...');
+        const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
+        const schedSnap = await getDocs(mySchedQuery);
+        const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-        for (const s of allScheds) {
-            router.prefetch(`/audit/${s.id}`);
-            if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
+        // 3. DEEP MIRROR & AGGRESSIVE PREFETCH
+        setDownloadProgress('Caching Conduct Workspace...');
+        for (const s of myScheds) {
+            // Fetch the specific Plan
+            if (s.auditPlanId) {
+                await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
+            }
+            
+            // Mirror existing findings to prevent blank pages
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
+
+            // AGGRESSIVE: Prefetch the actual route code
+            router.prefetch(`/audit/${s.id}`);
+            // Small delay to allow the prefetcher to initiate chunk downloads
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
+        // 4. MIRROR OPERATIONAL DATA FOR CONTEXT
         setDownloadProgress('Mirroring Operational Logs...');
         await getDocs(collection(firestore, 'risks'));
         await getDocs(collection(firestore, 'unitMonitoringRecords'));
         await getDocs(collection(firestore, 'procedureManuals'));
         await getDocs(collection(firestore, 'eomsPolicyManuals'));
+
+        // 5. PREFETCH CORE ROUTES
+        setDownloadProgress('Finalizing Handshake...');
+        const coreRoutes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/activity-log'];
+        coreRoutes.forEach(r => router.prefetch(r));
 
         const now = new Date();
         setLastDownload(now);
@@ -134,7 +151,7 @@ export function AuditorOfflineManager() {
 
         toast({ 
             title: 'Workspace Handshake Complete', 
-            description: 'Application logic and data are now stored locally.' 
+            description: 'Application logic and audit data are now stored locally and prefetched.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
@@ -182,12 +199,11 @@ export function AuditorOfflineManager() {
   const toggleNetworkLock = async (forceOffline: boolean) => {
       if (!firestore) return;
       
-      // PROTECTION LAYER: Ensure mirror exists before allowing forced offline
       if (forceOffline && mirrorStatus === 'none') {
           toast({
               variant: "destructive",
               title: "Preparation Required",
-              description: "Cannot force offline mode because no local data mirror was detected. Please click 'Prepare Full Workspace' first while connected to the internet.",
+              description: "Cannot force offline mode without a local data mirror. Please click 'Prepare Full Workspace' first.",
           });
           return;
       }
@@ -235,7 +251,8 @@ export function AuditorOfflineManager() {
                         <Progress value={undefined} className="h-3" />
                     </div>
                     <p className="text-[11px] font-bold leading-relaxed text-center text-destructive">
-                        DO NOT CLOSE OR REFRESH THE PAGE UNTIL COMPLETE.
+                        DO NOT CLOSE OR REFRESH THE PAGE UNTIL COMPLETE.<br/>
+                        WE ARE CACHING ALL CONDUCT LOGIC FOR YOUR ITINERARY.
                     </p>
                 </CardContent>
             </Card>
@@ -264,7 +281,6 @@ export function AuditorOfflineManager() {
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* 1. MIRROR CONTENT SECTION */}
             <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
                 <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -288,7 +304,6 @@ export function AuditorOfflineManager() {
                     </Button>
                 </div>
 
-                {/* VISUAL MIRROR STATUS */}
                 {mirrorStatus !== 'none' ? (
                     <div className={cn(
                         "p-3 rounded-xl border flex items-center justify-between transition-all animate-in zoom-in duration-300",
@@ -326,9 +341,6 @@ export function AuditorOfflineManager() {
                                     <Download className="h-3.5 w-3.5" />
                                     Prepare Workspace Now
                                 </Button>
-                                {!isOnline && (
-                                    <p className="text-[9px] font-bold text-rose-600 text-center uppercase tracking-tighter">Requires Internet Connection to Prepare</p>
-                                )}
                             </AlertDescription>
                         </Alert>
                     </div>
@@ -344,7 +356,6 @@ export function AuditorOfflineManager() {
                 </Button>
             </div>
 
-            {/* 2. NETWORK LOCK SECTION */}
             <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
                 <div className="flex items-start gap-4">
                     <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", isNetworkDisabled ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600")}>

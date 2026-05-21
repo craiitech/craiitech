@@ -1,7 +1,7 @@
 'use client';
 
 import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -19,6 +19,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPrintTemplate } from './audit-print-template';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
@@ -47,6 +48,7 @@ export function AuditorScheduleList({
 }: AuditorScheduleListProps) {
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
+  const router = useRouter();
   
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -66,6 +68,15 @@ export function AuditorScheduleList({
         return timeA - timeB;
     });
   }, [schedules]);
+
+  // Aggressive prefetch for conduct pages when this list is visible while online
+  useEffect(() => {
+    if (isOnline && !isClaimView) {
+        sortedSchedules.forEach(s => {
+            router.prefetch(`/audit/${s.id}`);
+        });
+    }
+  }, [isOnline, sortedSchedules, isClaimView, router]);
 
   const handleRestrictedAction = (actionName: string) => {
       toast({
