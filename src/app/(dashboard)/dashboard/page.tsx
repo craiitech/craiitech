@@ -1212,7 +1212,8 @@ export default function HomePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Auditee</TableHead>
+                                    <TableHead>Auditee Unit</TableHead>
+                                    <TableHead>Campus</TableHead>
                                     <TableHead>Date</TableHead>
                                     <TableHead>Time</TableHead>
                                     <TableHead>Status</TableHead>
@@ -1223,6 +1224,7 @@ export default function HomePage() {
                                 {mySchedules.slice(0, 5).map(s => (
                                     <TableRow key={s.id}>
                                         <TableCell className="font-bold">{s.targetName}</TableCell>
+                                        <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
                                         <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
                                         <TableCell className="text-xs font-medium tabular-nums">
                                             {format(s.scheduledDate.toDate(), 'p')}

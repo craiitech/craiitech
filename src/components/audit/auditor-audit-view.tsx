@@ -5,12 +5,14 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building } from 'lucide-react';
+import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building, LayoutList } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Badge } from '../ui/badge';
+import { ScrollArea } from '../ui/scroll-area';
 
 export function AuditorAuditView() {
   const { user, userProfile, isUserLoading } = useUser();
@@ -61,15 +63,11 @@ export function AuditorAuditView() {
     });
   };
 
-  const mySchedules = useMemo(() => {
-    const list = allSchedules?.filter(s => s.auditorId === user?.uid) || [];
-    return filterSchedules(list);
-  }, [allSchedules, user?.uid, searchTerm, campusFilter]);
+  const mySchedulesRaw = useMemo(() => allSchedules?.filter(s => s.auditorId === user?.uid) || [], [allSchedules, user?.uid]);
+  const availableSchedulesRaw = useMemo(() => allSchedules?.filter(s => s.auditorId === null) || [], [allSchedules]);
 
-  const availableSchedules = useMemo(() => {
-    const list = allSchedules?.filter(s => s.auditorId === null) || [];
-    return filterSchedules(list);
-  }, [allSchedules, searchTerm, campusFilter]);
+  const mySchedulesFiltered = useMemo(() => filterSchedules(mySchedulesRaw), [mySchedulesRaw, searchTerm, campusFilter]);
+  const availableSchedulesFiltered = useMemo(() => filterSchedules(availableSchedulesRaw), [availableSchedulesRaw, searchTerm, campusFilter]);
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
@@ -109,15 +107,19 @@ export function AuditorAuditView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Internal Quality Audits</h2>
-          <p className="text-muted-foreground">Manage audits assigned to you and claim new audits from the available pool.</p>
-        </div>
-      </div>
+      <Tabs defaultValue="my-audits" className="space-y-6">
+        {/* Sticky Header with Filters and Tabs */}
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <LayoutList className="h-6 w-6 text-primary" />
+                    Internal Quality Audits
+                  </h2>
+                  <p className="text-muted-foreground text-sm font-medium">Manage audits assigned to you and claim new audits from the available pool.</p>
+                </div>
+            </div>
 
-      <Card className="border-primary/10 shadow-md">
-        <CardHeader className="bg-muted/10 border-b pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
@@ -148,27 +150,31 @@ export function AuditorAuditView() {
                     </Select>
                 </div>
             </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-            {isLoading ? (
-                <div className="flex flex-col justify-center items-center h-48 gap-3 opacity-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-xs font-black uppercase tracking-widest">Synchronizing Registry...</p>
-                </div>
-            ) : (
-                <Tabs defaultValue="my-audits" className="space-y-6">
-                    <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-                        <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                            <CalendarCheck className="h-4 w-4"/> My Audits
-                        </TabsTrigger>
-                        <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                            <CalendarSearch className="h-4 w-4"/> Available Pool
-                        </TabsTrigger>
-                    </TabsList>
 
-                    <TabsContent value="my-audits" className="animate-in fade-in slide-in-from-left-2 duration-300">
+            <ScrollArea className="w-full">
+                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
+                    <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                        <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length} Units)
+                    </TabsTrigger>
+                    <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                        <CalendarSearch className="h-4 w-4"/> Available Pool ({availableSchedulesRaw.length} Units)
+                    </TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
+
+        <Card className="border-primary/10 shadow-md">
+          <CardContent className="pt-6">
+              {isLoading ? (
+                  <div className="flex flex-col justify-center items-center h-48 gap-3 opacity-20">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-xs font-black uppercase tracking-widest">Synchronizing Registry...</p>
+                  </div>
+              ) : (
+                  <>
+                    <TabsContent value="my-audits" className="animate-in fade-in slide-in-from-left-2 duration-300 m-0">
                         <AuditorScheduleList 
-                            schedules={mySchedules}
+                            schedules={mySchedulesFiltered}
                             plans={plans || []}
                             campuses={campuses || []}
                             units={units || []}
@@ -180,9 +186,9 @@ export function AuditorAuditView() {
                         />
                     </TabsContent>
 
-                    <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300">
+                    <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300 m-0">
                          <AuditorScheduleList 
-                            schedules={availableSchedules}
+                            schedules={availableSchedulesFiltered}
                             plans={plans || []}
                             campuses={campuses || []}
                             units={units || []}
@@ -193,10 +199,11 @@ export function AuditorAuditView() {
                             onClaimAudit={handleClaimAudit}
                         />
                     </TabsContent>
-                </Tabs>
-            )}
-        </CardContent>
-      </Card>
+                  </>
+              )}
+          </CardContent>
+        </Card>
+      </Tabs>
     </div>
   );
 }
