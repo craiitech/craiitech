@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { 
@@ -10,11 +11,13 @@ import {
     query, 
     where, 
     doc,
+    setDoc,
     enableNetwork, 
     disableNetwork,
     waitForPendingWrites,
     limit,
-    getDocsFromCache
+    getDocsFromCache,
+    DocumentData
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +47,10 @@ import {
     AlertTriangle,
     ArrowRight,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Share2,
+    UploadCloud,
+    FileUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -54,9 +60,11 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v5.2
- * Manages local data mirroring, network state locking, and aggressive code prefetching.
- * Fix: Removed duplicate buttons in Mirror Content section.
+ * AUDITOR OFFLINE MANAGER v6.0
+ * Features:
+ * 1. Mirror Logic: Local caching of institutional data.
+ * 2. Network Lock: Forced offline state to prevent browser hangs.
+ * 3. Portability: Export/Import .eoms packages for cross-browser data transfer.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -64,11 +72,14 @@ export function AuditorOfflineManager() {
   const { toast } = useToast();
   const router = useRouter();
   const isOnline = useNetworkStatus();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [isNetworkDisabled, setIsNetworkDisabled] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
@@ -88,7 +99,6 @@ export function AuditorOfflineManager() {
         }
     }
 
-    // Check if network was previously disabled manually
     const storedNetState = localStorage.getItem('rsu_eoms_net_disabled');
     if (storedNetState === 'true' && firestore) {
         disableNetwork(firestore);
@@ -103,22 +113,16 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
-        // 1. MIRROR CORE SYSTEM DATA
-        setDownloadProgress('Mirroring University Standards...');
         await getDocs(collection(firestore, 'isoClauses'));
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
         await getDoc(doc(firestore, 'system', 'settings'));
 
-        // 2. MIRROR PERSONAL AUDIT ITINERARY (Critical for Conduct)
-        setDownloadProgress('Mirroring Audit Itinerary...');
         const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
         const schedSnap = await getDocs(mySchedQuery);
         const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-        // 3. DEEP MIRROR & AGGRESSIVE PREFETCH
-        setDownloadProgress('Caching Conduct Workspace...');
         for (const s of myScheds) {
             if (s.auditPlanId) {
                 await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
@@ -126,18 +130,14 @@ export function AuditorOfflineManager() {
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
             router.prefetch(`/audit/${s.id}`);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        // 4. MIRROR OPERATIONAL DATA FOR CONTEXT
-        setDownloadProgress('Mirroring Operational Logs...');
         await getDocs(collection(firestore, 'risks'));
         await getDocs(collection(firestore, 'unitMonitoringRecords'));
         await getDocs(collection(firestore, 'procedureManuals'));
         await getDocs(collection(firestore, 'eomsPolicyManuals'));
 
-        // 5. PREFETCH CORE ROUTES
-        setDownloadProgress('Finalizing Handshake...');
         const coreRoutes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/activity-log'];
         coreRoutes.forEach(r => router.prefetch(r));
 
@@ -174,35 +174,104 @@ export function AuditorOfflineManager() {
             const date = new Date(storedTime);
             setLastDownload(date);
             setMirrorStatus('found');
-            toast({
-                title: 'Local Mirror Verified',
-                description: `Successfully located valid offline data from ${format(date, 'p')}.`,
-            });
+            toast({ title: 'Local Mirror Verified' });
         } else {
             setMirrorStatus('none');
-            toast({
-                title: 'No Mirror Detected',
-                description: 'Local repository is empty.',
-                variant: 'destructive'
-            });
+            toast({ title: 'No Mirror Detected', variant: 'destructive' });
         }
     } catch (e) {
         setMirrorStatus('none');
-        toast({ title: 'Scan Error', description: 'Could not access local database cache.', variant: 'destructive' });
     } finally {
         setIsScanning(false);
     }
   };
 
+  /**
+   * WORKSPACE EXPORT LOGIC
+   * Grabs all essential data from the local cache and packages it into a file.
+   */
+  const handleExportWorkspace = async () => {
+    if (!firestore || mirrorStatus === 'none') {
+        toast({ title: "Export Restricted", description: "Establish a local mirror first.", variant: "destructive" });
+        return;
+    }
+
+    setIsExporting(true);
+    try {
+        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks', 'procedureManuals', 'eomsPolicyManuals'];
+        const packageData: Record<string, any[]> = {};
+
+        for (const colName of collections) {
+            const snap = await getDocsFromCache(collection(firestore, colName));
+            packageData[colName] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+
+        const blob = new Blob([JSON.stringify({
+            version: '2.5',
+            exportedAt: new Date().toISOString(),
+            data: packageData
+        })], { type: 'application/json' });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `RSU_EOMS_Workspace_${format(new Date(), 'yyyy-MM-dd_HHmm')}.eoms`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({ title: 'Workspace Exported', description: 'Your portable offline package (.eoms) is ready.' });
+    } catch (e) {
+        toast({ title: 'Export Failed', variant: 'destructive' });
+    } finally {
+        setIsExporting(false);
+    }
+  };
+
+  /**
+   * WORKSPACE IMPORT LOGIC
+   * Accepts an .eoms file and writes its content into the local IndexedDB cache.
+   */
+  const handleImportWorkspace = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firestore) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const content = JSON.parse(event.target?.result as string);
+            if (!content.data) throw new Error('Invalid format');
+
+            for (const [colName, docs] of Object.entries(content.data)) {
+                const batchPromises = (docs as any[]).map(d => {
+                    const { id, ...data } = d;
+                    return setDoc(doc(firestore, colName, id), data, { merge: true });
+                });
+                await Promise.all(batchPromises);
+            }
+
+            localStorage.setItem('rsu_eoms_last_mirror_time', content.exportedAt || new Date().toISOString());
+            setMirrorStatus('found');
+            setLastDownload(new Date(content.exportedAt || Date.now()));
+            
+            toast({ title: 'Workspace Imported', description: 'Local database updated with the portable package.' });
+            router.refresh();
+        } catch (err) {
+            toast({ title: 'Import Error', description: 'The file is invalid or corrupted.', variant: 'destructive' });
+        } finally {
+            setIsImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+    reader.readAsText(file);
+  };
+
   const toggleNetworkLock = async (forceOffline: boolean) => {
       if (!firestore) return;
-      
       if (forceOffline && mirrorStatus === 'none') {
-          toast({
-              variant: "destructive",
-              title: "Preparation Required",
-              description: "Cannot force offline mode without a local data mirror. Please click 'Prepare Full Workspace' first.",
-          });
+          toast({ variant: "destructive", title: "Preparation Required", description: "Establishing local mirror first." });
           return;
       }
       
@@ -210,7 +279,7 @@ export function AuditorOfflineManager() {
           await disableNetwork(firestore);
           setIsNetworkDisabled(true);
           localStorage.setItem('rsu_eoms_net_disabled', 'true');
-          toast({ title: 'Network Locked: Offline', description: 'System is now in pure local mode. Cloud sync is disabled.' });
+          toast({ title: 'Network Locked: Offline' });
       } else {
           setIsSyncing(true);
           try {
@@ -218,7 +287,7 @@ export function AuditorOfflineManager() {
               await waitForPendingWrites(firestore);
               setIsNetworkDisabled(false);
               localStorage.setItem('rsu_eoms_net_disabled', 'false');
-              toast({ title: 'System Online', description: 'Network restored and data synchronized.' });
+              toast({ title: 'System Online' });
           } catch(e) {
               toast({ title: 'Sync Error', variant: 'destructive' });
           } finally {
@@ -236,9 +305,7 @@ export function AuditorOfflineManager() {
                     <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse">
                         <ShieldAlert className="h-12 w-12" />
                     </div>
-                    <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">
-                        SYSTEM MIRRORING ACTIVE
-                    </CardTitle>
+                    <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">SYSTEM MIRRORING ACTIVE</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-8 px-10 pb-10 space-y-8">
                     <div className="space-y-3">
@@ -248,10 +315,7 @@ export function AuditorOfflineManager() {
                         </div>
                         <Progress value={undefined} className="h-3" />
                     </div>
-                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive">
-                        DO NOT CLOSE OR REFRESH THE PAGE UNTIL COMPLETE.<br/>
-                        WE ARE CACHING ALL CONDUCT LOGIC FOR YOUR ITINERARY.
-                    </p>
+                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">DO NOT CLOSE OR REFRESH THE PAGE UNTIL COMPLETE.</p>
                 </CardContent>
             </Card>
         </div>
@@ -265,36 +329,18 @@ export function AuditorOfflineManager() {
                     <ShieldCheck className="h-5 w-5 text-primary" />
                     Workspace Offline Control Hub
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                    Manage institutional data mirroring and connectivity state.
-                </CardDescription>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Mirroring, Connectivity & Portability Management.</CardDescription>
             </div>
             <div className="flex items-center gap-3">
-                {/* 1. Mirror Readiness Badge */}
-                <Badge variant={mirrorStatus === 'found' ? 'default' : 'outline'} className={cn(
-                    "h-7 px-3 font-black uppercase text-[9px] gap-2 transition-all",
-                    mirrorStatus === 'found' ? "bg-emerald-600 text-white border-none" : "bg-white text-muted-foreground border-slate-200"
-                )}>
+                <Badge variant={mirrorStatus === 'found' ? 'default' : 'outline'} className={cn("h-7 px-3 font-black uppercase text-[9px] gap-2", mirrorStatus === 'found' ? "bg-emerald-600 text-white border-none" : "bg-white text-muted-foreground border-slate-200")}>
                     {mirrorStatus === 'found' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Database className="h-3.5 w-3.5 opacity-40" />}
                     {mirrorStatus === 'found' ? 'Mirror Ready' : 'No Local Mirror'}
                 </Badge>
-
-                {/* 2. Network State Badge */}
-                <Badge variant={isNetworkDisabled ? 'destructive' : 'outline'} className={cn(
-                    "h-7 px-3 font-black uppercase text-[9px] gap-2 transition-all",
-                    isNetworkDisabled ? "bg-rose-600 text-white border-none" : "bg-white text-primary border-primary/20"
-                )}>
+                <Badge variant={isNetworkDisabled ? 'destructive' : 'outline'} className={cn("h-7 px-3 font-black uppercase text-[9px] gap-2", isNetworkDisabled ? "bg-rose-600 text-white border-none" : "bg-white text-primary border-primary/20")}>
                     {isNetworkDisabled ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
                     {isNetworkDisabled ? 'Network Locked' : 'Cloud Sync Active'}
                 </Badge>
-
-                {/* 3. Collapse Toggle */}
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="h-8 px-3 text-[10px] font-black uppercase text-primary hover:bg-primary/10 border border-primary/10"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setIsExpanded(!isExpanded)} className="h-8 px-3 text-[10px] font-black uppercase text-primary hover:bg-primary/10 border border-primary/10">
                     {isExpanded ? <ChevronUp className="h-3.5 w-3.5 mr-1.5" /> : <ChevronDown className="h-3.5 w-3.5 mr-1.5" />}
                     {isExpanded ? 'Hide Controls' : 'Manage Workspace'}
                 </Button>
@@ -304,121 +350,81 @@ export function AuditorOfflineManager() {
       
       {isExpanded && (
           <CardContent className="p-6 animate-in slide-in-from-top-2 duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* 1. MIRRORING */}
                 <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
                     <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                <Download className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="space-y-1">
-                                <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
-                                <p className="text-[10px] text-muted-foreground italic">Prepare local repository for field conduct.</p>
-                            </div>
+                        <div className="space-y-1">
+                            <h4 className="text-xs font-black uppercase text-slate-800">1. Mirror Content</h4>
+                            <p className="text-[10px] text-muted-foreground italic">Sync cloud data to device cache.</p>
                         </div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={handleSearchMirror} 
-                            disabled={isScanning || isDownloading}
-                            className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm"
-                        >
-                            {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                            Scan Local Registry
+                        <Button variant="outline" size="sm" onClick={handleSearchMirror} disabled={isScanning || isDownloading} className="h-8 px-3 font-black uppercase text-[9px] bg-white border-primary/20 text-primary gap-1.5">
+                            {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                            Scan Local
                         </Button>
                     </div>
-
                     {mirrorStatus !== 'none' ? (
-                        <div className={cn(
-                            "p-3 rounded-xl border flex items-center justify-between transition-all animate-in zoom-in duration-300",
-                            mirrorStatus === 'found' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
-                        )}>
+                        <div className={cn("p-3 rounded-xl border flex items-center justify-between", mirrorStatus === 'found' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200")}>
                             <div className="flex items-center gap-3">
-                                <div className={cn("h-7 w-7 rounded-full flex items-center justify-center", mirrorStatus === 'found' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
-                                    {mirrorStatus === 'found' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                                </div>
+                                {mirrorStatus === 'found' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Clock className="h-4 w-4 text-amber-600" />}
                                 <div className="space-y-0.5">
-                                    <p className={cn("text-[10px] font-black uppercase", mirrorStatus === 'found' ? "text-emerald-700" : "text-amber-700")}>
-                                        {mirrorStatus === 'found' ? 'READY FOR CONDUCT' : 'MIRROR EXPIRED'}
-                                    </p>
-                                    <p className="text-[9px] font-bold text-slate-500">Last Sync: {lastDownload ? format(lastDownload, 'p') : '--'}</p>
+                                    <p className={cn("text-[9px] font-black uppercase", mirrorStatus === 'found' ? "text-emerald-700" : "text-amber-700")}>{mirrorStatus === 'found' ? 'READY FOR CONDUCT' : 'EXPIRED'}</p>
+                                    <p className="text-[8px] font-bold text-slate-500">Sync: {lastDownload ? format(lastDownload, 'p') : '--'}</p>
                                 </div>
                             </div>
-                            {mirrorStatus === 'found' && <Badge className="bg-emerald-600 h-4 text-[7px] font-black">LOCAL ACTIVE</Badge>}
                         </div>
                     ) : hasScanned && (
-                        <div className="animate-in slide-in-from-top-4 duration-500">
-                            <Alert variant="destructive" className="bg-rose-50 border-rose-200 shadow-sm">
-                                <AlertTriangle className="h-4 w-4 text-rose-600" />
-                                <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-rose-800">Local Mirror Not Found</AlertTitle>
-                                <AlertDescription className="space-y-4 pt-1">
-                                    <p className="text-[11px] font-medium text-rose-700 leading-relaxed italic">
-                                        "No cached institutional data was detected on this device. Would you like to download a fresh copy of the online mirror now?"
-                                    </p>
-                                    <Button 
-                                        size="sm" 
-                                        variant="destructive" 
-                                        onClick={handleDownloadForOffline}
-                                        disabled={!isOnline}
-                                        className="h-8 w-full font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-rose-200"
-                                    >
-                                        <Download className="h-3.5 w-3.5" />
-                                        Prepare Workspace Now
-                                    </Button>
-                                </AlertDescription>
-                            </Alert>
-                        </div>
+                        <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-3">
+                            <AlertTitle className="text-[9px] font-black uppercase">No Mirror Detected</AlertTitle>
+                            <Button size="sm" variant="destructive" onClick={handleDownloadForOffline} disabled={!isOnline} className="h-7 w-full font-black text-[9px] mt-2">DOWNLOAD NOW</Button>
+                        </Alert>
                     )}
-
-                    {/* Button Refinement: Hide bottom button if the "Mirror Missing" alert is already showing its own action button */}
                     {!(mirrorStatus === 'none' && hasScanned) && (
-                        <Button 
-                            onClick={handleDownloadForOffline} 
-                            disabled={!isOnline || isDownloading || isNetworkDisabled}
-                            className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-lg"
-                        >
-                            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                            {mirrorStatus === 'found' ? 'REFRESH LOCAL MIRROR' : 'PREPARE FULL WORKSPACE'}
+                        <Button onClick={handleDownloadForOffline} disabled={!isOnline || isDownloading || isNetworkDisabled} className="w-full h-10 font-black uppercase text-[10px]">
+                            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
+                            {mirrorStatus === 'found' ? 'REFRESH MIRROR' : 'START HANDSHAKE'}
                         </Button>
                     )}
                 </div>
 
+                {/* 2. NETWORK LOCK */}
                 <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
-                    <div className="flex items-start gap-4">
-                        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", isNetworkDisabled ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600")}>
-                            {isNetworkDisabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
-                        </div>
-                        <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800">2. Network State Control</h4>
-                            <p className="text-[10px] text-muted-foreground italic">Toggle between Local Storage and Cloud Synchronization.</p>
-                        </div>
+                    <div className="space-y-1">
+                        <h4 className="text-xs font-black uppercase text-slate-800">2. Network Lock</h4>
+                        <p className="text-[10px] text-muted-foreground italic">Force local-only execution.</p>
                     </div>
                     {isNetworkDisabled ? (
-                        <Button 
-                            variant="outline"
-                            onClick={() => toggleNetworkLock(false)} 
-                            disabled={!isOnline || isSyncing}
-                            className="w-full h-11 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50"
-                        >
+                        <Button variant="outline" onClick={() => toggleNetworkLock(false)} disabled={!isOnline || isSyncing} className="w-full h-10 border-indigo-200 text-indigo-700 font-black uppercase text-[10px] hover:bg-indigo-50">
                             {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
-                            SYNC TO CLOUD & UNLOCK
+                            SYNC & UNLOCK
                         </Button>
                     ) : (
-                        <Button 
-                            variant="outline"
-                            onClick={() => toggleNetworkLock(true)} 
-                            className="w-full h-11 border-rose-200 text-rose-600 font-black uppercase text-[10px] tracking-widest hover:bg-rose-50"
-                        >
+                        <Button variant="outline" onClick={() => toggleNetworkLock(true)} className="w-full h-10 border-rose-200 text-rose-600 font-black uppercase text-[10px] hover:bg-rose-50">
                             <CloudOff className="mr-2 h-4 w-4" />
-                            FORCE OFFLINE MODE
+                            FORCE OFFLINE
                         </Button>
                     )}
-                    <div className="p-3 bg-muted/20 rounded-lg border border-dashed flex gap-2">
-                        <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-muted-foreground leading-tight italic">
-                            Enable "Force Offline" during actual conduct to prevent UI hangs if the university Wi-Fi is unstable.
-                        </p>
+                    <div className="p-2 bg-muted/20 rounded-lg border border-dashed text-[9px] text-muted-foreground">LOCK preventing UI hangs in unstable Wi-Fi zones.</div>
+                </div>
+
+                {/* 3. PORTABILITY (EXPORT/IMPORT) */}
+                <div className="p-5 rounded-2xl bg-white border border-blue-100 shadow-sm space-y-4">
+                    <div className="space-y-1">
+                        <h4 className="text-xs font-black uppercase text-slate-800">3. Portability</h4>
+                        <p className="text-[10px] text-muted-foreground italic">Cross-browser data transfer.</p>
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" onClick={handleExportWorkspace} disabled={isExporting || mirrorStatus === 'none'} className="h-10 border-blue-200 text-blue-700 font-black uppercase text-[10px]">
+                            {isExporting ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Share2 className="h-3 w-3 mr-1.5" />}
+                            EXPORT
+                        </Button>
+                        <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="h-10 border-blue-200 text-blue-700 font-black uppercase text-[10px]">
+                            {isImporting ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <FileUp className="h-3 w-3 mr-1.5" />}
+                            IMPORT
+                        </Button>
+                        <input type="file" ref={fileInputRef} className="hidden" accept=".eoms" onChange={handleImportWorkspace} />
+                    </div>
+                    <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100 text-[9px] text-blue-800 italic leading-tight">Transfer your mirror to a FIELD LAPTOP or DIFFERENT BROWSER via USB without cloud access.</div>
                 </div>
             </div>
           </CardContent>
@@ -427,3 +433,4 @@ export function AuditorOfflineManager() {
     </>
   );
 }
+
