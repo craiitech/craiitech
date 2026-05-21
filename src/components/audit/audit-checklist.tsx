@@ -211,12 +211,28 @@ function ClauseForm({
                 </ul>
             </div>
 
+            {/* FIELD 1: OBJECTIVE AUDIT EVIDENCE (Moved to top per request) */}
+            <FormField
+            control={form.control}
+            name="evidence"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">1. Objective Audit Evidence / Verified Observations</FormLabel>
+                <FormControl>
+                    <Textarea {...field} rows={4} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner text-xs" disabled={isSubmitting} />
+                </FormControl>
+                <FormDescription className="text-[9px]">Document the specific evidence that supports the finding before determining the result.</FormDescription>
+                </FormItem>
+            )}
+            />
+
+            {/* FIELD 2: AUDIT VERIFICATION RESULT (Now between Evidence and Description) */}
             <FormField
             control={form.control}
             name="type"
             render={({ field }) => (
-                <FormItem className="space-y-3">
-                    <FormLabel className="font-bold text-xs uppercase tracking-wider">Audit Verification Result</FormLabel>
+                <FormItem className="space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed">
+                    <FormLabel className="font-black text-xs uppercase tracking-wider text-primary">2. Audit Verification Result</FormLabel>
                     <FormControl>
                         <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2" disabled={isSubmitting}>
                             <div className="flex items-center space-x-2">
@@ -225,7 +241,7 @@ function ClauseForm({
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Observation for Improvement" id={`ofi-${clause.id}`} />
-                                <Label htmlFor={`ofi-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Opportunity for Improvement (OFI)</Label>
+                                <Label htmlFor={`ofi-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Observation for Improvement (OFI)</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Non-Conformance" id={`nc-${clause.id}`} />
@@ -237,6 +253,7 @@ function ClauseForm({
             )}
             />
 
+            {/* FIELD 3: DETAILED DESCRIPTION / NC STATEMENT (Conditional based on Result) */}
             {watchType === 'Non-Conformance' && (
                 <FormField
                     control={form.control}
@@ -245,7 +262,7 @@ function ClauseForm({
                         <FormItem className="animate-in slide-in-from-top-2 duration-300">
                             <div className="flex items-center gap-2 mb-2">
                                 <AlertTriangle className="h-4 w-4 text-destructive" />
-                                <FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">Formal Non-Conformance Statement</FormLabel>
+                                <FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">3. Detailed Description of Finding (NC Statement)</FormLabel>
                             </div>
                             <FormControl>
                                 <Textarea 
@@ -262,27 +279,13 @@ function ClauseForm({
                 />
             )}
 
-            <FormField
-            control={form.control}
-            name="evidence"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel className="font-bold text-xs uppercase tracking-wider">Objective Audit Evidence / Verified Observations</FormLabel>
-                <FormControl>
-                    <Textarea {...field} rows={4} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner text-xs" disabled={isSubmitting} />
-                </FormControl>
-                <FormDescription className="text-[9px]">Document the specific evidence that supports the finding.</FormDescription>
-                </FormItem>
-            )}
-            />
-
             {watchType !== 'Non-Conformance' && watchType !== '' && (
                 <FormField
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="font-bold text-xs uppercase tracking-wider">Detailed Description of Finding</FormLabel>
+                        <FormItem className="animate-in fade-in duration-300">
+                            <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">3. Detailed Description of Finding</FormLabel>
                             <FormControl>
                                 <Textarea {...field} rows={3} placeholder="Provide further context or notes regarding this finding..." className="bg-white border-slate-200 text-xs" disabled={isSubmitting} />
                             </FormControl>
