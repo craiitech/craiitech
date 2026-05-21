@@ -158,6 +158,7 @@ export default function SubmissionDetailPage() {
   const [rotation, setRotation] = useState(0);
   const [isAdminReviewOverride, setIsAdminReviewOverride] = useState(false);
   const [isRiskSyncOpen, setIsRiskSyncOpen] = useState(false);
+  const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
   const [showBridgeChoices, setShowBridgeChoices] = useState(false);
   const [verifyingRiskId, setVerifyingRiskId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
@@ -432,6 +433,11 @@ export default function SubmissionDetailPage() {
         setVerifyingRiskId(null);
     }
   };
+
+  const handleEditRisk = (risk: Risk) => {
+    setEditingRisk(risk);
+    setIsRiskSyncOpen(true);
+  };
   
   const getStatusText = (sub: Submission) => {
     if (sub.statusId === 'submitted') return 'AWAITING APPROVAL';
@@ -450,7 +456,10 @@ export default function SubmissionDetailPage() {
 
   const handleOpenRiskBridge = () => {
     if (existingRisks && existingRisks.length > 0) setShowBridgeChoices(true);
-    else setIsRiskSyncOpen(true);
+    else {
+        setEditingRisk(null);
+        setIsRiskSyncOpen(true);
+    }
   };
 
   if (isLoading) return <LoadingSkeleton />;
@@ -458,7 +467,7 @@ export default function SubmissionDetailPage() {
   if (!submission) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-2xl font-bold">Submission Not Found</h2>
+        h2 className="text-2xl font-bold">Submission Not Found</h2>
         <p className="text-muted-foreground mt-2">The submission record may have been deleted or moved.</p>
         <Button asChild className="mt-4"><Link href="/submissions"><ArrowLeft className="mr-2 h-4 w-4" />Back to Submissions</Link></Button>
       </div>
@@ -581,6 +590,8 @@ export default function SubmissionDetailPage() {
                               <div className="divide-y">
                                   {existingRisks.map((risk) => {
                                       const isPass = risk.verification?.status.includes('Correct') || risk.verification?.status.includes('Updated');
+                                      const canEditRisk = isAdmin || (user?.uid === submission.userId);
+
                                       return (
                                       <div key={risk.id} className="p-4 hover:bg-muted/20 transition-colors group">
                                           <div className="flex flex-col gap-4">
@@ -608,6 +619,16 @@ export default function SubmissionDetailPage() {
                                                           <Badge variant="outline" className="text-[9px] font-black uppercase h-5 px-2 bg-muted">{risk.status}</Badge>
                                                           <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">LATEST STATUS</p>
                                                       </div>
+                                                      {canEditRisk && (
+                                                          <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={() => handleEditRisk(risk)}
+                                                          >
+                                                              <Edit className="h-4 w-4" />
+                                                          </Button>
+                                                      )}
                                                   </div>
                                               </div>
 
@@ -705,7 +726,7 @@ export default function SubmissionDetailPage() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <Button 
-                                            onClick={() => { setIsRiskSyncOpen(true); setShowBridgeChoices(false); }}
+                                            onClick={() => { setEditingRisk(null); setIsRiskSyncOpen(true); setShowBridgeChoices(false); }}
                                             className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest shadow-lg bg-indigo-600 hover:bg-indigo-700"
                                         >
                                             <PlusCircle className="h-5 w-5" />
@@ -759,7 +780,7 @@ export default function SubmissionDetailPage() {
                 )}
                 <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
                     <CardHeader className="bg-primary/5 border-b"><CardTitle>{submission.isDraft ? 'Review Determination' : 'Final Determination'}</CardTitle><CardDescription>Provide context or constructive feedback for the unit coordinator.</CardDescription></CardHeader>
-                    <CardContent className="space-y-4 pt-6"><div><Label htmlFor="feedback">Official Comments</Label><Textarea id="feedback" placeholder={submission.isDraft ? "Suggest corrections..." : "Enter approval notes or rejection findings..."} value={feedback} onChange={(e) => setFeedback(target => setFeedback(e.target.value))} disabled={isSubmitting} className="min-h-[120px]" /></div></CardContent>
+                    <CardContent className="space-y-4 pt-6"><div><Label htmlFor="feedback">Official Comments</Label><Textarea id="feedback" placeholder={submission.isDraft ? "Suggest corrections..." : "Enter approval notes or rejection findings..."} value={feedback} onChange={(e) => setFeedback(e.target.value)} disabled={isSubmitting} className="min-h-[120px]" /></div></CardContent>
                     <CardFooter className="flex justify-end gap-3 pt-2 bg-muted/5 border-t py-4"><Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}{submission.isDraft ? 'Request Draft Changes' : 'Reject Submission'}</Button><Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className={cn("shadow-lg font-black", submission.isDraft ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200" : "shadow-primary/20")}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}{submission.isDraft ? 'Clear Draft for Finalization' : 'Approve Record'}</Button></CardFooter>
                 </Card>
             </>
@@ -846,7 +867,20 @@ export default function SubmissionDetailPage() {
         )}
       </div>
 
-      {isAdmin && isRiskSyncOpen && submission && (<RiskFormDialog isOpen={isRiskSyncOpen} onOpenChange={setIsRiskSyncOpen} risk={null} unitUsers={unitUsers || []} allUnits={allUnits || []} allCampuses={allCampuses || []} defaultYear={submission.year} defaultUnitId={submission.unitId} defaultCampusId={submission.campusId} registryLink={submission.googleDriveLink} />)}
+      {isRiskSyncOpen && submission && (
+        <RiskFormDialog 
+            isOpen={isRiskSyncOpen} 
+            onOpenChange={setIsRiskSyncOpen} 
+            risk={editingRisk} 
+            unitUsers={unitUsers || []} 
+            allUnits={allUnits || []} 
+            allCampuses={allCampuses || []} 
+            defaultYear={submission.year} 
+            defaultUnitId={submission.unitId} 
+            defaultCampusId={submission.campusId} 
+            registryLink={submission.googleDriveLink} 
+        />
+      )}
     </div>
   );
 }
