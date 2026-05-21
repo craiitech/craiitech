@@ -87,7 +87,23 @@ export function AuditorAuditView() {
         console.error("Error claiming audit:", error);
         toast({ title: 'Error', description: 'Could not claim the audit.', variant: 'destructive'});
     }
-  }
+  };
+
+  const handleUnclaimAudit = async (scheduleId: string) => {
+      if (!firestore) return;
+      
+      const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
+      try {
+          await updateDoc(scheduleRef, {
+              auditorId: null,
+              auditorName: null,
+              status: 'Scheduled'
+          });
+          toast({ title: 'Unit Removed', description: 'Audit has been released back to the available pool.' });
+      } catch (error) {
+          toast({ title: 'Error', description: 'Could not remove audit.', variant: 'destructive' });
+      }
+  };
 
   const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses || isLoadingFindings;
 
@@ -160,6 +176,7 @@ export function AuditorAuditView() {
                             findings={findings || []}
                             signatories={signatories || undefined}
                             isClaimView={false}
+                            onUnclaimAudit={handleUnclaimAudit}
                         />
                     </TabsContent>
 

@@ -27,7 +27,8 @@ import {
     CheckCircle2,
     Wifi,
     WifiOff,
-    ShieldAlert
+    ShieldAlert,
+    ShieldX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -199,6 +200,14 @@ export default function AuditExecutionPage() {
     };
   }, [watchAll, schedule, scheduleDocRef]);
 
+  const handleRestrictedAction = (name: string) => {
+    toast({
+        variant: "destructive",
+        title: "Action Restricted",
+        description: `${name} is not available in the offline workspace. Please connect to the university network to proceed.`,
+    });
+  };
+
   const handleSaveSummary = async (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
     setIsSavingSummary(true);
@@ -259,6 +268,10 @@ export default function AuditExecutionPage() {
   };
 
   const handlePrintLog = () => {
+    if (!isOnline) {
+        handleRestrictedAction("Printing official evidence logs");
+        return;
+    }
     if (!schedule || !findings || !allIsoClauses) return;
     try {
         const reportHtml = renderToStaticMarkup(
@@ -361,7 +374,18 @@ export default function AuditExecutionPage() {
                 ) : null}
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsDossierVisible(!isDossierVisible)} className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5">{isDossierVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}{isDossierVisible ? 'Hide Dossier' : 'Show Dossier'}</Button>
-            <Button variant="outline" size="sm" onClick={handlePrintLog} className="bg-white shadow-sm font-bold h-9"><Printer className="mr-2 h-4 w-4" />Print Evidence Log</Button>
+            
+            <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handlePrintLog} 
+                className={cn("bg-white shadow-sm font-bold h-9", !isOnline && "opacity-50")}
+                title={isOnline ? "Print Report" : "Restricted while Offline"}
+            >
+                {isOnline ? <Printer className="mr-2 h-4 w-4" /> : <ShieldX className="mr-2 h-4 w-4" />}
+                Print Evidence Log
+            </Button>
+            
             <Badge variant={schedule.status === 'Completed' ? 'default' : 'secondary'} className="h-9 px-4 font-black uppercase tracking-widest border-none shadow-sm">{schedule.status}</Badge>
         </div>
       </div>

@@ -14,9 +14,11 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { Check, Clock, User, Printer, FileText } from 'lucide-react';
+import { Check, Clock, User, Printer, FileText, UserMinus, ShieldAlert } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPrintTemplate } from './audit-print-template';
+import { useNetworkStatus } from '@/hooks/use-network-status';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
@@ -28,6 +30,7 @@ interface AuditorScheduleListProps {
     signatories?: Signatories;
     isClaimView: boolean;
     onClaimAudit?: (scheduleId: string) => void;
+    onUnclaimAudit?: (scheduleId: string) => void;
 }
 
 export function AuditorScheduleList({ 
@@ -39,8 +42,11 @@ export function AuditorScheduleList({
     findings,
     signatories,
     isClaimView, 
-    onClaimAudit 
+    onClaimAudit,
+    onUnclaimAudit
 }: AuditorScheduleListProps) {
+  const isOnline = useNetworkStatus();
+  const { toast } = useToast();
   
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -61,7 +67,20 @@ export function AuditorScheduleList({
     });
   }, [schedules]);
 
+  const handleRestrictedAction = (actionName: string) => {
+      toast({
+          variant: "destructive",
+          title: "Action Restricted",
+          description: `${actionName} is not part of the offline workspace. Please connect to the internet to perform this task.`,
+      });
+  };
+
   const handlePrintTemplate = (schedule: AuditSchedule, withData: boolean = false) => {
+    if (!isOnline) {
+        handleRestrictedAction("Printing official documents");
+        return;
+    }
+
     const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
     const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
     
@@ -172,22 +191,22 @@ export function AuditorScheduleList({
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
-                                    onClick={() => handlePrintTemplate(schedule, false)}
-                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
-                                    title="Print Blank Template for Offline Use"
+                                    onClick={() => onUnclaimAudit?.(schedule.id)}
+                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-rose-200 text-rose-600 hover:bg-rose-50"
+                                    title="Unclaim this unit (Remove from My Audits)"
                                 >
-                                    <Printer className="h-3.5 w-3.5 mr-1.5" />
-                                    Print Template
+                                    <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+                                    Remove
                                 </Button>
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
-                                    onClick={() => handlePrintTemplate(schedule, true)}
-                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                                    title="Print Checklist with Data/Evidence"
+                                    onClick={() => handlePrintTemplate(schedule, false)}
+                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
+                                    title={isOnline ? "Print Template" : "Restricted: Offline"}
                                 >
-                                    <FileText className="h-3.5 w-3.5 mr-1.5" />
-                                    Print Evidence Log
+                                    {isOnline ? <Printer className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
+                                    Print Template
                                 </Button>
                             </>
                         )}
