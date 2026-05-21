@@ -467,7 +467,7 @@ export default function SubmissionDetailPage() {
   if (!submission) {
     return (
       <div className="text-center py-20">
-        h2 className="text-2xl font-bold">Submission Not Found</h2>
+        <h2 className="text-2xl font-bold">Submission Not Found</h2>
         <p className="text-muted-foreground mt-2">The submission record may have been deleted or moved.</p>
         <Button asChild className="mt-4"><Link href="/submissions"><ArrowLeft className="mr-2 h-4 w-4" />Back to Submissions</Link></Button>
       </div>
