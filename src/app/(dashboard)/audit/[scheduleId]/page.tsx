@@ -190,7 +190,6 @@ export default function AuditExecutionPage() {
     if (hasChanged) {
         if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
         
-        // Extended auto-save timeout to 8 seconds
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
         }, 8000);
@@ -320,21 +319,46 @@ export default function AuditExecutionPage() {
     const clauseId = finding.isoClause;
     const type = finding.type;
     const actualText = type === 'Non-Conformance' ? (finding.ncStatement || finding.description) : finding.description;
-    if (!actualText) return;
-    const formattedEntry = `[Clause ${clauseId}]: ${actualText}`;
-    const summaryFields: (keyof z.infer<typeof summarySchema>)[] = ['summaryCommendable', 'summaryCompliance', 'summaryOFI', 'summaryNC'];
+    
+    if (!actualText || !actualText.trim()) return;
+
+    const formattedEntry = `[Clause ${clauseId}]: ${actualText.trim()}`;
+    const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
+      'summaryCommendable', 
+      'summaryCompliance', 
+      'summaryOFI', 
+      'summaryNC'
+    ];
+
     let targetFieldName: keyof z.infer<typeof summarySchema> | null = null;
     if (type === 'Compliance') targetFieldName = 'summaryCompliance';
     else if (type === 'Observation for Improvement') targetFieldName = 'summaryOFI';
     else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
+
     if (!targetFieldName) return;
+
     summaryFields.forEach(fName => {
         if (fName === 'officerInCharge' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualEndTime') return;
+        
         const val = form.getValues(fName) || '';
-        const lines = val.split('\n').filter(l => l.trim() !== '');
-        const updatedLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
-        if (fName === targetFieldName) updatedLines.push(formattedEntry);
-        form.setValue(fName, updatedLines.join('\n'));
+        
+        // 1. Split into lines, trim, and filter out empty strings
+        let lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        
+        // 2. Proactive Cleanup: Remove any existing line for this specific clause from ALL fields
+        // This handles cases where a finding's type changes (e.g., from OFI to Compliance).
+        lines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
+        
+        // 3. Add the new entry if it's the target field for the finding's type
+        if (fName === targetFieldName) {
+            lines.push(formattedEntry);
+        }
+        
+        // 4. (FIX FOR DUPLICATES) Exact String Deduplication
+        // This ensures the summary remains clean and prevents programmatic or manual duplication.
+        const uniqueLines = Array.from(new Set(lines));
+        
+        form.setValue(fName, uniqueLines.join('\n'));
     });
   };
 
