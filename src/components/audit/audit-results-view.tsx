@@ -32,7 +32,8 @@ import {
     Gavel,
     History,
     ShieldCheck,
-    Loader2
+    Loader2,
+    User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp, collection, doc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
@@ -292,7 +293,7 @@ export function AuditResultsView({
                     <ShieldAlert className="h-5 w-5 text-rose-600" />
                     <CardTitle className="text-sm font-black uppercase tracking-tight">Active Audit Findings Registry (Non-Conformances Only)</CardTitle>
                   </div>
-                  <Badge variant="destructive" className="h-5 text-[10px] font-black">{ncRegistry.length} GAPS DETECTED</Badge>
+                  <Badge variant="destructive" className="h-5 text-[9px] font-black">{ncRegistry.length} GAPS DETECTED</Badge>
               </div>
           </CardHeader>
           <CardContent className="p-0">
