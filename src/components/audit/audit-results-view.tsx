@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -10,7 +9,8 @@ import type {
     Campus, 
     CorrectiveActionRequest,
     Signatories,
-    ISOClause
+    ISOClause,
+    ManagementReviewOutput
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -35,14 +35,16 @@ import {
     Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Timestamp, collection, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Timestamp, collection, doc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuditResultsViewProps {
   selectedYear: number;
@@ -66,7 +68,7 @@ export function AuditResultsView({
     isLoading 
 }: AuditResultsViewProps) {
   const firestore = useFirestore();
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const [isProcessingReport, setIsProcessingReport] = useState(false);
@@ -127,7 +129,11 @@ export function AuditResultsView({
                 isIssued: !!linkedCar
             };
         })
-        .sort((a, b) => b.finding.createdAt?.toMillis() - a.finding.createdAt?.toMillis());
+        .sort((a, b) => {
+            const timeA = a.finding.createdAt instanceof Timestamp ? a.finding.createdAt.toMillis() : new Date(a.finding.createdAt).getTime();
+            const timeB = b.finding.createdAt instanceof Timestamp ? b.finding.createdAt.toMillis() : new Date(b.finding.createdAt).getTime();
+            return timeB - timeA;
+        });
   }, [kpis, cars]);
 
   const handleIssueCarFromFinding = async (item: any) => {
@@ -164,7 +170,15 @@ export function AuditResultsView({
             updatedAt: serverTimestamp(),
         };
 
-        await addDoc(collection(firestore, 'correctiveActionRequests'), carData);
+        const carCollectionRef = collection(firestore, 'correctiveActionRequests');
+        addDoc(carCollectionRef, carData).catch(async (error) => {
+             errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: carCollectionRef.path,
+                operation: 'create',
+                requestResourceData: carData
+            }));
+        });
+
         toast({ title: 'CAR Issued', description: `Request ${carNumber} has been logged in the QA Reports module.` });
     } catch (e) {
         console.error(e);
