@@ -162,6 +162,19 @@ export default function SubmissionDetailPage() {
   const [showBridgeChoices, setShowBridgeChoices] = useState(false);
   const [verifyingRiskId, setVerifyingRiskId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
+  const [hasSetInitialVisibility, setHasSetInitialVisibility] = useState(false);
+
+  /**
+   * ROLE-BASED DEFAULT VISIBILITY
+   * Admin: Default Hidden
+   * Other: Default Shown
+   */
+  useEffect(() => {
+    if (!isUserLoading && !hasSetInitialVisibility) {
+        setIsHistoryVisible(!isAdmin);
+        setHasSetInitialVisibility(true);
+    }
+  }, [isAdmin, isUserLoading, hasSetInitialVisibility]);
 
   const [newLink, setNewLink] = useState('');
   const [newComment, setNewComment] = useState('');
@@ -775,7 +788,12 @@ export default function SubmissionDetailPage() {
                 {!submission.isDraft && (
                     <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
                         <CardHeader className="bg-primary/5 border-b"><CardTitle className="flex items-center gap-2"><ShieldCheck className="text-primary" />Approver's Compliance Checklist</CardTitle><CardDescription>Please verify and confirm the following criteria before taking action.</CardDescription></CardHeader>
-                        <CardContent className="space-y-3 pt-6">{approverChecklistItems.map(item => (<div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors"><Checkbox id={`approver-${item.id}`} checked={approverChecklist[item.id] || false} onCheckedChange={() => handleChecklistChange(item.id)} disabled={isSubmitting} className="mt-1" /><Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-relaxed cursor-pointer">{item.label}</Label></div>))}</CardContent>
+                        <CardContent className="space-y-3 pt-6">{approverChecklistItems.map(item => (
+                    <div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
+                        <Checkbox id={`approver-${item.id}`} checked={approverChecklist[item.id] || false} onCheckedChange={() => handleChecklistChange(item.id)} disabled={isSubmitting} className="mt-1" />
+                        <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-relaxed cursor-pointer">{item.label}</Label>
+                    </div>
+                ))}</CardContent>
                     </Card>
                 )}
                 <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
