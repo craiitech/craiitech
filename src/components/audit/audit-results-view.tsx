@@ -33,10 +33,11 @@ import {
     History,
     ShieldCheck,
     Loader2,
-    User
+    User,
+    X
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Timestamp, collection, doc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { Timestamp, collection, doc, addDoc, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -72,7 +73,9 @@ export function AuditResultsView({
   const { userProfile, isAdmin, userRole } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  
   const [isProcessingReport, setIsProcessingReport] = useState(false);
+  const [processingFindingId, setProcessingFindingId] = useState<string | null>(null);
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
@@ -141,10 +144,13 @@ export function AuditResultsView({
     if (!firestore || !userProfile || !isAdmin) return;
     
     const { finding, schedule } = item;
-    const confirm = window.confirm(`Generate official CAR for ${schedule?.targetName} based on Clause ${finding.isoClause}?`);
+    const confirm = window.confirm(`Generate official Corrective Action Request (CAR) for ${schedule?.targetName} based on Clause ${finding.isoClause}?`);
     if (!confirm) return;
 
+    setProcessingFindingId(finding.id);
+
     try {
+        // 1. Get count for CAR number sequencing
         const carCountQuery = await getDocs(collection(firestore, 'correctiveActionRequests'));
         const nextNum = carCountQuery.size + 1;
         const carNumber = `${selectedYear}-${String(nextNum).padStart(3, '0')}`;
@@ -167,23 +173,29 @@ export function AuditResultsView({
             preparedBy: userProfile.firstName + ' ' + userProfile.lastName,
             approvedBy: signatories?.qaoDirector || 'Director, QAO',
             status: 'Open',
+            year: selectedYear,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
 
         const carCollectionRef = collection(firestore, 'correctiveActionRequests');
-        addDoc(carCollectionRef, carData).catch(async (error) => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: carCollectionRef.path,
-                operation: 'create',
-                requestResourceData: carData
-            }));
-        });
+        addDoc(carCollectionRef, carData)
+            .then(() => {
+                toast({ title: 'CAR Issued', description: `Request ${carNumber} has been logged in the QA Reports module.` });
+            })
+            .catch(async (error) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: carCollectionRef.path,
+                    operation: 'create',
+                    requestResourceData: carData
+                }));
+            });
 
-        toast({ title: 'CAR Issued', description: `Request ${carNumber} has been logged in the QA Reports module.` });
     } catch (e) {
         console.error(e);
         toast({ title: 'Bridge Error', description: 'Could not generate CAR.', variant: 'destructive' });
+    } finally {
+        setProcessingFindingId(null);
     }
   };
 
@@ -352,9 +364,15 @@ export function AuditResultsView({
                                           <Button 
                                             size="sm" 
                                             onClick={() => handleIssueCarFromFinding(item)}
+                                            disabled={processingFindingId === item.finding.id}
                                             className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"
                                           >
-                                              <Gavel className="h-3.5 w-3.5" /> Issue CAR Now
+                                              {processingFindingId === item.finding.id ? (
+                                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                              ) : (
+                                                  <Gavel className="h-3.5 w-3.5" />
+                                              )}
+                                              Issue CAR Now
                                           </Button>
                                       )}
                                   </TableCell>
