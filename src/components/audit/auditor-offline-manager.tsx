@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore, useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { 
     collection, 
@@ -47,7 +47,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v3.5 (Enhanced with Local Mirror Search)
+ * AUDITOR OFFLINE MANAGER v3.6 (Enhanced Visibility)
  * Manages local data mirroring, network state locking, and mirror validation.
  */
 export function AuditorOfflineManager() {
@@ -156,7 +156,6 @@ export function AuditorOfflineManager() {
         const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
         
         // 2. Perform a verify read from cache to ensure IndexedDB is holding data
-        // We look for any unit record to prove data presence
         const q = query(collection(firestore, 'units'), limit(1));
         const snap = await getDocs(q);
 
@@ -266,14 +265,14 @@ export function AuditorOfflineManager() {
                         </div>
                     </div>
                     <Button 
-                        variant="ghost" 
-                        size="icon" 
+                        variant="outline" 
+                        size="sm" 
                         onClick={handleSearchMirror} 
                         disabled={isScanning || isDownloading}
-                        className="h-9 w-9 text-primary hover:bg-primary/5"
-                        title="Search for latest mirrored files"
+                        className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm"
                     >
                         {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        Scan Local Registry
                     </Button>
                 </div>
                 <Button 
