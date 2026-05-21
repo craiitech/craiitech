@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -453,7 +454,7 @@ export default function HomePage() {
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
-    const activeStatuses = ['Scheduled', 'In Progress'];
+    const activeStatuses = ['Scheduled', 'In Progress', 'Completed']; // Show everything on dashboard
     
     if (isAdmin) return query(baseRef, where('status', 'in', activeStatuses));
     if (isCampusLevel && userProfile.campusId) {
@@ -1144,7 +1145,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
       <TabsContent value="history">
         <Card>
           <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
@@ -1208,48 +1209,50 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="pt-6">
                 {mySchedules && mySchedules.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Auditee Unit</TableHead>
-                                    <TableHead>Campus</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Time</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {mySchedules.slice(0, 5).map(s => (
-                                    <TableRow key={s.id}>
-                                        <TableCell className="font-bold">{s.targetName}</TableCell>
-                                        <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
-                                        <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
-                                        <TableCell className="text-xs font-medium tabular-nums">
-                                            {format(s.scheduledDate.toDate(), 'p')}
-                                            {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
-                                        </TableCell>
-                                        <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
-                                        <TableCell className="text-right whitespace-nowrap space-x-2">
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                onClick={() => handlePrintAuditTemplate(s)}
-                                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
-                                            >
-                                                <Printer className="h-3.5 w-3.5 mr-1.5" />
-                                                Print Template
-                                            </Button>
-                                            <Button variant="default" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
-                                                Conduct Audit
-                                            </Button>
-                                        </TableCell>
+                    <ScrollArea className="h-auto max-h-[600px]">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Auditee Unit</TableHead>
+                                        <TableHead>Campus</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Time</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {mySchedules.map(s => (
+                                        <TableRow key={s.id}>
+                                            <TableCell className="font-bold">{s.targetName}</TableCell>
+                                            <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
+                                            <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                            <TableCell className="text-xs font-medium tabular-nums">
+                                                {format(s.scheduledDate.toDate(), 'p')}
+                                                {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
+                                            </TableCell>
+                                            <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
+                                            <TableCell className="text-right whitespace-nowrap space-x-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={() => handlePrintAuditTemplate(s)}
+                                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
+                                                >
+                                                    <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                                    Print Template
+                                                </Button>
+                                                <Button variant="default" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
+                                                    Conduct Audit
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </ScrollArea>
                 ) : (
                     <div className="py-12 text-center text-muted-foreground border border-dashed rounded-lg">
                         <p>No audit schedules claimed yet. Go to the IQA Hub to find available schedules.</p>
@@ -1476,8 +1479,8 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
-        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
-        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <RiskMatrix allRisks={allRisks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={allRisks} selectedYear={selectedYear} />
         <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
