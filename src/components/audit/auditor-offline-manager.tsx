@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { 
@@ -40,8 +40,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * AUDITOR OFFLINE MANAGER v2.6 (Navigation Hardening)
- * Performs "Full Workspace Handshake" to prevent browser navigation errors.
+ * AUDITOR OFFLINE MANAGER v2.7 (Smart Caching)
+ * Performs "Full Workspace Handshake" only if data is older than 2 hours.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -55,26 +55,51 @@ export function AuditorOfflineManager() {
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
 
+  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours in milliseconds
+
+  // 1. Load persistent mirror timestamp on mount
+  useEffect(() => {
+    const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
+    if (storedTime) {
+        const date = new Date(storedTime);
+        if (!isNaN(date.getTime())) {
+            setLastDownload(date);
+        }
+    }
+  }, []);
+
   const handleDownloadForOffline = async () => {
     if (!firestore || !user || !isOnline) return;
+
+    // 2. CHECK FOR EXISTING FRESH MIRROR
+    if (lastDownload) {
+        const diff = Date.now() - lastDownload.getTime();
+        if (diff < MIRROR_EXPIRY_MS) {
+            toast({
+                title: 'Workspace Up-to-Date',
+                description: `Your local mirror is fresh (created ${format(lastDownload, 'p')}). Using existing local version.`,
+            });
+            return;
+        }
+    }
 
     setIsDownloading(true);
     setDownloadProgress('Initializing local repository...');
 
     try {
-        // 1. Prefetch Application Code (The "Menus")
+        // 3. Prefetch Application Code (The "Menus")
         setDownloadProgress('Caching Workspace Logic...');
         const routes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/manuals', '/eoms-policy-manual', '/activity-log'];
         routes.forEach(route => router.prefetch(route));
 
-        // 2. Mirror Structural Data
+        // 4. Mirror Structural Data
         setDownloadProgress('Mirroring University Registry...');
         await getDocs(collection(firestore, 'isoClauses'));
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
         await getDocs(collection(firestore, 'system'));
 
-        // 3. Mirror IQA Content Hub
+        // 5. Mirror IQA Content Hub
         setDownloadProgress('Mirroring Audit Itineraries...');
         const allSchedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = allSchedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
@@ -88,14 +113,18 @@ export function AuditorOfflineManager() {
             await getDocs(qFindings);
         }
 
-        // 4. Mirror Operational Content (Risk & Monitoring)
+        // 6. Mirror Operational Content (Risk & Monitoring)
         setDownloadProgress('Mirroring Risk & Monitoring Logs...');
         await getDocs(collection(firestore, 'risks'));
         await getDocs(collection(firestore, 'unitMonitoringRecords'));
         await getDocs(collection(firestore, 'procedureManuals'));
         await getDocs(collection(firestore, 'eomsPolicyManuals'));
 
-        setLastDownload(new Date());
+        // 7. Persist Timestamp
+        const now = new Date();
+        setLastDownload(now);
+        localStorage.setItem('rsu_eoms_last_mirror_time', now.toISOString());
+
         toast({ 
             title: 'Workspace Handshake Complete', 
             description: 'Application code and data are now stored locally. You can safely navigate the conduct menus offline.' 
@@ -188,7 +217,7 @@ export function AuditorOfflineManager() {
                     {lastDownload && (
                         <div className="flex items-center gap-2 pt-2 text-[9px] font-bold text-emerald-600">
                             <CheckCircle2 className="h-3 w-3" />
-                            Workspace Mirrored: {format(lastDownload, 'PP p')}
+                            Mirror created: {format(lastDownload, 'PP p')}
                         </div>
                     )}
                 </div>
@@ -228,7 +257,7 @@ export function AuditorOfflineManager() {
                       <strong>Operational Guide:</strong> Running the "Handshake" while online ensures that the "IQA Conduct", "Unit Monitoring", and "Risk Register" routes remain interactive even if you lose connectivity.
                   </p>
                   <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-tight">
-                      System Version 2.6: Navigation Guard Enabled.
+                      System Version 2.7: Smart Mirroring Enabled.
                   </p>
               </div>
           </div>
