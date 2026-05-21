@@ -190,9 +190,10 @@ export default function AuditExecutionPage() {
     if (hasChanged) {
         if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
         
+        // Extended auto-save timeout to 8 seconds
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 2000);
+        }, 8000);
     }
 
     return () => {

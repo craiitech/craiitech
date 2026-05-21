@@ -105,9 +105,10 @@ function ClauseForm({
     if (hasChanged) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         
+        // Extended auto-save timeout to 8 seconds
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 1500); 
+        }, 8000); 
     }
 
     return () => {
