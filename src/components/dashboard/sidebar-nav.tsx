@@ -18,8 +18,8 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
 export function SidebarNav({
   className,
   notificationCount,
-  ...props: SidebarNavProps
-}) {
+  ...props
+}: SidebarNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isOnline = useNetworkStatus();
