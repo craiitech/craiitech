@@ -4,6 +4,7 @@
 /**
  * @fileOverview A blocking overlay component that mandates a software evaluation.
  * In compliance with ISO/IEC 25010 standards, this gate ensures all users provide feedback.
+ * Updated: Implements conditional rendering to prevent double-overlay when the form is active.
  */
 
 import { useState } from 'react';
@@ -12,10 +13,15 @@ import { Button } from '@/components/ui/button';
 import { MonitorCheck, ShieldCheck, ArrowRight, Activity, Landmark, Info } from 'lucide-react';
 import { Iso25010Form } from './iso-25010-form';
 import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
 
 export function SoftwareEvaluationGate() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // If the form is active, we let the Iso25010Form (Dialog) handle the UI and its own overlay.
+  // This prevents the "Gate" UI from stacking on top of the form.
+  if (isFormOpen) {
+    return <Iso25010Form isOpen={isFormOpen} onOpenChange={setIsFormOpen} />;
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-2xl animate-in fade-in duration-700">
@@ -85,8 +91,6 @@ export function SoftwareEvaluationGate() {
               </Button>
           </CardFooter>
       </Card>
-
-      <Iso25010Form isOpen={isFormOpen} onOpenChange={setIsFormOpen} />
     </div>
   );
 }
