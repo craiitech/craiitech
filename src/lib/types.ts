@@ -100,6 +100,9 @@ export type Risk = {
         verifiedBy: string;
         verifiedAt: any;
     };
+    auditorRemarks?: string; // New: Granular auditor feedback
+    auditorRemarksBy?: string;
+    auditorRemarksAt?: any;
     createdAt: any; // serverTimestamp()
     updatedAt: any; // serverTimestamp()
 }

@@ -51,7 +51,8 @@ import {
     Undo2,
     PanelRightClose,
     PanelRightOpen,
-    Trash2
+    Trash2,
+    MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -451,6 +452,21 @@ export default function SubmissionDetailPage() {
     }
   };
 
+  const handleUpdateRiskRemarks = async (riskId: string, remarks: string) => {
+    if (!firestore || !userProfile || !isAdmin) return;
+    try {
+        const riskRef = doc(firestore, 'risks', riskId);
+        await updateDoc(riskRef, {
+            auditorRemarks: remarks,
+            auditorRemarksBy: `${userProfile.firstName} ${userProfile.lastName}`,
+            auditorRemarksAt: serverTimestamp()
+        });
+        toast({ title: 'Remarks Saved', description: 'Auditor feedback recorded for this entry.' });
+    } catch (e) {
+        toast({ title: 'Update Failed', variant: 'destructive' });
+    }
+  };
+
   const handleEditRisk = (risk: Risk) => {
     setEditingRisk(risk);
     setIsRiskSyncOpen(true);
@@ -616,7 +632,7 @@ export default function SubmissionDetailPage() {
                       <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Cross-referencing digitally encoded entries for AY {submission.year}.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                      <ScrollArea className="h-[450px]">
+                      <ScrollArea className="h-[550px]">
                           {existingRisks && existingRisks.length > 0 ? (
                               <div className="divide-y">
                                   {existingRisks.map((risk) => {
@@ -624,8 +640,8 @@ export default function SubmissionDetailPage() {
                                       const canEditRisk = isAdmin || (user?.uid === submission.userId);
 
                                       return (
-                                      <div key={risk.id} className="p-4 hover:bg-muted/20 transition-colors group">
-                                          <div className="flex flex-col gap-4">
+                                      <div key={risk.id} className="p-6 hover:bg-muted/20 transition-colors group">
+                                          <div className="flex flex-col gap-6">
                                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                   <div className="space-y-1 min-w-0 flex-1">
                                                       <div className="flex items-center gap-2 mb-1">
@@ -633,7 +649,7 @@ export default function SubmissionDetailPage() {
                                                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type} ({risk.year})</span>
                                                           <Badge className={cn("text-[8px] font-black h-4 py-0 px-1.5 border-none", risk.type === 'Risk' ? (risk.preTreatment.rating === 'High' ? "bg-rose-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-emerald-600") : (risk.preTreatment.rating === 'High' ? "bg-emerald-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-rose-600"))}>{risk.preTreatment.rating} ({risk.preTreatment.magnitude})</Badge>
                                                       </div>
-                                                      <p className="text-xs font-bold text-slate-800 leading-tight truncate">{risk.description}</p>
+                                                      <p className="text-sm font-bold text-slate-800 leading-tight truncate">{risk.description}</p>
                                                       
                                                       {risk.verification && (
                                                           <div className="flex items-center gap-2 pt-1">
@@ -651,19 +667,19 @@ export default function SubmissionDetailPage() {
                                                           <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">LATEST STATUS</p>
                                                       </div>
                                                       {canEditRisk && (
-                                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                                               <Button 
-                                                                variant="ghost" 
+                                                                variant="outline" 
                                                                 size="sm" 
-                                                                className="h-7 text-[9px] font-black uppercase text-primary hover:bg-primary/5"
+                                                                className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
                                                                 onClick={() => handleEditRisk(risk)}
                                                               >
                                                                   EDIT
                                                               </Button>
                                                               <Button 
-                                                                variant="ghost" 
+                                                                variant="outline" 
                                                                 size="sm" 
-                                                                className="h-7 text-[9px] font-black uppercase text-destructive hover:bg-destructive/5"
+                                                                className="h-8 text-[10px] font-black uppercase tracking-widest border-rose-200 text-rose-600 hover:bg-rose-50 bg-white"
                                                                 onClick={() => setRiskToDelete(risk)}
                                                               >
                                                                   DELETE
@@ -671,6 +687,36 @@ export default function SubmissionDetailPage() {
                                                           </div>
                                                       )}
                                                   </div>
+                                              </div>
+
+                                              {/* RISK-LEVEL REMARKS / COMMENTS */}
+                                              <div className="pt-4 border-t border-dashed">
+                                                {isAdmin ? (
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                            <MessageSquare className="h-3 w-3" />
+                                                            Auditor Findings / Suggestions for this Entry
+                                                        </Label>
+                                                        <Textarea 
+                                                            placeholder="Add a specific comment for the unit coordinator regarding this risk..." 
+                                                            className="text-xs italic bg-slate-50 border-primary/10 shadow-inner min-h-[80px]"
+                                                            defaultValue={risk.auditorRemarks || ''}
+                                                            onBlur={(e) => handleUpdateRiskRemarks(risk.id, e.target.value)}
+                                                        />
+                                                        <p className="text-[8px] text-muted-foreground italic">Note: Comments are saved automatically when you click away from the textbox.</p>
+                                                    </div>
+                                                ) : risk.auditorRemarks && (
+                                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex gap-4 items-start animate-in slide-in-from-top-1 duration-500">
+                                                        <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-amber-600 shadow-sm shrink-0">
+                                                            <Info className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] font-black uppercase text-amber-700 tracking-widest">Auditor Feedback / Guidance:</p>
+                                                            <p className="text-sm text-slate-800 leading-relaxed italic font-medium">"{risk.auditorRemarks}"</p>
+                                                            <p className="text-[8px] font-bold text-amber-600/60 uppercase pt-1">Issued by: {risk.auditorRemarksBy || 'QA Auditor'}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                               </div>
 
                                               {isAdmin && (
@@ -886,11 +932,11 @@ export default function SubmissionDetailPage() {
                     )}
                     <div>
                         <Label htmlFor="new-link">Corrected Google Drive Link</Label>
-                        <Input id="new-link" placeholder="https://drive.google.com/..." value={newLink} onChange={(e) => setNewLink(e.target.value)} disabled={isSubmitting || (isRiskRegistry && !hasDigitalRisks)} className="focus:ring-primary" />
+                        <Input id="new-link" placeholder="https://drive.google.com/..." value={newLink} onChange={(e) => setNewLink(e.target.value)} disabled={isSubmitting} className="focus:ring-primary" />
                     </div>
                     <div>
                         <Label htmlFor="new-comment">Summary of Corrections</Label>
-                        <Textarea id="new-comment" placeholder="Briefly describe the corrective actions taken..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isSubmitting || (isRiskRegistry && !hasDigitalRisks)} />
+                        <Textarea id="new-comment" placeholder="Briefly describe the corrective actions taken..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isSubmitting} />
                     </div>
                  </CardContent>
                 <CardFooter className="flex justify-end gap-2 border-t pt-4">
@@ -961,4 +1007,3 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
-
