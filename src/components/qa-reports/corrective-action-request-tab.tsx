@@ -136,7 +136,7 @@ type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor, isUserLoading } = useUser();
+  const { userProfile, isAdmin, userRole, isAuditor, isUserLoading, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -147,13 +147,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
+  const isTopManagement = isInstitutionalViewer || userRole === 'Campus Director' || userRole?.toLowerCase().includes('vice president');
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -170,8 +171,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         if (!isInstitutionalViewer) {
             setCampusFilter(userProfile.campusId);
         }
+        // Set default tab based on role
+        if (!isTopManagement) {
+            setActiveSubTab('my-unit');
+        }
     }
-  }, [userProfile, isInstitutionalViewer, isUserLoading]);
+  }, [userProfile, isInstitutionalViewer, isTopManagement, isUserLoading]);
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -450,7 +455,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
                     </div>
                     <div id="print-content" style="padding: 0.1in;">
                         ${reportHtml}
@@ -724,27 +729,31 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
         <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>
+                {isTopManagement && (
+                    <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>
+                )}
                 {isInstitutionalViewer && (
                     <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue {carStats.needsVerification > 0 && <Badge className="ml-2 bg-white text-blue-600 border-none h-4 px-1 text-[8px] font-black">{carStats.needsVerification}</Badge>}</TabsTrigger>
                 )}
-                {!isAdmin && <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>}
+                {!isAdmin && (
+                    <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>
+                )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
         <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedCars)}
+            {isTopManagement && renderRegistryTable(processedCars)}
         </TabsContent>
         <TabsContent value="verification" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedCars.filter(c => c.needsVerification))}
+            {isInstitutionalViewer && renderRegistryTable(processedCars.filter(c => c.needsVerification))}
         </TabsContent>
         <TabsContent value="my-unit" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedCars.filter(c => c.unitId === userProfile?.unitId))}
+            {!isAdmin && renderRegistryTable(processedCars.filter(c => c.unitId === userProfile?.unitId))}
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingReport(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
@@ -917,7 +926,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </div>
                 <div className="flex-1 flex flex-col min-h-0 bg-slate-50/50 p-6 space-y-4">
                     <div className="flex items-center gap-2 text-primary">
-                        <Info className="h-4 w-4" />
+                        <Info className="h-4 w-4 text-primary" />
                         <h4 className="text-[10px] font-black uppercase tracking-widest">Protocol Assist</h4>
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed italic">
