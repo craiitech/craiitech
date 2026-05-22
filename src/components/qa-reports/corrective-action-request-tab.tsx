@@ -136,7 +136,7 @@ type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin, userRole, isAuditor, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -163,6 +163,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
     return yrs;
   }, []);
+
+  // ROLE-BASED LOCKING: Sync campus filter with user profile
+  useEffect(() => {
+    if (userProfile && !isUserLoading) {
+        if (!isInstitutionalViewer) {
+            setCampusFilter(userProfile.campusId);
+        }
+    }
+  }, [userProfile, isInstitutionalViewer, isUserLoading]);
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -441,9 +450,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
                     </div>
-                    <div id="print-content">
+                    <div id="print-content" style="padding: 0.1in;">
                         ${reportHtml}
                     </div>
                 </body>
@@ -683,11 +692,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </div>
             <div className="w-full md:w-48 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
-                <Select value={campusFilter} onValueChange={setCampusFilter}>
+                <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
                     <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
                         <SelectValue placeholder="All Sites" />
                     </SelectTrigger>
                     <SelectContent>
+                        {isInstitutionalViewer && <SelectItem value="all">All Sites</SelectItem>}
                         {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
