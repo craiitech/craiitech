@@ -503,7 +503,7 @@ export default function SubmissionsPage() {
                                                     <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
                                                     <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
                                                     <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
-                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Status</TableHead>
+                                                    <TableHead className="text-center font-bold uppercase text-[10px] py-3 text-slate-900">Status & Guidance</TableHead>
                                                     <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -574,18 +574,56 @@ export default function SubmissionsPage() {
                                                                     {safeFormatDate(sub.submissionDate)}
                                                                 </div>
                                                             </TableCell>
-                                                            <TableCell>
-                                                                <Badge 
-                                                                    className={cn(
-                                                                        "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
-                                                                        sub.statusId === 'approved' && "bg-emerald-600 text-white",
-                                                                        sub.statusId === 'rejected' && "bg-rose-600 text-white",
-                                                                        sub.statusId === 'submitted' && "bg-amber-50 text-amber-950",
-                                                                        sub.statusId === 'pending' && "bg-slate-50 text-white"
+                                                            <TableCell className="text-center">
+                                                                <div className="flex flex-col items-center gap-1">
+                                                                    <Badge 
+                                                                        className={cn(
+                                                                            "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
+                                                                            sub.statusId === 'approved' && "bg-emerald-600 text-white",
+                                                                            sub.statusId === 'rejected' && "bg-rose-600 text-white",
+                                                                            sub.statusId === 'submitted' && "bg-amber-50 text-amber-950",
+                                                                            sub.statusId === 'pending' && "bg-slate-50 text-white"
+                                                                        )}
+                                                                    >
+                                                                        {getStatusText(sub)}
+                                                                    </Badge>
+                                                                    {sub.comments && sub.comments.length > 0 ? (
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <div className="flex items-center gap-1 cursor-help group/remark">
+                                                                                    <Info className="h-3 w-3 text-primary/60 group-hover/remark:text-primary transition-colors" />
+                                                                                    <span className="text-[8px] font-bold text-muted-foreground italic truncate max-w-[120px]">
+                                                                                        {sub.comments[sub.comments.length - 1].text}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent className="w-80 p-0 overflow-hidden shadow-2xl border-primary/20">
+                                                                                <div className="bg-primary/5 p-2 border-b">
+                                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-primary">Conversation History</p>
+                                                                                </div>
+                                                                                <ScrollArea className="max-h-[300px]">
+                                                                                    <div className="p-3 space-y-4">
+                                                                                        {sub.comments.slice().sort((a, b) => {
+                                                                                            const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)?.toDate?.()?.getTime() || 0;
+                                                                                            const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)?.toDate?.()?.getTime() || 0;
+                                                                                            return dateB - dateA;
+                                                                                        }).map((c, i) => (
+                                                                                            <div key={i} className="space-y-1">
+                                                                                                <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground">
+                                                                                                    <span>{c.authorName} ({c.authorRole})</span>
+                                                                                                    <span>{safeFormatDate(c.createdAt)}</span>
+                                                                                                </div>
+                                                                                                <p className="text-[10px] text-slate-700 leading-relaxed bg-white p-2 rounded border border-slate-100 italic">"{c.text}"</p>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </ScrollArea>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    ) : (
+                                                                        <span className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">No remarks</span>
                                                                     )}
-                                                                >
-                                                                    {getStatusText(sub)}
-                                                                </Badge>
+                                                                </div>
                                                             </TableCell>
                                                             <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
                                                                 <Button 
