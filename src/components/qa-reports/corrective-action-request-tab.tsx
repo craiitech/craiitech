@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -154,7 +155,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
-  const isTopManagement = isInstitutionalViewer || userRole === 'Campus Director' || userRole?.toLowerCase().includes('vice president');
+  
+  /**
+   * TOP MANAGEMENT DEFINITION:
+   * Includes Admins, Auditors, Directors, and ODIMOs who oversee quality frameworks.
+   */
+  const isTopManagement = isInstitutionalViewer || isSupervisor;
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -165,14 +171,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return yrs;
   }, []);
 
-  // ROLE-BASED LOCKING: Sync campus filter with user profile
+  // ROLE-BASED LOCKING & DEFAULT TAB
   useEffect(() => {
     if (userProfile && !isUserLoading) {
         if (!isInstitutionalViewer) {
             setCampusFilter(userProfile.campusId);
         }
-        // Set default tab based on role
-        if (!isTopManagement) {
+        
+        // Auto-select tab based on authority level
+        if (isTopManagement) {
+            setActiveSubTab('all');
+        } else {
             setActiveSubTab('my-unit');
         }
     }
@@ -736,7 +745,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue {carStats.needsVerification > 0 && <Badge className="ml-2 bg-white text-blue-600 border-none h-4 px-1 text-[8px] font-black">{carStats.needsVerification}</Badge>}</TabsTrigger>
                 )}
                 {!isAdmin && (
-                    <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>
+                    <TabsTrigger value="my-unit" className="gap-2 text-[10px) font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>
                 )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
@@ -938,7 +947,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
+            <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
