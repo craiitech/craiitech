@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where, getDoc } from 'firebase/firestore';
+import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where, getDoc, deleteDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
 import {
@@ -49,7 +50,8 @@ import {
     XCircle,
     Undo2,
     PanelRightClose,
-    PanelRightOpen
+    PanelRightOpen,
+    Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -159,6 +161,8 @@ export default function SubmissionDetailPage() {
   const [isAdminReviewOverride, setIsAdminReviewOverride] = useState(false);
   const [isRiskSyncOpen, setIsRiskSyncOpen] = useState(false);
   const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
+  const [riskToDelete, setRiskToDelete] = useState<Risk | null>(null);
+  const [isDeletingRisk, setIsDeletingRisk] = useState(false);
   const [showBridgeChoices, setShowBridgeChoices] = useState(false);
   const [verifyingRiskId, setVerifyingRiskId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
@@ -451,6 +455,20 @@ export default function SubmissionDetailPage() {
     setEditingRisk(risk);
     setIsRiskSyncOpen(true);
   };
+
+  const handleDeleteRisk = async () => {
+    if (!firestore || !riskToDelete) return;
+    setIsDeletingRisk(true);
+    try {
+        await deleteDoc(doc(firestore, 'risks', riskToDelete.id));
+        toast({ title: 'Entry Deleted', description: 'Record removed from the digital register.' });
+        setRiskToDelete(null);
+    } catch (e) {
+        toast({ title: 'Delete Failed', variant: 'destructive' });
+    } finally {
+        setIsDeletingRisk(false);
+    }
+  };
   
   const getStatusText = (sub: Submission) => {
     if (sub.statusId === 'submitted') return 'AWAITING APPROVAL';
@@ -633,14 +651,24 @@ export default function SubmissionDetailPage() {
                                                           <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">LATEST STATUS</p>
                                                       </div>
                                                       {canEditRisk && (
-                                                          <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() => handleEditRisk(risk)}
-                                                          >
-                                                              <Edit className="h-4 w-4" />
-                                                          </Button>
+                                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                              <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-7 text-[9px] font-black uppercase text-primary hover:bg-primary/5"
+                                                                onClick={() => handleEditRisk(risk)}
+                                                              >
+                                                                  EDIT
+                                                              </Button>
+                                                              <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-7 text-[9px] font-black uppercase text-destructive hover:bg-destructive/5"
+                                                                onClick={() => setRiskToDelete(risk)}
+                                                              >
+                                                                  DELETE
+                                                              </Button>
+                                                          </div>
                                                       )}
                                                   </div>
                                               </div>
@@ -899,6 +927,38 @@ export default function SubmissionDetailPage() {
             registryLink={submission.googleDriveLink} 
         />
       )}
+
+      <AlertDialog open={!!riskToDelete} onOpenChange={(open) => !open && setRiskToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <div className="flex items-center gap-2 text-destructive mb-2">
+                    <Trash2 className="h-6 w-6" />
+                    <AlertDialogTitle>Delete Digital Record?</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="space-y-4">
+                    <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                        You are about to remove the digital entry: <br/>
+                        <strong className="text-destructive">"{riskToDelete?.description}"</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">
+                        This will delete the record from the institutional digital registry. This action is irreversible.
+                    </p>
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-4">
+                <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
+                <Button 
+                    onClick={handleDeleteRisk} 
+                    className="bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-destructive/20 h-10" 
+                    disabled={isDeletingRisk}
+                >
+                    {isDeletingRisk ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    Confirm Deletion
+                </Button>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
