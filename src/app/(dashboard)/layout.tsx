@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'react';
-import type { Campus, Unit, Submission } from '@/lib/types';
+import type { Campus, Unit, Submission, SoftwareEvaluation } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info } from 'lucide-react';
@@ -25,6 +26,7 @@ import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
 import { Logo } from '@/components/logo';
 import { PageGuidance } from '@/components/dashboard/page-guidance';
 import { InstallPwaDialog } from '@/components/dashboard/install-pwa-dialog';
+import { SoftwareEvaluationGate } from '@/components/evaluation/software-evaluation-gate';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; // Current release version
 
@@ -150,6 +152,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
   const { data: allUnits } = useCollection<Unit>(unitsQuery);
+
+  /**
+   * SOFTWARE EVALUATION MANDATE (QUALITY GATE)
+   * Checks if the user has already conducted the ISO 25010 evaluation.
+   */
+  const evaluationQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'softwareEvaluations'), where('userId', '==', user.uid));
+  }, [firestore, user]);
+  
+  const { data: userEvaluations, isLoading: isLoadingEval } = useCollection<SoftwareEvaluation>(evaluationQuery);
+
+  const isEvaluationComplete = useMemo(() => {
+    // For MVP/Demo: Admins can bypass if they need to setup.
+    // However, to satisfy the requirement, we check the database for any previous submission.
+    if (isAdmin) return true;
+    if (isLoadingEval) return true; // Avoid flickering before data is loaded
+    return userEvaluations && userEvaluations.length > 0;
+  }, [userEvaluations, isLoadingEval, isAdmin]);
 
   const getNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
@@ -319,6 +340,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         onOpenChange={setIsWhatsNewOpen}
         onAcknowledge={handleAcknowledgeUpdates}
       />
+
+      {/* SOFTWARE QUALITY GATE (MANDATORY EVALUATION) */}
+      {!isEvaluationComplete && !isLoadingEval && (
+          <SoftwareEvaluationGate />
+      )}
     </ActivityLogProvider>
   );
 }
