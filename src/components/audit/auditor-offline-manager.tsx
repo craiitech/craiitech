@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -376,7 +375,7 @@ export function AuditorOfflineManager() {
                                 Outdated Cache Detected
                             </AlertTitle>
                             <AlertDescription className="text-[10px] font-medium mt-1 leading-tight">
-                                Workspace mirror is {' > '} 2 hours old. Refresh required before locking network.
+                                Workspace mirror is {'>'} 2 hours old. Refresh required before locking network.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -446,4 +445,3 @@ export function AuditorOfflineManager() {
     </>
   );
 }
-

@@ -31,7 +31,8 @@ import {
     ShieldX,
     Lock,
     Activity,
-    Smartphone
+    Smartphone,
+    ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -373,7 +374,7 @@ export default function AuditExecutionPage() {
     if (!targetFieldName) return;
 
     summaryFields.forEach(fName => {
-        if (fName === 'officerInCharge' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualEndTime') return;
+        if (fName === 'officerInCharge' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualEndTime') return;
         
         const val = form.getValues(fName) || '';
         let lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -482,10 +483,26 @@ export default function AuditExecutionPage() {
                     <CardContent className="space-y-8 pt-8">
                         <Form {...form}>
                             <div className="space-y-6">
-                                <FormField control={form.control} name="summaryCommendable" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="summaryCompliance" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="summaryOFI" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="summaryNC" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-destructive">Non-Conformance / Non-Compliance (NC)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="summaryCommendable" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel>
+                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl>
+                                </FormItem>)} />
+                                <FormField control={form.control} name="summaryCompliance" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel>
+                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl>
+                                </FormItem>)} />
+                                <FormField control={form.control} name="summaryOFI" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel>
+                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl>
+                                </FormItem>)} />
+                                <FormField control={form.control} name="summaryNC" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-black uppercase text-destructive">Non-Conformance / Non-Compliance (NC)</FormLabel>
+                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Summarize all non-conformances..."/></FormControl>
+                                </FormItem>)} />
                             </div>
                         </Form>
                     </CardContent>
