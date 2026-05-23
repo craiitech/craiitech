@@ -149,13 +149,19 @@ export function AuditorOfflineManager() {
                 await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
             }
 
+            // TOTAL ITINERARY CACHING: Prefetch the RSC payload for the audit conduct page
             const rscUrl = `/audit/${s.id}`;
             try {
+                // Fetch with special headers to get the RSC payload and force browser cache
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+                // Also fetch the standard page
                 await fetch(rscUrl, { cache: 'force-cache' });
-            } catch (e) {}
+            } catch (e) {
+                console.warn(`RSC Cache skipped for ${s.id}`);
+            }
         }
 
+        // Cache main module routes as well
         const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
         for (const route of coreRoutes) {
             setDownloadProgress(`Caching Module Logic: ${route}`);
@@ -288,6 +294,7 @@ export function AuditorOfflineManager() {
       }
   };
 
+  // React Portal to render at body level for impenetrable blocking
   const overlayContent = (isDownloading && mounted) ? (
     <div 
         className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 pointer-events-auto cursor-wait select-none"

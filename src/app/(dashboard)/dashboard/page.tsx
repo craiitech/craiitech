@@ -272,7 +272,6 @@ export default function HomePage() {
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedRiskYear, setSelectedYearRisk] = useState(new Date().getFullYear());
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
 
   const canViewCampusAnnouncements = userProfile?.campusId;
@@ -1516,8 +1515,7 @@ export default function HomePage() {
         <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
-    );
-  };
+  );
 
   const renderHomeContent = () => {
     if (isAdmin) return renderAdminHome();
