@@ -139,21 +139,31 @@ export function AuditorOfflineManager() {
             ? allScheds 
             : allScheds.filter((s: any) => s.campusId === selectedSite);
 
+        /**
+         * PROACTIVE CONDUCT CACHING
+         * We iterate through ALL schedules in the mirrored scope.
+         * This ensures that if the auditor claims a unit while offline, 
+         * the page code (RSC payload) for that unit is already in the persistent disk cache.
+         */
         for (const s of filteredScheds) {
             setDownloadProgress(`Syncing Session: ${s.targetName}`);
             await getDoc(doc(firestore, 'auditSchedules', s.id));
             
+            // Mirror findings for already assigned audits
             if (s.auditorId === user.uid) {
                 if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
                 await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
                 if (s.targetId) {
                     await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
                 }
-                const rscUrl = `/audit/${s.id}`;
-                try {
-                    await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
-                } catch (e) {}
             }
+
+            // CACHE THE CONDUCT PAGE (RSC)
+            // We prefetch EVERY potential session page to prevent "Not connected" error on claim.
+            const rscUrl = `/audit/${s.id}`;
+            try {
+                await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+            } catch (e) {}
         }
 
         const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
@@ -173,7 +183,7 @@ export function AuditorOfflineManager() {
         toast({ 
             title: 'Deep Mirror Complete', 
             description: selectedSite === 'university-wide' 
-                ? 'Full institutional pool and conduct code are now locked in persistent storage.' 
+                ? 'Full institutional pool and all potential conduct pages are now locked in persistent storage.' 
                 : `Registry for ${campuses?.find(c => c.id === selectedSite)?.name} is locked and ready for offline use.`
         });
     } catch (e) {

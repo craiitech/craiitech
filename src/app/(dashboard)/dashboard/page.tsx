@@ -1515,7 +1515,8 @@ export default function HomePage() {
         <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
-  );
+    );
+  };
 
   const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
 

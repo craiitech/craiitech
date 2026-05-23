@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setHasHydrated(true);
   }, []);
 
-  const onToggleGuidance = useCallback(() => {
+  const handleToggleGuidance = useCallback(() => {
     setIsGuidanceVisible(prev => {
       const next = !prev;
       localStorage.setItem('rsu_eoms_guidance_visible', String(next));
@@ -181,7 +181,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const getCarNotificationQuery = (): Query | null => {
-      if (!firestore || !userProfile || !userRole) return null;
+      if (
+!firestore || !userProfile || !userRole) return null;
       const col = collection(firestore, 'correctiveActionRequests');
       const isInstitutionalViewer = isAdmin || isAuditor;
       if (isInstitutionalViewer) return query(col, where('status', '==', 'For Final Verification'));
@@ -299,7 +300,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Header 
                 notificationCount={notificationCount} 
                 isGuidanceVisible={isGuidanceVisible}
-                onToggleGuidance={onToggleGuidance}
+                onToggleGuidance={handleToggleGuidance}
             />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-y-auto h-full pr-2">
