@@ -1159,7 +1159,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </Tabs>
+      </TabsContent>
 
       <TabsContent value="history">
         <Card>
@@ -1489,7 +1489,7 @@ export default function HomePage() {
                     <div className="flex items-start gap-3">
                         <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                         <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            Institutional audit trail of latest evidence uploads. Use this to monitor university-wide documentation frequency.
+                            Institutional audit trail of latest evidence logs. Use this to monitor university-wide documentation frequency.
                         </p>
                     </div>
                 </CardFooter></Card>
