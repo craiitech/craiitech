@@ -349,6 +349,8 @@ export type CARActionStep = {
     completionDate: any; // Timestamp
     status: 'Pending' | 'Completed';
     evidenceLink?: string;
+    verificationStatus?: 'Accepted' | 'Not Accepted' | 'Pending';
+    verificationRemarks?: string;
 };
 
 export type CAREvidence = {
@@ -367,7 +369,7 @@ export type CAREffectivenessAudit = {
     result: string;
     verifiedBy: string;
     date: any; // Timestamp
-    action: 'Close the NC' | 'Continue Monitoring the NC' | 'Provide More Actions to Address the NC';
+    action: 'Effective' | 'Not Effective' | 'Close the NC' | 'Continue Monitoring the NC' | 'Provide More Actions to Address the NC';
     remarks?: string;
 };
 
@@ -402,6 +404,7 @@ export type CorrectiveActionRequest = {
     
     status: 'Open' | 'In Progress' | 'Awaiting Response/Update' | 'For Final Verification' | 'Closed';
     needsVerification?: boolean; // New flag for tracking unit updates
+    nextVerificationDate?: any; // New: Date for scheduling follow-up/reminders
     createdAt: any;
     updatedAt: any;
 };
