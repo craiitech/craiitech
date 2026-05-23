@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -50,7 +49,8 @@ import {
     ChevronUp,
     Share2,
     UploadCloud,
-    FileUp
+    FileUp,
+    Clock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -433,4 +433,3 @@ export function AuditorOfflineManager() {
     </>
   );
 }
-
