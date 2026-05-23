@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -99,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const [isGuidanceVisible, setIsGuidanceVisible] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [isEmergencyLockActive, setIsEmergencyLockActive] = useState(false);
 
   useEffect(() => {
     const storedVisibility = localStorage.getItem('rsu_eoms_guidance_visible');
@@ -106,7 +106,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsGuidanceVisible(storedVisibility === 'true');
     }
     setHasHydrated(true);
-  }, []);
+
+    const checkLock = () => {
+        const isForcedOffline = localStorage.getItem('rsu_eoms_net_disabled') === 'true';
+        const isOfflineMode = !isOnline || isForcedOffline;
+        
+        if (!isUserLoading && userRole === 'Auditor' && isOfflineMode) {
+            const mirrorTime = localStorage.getItem('rsu_last_mirror_time');
+            if (!mirrorTime) {
+                setIsEmergencyLockActive(true);
+            } else {
+                setIsEmergencyLockActive(false);
+            }
+        } else {
+            setIsEmergencyLockActive(false);
+        }
+    };
+    
+    checkLock();
+    window.addEventListener('storage', checkLock);
+    return () => window.removeEventListener('storage', checkLock);
+  }, [isOnline, isUserLoading, userRole]);
 
   const onToggleGuidance = useCallback(() => {
     setIsGuidanceVisible(prev => {
@@ -304,7 +324,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-y-auto h-full pr-2">
-                    {children}
+                    {isEmergencyLockActive ? (
+                        <div className="flex items-center justify-center h-full p-8 animate-in zoom-in duration-500">
+                             <Card className="max-w-md border-destructive border-2 shadow-2xl overflow-hidden">
+                                <CardHeader className="text-center bg-destructive/10 border-b py-8">
+                                    <ShieldAlert className="h-16 w-16 text-destructive mx-auto mb-4 animate-pulse" />
+                                    <CardTitle className="text-destructive font-black uppercase tracking-widest">Conduct Handshake Blocked</CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-8 text-center space-y-4">
+                                    <p className="text-lg font-black text-slate-900 leading-tight uppercase">Please connect first and download the mirror data.</p>
+                                    <p className="text-sm text-muted-foreground leading-relaxed italic font-medium">No local institutional registry detected on this device. Offline audit recording is disabled to prevent irrecoverable data loss.</p>
+                                    <div className="pt-6">
+                                        <Button variant="outline" onClick={() => router.refresh()} className="w-full h-11 font-black uppercase text-[10px] tracking-widest border-destructive/20 text-destructive hover:bg-destructive/5">
+                                            <RotateCw className="h-4 w-4 mr-2" />
+                                            Retry Local Handshake
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="bg-muted/10 border-t py-3">
+                                    <p className="text-[9px] text-center w-full font-black text-muted-foreground uppercase opacity-40 tracking-tighter">RSU EOMS Security Protocol v2.5</p>
+                                </CardFooter>
+                             </Card>
+                        </div>
+                    ) : children}
                 </div>
                 
                 {hasHydrated && isGuidanceVisible && (
