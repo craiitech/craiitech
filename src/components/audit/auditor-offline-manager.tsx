@@ -52,12 +52,12 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v11.5 (INSTITUTIONAL MIRROR)
- * Implements Global Blocking Overlays, Persistent Route Caching, and Emergency Lockdown logic.
+ * AUDITOR OFFLINE MANAGER v12.0 (DEEP INSTITUTIONAL MIRROR)
+ * Implements persistent route caching for all core conduct pages and logs.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isAdmin } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const isOnline = useNetworkStatus();
@@ -117,10 +117,15 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // 2. Mirror TOTAL Audit Pool
-        setDownloadProgress('Mirroring institutional audit pool...');
+        // 2. Mirror TOTAL Audit Pool & Audit Log
+        setDownloadProgress('Mirroring institutional audit logs & pools...');
         const schedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        
+        // Mirror Audit Log for offline verification
+        if (isAdmin) {
+            await getDocs(collection(firestore, 'activityLogs'));
+        }
 
         for (const s of allScheds) {
             setDownloadProgress(`Syncing Session: ${s.targetName}`);
@@ -133,8 +138,7 @@ export function AuditorOfflineManager() {
                     await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
                 }
 
-                // PERSISTENT ROUTE CACHING
-                // We fetch the RSC payload and force it into the browser's disk cache
+                // PERSISTENT ROUTE CACHING (FORCE DISK PERSISTENCE)
                 const rscUrl = `/audit/${s.id}`;
                 try {
                     await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
@@ -142,11 +146,12 @@ export function AuditorOfflineManager() {
             }
         }
 
-        // Cache adjacent conduct routes
-        const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile'];
+        // Cache all critical navigation routes for Zero-Connectivity stability
+        const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
         for (const route of coreRoutes) {
-            setDownloadProgress(`Caching Core Path: ${route}`);
+            setDownloadProgress(`Caching Application Logic: ${route}`);
             try {
+                // Fetch the actual RSC payload to prime the browser's persistent disk cache
                 await fetch(route, { headers: { 'RSC': '1' }, cache: 'force-cache' });
             } catch (e) {}
         }
@@ -157,8 +162,8 @@ export function AuditorOfflineManager() {
         localStorage.setItem('rsu_last_mirror_time', now.toISOString());
 
         toast({ 
-            title: 'Registry Mirrored', 
-            description: 'Institutional pool and conduct code are now safe in your local browser storage.' 
+            title: 'Deep Mirror Complete', 
+            description: 'Institutional pool and conduct code are now locked in persistent storage.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
@@ -196,7 +201,7 @@ export function AuditorOfflineManager() {
     }
     setIsExporting(true);
     try {
-        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks', 'correctiveActionRequests'];
+        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks', 'correctiveActionRequests', 'activityLogs'];
         const packageData: Record<string, any[]> = {};
         for (const colName of collections) {
             const snap = await getDocsFromCache(collection(firestore, colName));
@@ -276,7 +281,7 @@ export function AuditorOfflineManager() {
                     <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse">
                         <ShieldAlert className="h-12 w-12" />
                     </div>
-                    <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">AUDIT POOL MIRRORING ACTIVE</CardTitle>
+                    <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">DEEP APPLICATION MIRRORING ACTIVE</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-8 px-10 pb-10 space-y-8">
                     <div className="space-y-3">
@@ -286,7 +291,7 @@ export function AuditorOfflineManager() {
                         </div>
                         <Progress value={undefined} className="h-3" />
                     </div>
-                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">INTERACTION DISABLED: DO NOT CLOSE THE APPLICATION UNTIL MIRROR PARITY IS REACHED.</p>
+                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">INTERACTION DISABLED: LOCKING APPLICATION CODE AND INSTITUTIONAL REGISTRY INTO LOCAL STORAGE.</p>
                 </CardContent>
             </Card>
         </div>
@@ -300,7 +305,7 @@ export function AuditorOfflineManager() {
                     <ShieldCheck className="h-5 w-5 text-primary" />
                     Powerful Workspace Control Hub
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Mirror all units, claim offline, and export local workspaces.</CardDescription>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Mirror institutional data and application code for 100% offline stability.</CardDescription>
             </div>
             <div className="flex items-center gap-3">
                 <Badge variant={mirrorStatus === 'found' ? 'default' : mirrorStatus === 'expired' ? 'destructive' : 'outline'} className={cn("h-7 px-3 font-black uppercase text-[9px] gap-2 shadow-sm", mirrorStatus === 'found' ? "bg-emerald-600 text-white" : mirrorStatus === 'expired' ? "bg-amber-50 text-white" : "bg-white text-muted-foreground")}>
@@ -341,7 +346,7 @@ export function AuditorOfflineManager() {
                                 Outdated Cache Detected
                             </AlertTitle>
                             <AlertDescription className="text-[10px] font-medium mt-1 leading-tight">
-                                Workspace mirror is {' > '} 2 hours old. Refresh required before locking network.
+                                Workspace mirror is older than 2 hours. Refresh required before locking network.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -368,7 +373,7 @@ export function AuditorOfflineManager() {
                             {isOnline && mirrorStatus === 'expired' ? 'REFRESH REQUIRED' : 'LOCK TO OFFLINE MODE'}
                         </Button>
                     )}
-                    <div className="p-2 bg-muted/20 rounded-lg border border-dashed text-[9px] text-muted-foreground leading-tight font-medium italic">Prevents browser timeouts by forcing local data usage.</div>
+                    <div className="p-2 bg-muted/20 rounded-lg border border-dashed text-[9px] text-muted-foreground leading-tight font-medium italic">Forces the portal to rely purely on the local disk cache.</div>
                 </div>
 
                 {/* 3. WORKSPACE PORTABILITY */}

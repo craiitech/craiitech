@@ -637,7 +637,6 @@ export default function HomePage() {
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                     </style>
                 </head>
                 <body>
@@ -1002,7 +1001,7 @@ export default function HomePage() {
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2 text-primary">
-                            <ClipboardCheck className="h-4 w-4" />
+                            <ClipboardCheck className="h-4 w-4 text-primary" />
                             <h4 className="text-[10px] font-black uppercase tracking-widest">Audit observations</h4>
                         </div>
                         <Badge variant="outline" className="h-4 text-[8px] font-black border-primary/20 text-primary bg-primary/5">{relevantOfis.length}</Badge>
@@ -1188,7 +1187,8 @@ export default function HomePage() {
         </Card>
       </TabsContent>
     </Tabs>
-  );};
+    );
+  };
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
