@@ -94,7 +94,7 @@ function ClauseForm({
   }, [watchType, clause.id, form]);
 
   /**
-   * ACCELERATED OFFLINE AUTO-SAVE
+   * HIGH-SPEED OFFLINE AUTO-SAVE
    * Triggers non-blocking background write for maximum UI responsiveness.
    */
   useEffect(() => {
@@ -111,7 +111,7 @@ function ClauseForm({
         
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 1000); // Fast debounce for active auditing
+        }, 800); // Accelerated debounce
     }
 
     return () => {
@@ -122,6 +122,7 @@ function ClauseForm({
   const performSave = (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) return;
     
+    // Optimistically unlock UI
     setIsSubmitting(true);
     const findingId = `${scheduleId}-${clause.id}`;
     const findingRef = doc(firestore, 'auditFindings', findingId);
@@ -142,20 +143,20 @@ function ClauseForm({
         findingData.ncStatement = values.ncStatement;
     }
 
-    // Fire-and-forget non-blocking write
+    // FIRE AND FORGET - Don't await the resolve
     setDoc(findingRef, findingData, { merge: true })
         .then(() => {
             onSave(findingData); 
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-            setLastSaved(new Date());
         });
+
+    // Immediate state update
+    setIsSubmitting(false);
+    setLastSaved(new Date());
   };
 
   const onSubmit = (values: ClauseFormData) => {
       performSave(values);
-      toast({ title: isOnline ? "Progress Synced" : "Stored on Device", description: `Finding for clause ${clause.id} saved.`});
+      toast({ title: isOnline ? "Progress Synced" : "Stored Locally", description: `Record for ${clause.id} updated.`});
   };
 
   return (
@@ -279,13 +280,13 @@ function ClauseForm({
             <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                     {isSubmitting ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Saving...</div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Caching...</div>
                     ) : lastSaved ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Saved ({format(lastSaved, 'HH:mm:ss')})</div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored on Device ({format(lastSaved, 'HH:mm:ss')})</div>
                     ) : null}
                 </div>
                 <Button type="submit" disabled={isSubmitting || !watchType} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                    {lastSaved ? 'Commit Finding' : `Commit Clause ${clause.id}`}
+                    {lastSaved ? 'Re-Commit Finding' : `Commit Clause ${clause.id}`}
                 </Button>
             </div>
         </form>

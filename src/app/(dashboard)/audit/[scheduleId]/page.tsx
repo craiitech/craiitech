@@ -1,7 +1,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc } from 'firebase/firestore';
+import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc, setDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -200,7 +200,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 1200); // Optimized debounce for offline typing speed
+        }, 1200); 
     }
 
     return () => {
@@ -217,12 +217,14 @@ export default function AuditExecutionPage() {
   };
 
   /**
-   * ACCELERATED SUMMARY SAVE
-   * Uses non-blocking logic to ensure the UI doesn't hang during local finalized writes.
+   * HIGH-SPEED OFFLINE FINALIZATION
+   * Optimized for < 1s UI response in offline environments.
    */
   const handleSaveSummary = (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
-    setIsSavingSummary(true);
+
+    // 1. Initial State Trigger
+    if (!isAutoSave) setIsSavingSummary(true);
 
     try {
         const [year, month, day] = values.actualDate.split('-').map(Number);
@@ -243,23 +245,24 @@ export default function AuditExecutionPage() {
             status: 'Completed' as const
         };
 
-        // Non-blocking Firestore update for instantaneous local response
+        // 2. NON-BLOCKING Write to Firestore (Immediate resolution when offline)
         updateDoc(scheduleDocRef, updateData)
             .then(() => {
                 if (!isAutoSave) {
-                    toast({ title: "Audit Finalized", description: "Records saved to device repository." });
+                    toast({ title: "Audit Finalized", description: "Progress secure in local storage." });
                 }
             })
             .catch(error => {
                 console.error("Async save failed:", error);
-            })
-            .finally(() => {
-                setIsSavingSummary(false);
             });
 
-        // Optimistic feedback for all saves
+        // 3. OPTIMISTIC UI RESET (Happens in < 1s)
         setLastSaved(new Date());
-        if (isAutoSave) setIsSavingSummary(false);
+        
+        if (!isAutoSave) {
+            // Tiny artificial delay for user feedback, then unlock UI
+            setTimeout(() => setIsSavingSummary(false), 300);
+        }
         
     } catch(error) {
         setIsSavingSummary(false);
@@ -401,7 +404,7 @@ export default function AuditExecutionPage() {
                 {isSavingSummary ? (
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Caching locally...</div>
                 ) : lastSaved ? (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Saved to Device ({format(lastSaved, 'HH:mm:ss')})</div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored on Device ({format(lastSaved, 'HH:mm:ss')})</div>
                 ) : null}
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsDossierVisible(!isDossierVisible)} className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5">{isDossierVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}{isDossierVisible ? 'Hide Dossier' : 'Show Dossier'}</Button>
