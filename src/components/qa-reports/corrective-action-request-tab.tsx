@@ -489,7 +489,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 )}
             </TabsList>
         </ScrollArea>
-        <TabsContent value="activeSubTab" className="mt-0 animate-in fade-in duration-500">{renderRegistryTable(processedCars)}</TabsContent>
+        
+        <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">
+            {renderRegistryTable(processedCars)}
+        </TabsContent>
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
@@ -745,4 +748,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
