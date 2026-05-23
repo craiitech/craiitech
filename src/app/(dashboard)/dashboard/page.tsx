@@ -1556,7 +1556,12 @@ export default function HomePage() {
                     </Alert>
                 )}
               
-              {renderHomeContent()}
+              <div className="mt-4">
+                {isAdmin ? renderAdminHome() : 
+                 userRole === 'Auditor' ? renderAuditorHome() :
+                 isCampusSupervisor ? renderSupervisorHome() : 
+                 renderUnitUserHome()}
+              </div>
            </div>
        )}
     </div>
