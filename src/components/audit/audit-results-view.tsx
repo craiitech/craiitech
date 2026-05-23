@@ -167,6 +167,11 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
+        // RESOLVE CORRECT CONTEXTUAL SITE NAME
+        const resolvedSiteName = unitFilter !== 'all' 
+            ? (unitMap.get(unitFilter) || 'SPECIFIC UNIT')
+            : (campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'CAMPUS SITE'));
+
         const reportHtml = renderToStaticMarkup(
             <ConsolidatedAuditReportTemplate 
                 plan={kpis.activePlan} 
@@ -176,6 +181,7 @@ export function AuditResultsView({
                 units={units} 
                 campuses={campuses} 
                 signatories={signatories || undefined} 
+                campusName={resolvedSiteName}
             />
         );
 
@@ -185,11 +191,14 @@ export function AuditResultsView({
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Audit Report - ${campusFilter === 'all' ? 'Institutional' : campusMap.get(campusFilter)}</title>
+                    <title>Audit Report - ${resolvedSiteName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @page { size: 8.5in 13in !important; margin: 0.5in !important; }
-                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; } 
+                        }
                         body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
                     </style>
                 </head>
@@ -367,14 +376,14 @@ export function AuditResultsView({
                                   <TableRow key={item.finding.id} className="hover:bg-rose-50/20 transition-colors group">
                                       <TableCell className="pl-8 py-5">
                                           <div className="space-y-1">
-                                              <p className="font-black text-sm text-slate-900 leading-tight uppercase">{item.schedule?.targetName}</p>
+                                              <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule?.targetName}</p>
                                               <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div>
                                           </div>
                                       </TableCell>
                                       <TableCell className="max-w-md py-5">
                                           <div className="space-y-2">
                                               <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">Clause {item.finding.isoClause}</Badge>
-                                              <p className="text-xs font-bold text-slate-800 leading-relaxed italic">"{item.finding.ncStatement || item.finding.description}"</p>
+                                              <p className="text-xs font-bold text-slate-800 leading-relaxed italic line-clamp-2">"{item.finding.ncStatement || item.finding.description}"</p>
                                           </div>
                                       </TableCell>
                                       <TableCell className="text-center">
