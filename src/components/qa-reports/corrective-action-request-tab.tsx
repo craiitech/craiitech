@@ -65,14 +65,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '../ui/checkbox';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -152,13 +145,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     for (let i = 0; i < 5; i++) yrs.push(String(current - i));
     return yrs;
   }, []);
-
-  useEffect(() => {
-    if (userProfile && !isUserLoading) {
-        if (!isInstitutionalViewer) setCampusFilter(userProfile.campusId);
-        setActiveSubTab(isTopManagement ? 'all' : 'my-unit');
-    }
-  }, [userProfile, isInstitutionalViewer, isTopManagement, isUserLoading]);
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -396,6 +382,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
@@ -439,18 +437,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </CardContent>
     </Card>
   );
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
 
   return (
     <div className="space-y-6">
@@ -645,6 +631,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <div className="p-4 bg-white border-b shrink-0 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-700">Registry Discussion Log</h4></div>
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-4">
+                        {isInstitutionalViewer && (
+                            <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Internal Auditor Feedback</Label>
+                                <Textarea 
+                                    placeholder="Add specific instructions for the unit coordinator..." 
+                                    className="bg-white text-xs italic"
+                                    value={form.watch('adminFeedback')}
+                                    onChange={(e) => form.setValue('adminFeedback', e.target.value)}
+                                />
+                                <p className="text-[8px] text-muted-foreground">Feedback provided here will be stored in the permanent audit trail.</p>
+                            </div>
+                        )}
+
                         {liveCar?.comments?.map((c, i) => (
                             <div key={i} className="p-4 rounded-xl border bg-white shadow-sm space-y-2">
                                 <div className="flex justify-between border-b pb-1 mb-1 text-[8px] font-black uppercase text-primary">
@@ -652,6 +651,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <span>{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
                                 </div>
                                 <p className="text-[11px] text-slate-700 italic">"{c.text}"</p>
+                                <p className="text-[7px] text-right text-muted-foreground uppercase font-black">{c.authorRole}</p>
                             </div>
                         ))}
                         {!liveCar?.comments?.length && (
