@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -115,8 +114,6 @@ const carSchema = z.object({
   findingId: z.string().optional(),
 });
 
-const UNIVERSITY_WIDE_ID = 'university-wide';
-
 type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
@@ -222,8 +219,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             }
         }
         
-        // ROBUST TAB FILTERING: Verification Queue includes string status OR boolean flag
-        if (activeSubTab === 'verification' && car.status !== 'For Final Verification' && !car.needsVerification) return false;
+        // REFINED VERIFICATION QUEUE: Include everything that is NOT CLOSED and requires auditor radar
+        if (activeSubTab === 'verification') {
+            const isAwaitingOversight = ['For Final Verification', 'Awaiting Response/Update'].includes(car.status);
+            if (!isAwaitingOversight && !car.needsVerification) return false;
+        }
+
         if (activeSubTab === 'my-unit' && car.unitId !== userProfile.unitId) return false;
 
         const matchesSearch = car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -272,7 +273,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         open: scopedList.filter(c => c.status === 'Open').length,
         inProgress: scopedList.filter(c => ['In Progress', 'Awaiting Response/Update'].includes(c.status)).length,
         closed: scopedList.filter(c => c.status === 'Closed').length,
-        needsVerification: scopedList.filter(c => c.status === 'For Final Verification' || c.needsVerification === true).length,
+        needsVerification: scopedList.filter(c => ['For Final Verification', 'Awaiting Response/Update'].includes(c.status) || c.needsVerification === true).length,
         myUnit: scopedList.filter(c => c.unitId === userProfile.unitId).length
     };
   }, [rawCars, userProfile, isInstitutionalViewer, isSupervisor]);
@@ -415,7 +416,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </TableHeader>
                 <TableBody>
                     {data.map(car => (
-                        <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", car.status === 'For Final Verification' && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
+                        <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", (car.status === 'For Final Verification' || car.needsVerification) && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
                         <TableCell className="pl-6 py-4">
                             <div className="flex flex-col gap-1">
                                 <span className="font-black text-sm text-primary leading-none">{car.carNumber}</span>
@@ -453,7 +454,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Pending Verify', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%`, c: 'emerald' }].map((s, i) => (
+        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Verification', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%`, c: 'emerald' }].map((s, i) => (
             <Card key={i} className={cn("border-primary/10 shadow-sm relative overflow-hidden flex flex-col p-4", s.c === 'rose' && "bg-rose-50 border-rose-100", s.c === 'amber' && "bg-amber-50 border-amber-100", s.c === 'blue' && "bg-blue-50 border-blue-100", s.c === 'emerald' && "bg-emerald-50 border-emerald-100")}>
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{s.l}</p>
                 <div className="text-2xl font-black tabular-nums mt-1">{s.v}</div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -178,19 +177,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return query(col, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
+  /**
+   * CORRECTED CAR NOTIFICATION LOGIC
+   * Units: Alert for newly issued or sent back for update.
+   * Admin/Auditors: Alert for items in Verification Queue (For Final Verification).
+   */
   const getCarNotificationQuery = (): Query | null => {
       if (!firestore || !userProfile || !userRole) return null;
       const col = collection(firestore, 'correctiveActionRequests');
       
-      // Admins/Auditors see anything pending verification
-      if (isAdmin || isAuditor) return query(col, where('status', '==', 'For Final Verification'));
+      const isInstitutionalViewer = isAdmin || isAuditor;
+
+      // 1. Auditors & Admins: Actionable items in Verification Queue
+      if (isInstitutionalViewer) {
+          return query(col, where('status', '==', 'For Final Verification'));
+      }
       
-      // Campus Supervisors see verification requests for their site
-      if (isSupervisor && !isAuditor) {
+      // 2. Campus Supervisors: Site-level items awaiting verification
+      if (isSupervisor) {
           return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
       }
       
-      // Units see items requiring action (Open = Just issued, Awaiting = Auditor Feedback)
+      // 3. Units: Items requiring local investigation or response
       return query(col, where('unitId', '==', userProfile.unitId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
   }
 
