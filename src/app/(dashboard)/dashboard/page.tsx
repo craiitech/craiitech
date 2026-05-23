@@ -1518,6 +1518,13 @@ export default function HomePage() {
     );
   };
 
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitUserHome();
+  };
+
   const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
 
   return (
@@ -1531,7 +1538,7 @@ export default function HomePage() {
                     <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare />Communications Board</CardTitle><CardDescription>Important announcements from campus and system administrators.</CardDescription></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /> <AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
-                      {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} /></Alert>)}
+                      {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
                     </CardContent>
                   </Card>
                 )}
@@ -1549,10 +1556,7 @@ export default function HomePage() {
                     </Alert>
                 )}
               
-              {isAdmin ? renderAdminHome() : 
-               userRole === 'Auditor' ? renderAuditorHome() : 
-               isCampusSupervisor ? renderSupervisorHome() : 
-               renderUnitUserHome()}
+              {renderHomeContent()}
            </div>
        )}
     </div>
