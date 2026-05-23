@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding } from '@/lib/types';
@@ -69,11 +68,6 @@ export function AuditorScheduleList({
         return timeA - timeB;
     });
   }, [schedules]);
-
-  const handleConductNavigation = (scheduleId: string) => {
-      // Logic: Ensure we are using programmatic navigation for better offline chunk handling
-      router.push(`/audit/${scheduleId}`);
-  };
 
   const handleRestrictedAction = (actionName: string) => {
       toast({
@@ -226,11 +220,13 @@ export function AuditorScheduleList({
                             <Button 
                                 variant="default" 
                                 size="sm" 
-                                onClick={() => handleConductNavigation(schedule.id)}
+                                asChild
                                 className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4 gap-2"
                             >
-                                Open Evidence Log
-                                <ChevronRight className="h-3.5 w-3.5" />
+                                <Link href={`/audit/${schedule.id}`} prefetch={true}>
+                                    Open Evidence Log
+                                    <ChevronRight className="h-3.5 w-3.5" />
+                                </Link>
                             </Button>
                         )}
                     </div>
@@ -241,4 +237,3 @@ export function AuditorScheduleList({
     </Table>
   );
 }
-

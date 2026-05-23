@@ -1165,7 +1165,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
       <TabsContent value="history">
         <Card>
           <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
@@ -1193,7 +1193,7 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+        <div className="sticky top-0 z-40 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
@@ -1213,7 +1213,7 @@ export default function HomePage() {
             </div>
 
             {/* OFFLINE CAPABILITY MANAGER - STICKY IN HEADER */}
-            <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className="animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
                 <AuditorOfflineManager />
             </div>
         </div>
@@ -1268,8 +1268,10 @@ export default function HomePage() {
                                                     <Printer className="h-3.5 w-3.5 mr-1.5" />
                                                     Print
                                                 </Button>
-                                                <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest shadow-sm" onClick={() => router.push(`/audit/${s.id}`)}>
-                                                    Conduct
+                                                <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest shadow-sm" asChild>
+                                                    <Link href={`/audit/${s.id}`}>
+                                                        Conduct
+                                                    </Link>
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

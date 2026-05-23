@@ -52,11 +52,8 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v7.5 (DEEP MIRROR)
- * Features:
- * 1. Deep Mirror Logic: Forces caching of individual documents, parent plans, findings, and CARs.
- * 2. Smart Expiry: Mandates online refresh but permits offline work.
- * 3. High-Priority Prefetch: Ensures conduct pages are cached for navigation.
+ * AUDITOR OFFLINE MANAGER v8.0 (PERSISTENT ROUTE CACHE)
+ * Resolves the "You are not connected" error by forcing RSC payload caching.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -93,7 +90,7 @@ export function AuditorOfflineManager() {
     };
     
     checkMirrorAge();
-    const interval = setInterval(checkMirrorAge, 60000); // Check every minute
+    const interval = setInterval(checkMirrorAge, 60000);
 
     const storedNetState = localStorage.getItem('rsu_eoms_net_disabled');
     if (storedNetState === 'true' && firestore) {
@@ -127,31 +124,38 @@ export function AuditorOfflineManager() {
         const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         for (const s of myScheds) {
-            setDownloadProgress(`Priming conduct workspace: ${s.targetName}`);
+            setDownloadProgress(`Persistent code-cache: ${s.targetName}`);
             
-            // Force individual document cache populating
+            // --- A. Prime Firestore Cache ---
             await getDoc(doc(firestore, 'auditSchedules', s.id));
-
-            // Mirror Plan Metadata
-            if (s.auditPlanId) {
-                await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
-            }
-            
-            // Mirror Existing Findings
-            const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
-            await getDocs(qFindings);
-
-            // Mirror Corrective Action Requests for the target unit (needed for history component)
+            if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
+            await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
             if (s.targetId) {
                 const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
                 await getDocs(qCars);
             }
+
+            // --- B. Prime Next.js Browser Cache ---
+            // Force the browser to cache the RSC payload and chunks for this specific route.
+            // This is the critical fix for the "You are not connected" error.
+            const rscUrl = `/audit/${s.id}`;
+            try {
+                // Fetch with 'force-cache' to ensure it goes to Disk Cache (Cache API)
+                await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+                // Hint the Next.js router
+                router.prefetch(rscUrl);
+            } catch (e) {
+                console.warn(`Persistent prefetch failed for ${rscUrl}`, e);
+            }
             
-            // AGGRESSIVE PREFETCH: Attempt to pull page component chunks into browser cache
-            router.prefetch(`/audit/${s.id}`);
-            
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
+
+        // Also prime activity log
+        try {
+            await fetch('/activity-log', { headers: { 'RSC': '1' }, cache: 'force-cache' });
+            router.prefetch('/activity-log');
+        } catch (e) {}
 
         const now = new Date();
         setLastDownload(now);
@@ -160,7 +164,7 @@ export function AuditorOfflineManager() {
 
         toast({ 
             title: 'Mirror Synchronized', 
-            description: 'Application data and conduct workspaces are now stored locally.' 
+            description: 'Application code and institutional data are now stored in the persistent browser cache.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
