@@ -51,11 +51,11 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v6.6
+ * AUDITOR OFFLINE MANAGER v6.7
  * Features:
  * 1. Mirror Logic: Local caching of institutional data.
  * 2. Smart Expiry: Disable locking if online + expired; force work if offline.
- * 3. Fast Conduct Mode: Optimized for rapid recording of findings.
+ * 3. Aggressive Prefetch: Ensures conduct pages are cached for navigation.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -110,25 +110,37 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
-        // Base Data
+        // 1. Mirror Base Data
+        setDownloadProgress('Mirroring standard clauses...');
         await getDocs(collection(firestore, 'isoClauses'));
+        
+        setDownloadProgress('Mirroring site directory...');
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // Schedule Data
+        // 2. Mirror Itinerary & Conduct Pages
+        setDownloadProgress('Mirroring assigned itineraries...');
         const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
         const schedSnap = await getDocs(mySchedQuery);
         const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         for (const s of myScheds) {
+            setDownloadProgress(`Preparing conduct workspace: ${s.targetName}`);
+            
+            // Mirror Plan Metadata
             if (s.auditPlanId) {
                 await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             }
+            
+            // Mirror Existing Findings
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
+            
+            // AGGRESSIVE PREFETCH: Ensure the browser has the actual conduct page cached
             router.prefetch(`/audit/${s.id}`);
-            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         const now = new Date();
@@ -138,11 +150,11 @@ export function AuditorOfflineManager() {
 
         toast({ 
             title: 'Mirror Synchronized', 
-            description: 'Application data is now stored locally and verified.' 
+            description: 'Application data and conduct workspaces are now stored locally.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
-        toast({ title: 'Mirror Failed', variant: 'destructive' });
+        toast({ title: 'Mirror Failed', description: 'Could not establish local data redundancy.', variant: 'destructive' });
     } finally {
         setIsDownloading(false);
         setDownloadProgress('');
@@ -256,7 +268,7 @@ export function AuditorOfflineManager() {
           toast({ 
               variant: "destructive", 
               title: "Update Required", 
-              description: "Mirror is expired. You must REFRESH while online before locking for conduct." 
+              description: "Mirror is expired. You must REFRESH while online before locking network." 
           });
           return;
       }

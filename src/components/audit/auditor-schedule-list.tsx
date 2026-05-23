@@ -14,7 +14,7 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { Check, Clock, User, Printer, FileText, UserMinus, ShieldAlert } from 'lucide-react';
+import { Check, Clock, User, Printer, FileText, UserMinus, ShieldAlert, ChevronRight } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPrintTemplate } from './audit-print-template';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -69,14 +69,11 @@ export function AuditorScheduleList({
     });
   }, [schedules]);
 
-  // Aggressive prefetch for conduct pages when this list is visible while online
-  useEffect(() => {
-    if (isOnline && !isClaimView) {
-        sortedSchedules.forEach(s => {
-            router.prefetch(`/audit/${s.id}`);
-        });
-    }
-  }, [isOnline, sortedSchedules, isClaimView, router]);
+  const handleConductNavigation = (scheduleId: string) => {
+      // Logic: If we are offline, we rely on the pre-fetched pages in the PWA/Mirror
+      // router.push performs a client-side transition that doesn't trigger a network request for the layout/JS
+      router.push(`/audit/${scheduleId}`);
+  };
 
   const handleRestrictedAction = (actionName: string) => {
       toast({
@@ -229,12 +226,11 @@ export function AuditorScheduleList({
                             <Button 
                                 variant="default" 
                                 size="sm" 
-                                asChild
-                                className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4"
+                                onClick={() => handleConductNavigation(schedule.id)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4 gap-2"
                             >
-                                <Link href={`/audit/${schedule.id}`} prefetch={true}>
-                                    Open Evidence Log
-                                </Link>
+                                Open Evidence Log
+                                <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
                         )}
                     </div>
