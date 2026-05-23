@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -121,7 +120,7 @@ type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
+  const { userProfile, isAdmin, userRole, isAuditor, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -137,7 +136,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
-  const isTopManagement = isInstitutionalViewer || isSupervisor;
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -254,7 +252,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         });
     }
     return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isInstitutionalViewer, userRole]);
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isInstitutionalViewer, isSupervisor]);
 
   const carStats = useMemo(() => {
     if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, myUnit: 0 };
@@ -381,6 +379,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
@@ -436,7 +446,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Pending Verify', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${analytics?.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%`, c: 'emerald' }].map((s, i) => (
+        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Pending Verify', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%`, c: 'emerald' }].map((s, i) => (
             <Card key={i} className={cn("border-primary/10 shadow-sm relative overflow-hidden flex flex-col p-4", s.c === 'rose' && "bg-rose-50 border-rose-100", s.c === 'amber' && "bg-amber-50 border-amber-100", s.c === 'blue' && "bg-blue-50 border-blue-100", s.c === 'emerald' && "bg-emerald-50 border-emerald-100")}>
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{s.l}</p>
                 <div className="text-2xl font-black tabular-nums mt-1">{s.v}</div>
