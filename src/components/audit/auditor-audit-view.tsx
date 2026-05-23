@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -87,11 +88,10 @@ export function AuditorAuditView() {
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
-    if (isActuallyOffline) {
-        toast({ title: "Offline Action Restricted", description: "You must be online to claim new audits from the pool.", variant: "destructive" });
-        return;
-    }
-
+    
+    // OFFLINE CLAIMING ENABLED: 
+    // Firestore persistence allows local writes which sync later. 
+    // This removes the "must be online" gating.
     const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
     
     try {
@@ -100,7 +100,7 @@ export function AuditorAuditView() {
             auditorName: `${userProfile.firstName} ${userProfile.lastName}`,
             status: 'In Progress'
         });
-        toast({ title: 'Success', description: 'Audit claimed successfully.' });
+        toast({ title: 'Success', description: isActuallyOffline ? 'Audit claimed locally. Syncing when online.' : 'Audit claimed successfully.' });
     } catch(error) {
         console.error("Error claiming audit:", error);
         toast({ title: 'Error', description: 'Could not claim the audit.', variant: 'destructive'});
@@ -109,10 +109,6 @@ export function AuditorAuditView() {
 
   const handleUnclaimAudit = async (scheduleId: string) => {
       if (!firestore) return;
-      if (isActuallyOffline) {
-          toast({ title: "Offline Action Restricted", description: "You must be online to release audits from your itinerary.", variant: "destructive" });
-          return;
-      }
       
       const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
       try {
@@ -121,7 +117,7 @@ export function AuditorAuditView() {
               auditorName: null,
               status: 'Scheduled'
           });
-          toast({ title: 'Unit Removed', description: 'Audit has been released back to the available pool.' });
+          toast({ title: 'Unit Removed', description: isActuallyOffline ? 'Removed locally. Sync pending.' : 'Audit has been released back to the available pool.' });
       } catch (error) {
           toast({ title: 'Error', description: 'Could not remove audit.', variant: 'destructive' });
       }
@@ -145,7 +141,7 @@ export function AuditorAuditView() {
                 {isActuallyOffline && (
                     <Badge variant="destructive" className="h-9 px-4 font-black uppercase text-[9px] gap-2 animate-in zoom-in">
                         <WifiOff className="h-3.5 w-3.5" />
-                        Conduct Mode: Offline Recording Only
+                        Conduct Mode: Offline Recording & Claiming Active
                     </Badge>
                 )}
             </div>

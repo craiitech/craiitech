@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -52,8 +53,8 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v8.0 (PERSISTENT ROUTE CACHE)
- * Resolves the "You are not connected" error by forcing RSC payload caching.
+ * AUDITOR OFFLINE MANAGER v9.0 (TOTAL POOL MIRRORING)
+ * Synchronizes the entire audit pool to allow offline claiming.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -117,41 +118,39 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // 2. Deep Mirror Itinerary, Conduct Pages, and CAR History
-        setDownloadProgress('Mirroring assigned itineraries...');
-        const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
-        const schedSnap = await getDocs(mySchedQuery);
-        const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        // 2. Mirror ALL Audit Schedules (to allow offline claiming)
+        setDownloadProgress('Mirroring total institutional pool...');
+        const schedSnap = await getDocs(collection(firestore, 'auditSchedules'));
+        const allScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-        for (const s of myScheds) {
-            setDownloadProgress(`Persistent code-cache: ${s.targetName}`);
+        for (const s of allScheds) {
+            setDownloadProgress(`Syncing: ${s.targetName}`);
             
-            // --- A. Prime Firestore Cache ---
+            // Prime Firestore Cache for individual document
             await getDoc(doc(firestore, 'auditSchedules', s.id));
-            if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
-            await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
-            if (s.targetId) {
-                const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
-                await getDocs(qCars);
-            }
+            
+            // Deep Mirror relations and code ONLY for those already assigned to me
+            if (s.auditorId === user.uid) {
+                if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
+                await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
+                if (s.targetId) {
+                    const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
+                    await getDocs(qCars);
+                }
 
-            // --- B. Prime Next.js Browser Cache ---
-            // Force the browser to cache the RSC payload and chunks for this specific route.
-            // This is the critical fix for the "You are not connected" error.
-            const rscUrl = `/audit/${s.id}`;
-            try {
-                // Fetch with 'force-cache' to ensure it goes to Disk Cache (Cache API)
-                await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
-                // Hint the Next.js router
-                router.prefetch(rscUrl);
-            } catch (e) {
-                console.warn(`Persistent prefetch failed for ${rscUrl}`, e);
+                // Force Persistent Browser Cache for the route
+                const rscUrl = `/audit/${s.id}`;
+                try {
+                    await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+                    router.prefetch(rscUrl);
+                } catch (e) {}
             }
             
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Minor throttle to keep main thread responsive
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
-        // Also prime activity log
+        // Global route caching
         try {
             await fetch('/activity-log', { headers: { 'RSC': '1' }, cache: 'force-cache' });
             router.prefetch('/activity-log');
@@ -164,7 +163,7 @@ export function AuditorOfflineManager() {
 
         toast({ 
             title: 'Mirror Synchronized', 
-            description: 'Application code and institutional data are now stored in the persistent browser cache.' 
+            description: 'Institutional pool and application code are now stored in the persistent browser cache.' 
         });
     } catch (e) {
         console.error("Mirroring error:", e);
@@ -308,8 +307,6 @@ export function AuditorOfflineManager() {
       }
   };
 
-  const isRefreshMandatory = isOnline && mirrorStatus === 'expired' && !isNetworkDisabled;
-
   return (
     <>
     {isDownloading && (
@@ -378,7 +375,7 @@ export function AuditorOfflineManager() {
                         </Button>
                     </div>
 
-                    {isRefreshMandatory && (
+                    {isOnline && mirrorStatus === 'expired' && !isNetworkDisabled && (
                         <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-3">
                             <AlertTitle className="text-[9px] font-black uppercase flex items-center gap-2">
                                 <AlertTriangle className="h-3 w-3" />
@@ -393,7 +390,7 @@ export function AuditorOfflineManager() {
                     <Button 
                         onClick={handleDownloadForOffline} 
                         disabled={!isOnline || isDownloading || isNetworkDisabled} 
-                        className={cn("w-full h-10 font-black uppercase text-[10px] gap-2", isRefreshMandatory && "bg-amber-600 hover:bg-amber-700")}
+                        className={cn("w-full h-10 font-black uppercase text-[10px] gap-2", isOnline && mirrorStatus === 'expired' && "bg-amber-600 hover:bg-amber-700")}
                     >
                         {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
                         {mirrorStatus === 'found' ? 'REFRESH MIRROR' : 'START MIRRORING'}
@@ -415,15 +412,15 @@ export function AuditorOfflineManager() {
                         <Button 
                             variant="outline" 
                             onClick={() => toggleNetworkLock(true)} 
-                            disabled={isRefreshMandatory}
+                            disabled={isOnline && mirrorStatus === 'expired'}
                             className="w-full h-10 border-rose-200 text-rose-600 font-black uppercase text-[10px] hover:bg-rose-50"
                         >
                             <CloudOff className="mr-2 h-4 w-4" />
-                            {isRefreshMandatory ? 'REFRESH REQUIRED' : 'FORCE OFFLINE'}
+                            {isOnline && mirrorStatus === 'expired' ? 'REFRESH REQUIRED' : 'FORCE OFFLINE'}
                         </Button>
                     )}
                     <div className="p-2 bg-muted/20 rounded-lg border border-dashed text-[9px] text-muted-foreground leading-tight font-medium italic">
-                        {isRefreshMandatory 
+                        {isOnline && mirrorStatus === 'expired' 
                             ? "Locking is disabled until cloud parity is reached for the current audit year."
                             : "Prevents browser timeouts in unstable Wi-Fi zones by forcing local cache usage."}
                     </div>
