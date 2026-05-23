@@ -1164,6 +1164,7 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </TabsContent>
+
       <TabsContent value="history">
         <Card>
           <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>

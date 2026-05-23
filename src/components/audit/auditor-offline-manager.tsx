@@ -52,8 +52,8 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v11.0 (INSTITUTIONAL MIRROR)
- * Implements Global Blocking Overlays, Deep Mirroring, and Emergency Lockdown logic.
+ * AUDITOR OFFLINE MANAGER v11.5 (INSTITUTIONAL MIRROR)
+ * Implements Global Blocking Overlays, Persistent Route Caching, and Emergency Lockdown logic.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -134,6 +134,7 @@ export function AuditorOfflineManager() {
                 }
 
                 // PERSISTENT ROUTE CACHING
+                // We fetch the RSC payload and force it into the browser's disk cache
                 const rscUrl = `/audit/${s.id}`;
                 try {
                     await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
@@ -302,7 +303,7 @@ export function AuditorOfflineManager() {
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Mirror all units, claim offline, and export local workspaces.</CardDescription>
             </div>
             <div className="flex items-center gap-3">
-                <Badge variant={mirrorStatus === 'found' ? 'default' : mirrorStatus === 'expired' ? 'destructive' : 'outline'} className={cn("h-7 px-3 font-black uppercase text-[9px] gap-2 shadow-sm", mirrorStatus === 'found' ? "bg-emerald-600 text-white" : mirrorStatus === 'expired' ? "bg-amber-500 text-white" : "bg-white text-muted-foreground")}>
+                <Badge variant={mirrorStatus === 'found' ? 'default' : mirrorStatus === 'expired' ? 'destructive' : 'outline'} className={cn("h-7 px-3 font-black uppercase text-[9px] gap-2 shadow-sm", mirrorStatus === 'found' ? "bg-emerald-600 text-white" : mirrorStatus === 'expired' ? "bg-amber-50 text-white" : "bg-white text-muted-foreground")}>
                     {mirrorStatus === 'found' ? <CheckCircle2 className="h-3.5 w-3.5" /> : mirrorStatus === 'expired' ? <Clock className="h-3.5 w-3.5" /> : <Database className="h-3.5 w-3.5 opacity-40" />}
                     {mirrorStatus === 'found' ? 'Registry Mirror Ready' : mirrorStatus === 'expired' ? 'Mirror Expired' : 'No Local Mirror'}
                 </Badge>
@@ -340,7 +341,7 @@ export function AuditorOfflineManager() {
                                 Outdated Cache Detected
                             </AlertTitle>
                             <AlertDescription className="text-[10px] font-medium mt-1 leading-tight">
-                                Workspace mirror is {'>'} 2 hours old. Refresh required before locking network.
+                                Workspace mirror is {' > '} 2 hours old. Refresh required before locking network.
                             </AlertDescription>
                         </Alert>
                     )}
