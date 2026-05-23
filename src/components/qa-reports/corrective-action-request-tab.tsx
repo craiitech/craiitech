@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -29,7 +30,7 @@ import {
     List,
     Search,
     ArrowUpDown,
-    ClipboardList,
+    ClipboardCheck,
     Undo2,
     Check,
     Activity,
@@ -120,10 +121,9 @@ type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor, isUserLoading, isSupervisor } = useUser();
+  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const searchParams = useSearchParams();
   const router = useRouter();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -212,17 +212,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
-    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
     let result = rawCars.filter(car => {
         if (!isInstitutionalViewer) {
-            if (isCampusSupervisor) {
+            if (isSupervisor) {
                 if (car.campusId !== userProfile.campusId) return false;
             } else {
                 if (car.unitId !== userProfile.unitId) return false;
             }
         }
-        if (activeSubTab === 'verification' && !car.needsVerification) return false;
+        if (activeSubTab === 'verification' && car.status !== 'For Final Verification') return false;
         if (activeSubTab === 'my-unit' && car.unitId !== userProfile.unitId) return false;
 
         const matchesSearch = car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -258,23 +257,23 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isInstitutionalViewer, userRole]);
 
   const carStats = useMemo(() => {
-    if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
-    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+    if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, myUnit: 0 };
 
-    const filteredForScope = rawCars.filter(car => {
+    const scopedList = rawCars.filter(car => {
         if (isInstitutionalViewer) return true;
-        if (isCampusSupervisor) return car.campusId === userProfile.campusId;
+        if (isSupervisor) return car.campusId === userProfile.campusId;
         return car.unitId === userProfile.unitId;
     });
 
-    const total = filteredForScope.length;
-    const open = filteredForScope.filter(c => c.status === 'Open').length;
-    const inProgress = filteredForScope.filter(c => ['In Progress', 'For Final Verification', 'Awaiting Response/Update'].includes(c.status)).length;
-    const closed = filteredForScope.filter(c => c.status === 'Closed').length;
-    const needsVerification = filteredForScope.filter(c => c.needsVerification).length;
-    const successRate = total > 0 ? Math.round((closed / total) * 100) : 100;
-    return { total, open, inProgress, closed, needsVerification, successRate };
-  }, [rawCars, userProfile, isInstitutionalViewer, userRole]);
+    return {
+        total: scopedList.length,
+        open: scopedList.filter(c => c.status === 'Open').length,
+        inProgress: scopedList.filter(c => ['In Progress', 'Awaiting Response/Update'].includes(c.status)).length,
+        closed: scopedList.filter(c => c.status === 'Closed').length,
+        needsVerification: scopedList.filter(c => c.status === 'For Final Verification').length,
+        myUnit: scopedList.filter(c => c.unitId === userProfile.unitId).length
+    };
+  }, [rawCars, userProfile, isInstitutionalViewer, isSupervisor]);
 
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
@@ -338,7 +337,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
 
     if (isUnitResponding) {
-        nextStatus = 'In Progress';
+        nextStatus = 'For Final Verification';
         needsVerification = true;
     }
 
@@ -382,18 +381,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return true; 
   };
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
-
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
@@ -411,7 +398,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </TableHeader>
                 <TableBody>
                     {data.map(car => (
-                        <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", car.needsVerification && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
+                        <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", car.status === 'For Final Verification' && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
                         <TableCell className="pl-6 py-4">
                             <div className="flex flex-col gap-1">
                                 <span className="font-black text-sm text-primary leading-none">{car.carNumber}</span>
@@ -427,6 +414,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <TableCell className="text-right pr-6 whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[9px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
+                                <Button 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    onClick={() => handleEdit(car)} 
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 gap-1.5 shadow-sm"
+                                >
+                                    <Target className="h-3.5 w-3.5" /> MANAGE
+                                </Button>
                             </div>
                         </TableCell>
                         </TableRow>
@@ -441,7 +436,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Pending Verify', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${carStats.successRate}%`, c: 'emerald' }].map((s, i) => (
+        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Pending Verify', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${analytics?.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%`, c: 'emerald' }].map((s, i) => (
             <Card key={i} className={cn("border-primary/10 shadow-sm relative overflow-hidden flex flex-col p-4", s.c === 'rose' && "bg-rose-50 border-rose-100", s.c === 'amber' && "bg-amber-50 border-amber-100", s.c === 'blue' && "bg-blue-50 border-blue-100", s.c === 'emerald' && "bg-emerald-50 border-emerald-100")}>
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{s.l}</p>
                 <div className="text-2xl font-black tabular-nums mt-1">{s.v}</div>
@@ -461,9 +456,27 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
         <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                {isTopManagement && <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>}
-                {isInstitutionalViewer && <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue</TabsTrigger>}
-                {!isAdmin && <TabsTrigger value="my-unit" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>}
+                {isTopManagement && (
+                    <TabsTrigger value="all" className="gap-3 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <ListChecks className="h-3.5 w-3.5" /> 
+                        Full Registry
+                        <Badge variant="secondary" className="h-4 px-1 text-[8px] font-black bg-white">{carStats.total}</Badge>
+                    </TabsTrigger>
+                )}
+                {isInstitutionalViewer && (
+                    <TabsTrigger value="verification" className="gap-3 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                        <ShieldCheck className="h-3.5 w-3.5" /> 
+                        Verification Queue
+                        <Badge variant="outline" className="h-4 px-1 text-[8px] font-black border-none bg-blue-100 text-blue-700">{carStats.needsVerification}</Badge>
+                    </TabsTrigger>
+                )}
+                {!isAdmin && (
+                    <TabsTrigger value="my-unit" className="gap-3 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Building2 className="h-3.5 w-3.5" /> 
+                        My Unit Gaps
+                        <Badge variant="outline" className="h-4 px-1 text-[8px] font-black border-none bg-rose-100 text-rose-700">{carStats.myUnit}</Badge>
+                    </TabsTrigger>
+                )}
             </TabsList>
         </ScrollArea>
         <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">{renderRegistryTable(processedCars)}</TabsContent>
@@ -471,7 +484,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0"><DialogTitle className="text-xl font-black uppercase flex items-center gap-2"><ShieldCheck className="text-primary h-6 w-6" />{editingCar ? 'Manage' : 'Issue'} Corrective Action Request (CAR)</DialogTitle></DialogHeader>
+          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between">
+                <DialogTitle className="text-xl font-black uppercase flex items-center gap-2"><ShieldCheck className="text-primary h-6 w-6" />{editingCar ? 'Manage' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
+                <div className="flex gap-2">
+                    {liveCar && <Badge className="h-7 px-4 font-black uppercase text-[10px] border-none shadow-sm">{liveCar.status}</Badge>}
+                </div>
+            </div>
+          </DialogHeader>
           <div className="flex-1 flex overflow-hidden bg-white">
             <ScrollArea className="flex-1 border-r">
                 <Form {...form}><form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10 pb-20">

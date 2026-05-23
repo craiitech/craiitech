@@ -286,15 +286,37 @@ export function AuditResultsView({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-              <TabsTrigger value="commendable" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Star className="h-3.5 w-3.5 text-amber-500" /> Commendable (P)</TabsTrigger>
-              <TabsTrigger value="compliance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Compliance (C)</TabsTrigger>
-              <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><TrendingUp className="h-3.5 w-3.5 text-blue-600" /> Opportunities (OFI)</TabsTrigger>
-              <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white"><ShieldAlert className="h-3.5 w-3.5" /> NC & CAR Manager</TabsTrigger>
+              <TabsTrigger value="commendable" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <Star className="h-3.5 w-3.5 text-amber-500" /> Commendable (P)
+                  <Badge variant="secondary" className="h-4 px-1 text-[8px] ml-1 bg-white">{commendableRegistry.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="compliance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Compliance (C)
+                  <Badge variant="secondary" className="h-4 px-1 text-[8px] ml-1 bg-white">{complianceRegistry.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <TrendingUp className="h-3.5 w-3.5 text-blue-600" /> Opportunities (OFI)
+                  <Badge variant="secondary" className="h-4 px-1 text-[8px] ml-1 bg-white">{ofiRegistry.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
+                  <ShieldAlert className="h-3.5 w-3.5" /> NC & CAR Manager
+                  <Badge variant="outline" className="h-4 px-1 text-[8px] ml-1 bg-white border-none">{ncRegistry.length}</Badge>
+              </TabsTrigger>
           </TabsList>
 
           <TabsContent value="commendable" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-emerald-50 border-b py-4"><div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Commendable Practices Registry</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">Auditor Commendation</TableHead></TableRow></TableHeader><TableBody>{commendableRegistry.map(s => (<TableRow key={s.id} className="hover:bg-emerald-50/20"><TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell><TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell></TableRow>))}{commendableRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No commendable findings logged</p></TableCell></TableRow>}</TableBody></Table></CardContent></Card></TabsContent>
           <TabsContent value="compliance" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-emerald-50 border-b py-4"><div className="flex items-center gap-2"><Check className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Verified Standard Compliances</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Auditee & Auditor</TableHead><TableHead className="text-[10px] font-black uppercase">Clause & Finding</TableHead></TableRow></TableHeader><TableBody>{complianceRegistry.map((item, idx) => (<TableRow key={idx} className="hover:bg-emerald-50/20"><TableCell className="pl-8 py-5"><div className="space-y-1"><p className="font-bold text-xs uppercase">{item.schedule?.targetName}</p><div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div></div></TableCell><TableCell className="py-5"><div className="space-y-1"><Badge variant="secondary" className="h-4 text-[8px] font-black bg-emerald-50 text-emerald-700 border-none">ISO CLAUSE {item.finding.isoClause}</Badge><p className="text-xs text-slate-700 italic leading-relaxed">{item.finding.description}</p></div></TableCell></TableRow>))}{complianceRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><ClipboardCheck className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No compliance findings logged</p></TableCell></TableRow>}</TableBody></Table></CardContent></Card></TabsContent>
-          <TabsContent value="ofi" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-amber-50 border-b py-4"><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-amber-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Opportunities for Improvement</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">OFI Finding / Recommendation</TableHead></TableRow></TableHeader><TableBody>{ofiRegistry.map(s => (<TableRow key={s.id} className="hover:bg-amber-50/20"><TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell><TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryOFI}"</p></TableCell></TableRow>))}{ofiRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Target className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No OFIs recorded</p></TableCell></TableRow>}</TableBody></Table></CardContent></Card></TabsContent>
+          <TabsContent value="ofi" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-amber-50 border-b py-4"><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-amber-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Opportunities for Improvement</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">OFI Finding / Recommendation</TableHead></TableRow></TableHeader><TableBody>{ofiRegistry.map(s => (  <TableRow key={s.id} className="hover:bg-amber-50/20">
+                                      <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
+                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryOFI}"</p></TableCell>
+                                  </TableRow>
+                              ))}
+                              {ofiRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Target className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No OFIs recorded</p></TableCell></TableRow>}
+                          </TableBody>
+                      </Table>
+                  </CardContent>
+              </Card>
+          </TabsContent>
 
           <TabsContent value="nc-manager" className="animate-in fade-in duration-500">
               <Card className="shadow-lg border-rose-200 overflow-hidden">
@@ -361,4 +383,3 @@ export function AuditResultsView({
     </div>
   );
 }
-
