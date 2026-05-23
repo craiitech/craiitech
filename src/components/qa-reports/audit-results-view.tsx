@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -168,8 +167,12 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-        const cName = campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'UNIVERSITY-WIDE');
-        
+        // CONTEXTUAL SITE RESOLUTION:
+        // Priority: Filtered Unit > Filtered Campus > System-Wide
+        const cName = unitFilter !== 'all' 
+            ? (unitMap.get(unitFilter) || 'UNIT')
+            : (campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'UNIVERSITY-WIDE'));
+
         const reportHtml = renderToStaticMarkup(
             <ConsolidatedAuditReportTemplate 
                 plan={kpis.activePlan} 
@@ -371,7 +374,7 @@ export function AuditResultsView({
                                   <TableRow key={item.finding.id} className="hover:bg-rose-50/20 transition-colors group">
                                       <TableCell className="pl-8 py-5">
                                           <div className="space-y-1">
-                                              <p className="font-black text-sm text-slate-900 leading-tight uppercase">{item.schedule?.targetName}</p>
+                                              <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule?.targetName}</p>
                                               <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div>
                                           </div>
                                       </TableCell>
