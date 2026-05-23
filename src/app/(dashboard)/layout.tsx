@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'react';
-import type { Campus, Unit, Submission, SoftwareEvaluation } from '@/lib/types';
+import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info } from 'lucide-react';
@@ -172,35 +172,66 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return userEvaluations && userEvaluations.length > 0;
   }, [userEvaluations, isLoadingEval, isAdmin]);
 
-  const getNotificationQuery = (): Query | null => {
+  /**
+   * NOTIFICATION QUERY LOGIC
+   * 1. Submissions: Awaiting Approval (for Admins/Supervisors) or Rejected (for Units)
+   * 2. CARs: For Final Verification (for Admins/Supervisors) or Open/Feedback (for Units)
+   */
+  const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
-    const submissionsCollection = collection(firestore, 'submissions');
-
-    if (isAdmin) {
-      return query(submissionsCollection, where('statusId', '==', 'submitted'));
-    }
-
+    const col = collection(firestore, 'submissions');
+    if (isAdmin) return query(col, where('statusId', '==', 'submitted'));
     if (isSupervisor) {
         if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
             if (!userProfile.campusId) return null;
-            return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+            return query(col, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
         }
     }
-    
-    return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
+    return query(col, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
-  const notificationQuery = useMemoFirebase(() => getNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
-  const { data: notifications } = useCollection<Submission>(notificationQuery);
+  const getCarNotificationQuery = (): Query | null => {
+      if (!firestore || !userProfile || !userRole) return null;
+      const col = collection(firestore, 'correctiveActionRequests');
+      
+      // Admins/Auditors see anything pending verification
+      if (isAdmin || isAuditor) return query(col, where('status', '==', 'For Final Verification'));
+      
+      // Campus Supervisors see verification requests for their site
+      if (isSupervisor && !isAuditor) {
+          return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
+      }
+      
+      // Units see items requiring action
+      return query(col, where('unitId', '==', userProfile.unitId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
+  }
+
+  const subNotifQuery = useMemoFirebase(() => getSubmissionsNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
+  const { data: subNotifications } = useCollection<Submission>(subNotifQuery);
+
+  const carNotifQuery = useMemoFirebase(() => getCarNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin, isAuditor]);
+  const { data: carNotifications } = useCollection<CorrectiveActionRequest>(carNotifQuery);
 
   const notificationCount = useMemo(() => {
-    if (!notifications) return 0;
-    if (isAdmin) return notifications.length;
-    if (isSupervisor && userProfile) {
-        return notifications.filter(s => s.userId !== userProfile.id).length;
+    let count = 0;
+
+    // Submissions Count
+    if (subNotifications) {
+        if (isAdmin) count += subNotifications.length;
+        else if (isSupervisor && userProfile) {
+            count += subNotifications.filter(s => s.userId !== userProfile.id).length;
+        } else {
+            count += subNotifications.length;
+        }
     }
-    return notifications.length;
-  }, [notifications, userProfile, isAdmin, isSupervisor]);
+
+    // CARs Count
+    if (carNotifications) {
+        count += carNotifications.length;
+    }
+
+    return count;
+  }, [subNotifications, carNotifications, userProfile, isAdmin, isSupervisor]);
 
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
