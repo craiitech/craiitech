@@ -5,9 +5,9 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building, LayoutList, ShieldAlert } from 'lucide-react';
+import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building, LayoutList, ShieldAlert, ClipboardCheck } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
-import { AuditorNCManager } from './auditor-nc-manager';
+import { AuditResultsView } from './audit-results-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
@@ -53,12 +53,6 @@ export function AuditorAuditView() {
 
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
-
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
-  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const filterSchedules = (list: AuditSchedule[]) => {
     return list.filter(s => {
@@ -121,53 +115,22 @@ export function AuditorAuditView() {
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                     <LayoutList className="h-6 w-6 text-primary" />
-                    Internal Quality Audits
+                    IQA Conduct Workspace
                   </h2>
-                  <p className="text-muted-foreground text-sm font-medium">Manage audits assigned to you and oversee institutional non-conformances.</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Search className="h-2.5 w-2.5" /> Search Registry
-                    </label>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search by auditee or procedure..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-10 shadow-sm bg-white"
-                        />
-                    </div>
-                </div>
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Building className="h-2.5 w-2.5" /> Filter by Campus
-                    </label>
-                    <Select value={campusFilter} onValueChange={setCampusFilter}>
-                        <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
-                            <SelectValue placeholder="All Campuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Institutional (All Campuses)</SelectItem>
-                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                  <p className="text-muted-foreground text-sm font-medium">Manage your assignments and oversee institutional audit results.</p>
                 </div>
             </div>
 
             <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-3 md:inline-flex animate-tab-highlight rounded-md">
-                    <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto flex animate-tab-highlight rounded-md">
+                    <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length})
                     </TabsTrigger>
-                    <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                    <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <CalendarSearch className="h-4 w-4"/> Pool ({availableSchedulesRaw.length})
                     </TabsTrigger>
-                    <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
-                        <ShieldAlert className="h-4 w-4" /> NC & CAR Manager
+                    <TabsTrigger value="results" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                        <ClipboardCheck className="h-4 w-4" /> Audit Results Hub
                     </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -182,7 +145,39 @@ export function AuditorAuditView() {
                   </div>
               ) : (
                   <>
-                    <TabsContent value="my-audits" className="animate-in fade-in slide-in-from-left-2 duration-300 m-0">
+                    <TabsContent value="my-audits" className="animate-in fade-in slide-in-from-left-2 duration-300 m-0 space-y-6">
+                        <Card className="border-primary/10 bg-muted/10">
+                            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                        <Search className="h-2.5 w-2.5" /> Search My Itinerary
+                                    </label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search by auditee or focus..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="pl-9 h-10 shadow-sm bg-white"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                        <Building className="h-2.5 w-2.5" /> Site Location
+                                    </label>
+                                    <Select value={campusFilter} onValueChange={setCampusFilter}>
+                                        <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
+                                            <SelectValue placeholder="All Campuses" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Institutional View</SelectItem>
+                                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </CardContent>
+                        </Card>
                         <AuditorScheduleList 
                             schedules={mySchedulesFiltered}
                             plans={plans || []}
@@ -190,36 +185,66 @@ export function AuditorAuditView() {
                             units={units || []}
                             isoClauses={isoClauses || []}
                             findings={findings || []}
-                            signatories={signatories || undefined}
                             isClaimView={false}
                             onUnclaimAudit={handleUnclaimAudit}
                         />
                     </TabsContent>
 
-                    <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300 m-0">
-                         <AuditorScheduleList 
+                    <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300 m-0 space-y-6">
+                         <Card className="border-primary/10 bg-muted/10">
+                            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                        <Search className="h-2.5 w-2.5" /> Search Pool
+                                    </label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search available units..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="pl-9 h-10 shadow-sm bg-white"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                        <Building className="h-2.5 w-2.5" /> Campus Selection
+                                    </label>
+                                    <Select value={campusFilter} onValueChange={setCampusFilter}>
+                                        <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
+                                            <SelectValue placeholder="All Campuses" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Institutional View</SelectItem>
+                                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <AuditorScheduleList 
                             schedules={availableSchedulesFiltered}
                             plans={plans || []}
                             campuses={campuses || []}
                             units={units || []}
                             isoClauses={isoClauses || []}
                             findings={findings || []}
-                            signatories={signatories || undefined}
                             isClaimView={true}
                             onClaimAudit={handleClaimAudit}
                         />
                     </TabsContent>
 
-                    <TabsContent value="nc-manager" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
-                         <AuditorNCManager 
-                            findings={findings || []}
+                    <TabsContent value="results" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
+                         <AuditResultsView 
+                            selectedYear={new Date().getFullYear()} // Default to current or let user pick inside the view
+                            plans={plans || []}
                             schedules={allSchedules || []}
-                            cars={cars || []}
-                            campuses={campuses || []}
+                            findings={findings || []}
                             units={units || []}
-                            signatories={signatories || undefined}
-                            campusFilter={campusFilter}
-                            searchTerm={searchTerm}
+                            campuses={campuses || []}
+                            cars={cars || []}
+                            isLoading={isLoading}
                          />
                     </TabsContent>
                   </>

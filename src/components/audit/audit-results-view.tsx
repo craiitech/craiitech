@@ -37,7 +37,8 @@ import {
     Activity,
     ClipboardCheck,
     Star,
-    Layers
+    Layers,
+    Check
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -81,7 +82,7 @@ export function AuditResultsView({
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState('non-conformance');
+  const [activeTab, setActiveTab] = useState('nc-manager');
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
@@ -143,6 +144,15 @@ export function AuditResultsView({
       return kpis.yearSchedules.filter(s => s.summaryOFI && s.summaryOFI.trim() !== '');
   }, [kpis.yearSchedules]);
 
+  const complianceRegistry = useMemo(() => {
+    return kpis.yearFindings
+        .filter(f => f.type === 'Compliance')
+        .map(finding => ({
+            finding,
+            schedule: kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)
+        }));
+  }, [kpis]);
+
   const ncRegistry = useMemo(() => {
     return kpis.yearFindings
         .filter(f => f.type === 'Non-Conformance')
@@ -167,7 +177,6 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-        // RESOLVE CORRECT CONTEXTUAL SITE NAME
         const resolvedSiteName = unitFilter !== 'all' 
             ? (unitMap.get(unitFilter) || 'SPECIFIC UNIT')
             : (campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'CAMPUS SITE'));
@@ -219,6 +228,47 @@ export function AuditResultsView({
     }
   };
 
+  const handlePrintCar = (car: CorrectiveActionRequest) => {
+    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
+    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <CARPrintTemplate 
+                car={car} 
+                unitName={uName} 
+                campusName={cName} 
+                signatories={signatories || undefined} 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>CAR - ${car.carNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) { console.error(e); }
+  };
+
   if (isLoading) return <div className="py-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
@@ -264,18 +314,18 @@ export function AuditResultsView({
                 </div>
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Unit / Office</label>
-                    <Select value={unitFilter} onValueChange={setUnitFilter} disabled={campusFilter === 'all' && !isAdmin}>
+                    <Select value={unitFilter} onValueChange={setUnitFilter}>
                         <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Units in Campus</SelectItem>
-                            {filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                            <SelectItem value="all">All Units in Registry</SelectItem>
+                            {filteredUnits.sort((a,b) => a.name.localeCompare(b.name)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="flex gap-2">
                     <Button onClick={handlePrintConsolidated} className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
                         {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
-                        {campusFilter === 'all' ? 'Print System-Wide Report' : `Print ${campusMap.get(campusFilter)} Report`}
+                        {campusFilter === 'all' ? 'Print System-Wide Report' : `Print Site Report`}
                     </Button>
                 </div>
             </div>
@@ -284,15 +334,18 @@ export function AuditResultsView({
 
       {/* 3. CATEGORIZED FINDINGS TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10">
+          <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
               <TabsTrigger value="commendable" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <Star className="h-3.5 w-3.5 text-amber-500" /> Commendable (P)
+              </TabsTrigger>
+              <TabsTrigger value="compliance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Compliance (C)
               </TabsTrigger>
               <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <TrendingUp className="h-3.5 w-3.5 text-blue-600" /> Opportunities (OFI)
               </TabsTrigger>
-              <TabsTrigger value="non-conformance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
-                  <ShieldAlert className="h-3.5 w-3.5" /> Non-Conformance (NC)
+              <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
+                  <ShieldAlert className="h-3.5 w-3.5" /> NC & CAR Manager
               </TabsTrigger>
           </TabsList>
 
@@ -317,6 +370,43 @@ export function AuditResultsView({
                                   </TableRow>
                               ))}
                               {commendableRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No commendable findings logged</p></TableCell></TableRow>}
+                          </TableBody>
+                      </Table>
+                  </CardContent>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="compliance" className="animate-in fade-in duration-500">
+              <Card className="shadow-md border-primary/10 overflow-hidden">
+                  <CardHeader className="bg-emerald-50 border-b py-4">
+                      <div className="flex items-center gap-2">
+                          <Check className="h-5 w-5 text-emerald-600" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Verified Standard Compliances</CardTitle>
+                      </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                      <Table>
+                          <TableHeader className="bg-muted/30">
+                              <TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Auditee & Auditor</TableHead><TableHead className="text-[10px] font-black uppercase">Clause & Finding</TableHead></TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {complianceRegistry.map((item, idx) => (
+                                  <TableRow key={idx} className="hover:bg-emerald-50/20">
+                                      <TableCell className="pl-8 py-5">
+                                          <div className="space-y-1">
+                                              <p className="font-bold text-xs uppercase">{item.schedule?.targetName}</p>
+                                              <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div>
+                                          </div>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <div className="space-y-1">
+                                              <Badge variant="secondary" className="h-4 text-[8px] font-black bg-emerald-50 text-emerald-700 border-none">ISO CLAUSE {item.finding.isoClause}</Badge>
+                                              <p className="text-xs text-slate-700 italic leading-relaxed">{item.finding.description}</p>
+                                          </div>
+                                      </TableCell>
+                                  </TableRow>
+                              ))}
+                              {complianceRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><ClipboardCheck className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No compliance findings logged</p></TableCell></TableRow>}
                           </TableBody>
                       </Table>
                   </CardContent>
@@ -350,13 +440,13 @@ export function AuditResultsView({
               </Card>
           </TabsContent>
 
-          <TabsContent value="non-conformance" className="animate-in fade-in duration-500">
+          <TabsContent value="nc-manager" className="animate-in fade-in duration-500">
               <Card className="shadow-lg border-rose-200 overflow-hidden">
                   <CardHeader className="bg-rose-50 border-b py-4">
                       <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <ShieldAlert className="h-5 w-5 text-rose-600" />
-                            <CardTitle className="text-sm font-black uppercase tracking-tight text-rose-900">Institutional Non-Conformance (NC) Registry</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-tight text-rose-900">Non-Conformance & CAR Management Hub</CardTitle>
                           </div>
                           <Badge variant="destructive" className="h-5 text-[9px] font-black">{ncRegistry.length} GAPS</Badge>
                       </div>
@@ -368,7 +458,7 @@ export function AuditResultsView({
                                   <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit & Auditor</TableHead>
                                   <TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead>
                                   <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
-                                  <TableHead className="text-right pr-8 text-[10px] font-black uppercase">CAR Bridge</TableHead>
+                                  <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -392,11 +482,16 @@ export function AuditResultsView({
                                           ) : <Badge variant="outline" className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase">PENDING</Badge>}
                                       </TableCell>
                                       <TableCell className="text-right pr-8">
-                                          {item.isIssued ? (
-                                              <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5" onClick={() => router.push('/qa-reports?tab=car')}><Target className="h-3.5 w-3.5" /> View CAR</Button>
-                                          ) : (
-                                              <Button size="sm" onClick={() => handleNavigateToIssueCar(item)} className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"><Gavel className="h-3.5 w-3.5" /> Issue CAR</Button>
-                                          )}
+                                          <div className="flex items-center justify-end gap-2">
+                                            {item.isIssued ? (
+                                                <>
+                                                    <Button variant="outline" size="sm" className="h-8 text-[9px] font-black bg-white gap-1.5" onClick={() => handlePrintCar(item.linkedCar)}><Printer className="h-3 w-3" /> PRINT</Button>
+                                                    <Button variant="secondary" size="sm" className="h-8 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 gap-1.5" onClick={() => router.push(`/qa-reports?tab=car&id=${item.linkedCar.id}`)}><Target className="h-3 w-3" /> MANAGE</Button>
+                                                </>
+                                            ) : (
+                                                <Button size="sm" onClick={() => handleNavigateToIssueCar(item)} className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"><Gavel className="h-3.5 w-3.5" /> ISSUE CAR</Button>
+                                            )}
+                                          </div>
                                       </TableCell>
                                   </TableRow>
                               ))}
