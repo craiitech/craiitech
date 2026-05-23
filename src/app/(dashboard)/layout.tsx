@@ -253,6 +253,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isUserLoading) return <LoadingSkeleton />;
 
+  // OFFLINE AUDITOR GATE: If auditor is offline and has no mirror, block the entire interface
+  const isAuditorOfflineLockActive = !isOnline && isAuditor && !localStorage.getItem('rsu_last_mirror_time');
+
+  if (isAuditorOfflineLockActive) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center p-8 bg-slate-100">
+              <Card className="max-w-md w-full border-destructive/20 shadow-2xl">
+                  <CardHeader className="bg-destructive/5 text-center pb-8 border-b">
+                      <div className="mx-auto h-20 w-20 rounded-full bg-destructive flex items-center justify-center text-white mb-6 animate-pulse">
+                          <WifiOff className="h-10 w-10" />
+                      </div>
+                      <CardTitle className="text-2xl font-black uppercase text-destructive">Offline Access Restricted</CardTitle>
+                      <CardDescription className="text-slate-600 font-bold mt-2">No local institutional mirror detected on this device.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-8 space-y-6">
+                      <div className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 italic text-sm text-slate-500">
+                          <Info className="h-5 w-5 shrink-0 mt-0.5" />
+                          <p>To conduct audits without an internet connection, you must first connect to the university network and perform a <strong>Deep Mirroring</strong> handshake in the Auditor Workspace.</p>
+                      </div>
+                  </CardContent>
+                  <CardFooter className="bg-slate-50 border-t py-6">
+                      <Button onClick={() => window.location.reload()} className="w-full h-12 font-black uppercase tracking-widest gap-2 shadow-xl shadow-primary/20">
+                          <RotateCw className="h-4 w-4" /> Try Reconnecting
+                      </Button>
+                  </CardFooter>
+              </Card>
+          </div>
+      );
+  }
+
   return (
     <ActivityLogProvider>
       <div className={cn("flex min-h-screen w-full", accessibilityClasses)}>
