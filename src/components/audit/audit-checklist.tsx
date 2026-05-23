@@ -53,7 +53,7 @@ function ClauseForm({
   onSave: (data: any) => void,
   clauseCars: CorrectiveActionRequest[]
 }) {
-  const { user, userRole } = useUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const isOnline = useNetworkStatus();
@@ -93,6 +93,10 @@ function ClauseForm({
     }
   }, [watchType, clause.id, form]);
 
+  /**
+   * NON-BLOCKING AUTO-SAVE
+   * Triggers background local write without blocking UI interactions.
+   */
   useEffect(() => {
     if (!watchAll.type || !firestore || !user) return;
 
@@ -105,10 +109,9 @@ function ClauseForm({
     if (hasChanged) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         
-        // Reduced auto-save timeout to 2 seconds for faster response
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 2000); 
+        }, 1200); // Accelerated debounce for offline speed
     }
 
     return () => {
@@ -116,7 +119,7 @@ function ClauseForm({
     };
   }, [watchAll, finding, firestore, user]);
 
-  const performSave = async (values: ClauseFormData) => {
+  const performSave = (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) return;
     
     setIsSubmitting(true);
@@ -139,19 +142,19 @@ function ClauseForm({
         findingData.ncStatement = values.ncStatement;
     }
 
-    try {
-        await setDoc(findingRef, findingData, { merge: true });
-        setLastSaved(new Date());
-        onSave(findingData); 
-    } catch(error) {
-        console.error("Error auto-saving finding: ", error);
-    } finally {
-        setIsSubmitting(false);
-    }
+    // Fire and forget update for instantaneous local response
+    setDoc(findingRef, findingData, { merge: true })
+        .then(() => {
+            setLastSaved(new Date());
+            onSave(findingData); 
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   };
 
-  const onSubmit = async (values: ClauseFormData) => {
-      await performSave(values);
+  const onSubmit = (values: ClauseFormData) => {
+      performSave(values);
       toast({ title: isOnline ? "Audit Progress Synced" : "Saved Locally", description: `Finding for clause ${clause.id} has been recorded.`});
   };
 
@@ -196,10 +199,6 @@ function ClauseForm({
                     </div>
                 </div>
             )}
-            
-            <p className="text-[9px] text-primary/60 font-medium italic leading-tight pt-1">
-                <strong>Auditor Guideline (10.1.d):</strong> Verify if previous actions taken for any findings are still effective and prevent recurrence.
-            </p>
         </div>
 
         <Form {...form}>
@@ -211,7 +210,6 @@ function ClauseForm({
                 </ul>
             </div>
 
-            {/* FIELD 1: OBJECTIVE AUDIT EVIDENCE */}
             <FormField
             control={form.control}
             name="evidence"
@@ -222,17 +220,14 @@ function ClauseForm({
                     <Textarea 
                       {...field} 
                       rows={4} 
-                      placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." 
+                      placeholder="Record verifiable observations..." 
                       className="bg-white border-slate-200 shadow-inner text-xs" 
-                      // Removed disabled={isSubmitting} to ensure smooth typing
                     />
                 </FormControl>
-                <FormDescription className="text-[9px]">Document the specific evidence that supports the finding before determining the result.</FormDescription>
                 </FormItem>
             )}
             />
 
-            {/* FIELD 2: AUDIT VERIFICATION RESULT */}
             <FormField
             control={form.control}
             name="type"
@@ -240,19 +235,14 @@ function ClauseForm({
                 <FormItem className="space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed">
                     <FormLabel className="font-black text-xs uppercase tracking-wider text-primary">2. Audit Verification Result</FormLabel>
                     <FormControl>
-                        <RadioGroup 
-                          onValueChange={field.onChange} 
-                          value={field.value} 
-                          className="flex flex-wrap gap-4 pt-2" 
-                          // Removed disabled={isSubmitting}
-                        >
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Compliance" id={`c-${clause.id}`} />
                                 <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Compliance (C)</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Observation for Improvement" id={`ofi-${clause.id}`} />
-                                <Label htmlFor={`ofi-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Observation for Improvement (OFI)</Label>
+                                <Label htmlFor={`ofi-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">OFI</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Non-Conformance" id={`nc-${clause.id}`} />
@@ -260,7 +250,7 @@ function ClauseForm({
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Not Applicable" id={`na-${clause.id}`} />
-                                <Label htmlFor={`na-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-muted-foreground cursor-pointer">Not Applicable (N/A)</Label>
+                                <Label htmlFor={`na-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-muted-foreground cursor-pointer">N/A</Label>
                             </div>
                         </RadioGroup>
                     </FormControl>
@@ -268,74 +258,33 @@ function ClauseForm({
             )}
             />
 
-            {/* FIELD 3: DETAILED DESCRIPTION / NC STATEMENT */}
             {watchType === 'Non-Conformance' && (
-                <FormField
-                    control={form.control}
-                    name="ncStatement"
-                    render={({ field }) => (
-                        <FormItem className="animate-in slide-in-from-top-2 duration-300">
-                            <div className="flex items-center gap-2 mb-2">
-                                <AlertTriangle className="h-4 w-4 text-destructive" />
-                                <FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">3. Detailed Description of Finding (NC Statement)</FormLabel>
-                            </div>
-                            <FormControl>
-                                <Textarea 
-                                    {...field} 
-                                    rows={6} 
-                                    placeholder="Edit the template below to reflect your findings..." 
-                                    className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic" 
-                                    // Removed disabled={isSubmitting}
-                                />
-                            </FormControl>
-                            <FormDescription className="text-[9px]">The template above is pre-populated. Please edit the bracketed [ ] sections to specify the gap.</FormDescription>
-                        </FormItem>
-                    )}
-                />
+                <FormField control={form.control} name="ncStatement" render={({ field }) => (
+                    <FormItem className="animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-2 mb-2"><AlertTriangle className="h-4 w-4 text-destructive" /><FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">3. Detailed Description of Finding (NC Statement)</FormLabel></div>
+                        <FormControl><Textarea {...field} rows={6} placeholder="Edit the template below..." className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic" /></FormControl>
+                    </FormItem>
+                )} />
             )}
 
             {watchType !== 'Non-Conformance' && watchType !== '' && (
-                <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                        <FormItem className="animate-in fade-in duration-300">
-                            <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">3. Detailed Description of Finding</FormLabel>
-                            <FormControl>
-                                <Textarea 
-                                  {...field} 
-                                  rows={3} 
-                                  placeholder={watchType === 'Not Applicable' ? "Briefly explain why this clause is not applicable to this unit..." : "Provide further context or notes regarding this finding..."} 
-                                  className="bg-white border-slate-200 text-xs" 
-                                  // Removed disabled={isSubmitting}
-                                />
-                            </FormControl>
-                        </FormItem>
-                    )}
-                />
+                <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem className="animate-in fade-in duration-300">
+                        <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">3. Detailed Description of Finding</FormLabel>
+                        <FormControl><Textarea {...field} rows={3} placeholder="Provide further context..." className="bg-white border-slate-200 text-xs" /></FormControl>
+                    </FormItem>
+                )} />
             )}
 
             <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                     {isSubmitting ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
-                            <CloudUpload className="h-3 w-3" />
-                            {isOnline ? 'Synchronizing Registry...' : 'Caching locally...'}
-                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Caching locally...</div>
                     ) : lastSaved ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {isOnline ? `Registry Logged (${format(lastSaved, 'HH:mm:ss')})` : `Saved to Device (${format(lastSaved, 'HH:mm:ss')})`}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground opacity-40">
-                            <CloudDownload className="h-3 w-3" />
-                            Awaiting verification entry
-                        </div>
-                    )}
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Saved ({format(lastSaved, 'HH:mm:ss')})</div>
+                    ) : null}
                 </div>
                 <Button type="submit" disabled={isSubmitting || !watchType} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                    {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin"/>}
                     {lastSaved ? 'Force Sync Finding' : `Commit Clause ${clause.id}`}
                 </Button>
             </div>
@@ -345,15 +294,9 @@ function ClauseForm({
   );
 }
 
-
 export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved, unitCars }: AuditChecklistProps) {
   const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
-
-  const sortedClauses = useMemo(() => {
-    return [...clausesToAudit].sort((a, b) => 
-        a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })
-    );
-  }, [clausesToAudit]);
+  const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
 
   return (
     <Card className="shadow-2xl border-primary/10 overflow-hidden">
@@ -361,13 +304,9 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
         <div className="flex items-center justify-between">
             <div className="space-y-1">
                 <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Audit Evidence Log</CardTitle>
-                <CardDescription className="font-medium">
-                Sequentially verify RSU compliance against ISO 21001:2018 standards.
-                </CardDescription>
+                <CardDescription className="font-medium">Verify RSU compliance against ISO 21001:2018 standards.</CardDescription>
             </div>
-            <Badge variant="outline" className="h-6 font-black text-[10px] border-primary/20 bg-primary/5 text-primary uppercase">
-                {sortedClauses.length} CLAUSES IN SCOPE
-            </Badge>
+            <Badge variant="outline" className="h-6 px-4 font-black text-[10px] border-primary/20 bg-primary/5 text-primary uppercase">{sortedClauses.length} CLAUSES IN SCOPE</Badge>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -375,61 +314,25 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
           {sortedClauses.map((clause) => {
             const hasFinding = findingsMap.has(clause.id);
             const findingType = findingsMap.get(clause.id)?.type;
-            
-            const relevantCars = clause.id === '10.1' 
-                ? unitCars 
-                : unitCars.filter(c => {
-                    const concerning = String(c.concerningClause || '').toLowerCase().trim();
-                    const currentId = String(clause.id).toLowerCase().trim();
-                    return concerning === currentId || concerning.includes(`clause ${currentId}`);
-                });
+            const relevantCars = clause.id === '10.1' ? unitCars : unitCars.filter(c => String(c.concerningClause || '').toLowerCase().includes(String(clause.id).toLowerCase()));
 
             return (
               <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
                 <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex items-center justify-between w-full pr-6 text-left">
                     <div className="flex items-center gap-4">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">
-                            {clause.id}
-                        </div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">{clause.id}</div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-800 uppercase tracking-tighter">
-                                {clause.title}
-                            </span>
-                            {relevantCars.length > 0 && (
-                                <div className="flex items-center gap-1.5 mt-1">
-                                    <History className="h-3 w-3 text-amber-600" />
-                                    <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">
-                                        {clause.id === '10.1' ? 'Unit Total:' : 'Clause History:'} {relevantCars.length} findings detected
-                                    </span>
-                                </div>
-                            )}
+                            <span className="text-sm font-black text-slate-800 uppercase tracking-tighter">{clause.title}</span>
+                            {relevantCars.length > 0 && <div className="flex items-center gap-1.5 mt-1"><History className="h-3 w-3 text-amber-600" /><span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">{relevantCars.length} history detected</span></div>}
                         </div>
                     </div>
-                    {hasFinding && (
-                        <Badge 
-                            className={cn(
-                                "h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110",
-                                findingType === 'Compliance' ? 'bg-emerald-600 text-white' : 
-                                findingType === 'Non-Conformance' ? 'bg-destructive text-white' : 
-                                findingType === 'Not Applicable' ? 'bg-slate-500 text-white' :
-                                'bg-amber-50 text-amber-950'
-                            )}
-                        >
-                            {findingType === 'Compliance' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : findingType === 'Not Applicable' ? 'N/A' : 'OFI'} RECORDED
-                        </Badge>
-                    )}
+                    {hasFinding && <Badge className={cn("h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110", findingType === 'Compliance' ? 'bg-emerald-600 text-white' : findingType === 'Non-Conformance' ? 'bg-destructive text-white' : findingType === 'Not Applicable' ? 'bg-slate-500 text-white' : 'bg-amber-50 text-amber-950')}>{findingType?.charAt(0)} RECORDED</Badge>}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-8">
                   <div className="rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50">
-                    <ClauseForm 
-                        scheduleId={scheduleId}
-                        clause={clause}
-                        finding={findingsMap.get(clause.id)}
-                        onSave={(data) => onFindingSaved?.(data)}
-                        clauseCars={relevantCars}
-                    />
+                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} />
                   </div>
                 </AccordionContent>
               </AccordionItem>

@@ -719,7 +719,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             </div>
                         ))}
                         {!liveCar?.comments?.length && (
-                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-2">
                                 <HistoryIcon className="h-10 w-10"/>
                                 <p className="text-[10px] font-black uppercase">No history</p>
                             </div>
@@ -745,3 +745,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+

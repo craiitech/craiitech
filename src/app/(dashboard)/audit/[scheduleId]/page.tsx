@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -30,7 +29,8 @@ import {
     WifiOff,
     ShieldAlert,
     ShieldX,
-    Lock
+    Lock,
+    Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -200,7 +200,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 2000);
+        }, 1500); // Reduced delay for faster responsiveness
     }
 
     return () => {
@@ -216,7 +216,11 @@ export default function AuditExecutionPage() {
     });
   };
 
-  const handleSaveSummary = async (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
+  /**
+   * ACCELERATED SUMMARY SAVE
+   * Uses non-blocking logic to ensure the UI doesn't hang during local finalized writes.
+   */
+  const handleSaveSummary = (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
     setIsSavingSummary(true);
 
@@ -236,17 +240,30 @@ export default function AuditExecutionPage() {
             summaryNC: values.summaryNC || '',
             scheduledDate: Timestamp.fromDate(start),
             endScheduledDate: Timestamp.fromDate(end),
-            status: 'Completed'
+            status: 'Completed' as const
         };
 
-        await updateDoc(scheduleDocRef, updateData);
-        setLastSaved(new Date());
-        if (!isAutoSave) {
-            toast({ title: "Success", description: "Audit summary and conduct time updated. Session marked as Completed." });
+        // Non-blocking Firestore update for instantaneous local response
+        updateDoc(scheduleDocRef, updateData)
+            .then(() => {
+                setLastSaved(new Date());
+                if (!isAutoSave) {
+                    toast({ title: "Audit Finalized", description: "Records saved to institutional registry." });
+                }
+            })
+            .catch(error => {
+                console.error("Async save failed:", error);
+            })
+            .finally(() => {
+                setIsSavingSummary(false);
+            });
+
+        // Optimistic feedback for auto-saves
+        if (isAutoSave) {
+            setLastSaved(new Date());
+            setIsSavingSummary(false);
         }
     } catch(error) {
-        console.error("Error saving summary:", error);
-    } finally {
         setIsSavingSummary(false);
     }
   };
@@ -382,17 +399,11 @@ export default function AuditExecutionPage() {
                 {isForcedOffline ? 'NETWORK LOCKED: OFFLINE' : isOnline ? 'Online Sync Active' : 'Offline Mode (Local Storage)'}
             </Badge>
 
-            {(!isOnline || isForcedOffline) && (
-                <Badge variant="outline" className="h-9 px-3 font-bold uppercase text-[9px] bg-white text-destructive border-destructive/20 animate-pulse">
-                    <ShieldAlert className="h-3 w-3 mr-1" /> SYNC REQUIRED LATER
-                </Badge>
-            )}
-
             <div className="mr-4 flex flex-col items-end">
                 {isSavingSummary ? (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />{(isOnline && !isForcedOffline) ? 'Syncing Summary...' : 'Caching locally...'}</div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Caching locally...</div>
                 ) : lastSaved ? (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />{(isOnline && !isForcedOffline) ? `Summary Logged (${format(lastSaved, 'HH:mm:ss')})` : `Saved to Device (${format(lastSaved, 'HH:mm:ss')})`}</div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Saved to Device ({format(lastSaved, 'HH:mm:ss')})</div>
                 ) : null}
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsDossierVisible(!isDossierVisible)} className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5">{isDossierVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}{isDossierVisible ? 'Hide Dossier' : 'Show Dossier'}</Button>
@@ -420,26 +431,26 @@ export default function AuditExecutionPage() {
                     <CardContent className="space-y-6 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="officerInCharge" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
-                        <FormControl><Input {...field} placeholder="Enter name of the actual representative present..." className="h-11 font-black bg-white" disabled={isForcedOffline && !isOnline} /></FormControl>
+                        <FormControl><Input {...field} placeholder="Enter name of the actual representative present..." className="h-11 font-black bg-white" /></FormControl>
                         <FormDescription className="text-[9px]">Pre-filled from itinerary. Update if a different representative was present.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><FormField control={form.control} name="actualDate" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
-                        <FormControl><Input type="date" {...field} className="h-11 bg-white font-bold" disabled={isForcedOffline && !isOnline} /></FormControl>
+                        <FormControl><Input type="date" {...field} className="h-11 bg-white font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} /><FormField control={form.control} name="actualStartTime" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
-                        <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" disabled={isForcedOffline && !isOnline} /></FormControl>
+                        <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} /><FormField control={form.control} name="actualEndTime" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
-                        <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" disabled={isForcedOffline && !isOnline} /></FormControl>
+                        <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} /></div></div></Form></CardContent>
@@ -468,7 +479,7 @@ export default function AuditExecutionPage() {
                         </div>
                         <Separator />
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p><Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}><DialogTrigger asChild><Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2" disabled={isForcedOffline && !isOnline}><PlusCircle className="h-3 w-3" /> Add More Clauses</Button></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Add Clauses to Scope</DialogTitle><DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription></DialogHeader><div className="rounded-xl border shadow-sm overflow-hidden bg-background"><Command className="bg-transparent" filter={(v, s) => v.toLowerCase().includes(s.toLowerCase()) ? 1 : 0}><div className="flex items-center border-b px-3 bg-white"><CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" /></div><CommandList className="max-h-[300px]"><CommandEmpty className="p-4 text-center"><Database className="h-8 w-8 mx-auto opacity-10 mb-2" /><p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p></CommandEmpty><CommandGroup>{unusedClauses.map(c => { const isSelected = selectedNewClauses.includes(c.id); return (<CommandItem key={c.id} value={`${c.id} ${c.title}`} onSelect={() => toggleNewClauseSelection(c.id)} className="flex items-center gap-3 px-4 py-3 cursor-pointer"><div className={cn("h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary border-primary text-white" : "border-slate-300")}>{isSelected && <Check className="h-3 w-3" />}</div><div className="min-w-0"><p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p><p className="text-[10px] text-muted-foreground truncate">{c.title}</p></div></CommandItem>); })}</CommandGroup></CommandList></Command></div><DialogFooter className="pt-4"><Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button><Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>{isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Add {selectedNewClauses.length} Clause(s)</Button></DialogFooter></DialogContent></Dialog></div>
+                            <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p><Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}><DialogTrigger asChild><Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2"><PlusCircle className="h-3 w-3" /> Add More Clauses</Button></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Add Clauses to Scope</DialogTitle><DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription></DialogHeader><div className="rounded-xl border shadow-sm overflow-hidden bg-background"><Command className="bg-transparent" filter={(v, s) => v.toLowerCase().includes(s.toLowerCase()) ? 1 : 0}><div className="flex items-center border-b px-3 bg-white"><CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" /></div><CommandList className="max-h-[300px]"><CommandEmpty className="p-4 text-center"><Database className="h-8 w-8 mx-auto opacity-10 mb-2" /><p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p></CommandEmpty><CommandGroup>{unusedClauses.map(c => { const isSelected = selectedNewClauses.includes(c.id); return (<CommandItem key={c.id} value={`${c.id} ${c.title}`} onSelect={() => toggleNewClauseSelection(c.id)} className="flex items-center gap-3 px-4 py-3 cursor-pointer"><div className={cn("h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary border-primary text-white" : "border-slate-300")}>{isSelected && <Check className="h-3 w-3" />}</div><div className="min-w-0"><p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p><p className="text-[10px] text-muted-foreground truncate">{c.title}</p></div></CommandItem>); })}</CommandGroup></CommandList></Command></div><DialogFooter className="pt-4"><Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button><Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>{isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Add {selectedNewClauses.length} Clause(s)</Button></DialogFooter></DialogContent></Dialog></div>
                             <div className="flex flex-wrap gap-1.5">{schedule.isoClausesToAudit.sort((a,b) => a.localeCompare(b, undefined, { numeric: true })).map(clauseId => (<Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2 bg-white">Clause {clauseId}</Badge>))}</div>
                         </div>
                     </CardContent>
@@ -479,4 +490,3 @@ export default function AuditExecutionPage() {
     </div>
   );
 }
-
