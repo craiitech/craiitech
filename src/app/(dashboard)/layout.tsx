@@ -181,8 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const getCarNotificationQuery = (): Query | null => {
-      if (
-!firestore || !userProfile || !userRole) return null;
+      if (!firestore || !userProfile || !userRole) return null;
       const col = collection(firestore, 'correctiveActionRequests');
       const isInstitutionalViewer = isAdmin || isAuditor;
       if (isInstitutionalViewer) return query(col, where('status', '==', 'For Final Verification'));

@@ -143,14 +143,14 @@ export function AuditorOfflineManager() {
             setDownloadProgress(`Syncing Session: ${s.targetName}`);
             await getDoc(doc(firestore, 'auditSchedules', s.id));
             
-            if (s.auditorId === user.uid) {
-                if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
-                await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
-                if (s.targetId) {
-                    await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
-                }
+            // Proactively cache potential conduct pages (including findings and CAR history)
+            if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
+            await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
+            if (s.targetId) {
+                await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
             }
 
+            // Prefetch RSC payloads for ALL sessions in the scope to ensure claiming works offline
             const rscUrl = `/audit/${s.id}`;
             try {
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
