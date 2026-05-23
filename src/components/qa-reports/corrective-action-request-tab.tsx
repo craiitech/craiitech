@@ -135,7 +135,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
-  const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
+  const isInstitutionalViewer = isAdmin || isAuditor;
+  const isTopManagement = isAdmin || isSupervisor || isAuditor;
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -377,18 +378,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     if (['rootCauseAnalysis', 'actionSteps'].some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
     if (fieldName === 'status') return !isInstitutionalViewer;
     return true; 
-  };
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
