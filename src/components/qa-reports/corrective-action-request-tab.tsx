@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -42,7 +43,8 @@ import {
     AlertTriangle,
     Link as LinkIcon,
     ShieldAlert,
-    Clock
+    Clock,
+    UserMinus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -112,6 +114,8 @@ const carSchema = z.object({
   status: z.enum(['Open', 'In Progress', 'Awaiting Response/Update', 'For Final Verification', 'Closed']),
   findingId: z.string().optional(),
 });
+
+const UNIVERSITY_WIDE_ID = 'university-wide';
 
 type SortKey = 'carNumber' | 'unit' | 'status' | 'updatedAt' | 'deadline';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
@@ -217,7 +221,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 if (car.unitId !== userProfile.unitId) return false;
             }
         }
-        if (activeSubTab === 'verification' && car.status !== 'For Final Verification') return false;
+        
+        // ROBUST TAB FILTERING: Verification Queue includes string status OR boolean flag
+        if (activeSubTab === 'verification' && car.status !== 'For Final Verification' && !car.needsVerification) return false;
         if (activeSubTab === 'my-unit' && car.unitId !== userProfile.unitId) return false;
 
         const matchesSearch = car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -266,7 +272,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         open: scopedList.filter(c => c.status === 'Open').length,
         inProgress: scopedList.filter(c => ['In Progress', 'Awaiting Response/Update'].includes(c.status)).length,
         closed: scopedList.filter(c => c.status === 'Closed').length,
-        needsVerification: scopedList.filter(c => c.status === 'For Final Verification').length,
+        needsVerification: scopedList.filter(c => c.status === 'For Final Verification' || c.needsVerification === true).length,
         myUnit: scopedList.filter(c => c.unitId === userProfile.unitId).length
     };
   }, [rawCars, userProfile, isInstitutionalViewer, isSupervisor]);
@@ -348,7 +354,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     if (isInstitutionalViewer) {
         const hasVerificationData = (values.followUpLogs?.length || 0) > (liveCar.followUpLogs?.length || 0) || 
                                    (values.effectivenessAudits?.length || 0) > (liveCar.effectivenessAudits?.length || 0);
-        if (hasVerificationData) nextStatus = 'For Final Verification';
+        if (hasVerificationData) {
+            nextStatus = 'For Final Verification';
+            needsVerification = true;
+        }
         if (values.adminFeedback?.trim()) nextStatus = 'Awaiting Response/Update';
     }
 
@@ -709,4 +718,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
