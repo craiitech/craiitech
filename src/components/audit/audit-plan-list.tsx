@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -41,6 +42,7 @@ interface AuditPlanListProps {
   onScheduleAudit: (plan: AuditPlan) => void;
   onEditSchedule: (plan: AuditPlan, schedule: AuditSchedule) => void;
   onDeleteSchedule: (schedule: AuditSchedule) => void;
+  onDeletePlanConfirm?: (plan: AuditPlan) => void;
   onClonePlan: (plan: AuditPlan) => void;
 }
 
@@ -429,7 +431,6 @@ export function AuditPlanList({
 }: AuditPlanListProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { systemSettings } = useUser();
     
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -582,6 +583,7 @@ export function AuditPlanList({
     const planFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
 
     try {
+        const targetName = campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE';
         const reportHtml = renderToStaticMarkup(
             <ConsolidatedAuditReportTemplate 
                 plan={plan} 
@@ -591,6 +593,7 @@ export function AuditPlanList({
                 units={units} 
                 campuses={campuses} 
                 signatories={signatories || undefined} 
+                campusName={targetName}
             />
         );
 
