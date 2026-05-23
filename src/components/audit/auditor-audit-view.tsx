@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { useNetworkStatus } from '@/hooks/use-network-status';
+import { cn } from '@/lib/utils';
 
 export function AuditorAuditView() {
   const { user, userProfile, isUserLoading, userRole } = useUser();
@@ -150,7 +151,7 @@ export function AuditorAuditView() {
             </div>
 
             <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto flex animate-tab-highlight rounded-md">
+                <TabsList className="bg-muted p-1 border shadow-sm w-full md:auto h-auto flex animate-tab-highlight rounded-md">
                     <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length})
                     </TabsTrigger>
