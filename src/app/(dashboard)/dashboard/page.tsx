@@ -1483,6 +1483,7 @@ export default function HomePage() {
                     <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
                     <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
+                <Badge variant="outline" className="h-6 font-black uppercase text-primary border-primary/20 w-fit mx-auto">University Integrity Tracker</Badge>
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                  <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
                  <CardFooter className="bg-muted/5 border-t py-3">
@@ -1557,10 +1558,7 @@ export default function HomePage() {
                 )}
               
               <div className="mt-4">
-                {isAdmin ? renderAdminHome() : 
-                 userRole === 'Auditor' ? renderAuditorHome() :
-                 isCampusSupervisor ? renderSupervisorHome() : 
-                 renderUnitUserHome()}
+                {renderHomeContent()}
               </div>
            </div>
        )}

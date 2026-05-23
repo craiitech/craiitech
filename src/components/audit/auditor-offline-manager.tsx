@@ -50,7 +50,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '../ui/badge';
-import { Label } from '../ui/label';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -139,7 +139,6 @@ export function AuditorOfflineManager() {
             ? allScheds 
             : allScheds.filter((s: any) => s.campusId === selectedSite);
 
-        // TOTAL ITINERARY CACHING: Prefetch RSC payloads for ALL sessions in the scope
         for (const s of filteredScheds) {
             setDownloadProgress(`Locking Session: ${s.targetName}`);
             await getDoc(doc(firestore, 'auditSchedules', s.id));
@@ -150,7 +149,6 @@ export function AuditorOfflineManager() {
                 await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
             }
 
-            // Lock the Evidence Log page for this session into persistent disk storage
             const rscUrl = `/audit/${s.id}`;
             try {
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
@@ -176,7 +174,7 @@ export function AuditorOfflineManager() {
         toast({ 
             title: 'Deep Mirror Complete', 
             description: selectedSite === 'university-wide' 
-                ? 'Full institutional pool and all potential conduct pages are now locked in persistent storage.' 
+                ? 'Full institutional pool and all potential conduct pages are now locked.' 
                 : `Registry for ${campuses?.find(c => c.id === selectedSite)?.name} is locked and ready for offline use.`
         });
     } catch (e) {
@@ -270,7 +268,7 @@ export function AuditorOfflineManager() {
   const toggleNetworkLock = async (forceOffline: boolean) => {
       if (!firestore) return;
       if (forceOffline && isOnline && mirrorStatus === 'expired') {
-          toast({ variant: "destructive", title: "Mandatory Refresh", description: "Your mirror is expired. You must synchronize while online before locking the network." });
+          toast({ variant: "destructive", title: "Mandatory Refresh", description: "Your mirror is expired. You must synchronize while online before locking." });
           return;
       }
       if (forceOffline) {
@@ -290,7 +288,7 @@ export function AuditorOfflineManager() {
       }
   };
 
-  const globalOverlay = (isDownloading && mounted) ? createPortal(
+  const overlayContent = (isDownloading && mounted) ? (
     <div 
         className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 pointer-events-auto cursor-wait select-none"
         onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -317,13 +315,12 @@ export function AuditorOfflineManager() {
                 </p>
             </CardContent>
         </Card>
-    </div>,
-    document.body
+    </div>
   ) : null;
 
   return (
     <>
-    {globalOverlay}
+    {overlayContent && createPortal(overlayContent, document.body)}
 
     <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
       <CardHeader className="bg-primary/10 border-b py-4">
