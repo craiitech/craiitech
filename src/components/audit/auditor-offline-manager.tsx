@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { 
@@ -53,7 +54,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
  * AUDITOR OFFLINE MANAGER v12.0 (DEEP INSTITUTIONAL MIRROR)
- * Implements persistent route caching for all core conduct pages and logs.
+ * Hardened: Uses createPortal to ensure the blocking overlay is globally on top.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -73,10 +74,12 @@ export function AuditorOfflineManager() {
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<'none' | 'found' | 'expired'>('none');
+  const [mounted, setMounted] = useState(false);
 
-  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours expiry
+  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; 
 
   useEffect(() => {
+    setMounted(true);
     const checkMirrorAge = () => {
         const storedTime = localStorage.getItem('rsu_last_mirror_time');
         if (storedTime) {
@@ -110,19 +113,16 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing institutional handshake...');
 
     try {
-        // 1. Mirror Core Governance Data
         setDownloadProgress('Mirroring standard clauses & site directory...');
         await getDocs(collection(firestore, 'isoClauses'));
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // 2. Mirror TOTAL Audit Pool & Audit Log
         setDownloadProgress('Mirroring institutional audit logs & pools...');
         const schedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         
-        // Mirror Audit Log for offline verification
         if (isAdmin) {
             await getDocs(collection(firestore, 'activityLogs'));
         }
@@ -137,8 +137,6 @@ export function AuditorOfflineManager() {
                 if (s.targetId) {
                     await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
                 }
-
-                // PERSISTENT ROUTE CACHING (FORCE DISK PERSISTENCE)
                 const rscUrl = `/audit/${s.id}`;
                 try {
                     await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
@@ -146,12 +144,10 @@ export function AuditorOfflineManager() {
             }
         }
 
-        // Cache all critical navigation routes for Zero-Connectivity stability
         const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
         for (const route of coreRoutes) {
             setDownloadProgress(`Caching Application Logic: ${route}`);
             try {
-                // Fetch the actual RSC payload to prime the browser's persistent disk cache
                 await fetch(route, { headers: { 'RSC': '1' }, cache: 'force-cache' });
             } catch (e) {}
         }
@@ -272,30 +268,41 @@ export function AuditorOfflineManager() {
       }
   };
 
+  // PORTAL OVERLAY - Mandatory Blocking
+  const globalOverlay = (isDownloading && mounted) ? createPortal(
+    <div 
+        className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 pointer-events-auto cursor-wait select-none"
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+    >
+        <Card className="w-full max-w-xl border-destructive border-4 shadow-[0_0_50px_rgba(255,0,0,0.3)] bg-white scale-110">
+            <CardHeader className="text-center space-y-4 pb-2 bg-destructive/10 border-b-2 border-destructive">
+                <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse">
+                    <ShieldAlert className="h-12 w-12" />
+                </div>
+                <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">DEEP APPLICATION MIRRORING ACTIVE</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-8 px-10 pb-10 space-y-8">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                        <span>{downloadProgress}</span>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                    <Progress value={undefined} className="h-3" />
+                </div>
+                <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">
+                    INTERACTION DISABLED: LOCKING APPLICATION CODE AND INSTITUTIONAL REGISTRY INTO LOCAL STORAGE.
+                </p>
+            </CardContent>
+        </Card>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <>
-    {isDownloading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
-            <Card className="w-full max-w-xl border-destructive border-4 shadow-2xl bg-white scale-110">
-                <CardHeader className="text-center space-y-4 pb-2 bg-destructive/10 border-b-2 border-destructive">
-                    <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse">
-                        <ShieldAlert className="h-12 w-12" />
-                    </div>
-                    <CardTitle className="text-3xl font-black uppercase text-destructive animate-emergency-flash">DEEP APPLICATION MIRRORING ACTIVE</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-8 px-10 pb-10 space-y-8">
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between text-[11px] font-black text-primary uppercase">
-                            <span>{downloadProgress}</span>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        </div>
-                        <Progress value={undefined} className="h-3" />
-                    </div>
-                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">INTERACTION DISABLED: LOCKING APPLICATION CODE AND INSTITUTIONAL REGISTRY INTO LOCAL STORAGE.</p>
-                </CardContent>
-            </Card>
-        </div>
-    )}
+    {globalOverlay}
 
     <Card className="border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
       <CardHeader className="bg-primary/10 border-b py-4">
@@ -327,7 +334,6 @@ export function AuditorOfflineManager() {
       {isExpanded && (
           <CardContent className="p-6 animate-in slide-in-from-top-2 duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* 1. TOTAL MIRRORING */}
                 <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
@@ -356,7 +362,6 @@ export function AuditorOfflineManager() {
                     </Button>
                 </div>
 
-                {/* 2. SMART NETWORK LOCK */}
                 <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
                     <div className="space-y-1">
                         <h4 className="text-xs font-black uppercase text-slate-800">2. Smart Connectivity Lock</h4>
@@ -376,7 +381,6 @@ export function AuditorOfflineManager() {
                     <div className="p-2 bg-muted/20 rounded-lg border border-dashed text-[9px] text-muted-foreground leading-tight font-medium italic">Forces the portal to rely purely on the local disk cache.</div>
                 </div>
 
-                {/* 3. WORKSPACE PORTABILITY */}
                 <div className="p-5 rounded-2xl bg-white border border-blue-100 shadow-sm space-y-4">
                     <div className="space-y-1">
                         <h4 className="text-xs font-black uppercase text-slate-800">3. Workspace Portability</h4>
