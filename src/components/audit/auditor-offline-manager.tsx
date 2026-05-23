@@ -51,12 +51,11 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v6.5
+ * AUDITOR OFFLINE MANAGER v6.6
  * Features:
  * 1. Mirror Logic: Local caching of institutional data.
- * 2. Smart Expiry: Force refresh when online and >2h old; allow use if offline.
- * 3. Network Lock: Forced offline state to prevent browser hangs.
- * 4. Portability: Export/Import .eoms packages for cross-browser data transfer.
+ * 2. Smart Expiry: Disable locking if online + expired; force work if offline.
+ * 3. Fast Conduct Mode: Optimized for rapid recording of findings.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -76,7 +75,6 @@ export function AuditorOfflineManager() {
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<'none' | 'found' | 'expired'>('none');
-  const [hasScanned, setHasScanned] = useState(false);
 
   const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours
 
@@ -112,12 +110,13 @@ export function AuditorOfflineManager() {
     setDownloadProgress('Initializing local repository...');
 
     try {
+        // Base Data
         await getDocs(collection(firestore, 'isoClauses'));
         await getDocs(collection(firestore, 'units'));
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
-        await getDoc(doc(firestore, 'system', 'settings'));
 
+        // Schedule Data
         const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
         const schedSnap = await getDocs(mySchedQuery);
         const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
@@ -129,21 +128,12 @@ export function AuditorOfflineManager() {
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
             router.prefetch(`/audit/${s.id}`);
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
-
-        await getDocs(collection(firestore, 'risks'));
-        await getDocs(collection(firestore, 'unitMonitoringRecords'));
-        await getDocs(collection(firestore, 'procedureManuals'));
-        await getDocs(collection(firestore, 'eomsPolicyManuals'));
-
-        const coreRoutes = ['/dashboard', '/audit', '/monitoring', '/risk-register', '/activity-log'];
-        coreRoutes.forEach(r => router.prefetch(r));
 
         const now = new Date();
         setLastDownload(now);
         setMirrorStatus('found');
-        setHasScanned(true);
         localStorage.setItem('rsu_eoms_last_mirror_time', now.toISOString());
 
         toast({ 
@@ -162,7 +152,6 @@ export function AuditorOfflineManager() {
   const handleSearchMirror = async () => {
     if (!firestore) return;
     setIsScanning(true);
-    setHasScanned(true);
     
     try {
         const unitsRef = collection(firestore, 'units');
@@ -194,7 +183,7 @@ export function AuditorOfflineManager() {
 
     setIsExporting(true);
     try {
-        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks', 'procedureManuals', 'eomsPolicyManuals'];
+        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks'];
         const packageData: Record<string, any[]> = {};
 
         for (const colName of collections) {
@@ -263,7 +252,6 @@ export function AuditorOfflineManager() {
   const toggleNetworkLock = async (forceOffline: boolean) => {
       if (!firestore) return;
       
-      // BLOCK LOCKING IF EXPIRED AND ONLINE
       if (forceOffline && isOnline && mirrorStatus === 'expired') {
           toast({ 
               variant: "destructive", 

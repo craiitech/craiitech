@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useMemo, useState, useEffect } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
-import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building, LayoutList, ShieldAlert, ClipboardCheck } from 'lucide-react';
+import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
 import { AuditResultsView } from './audit-results-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -14,14 +14,28 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 
 export function AuditorAuditView() {
-  const { user, userProfile, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const isOnline = useNetworkStatus();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [isForcedOffline, setIsForcedOffline] = useState(false);
+
+  useEffect(() => {
+    const checkState = () => {
+        setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+    };
+    checkState();
+    window.addEventListener('storage', checkState);
+    return () => window.removeEventListener('storage', checkState);
+  }, []);
+
+  const isActuallyOffline = !isOnline || isForcedOffline;
 
   const allSchedulesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -72,6 +86,10 @@ export function AuditorAuditView() {
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
+    if (isActuallyOffline) {
+        toast({ title: "Offline Action Restricted", description: "You must be online to claim new audits from the pool.", variant: "destructive" });
+        return;
+    }
 
     const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
     
@@ -90,6 +108,10 @@ export function AuditorAuditView() {
 
   const handleUnclaimAudit = async (scheduleId: string) => {
       if (!firestore) return;
+      if (isActuallyOffline) {
+          toast({ title: "Offline Action Restricted", description: "You must be online to release audits from your itinerary.", variant: "destructive" });
+          return;
+      }
       
       const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
       try {
@@ -117,8 +139,14 @@ export function AuditorAuditView() {
                     <LayoutList className="h-6 w-6 text-primary" />
                     IQA Conduct Workspace
                   </h2>
-                  <p className="text-muted-foreground text-sm font-medium">Manage your assignments and oversee institutional audit results.</p>
+                  <p className="text-muted-foreground text-sm font-medium">Manage your assignments and record on-site evidence logs.</p>
                 </div>
+                {isActuallyOffline && (
+                    <Badge variant="destructive" className="h-9 px-4 font-black uppercase text-[9px] gap-2 animate-in zoom-in">
+                        <WifiOff className="h-3.5 w-3.5" />
+                        Conduct Mode: Offline Recording Only
+                    </Badge>
+                )}
             </div>
 
             <ScrollArea className="w-full">
@@ -129,8 +157,17 @@ export function AuditorAuditView() {
                     <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <CalendarSearch className="h-4 w-4"/> Pool ({availableSchedulesRaw.length})
                     </TabsTrigger>
-                    <TabsTrigger value="results" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-                        <ClipboardCheck className="h-4 w-4" /> Audit Results Hub
+                    <TabsTrigger 
+                        value="results" 
+                        disabled={isActuallyOffline}
+                        className={cn(
+                            "gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white",
+                            isActuallyOffline && "opacity-30 grayscale cursor-not-allowed"
+                        )}
+                    >
+                        <ClipboardCheck className="h-4 w-4" /> 
+                        {isActuallyOffline ? <Lock className="h-3 w-3 mr-1" /> : null}
+                        Audit Results Hub
                     </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -237,7 +274,7 @@ export function AuditorAuditView() {
 
                     <TabsContent value="results" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
                          <AuditResultsView 
-                            selectedYear={new Date().getFullYear()} // Default to current or let user pick inside the view
+                            selectedYear={new Date().getFullYear()} 
                             plans={plans || []}
                             schedules={allSchedules || []}
                             findings={findings || []}

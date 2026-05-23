@@ -200,7 +200,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 1500); // Reduced delay for faster responsiveness
+        }, 1200); // Optimized debounce for offline typing speed
     }
 
     return () => {
@@ -246,9 +246,8 @@ export default function AuditExecutionPage() {
         // Non-blocking Firestore update for instantaneous local response
         updateDoc(scheduleDocRef, updateData)
             .then(() => {
-                setLastSaved(new Date());
                 if (!isAutoSave) {
-                    toast({ title: "Audit Finalized", description: "Records saved to institutional registry." });
+                    toast({ title: "Audit Finalized", description: "Records saved to device repository." });
                 }
             })
             .catch(error => {
@@ -258,11 +257,10 @@ export default function AuditExecutionPage() {
                 setIsSavingSummary(false);
             });
 
-        // Optimistic feedback for auto-saves
-        if (isAutoSave) {
-            setLastSaved(new Date());
-            setIsSavingSummary(false);
-        }
+        // Optimistic feedback for all saves
+        setLastSaved(new Date());
+        if (isAutoSave) setIsSavingSummary(false);
+        
     } catch(error) {
         setIsSavingSummary(false);
     }
@@ -460,7 +458,7 @@ export default function AuditExecutionPage() {
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary" />2. Final Audit Report Summary</CardTitle><CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription></CardHeader>
-                    <CardContent className="space-y-8 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="summaryCommendable" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryCompliance" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryOFI" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl></FormItem>)} /><FormField control={form.control} name="summaryNC" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-destructive">Non-Compliance / Non-Conformance (NC)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl></FormItem>)} /></div></Form></CardContent>
+                    <CardContent className="space-y-8 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="summaryCommendable" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryCompliance" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryOFI" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl></FormItem>)} /><FormField control={form.control} name="summaryNC" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-destructive">Non-Conformance / Non-Compliance (NC)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl></FormItem>)} /></div></Form></CardContent>
                     <CardFooter className="bg-slate-50 border-t py-6 px-8"><Button type="button" onClick={form.handleSubmit((v) => handleSaveSummary(v))} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">{isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}<Save className="mr-2 h-4 w-4"/>Finalize Audit Report</Button></CardFooter>
                 </Card>
             </div>
