@@ -53,7 +53,8 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import type { Campus } from '@/lib/types';
 
 export function AuditorOfflineManager() {
