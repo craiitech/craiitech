@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -106,10 +105,10 @@ function ClauseForm({
     if (hasChanged) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         
-        // Extended auto-save timeout to 8 seconds
+        // Reduced auto-save timeout to 2 seconds for faster response
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 8000); 
+        }, 2000); 
     }
 
     return () => {
@@ -220,7 +219,13 @@ function ClauseForm({
                 <FormItem>
                 <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">1. Objective Audit Evidence / Verified Observations</FormLabel>
                 <FormControl>
-                    <Textarea {...field} rows={4} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner text-xs" disabled={isSubmitting} />
+                    <Textarea 
+                      {...field} 
+                      rows={4} 
+                      placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." 
+                      className="bg-white border-slate-200 shadow-inner text-xs" 
+                      // Removed disabled={isSubmitting} to ensure smooth typing
+                    />
                 </FormControl>
                 <FormDescription className="text-[9px]">Document the specific evidence that supports the finding before determining the result.</FormDescription>
                 </FormItem>
@@ -235,7 +240,12 @@ function ClauseForm({
                 <FormItem className="space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed">
                     <FormLabel className="font-black text-xs uppercase tracking-wider text-primary">2. Audit Verification Result</FormLabel>
                     <FormControl>
-                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2" disabled={isSubmitting}>
+                        <RadioGroup 
+                          onValueChange={field.onChange} 
+                          value={field.value} 
+                          className="flex flex-wrap gap-4 pt-2" 
+                          // Removed disabled={isSubmitting}
+                        >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Compliance" id={`c-${clause.id}`} />
                                 <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Compliance (C)</Label>
@@ -275,7 +285,7 @@ function ClauseForm({
                                     rows={6} 
                                     placeholder="Edit the template below to reflect your findings..." 
                                     className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic" 
-                                    disabled={isSubmitting}
+                                    // Removed disabled={isSubmitting}
                                 />
                             </FormControl>
                             <FormDescription className="text-[9px]">The template above is pre-populated. Please edit the bracketed [ ] sections to specify the gap.</FormDescription>
@@ -292,7 +302,13 @@ function ClauseForm({
                         <FormItem className="animate-in fade-in duration-300">
                             <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">3. Detailed Description of Finding</FormLabel>
                             <FormControl>
-                                <Textarea {...field} rows={3} placeholder={watchType === 'Not Applicable' ? "Briefly explain why this clause is not applicable to this unit..." : "Provide further context or notes regarding this finding..."} className="bg-white border-slate-200 text-xs" disabled={isSubmitting} />
+                                <Textarea 
+                                  {...field} 
+                                  rows={3} 
+                                  placeholder={watchType === 'Not Applicable' ? "Briefly explain why this clause is not applicable to this unit..." : "Provide further context or notes regarding this finding..."} 
+                                  className="bg-white border-slate-200 text-xs" 
+                                  // Removed disabled={isSubmitting}
+                                />
                             </FormControl>
                         </FormItem>
                     )}

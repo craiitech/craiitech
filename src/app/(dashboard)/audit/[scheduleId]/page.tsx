@@ -197,9 +197,10 @@ export default function AuditExecutionPage() {
     if (hasChanged) {
         if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
         
+        // Reduced to 2 seconds for snappier offline feel
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 8000);
+        }, 2000);
     }
 
     return () => {
