@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, where, arrayUnion } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +39,6 @@ import {
     Gavel,
     MessageSquare,
     School,
-    Building,
     Save,
     AlertTriangle,
     Link as LinkIcon,
