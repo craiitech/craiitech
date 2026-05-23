@@ -219,7 +219,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             }
         }
         
-        // REFINED VERIFICATION QUEUE: Include everything that is NOT CLOSED and requires auditor radar
         if (activeSubTab === 'verification') {
             const isAwaitingOversight = ['For Final Verification', 'Awaiting Response/Update'].includes(car.status);
             if (!isAwaitingOversight && !car.needsVerification) return false;
@@ -574,7 +573,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             </Select>
                                         )} />
                                     </div>
-                                    <div className="md:col-span-6">
+                                    <div className="md:col-span-5">
                                         <FormField control={form.control} name={`actionSteps.${idx}.description`} render={({ field: iF }) => (
                                             <FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
                                         )} />
@@ -584,10 +583,28 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
                                         )} />
                                     </div>
+                                    <div className="md:col-span-1 flex justify-end">
+                                        {!isFieldReadOnly('actionSteps') && (
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                        )}
+                                    </div>
+                                    {/* GOOGLE DRIVE LINK FIELD RESTORED */}
+                                    <div className="md:col-span-12 mt-2">
+                                        <FormField control={form.control} name={`actionSteps.${idx}.evidenceLink`} render={({ field: iF }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[8px] font-black uppercase text-blue-700 flex items-center gap-1">
+                                                    <LinkIcon className="h-2.5 w-2.5" /> Evidence Link (Google Drive)
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input {...iF} value={iF.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white border-blue-100" disabled={isFieldReadOnly('actionSteps')} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                    </div>
                                 </div>
                             ))}
                             {!isFieldReadOnly('actionSteps') && (
-                                <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase">
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase">
                                     <PlusCircle className="h-3 w-3 mr-2" /> Add Step
                                 </Button>
                             )}
@@ -666,12 +683,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </form></Form>
             </ScrollArea>
             <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
-                <div className="p-4 bg-white border-b shrink-0 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-700">Registry Discussion Log</h4></div>
+                <div className="p-4 bg-white border-b shrink-0 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-700">Auditor / Admin Registry Feedback</h4></div>
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-4">
                         {isInstitutionalViewer && (
                             <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-3">
-                                <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Internal Auditor Feedback</Label>
+                                <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Internal Feedback Panel</Label>
                                 <Textarea 
                                     placeholder="Add specific instructions for the unit coordinator..." 
                                     className="bg-white text-xs italic"
