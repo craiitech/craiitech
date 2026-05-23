@@ -273,7 +273,7 @@ export default function HomePage() {
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
+  const [selectedRiskYear, setSelectedYearRisk] = useState(new Date().getFullYear());
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
 
   const canViewCampusAnnouncements = userProfile?.campusId;
@@ -657,7 +657,6 @@ export default function HomePage() {
     isLoadingUnits ||
     isLoadingCampuses ||
     isLoadingGlobalSettings ||
-    isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
     isLoadingUsers ||
@@ -896,7 +895,7 @@ export default function HomePage() {
         if (f.type !== 'Observation for Improvement') return false;
         const schedule = allSchedules?.find(s => s.id === f.auditScheduleId);
         if (!schedule) return false;
-        if (isAdmin) true;
+        if (isAdmin) return true;
         if (isCampusSupervisor) return schedule.campusId === userProfile?.campusId;
         return schedule.targetId === userProfile?.unitId;
     }) || [];
@@ -1123,7 +1122,7 @@ export default function HomePage() {
         )}
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
           <Card className="col-span-1 lg:col-span-4">
             <CardHeader>
@@ -1166,7 +1165,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
       <TabsContent value="history">
         <Card>
           <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
@@ -1394,7 +1393,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
         <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
@@ -1509,7 +1508,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />

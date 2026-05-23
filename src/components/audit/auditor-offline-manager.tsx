@@ -54,7 +54,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
  * AUDITOR OFFLINE MANAGER v10.0 (INSTITUTIONAL MIRROR)
- * Implements Deep Data Mirroring, Persistent Route Caching, and Workspace Portability.
+ * Implements Deep Data Mirroring, Persistent Route Caching, and Global UI Blocking.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -145,15 +145,19 @@ export function AuditorOfflineManager() {
         }
 
         // Cache adjacent conduct routes
-        try {
-            await fetch('/activity-log', { headers: { 'RSC': '1' }, cache: 'force-cache' });
-            router.prefetch('/activity-log');
-        } catch (e) {}
+        const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile'];
+        for (const route of coreRoutes) {
+            setDownloadProgress(`Caching Core Path: ${route}`);
+            try {
+                await fetch(route, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+                router.prefetch(route);
+            } catch (e) {}
+        }
 
         const now = new Date();
         setLastDownload(now);
         setMirrorStatus('found');
-        localStorage.setItem('rsu_eoms_last_mirror_time', now.toISOString());
+        localStorage.setItem('rsu_last_mirror_time', now.toISOString());
 
         toast({ 
             title: 'Registry Mirrored', 
@@ -174,7 +178,7 @@ export function AuditorOfflineManager() {
     try {
         const unitsRef = collection(firestore, 'units');
         await getDocsFromCache(query(unitsRef, limit(1)));
-        const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
+        const storedTime = localStorage.getItem('rsu_last_mirror_time');
         if (storedTime) {
             const date = new Date(storedTime);
             setLastDownload(date);
@@ -230,7 +234,7 @@ export function AuditorOfflineManager() {
                 });
                 await Promise.all(batchPromises);
             }
-            localStorage.setItem('rsu_eoms_last_mirror_time', content.exportedAt || new Date().toISOString());
+            localStorage.setItem('rsu_last_mirror_time', content.exportedAt || new Date().toISOString());
             setMirrorStatus('found');
             setLastDownload(new Date(content.exportedAt || Date.now()));
             toast({ title: 'Workspace Imported', description: 'Local database updated from file.' });
@@ -269,8 +273,8 @@ export function AuditorOfflineManager() {
   return (
     <>
     {isDownloading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
-            <Card className="w-full max-w-xl border-destructive border-4 shadow-2xl bg-white">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
+            <Card className="w-full max-w-xl border-destructive border-4 shadow-2xl bg-white scale-110">
                 <CardHeader className="text-center space-y-4 pb-2 bg-destructive/10 border-b-2 border-destructive">
                     <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white animate-pulse">
                         <ShieldAlert className="h-12 w-12" />
@@ -285,7 +289,7 @@ export function AuditorOfflineManager() {
                         </div>
                         <Progress value={undefined} className="h-3" />
                     </div>
-                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">DO NOT CLOSE THE APPLICATION UNTIL MIRROR PARITY IS REACHED.</p>
+                    <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">INTERACTION DISABLED: DO NOT CLOSE THE APPLICATION UNTIL MIRROR PARITY IS REACHED.</p>
                 </CardContent>
             </Card>
         </div>
@@ -340,7 +344,7 @@ export function AuditorOfflineManager() {
                                 Outdated Cache Detected
                             </AlertTitle>
                             <AlertDescription className="text-[10px] font-medium mt-1 leading-tight">
-                                Workspace mirror is {' > '} 2 hours old. Refresh required before locking network.
+                                Workspace mirror is {'>'} 2 hours old. Refresh required before locking network.
                             </AlertDescription>
                         </Alert>
                     )}
