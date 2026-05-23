@@ -317,19 +317,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
                 )}
                 <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
-                  <p className="font-bold text-sm leading-tight text-white">{displayName}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-sidebar-primary mt-1">{displayRole}</p>
+                  <p className="font-black text-sm leading-tight text-white">{displayName}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900/80 mt-1">{displayRole}</p>
                   
                   <div className="mt-2 space-y-1">
                     {userProfile?.unitId && (
-                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-white/90 font-bold uppercase tracking-tight">
-                          <Building2 className="h-3 w-3 text-sidebar-primary shrink-0" />
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900/70 font-bold uppercase tracking-tight">
+                          <Building2 className="h-3 w-3 text-slate-900/40 shrink-0" />
                           <span className="truncate max-w-[150px]">{allUnits?.find(u => u.id === userProfile.unitId)?.name || 'Loading Unit...'}</span>
                       </div>
                     )}
                     {userProfile?.campusId && (
-                      <div className="flex items-center justify-center gap-1.5 text-[9px] text-white/60 italic font-medium">
-                          <School className="h-3 w-3 shrink-0" />
+                      <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 italic font-bold">
+                          <School className="h-3 w-3 shrink-0 opacity-40" />
                           <span className="truncate max-w-[150px]">{allCampuses?.find(c => c.id === userProfile.campusId)?.name || 'Loading Site...'}</span>
                       </div>
                     )}
