@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -277,6 +278,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     };
   }, [rawCars, userProfile, isInstitutionalViewer, isSupervisor]);
 
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => {
@@ -317,10 +322,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         direction = 'desc';
     }
     setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
   const isFieldReadOnly = (fieldName: string) => {
@@ -588,7 +589,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                                         )}
                                     </div>
-                                    {/* GOOGLE DRIVE LINK FIELD RESTORED */}
                                     <div className="md:col-span-12 mt-2">
                                         <FormField control={form.control} name={`actionSteps.${idx}.evidenceLink`} render={({ field: iF }) => (
                                             <FormItem>
