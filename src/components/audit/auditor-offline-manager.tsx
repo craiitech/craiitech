@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -41,7 +42,8 @@ import {
     Share2,
     FileUp,
     AlertTriangle,
-    RotateCw
+    RotateCw,
+    Smartphone
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -51,11 +53,11 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v6.7
+ * AUDITOR OFFLINE MANAGER v7.0
  * Features:
- * 1. Mirror Logic: Local caching of institutional data.
- * 2. Smart Expiry: Disable locking if online + expired; force work if offline.
- * 3. Aggressive Prefetch: Ensures conduct pages are cached for navigation.
+ * 1. Deep Mirror Logic: Forces caching of individual documents and page assets.
+ * 2. Smart Expiry: Mandates online refresh but permits offline work.
+ * 3. High-Priority Prefetch: Ensures conduct pages are cached for navigation.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -119,7 +121,7 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // 2. Mirror Itinerary & Conduct Pages
+        // 2. Mirror Itinerary & Conduct Pages (Aggressive Data & Code caching)
         setDownloadProgress('Mirroring assigned itineraries...');
         const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
         const schedSnap = await getDocs(mySchedQuery);
@@ -128,6 +130,9 @@ export function AuditorOfflineManager() {
         for (const s of myScheds) {
             setDownloadProgress(`Preparing conduct workspace: ${s.targetName}`);
             
+            // Force individual document cache populating
+            await getDoc(doc(firestore, 'auditSchedules', s.id));
+
             // Mirror Plan Metadata
             if (s.auditPlanId) {
                 await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
@@ -137,10 +142,10 @@ export function AuditorOfflineManager() {
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
             
-            // AGGRESSIVE PREFETCH: Ensure the browser has the actual conduct page cached
+            // AGGRESSIVE PREFETCH: Attempt to pull page chunks into browser cache
             router.prefetch(`/audit/${s.id}`);
             
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         const now = new Date();
@@ -371,7 +376,7 @@ export function AuditorOfflineManager() {
                                 Outdated Cache Detected
                             </AlertTitle>
                             <AlertDescription className="text-[10px] font-medium mt-1 leading-tight">
-                                Workspace mirror is {'>'} 2 hours old. Refresh required before locking network.
+                                Workspace mirror is {' > '} 2 hours old. Refresh required before locking network.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -441,3 +446,4 @@ export function AuditorOfflineManager() {
     </>
   );
 }
+

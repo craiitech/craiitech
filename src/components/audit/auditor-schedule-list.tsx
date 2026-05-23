@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding } from '@/lib/types';
@@ -70,8 +71,7 @@ export function AuditorScheduleList({
   }, [schedules]);
 
   const handleConductNavigation = (scheduleId: string) => {
-      // Logic: If we are offline, we rely on the pre-fetched pages in the PWA/Mirror
-      // router.push performs a client-side transition that doesn't trigger a network request for the layout/JS
+      // Logic: Ensure we are using programmatic navigation for better offline chunk handling
       router.push(`/audit/${scheduleId}`);
   };
 
@@ -241,3 +241,4 @@ export function AuditorScheduleList({
     </Table>
   );
 }
+

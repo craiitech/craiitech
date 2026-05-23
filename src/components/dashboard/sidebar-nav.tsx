@@ -44,11 +44,12 @@ export function SidebarNav({
 
   /**
    * OFFLINE CONDUCT PROTOCOL
-   * When offline (actual or forced), we restrict navigation to only the core audit execution routes.
+   * When offline (actual or forced), we allow navigation to the core conduct routes.
    */
   const ALLOWED_OFFLINE_ROUTES = [
     '/dashboard',
-    '/audit'
+    '/audit',
+    '/activity-log'
   ];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
@@ -58,7 +59,7 @@ export function SidebarNav({
             e.preventDefault();
             toast({
                 title: "Focused Conduct Mode Active",
-                description: "While offline or locked, only the Home and IQA Conduct modules are enabled to ensure data integrity.",
+                description: "While offline or locked, only the Home, IQA Conduct, and Activity Log modules are enabled.",
                 variant: "destructive"
             });
         }
@@ -264,3 +265,4 @@ export function SidebarNav({
     </div>
   );
 }
+
