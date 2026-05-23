@@ -531,6 +531,15 @@ export default function HomePage() {
   }, [firestore, userRole, user]);
   const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
 
+  const sortedMySchedules = useMemo(() => {
+    if (!mySchedules) return [];
+    return [...mySchedules].sort((a, b) => {
+        const timeA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
+        const timeB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
+        return timeA - timeB;
+    });
+  }, [mySchedules]);
+
   const assignedRecommendations = useMemo(() => {
     if (!allCompliances || !userProfile) return [];
     
@@ -1184,78 +1193,83 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 flex flex-col sm:flex-row justify-between items-start gap-4 institutional-header">
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
-              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+                </div>
+                <div className="w-full sm:w-[150px] space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                            <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
-            <div className="w-full sm:w-[150px] space-y-1">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                        <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+
+            {/* OFFLINE CAPABILITY MANAGER - STICKY IN HEADER */}
+            <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+                <AuditorOfflineManager />
             </div>
         </div>
-
-        {/* OFFLINE CAPABILITY MANAGER FOR AUDITORS */}
-        <AuditorOfflineManager />
 
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
             {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
             {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
-        <Card>
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between border-b gap-4">
+        
+        <Card className="shadow-lg border-primary/10 overflow-hidden">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between border-b gap-4 bg-muted/10">
                 <div>
                     <CardTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Active Audit Conduct</CardTitle>
-                    <CardDescription>Your claimed and upcoming internal quality audit schedules.</CardDescription>
+                    <CardDescription className="text-xs">Your claimed and upcoming internal quality audit schedules.</CardDescription>
                 </div>
-                <Button onClick={() => router.push('/audit')} className="w-full md:w-auto">Manage Full Audit Hub</Button>
+                <Button onClick={() => router.push('/audit')} className="w-full md:w-auto font-black uppercase text-[10px] tracking-widest h-9">Manage Full Audit Hub</Button>
             </CardHeader>
-            <CardContent className="pt-6">
-                {mySchedules && mySchedules.length > 0 ? (
-                    <ScrollArea className="h-auto max-h-[600px]">
-                        <div className="overflow-x-auto">
+            <CardContent className="p-0">
+                {sortedMySchedules && sortedMySchedules.length > 0 ? (
+                    <ScrollArea className="h-[500px]">
+                        <div className="overflow-x-auto pb-4">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-muted/30">
                                     <TableRow>
-                                        <TableHead>Auditee Unit</TableHead>
-                                        <TableHead>Campus</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Time</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Auditee Unit</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Time</TableHead>
+                                        <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                        <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {mySchedules.map(s => (
-                                        <TableRow key={s.id}>
-                                            <TableCell className="font-bold">{s.targetName}</TableCell>
+                                    {sortedMySchedules.map(s => (
+                                        <TableRow key={s.id} className="hover:bg-muted/10 transition-colors">
+                                            <TableCell className="pl-8 font-bold text-xs">{s.targetName}</TableCell>
                                             <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
-                                            <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                            <TableCell className="text-xs font-bold">{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
                                             <TableCell className="text-xs font-medium tabular-nums">
                                                 {format(s.scheduledDate.toDate(), 'p')}
                                                 {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
                                             </TableCell>
-                                            <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
-                                            <TableCell className="text-right whitespace-nowrap space-x-2">
+                                            <TableCell className="text-center"><Badge variant="secondary" className="text-[9px] font-black uppercase">{s.status}</Badge></TableCell>
+                                            <TableCell className="text-right pr-8 whitespace-nowrap space-x-2">
                                                 <Button 
                                                     variant="outline" 
                                                     size="sm" 
                                                     onClick={() => handlePrintAuditTemplate(s)}
-                                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
+                                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary shadow-sm"
                                                 >
                                                     <Printer className="h-3.5 w-3.5 mr-1.5" />
-                                                    Print Template
+                                                    Print
                                                 </Button>
-                                                <Button variant="default" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
-                                                    Conduct Audit
+                                                <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest shadow-sm" onClick={() => router.push(`/audit/${s.id}`)}>
+                                                    Conduct
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -1265,8 +1279,9 @@ export default function HomePage() {
                         </div>
                     </ScrollArea>
                 ) : (
-                    <div className="py-12 text-center text-muted-foreground border border-dashed rounded-lg">
-                        <p>No audit schedules claimed yet. Go to the IQA Hub to find available schedules.</p>
+                    <div className="py-20 text-center text-muted-foreground border border-dashed rounded-lg m-6 opacity-30">
+                        <ClipboardCheck className="h-10 w-10 mx-auto mb-2" />
+                        <p className="text-xs font-black uppercase">No assignments found</p>
                     </div>
                 )}
             </CardContent>
