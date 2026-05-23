@@ -12,8 +12,8 @@ import {
     Loader2, 
     PlusCircle, 
     Calendar, 
-    Send, 
-    Building2, 
+    ExternalLink, 
+    Trash2, 
     ListChecks, 
     History as HistoryIcon, 
     Info, 
@@ -34,7 +34,6 @@ import {
     Check,
     Activity,
     Printer,
-    Trash2,
     Edit,
     Gavel,
     MessageSquare,
@@ -42,7 +41,6 @@ import {
     Save,
     AlertTriangle,
     Link as LinkIcon,
-    ExternalLink,
     ShieldAlert,
     Clock
 } from 'lucide-react';
@@ -57,14 +55,13 @@ import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 
 interface CorrectiveActionRequestTabProps {
@@ -308,6 +305,26 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     } catch (err) { console.error(err); }
   };
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
+  const isFieldReadOnly = (fieldName: string) => {
+    if (isAdmin) return false;
+    if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits') || fieldName === 'adminFeedback') return !isInstitutionalViewer;
+    if (['rootCauseAnalysis', 'actionSteps'].some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
+    if (fieldName === 'status') return !isInstitutionalViewer;
+    return true; 
+  };
+
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile || !liveCar) return;
     setIsSubmitting(true);
@@ -370,14 +387,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         setIsDialogOpen(false);
         setEditingCar(null);
     } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
-  };
-
-  const isFieldReadOnly = (fieldName: string) => {
-    if (isAdmin) return false;
-    if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits') || fieldName === 'adminFeedback') return !isInstitutionalViewer;
-    if (['rootCauseAnalysis', 'actionSteps'].some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
-    if (fieldName === 'status') return !isInstitutionalViewer;
-    return true; 
   };
 
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
@@ -700,3 +709,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+
