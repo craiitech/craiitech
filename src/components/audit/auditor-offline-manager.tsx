@@ -52,9 +52,9 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v7.0
+ * AUDITOR OFFLINE MANAGER v7.5 (DEEP MIRROR)
  * Features:
- * 1. Deep Mirror Logic: Forces caching of individual documents and page assets.
+ * 1. Deep Mirror Logic: Forces caching of individual documents, parent plans, findings, and CARs.
  * 2. Smart Expiry: Mandates online refresh but permits offline work.
  * 3. High-Priority Prefetch: Ensures conduct pages are cached for navigation.
  */
@@ -120,14 +120,14 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // 2. Mirror Itinerary & Conduct Pages (Aggressive Data & Code caching)
+        // 2. Deep Mirror Itinerary, Conduct Pages, and CAR History
         setDownloadProgress('Mirroring assigned itineraries...');
         const mySchedQuery = query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
         const schedSnap = await getDocs(mySchedQuery);
         const myScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         for (const s of myScheds) {
-            setDownloadProgress(`Preparing conduct workspace: ${s.targetName}`);
+            setDownloadProgress(`Priming conduct workspace: ${s.targetName}`);
             
             // Force individual document cache populating
             await getDoc(doc(firestore, 'auditSchedules', s.id));
@@ -140,11 +140,17 @@ export function AuditorOfflineManager() {
             // Mirror Existing Findings
             const qFindings = query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id));
             await getDocs(qFindings);
+
+            // Mirror Corrective Action Requests for the target unit (needed for history component)
+            if (s.targetId) {
+                const qCars = query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId));
+                await getDocs(qCars);
+            }
             
-            // AGGRESSIVE PREFETCH: Attempt to pull page chunks into browser cache
+            // AGGRESSIVE PREFETCH: Attempt to pull page component chunks into browser cache
             router.prefetch(`/audit/${s.id}`);
             
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
 
         const now = new Date();
@@ -199,7 +205,7 @@ export function AuditorOfflineManager() {
 
     setIsExporting(true);
     try {
-        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks'];
+        const collections = ['isoClauses', 'units', 'campuses', 'auditPlans', 'auditSchedules', 'auditFindings', 'risks', 'correctiveActionRequests'];
         const packageData: Record<string, any[]> = {};
 
         for (const colName of collections) {
