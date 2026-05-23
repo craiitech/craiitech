@@ -44,7 +44,11 @@ import {
     Link as LinkIcon,
     ShieldAlert,
     Clock,
-    UserMinus
+    UserMinus,
+    CheckCircle2,
+    XCircle,
+    RotateCw,
+    X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -102,6 +106,7 @@ const carSchema = z.object({
     result: z.string().min(1, 'Result is required'),
     verifiedBy: z.string().min(1, 'Required'),
     date: z.string().min(1, 'Required'),
+    status: z.enum(['Verified (Pass)', 'Needs Improvement', 'Require Additional Actions']),
     remarks: z.string().optional().or(z.literal('')),
   })).optional(),
   effectivenessAudits: z.array(z.object({
@@ -296,7 +301,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         timeLimitForReply: safeDate(car.timeLimitForReply),
         requestDate: safeDate(car.requestDate),
         actionSteps: (car.actionSteps || []).map(step => ({ ...step, completionDate: safeDate(step.completionDate) })),
-        followUpLogs: (car.followUpLogs || []).map(log => ({ ...log, date: safeDate(log.date), remarks: log.remarks || '' })),
+        followUpLogs: (car.followUpLogs || []).map(log => ({ ...log, date: safeDate(log.date), remarks: log.remarks || '', status: (log as any).status || 'Verified (Pass)' })),
         effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({ ...audit, date: safeDate(audit.date), remarks: audit.remarks || '' }))
     });
     setIsDialogOpen(true);
@@ -562,7 +567,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase text-slate-500">Corrective Actions & Target Dates</Label>
                             {actionFields.map((field, idx) => (
-                                <div key={field.id} className="p-4 rounded-xl border bg-muted/5 grid grid-cols-1 md:grid-cols-12 gap-4 items-end transition-all hover:border-primary/20">
+                                <div key={field.id} className="p-4 rounded-xl border bg-muted/5 grid grid-cols-1 md:grid-cols-12 gap-4 items-end transition-all hover:border-primary/20 relative group">
+                                    {!isFieldReadOnly('actionSteps') && (
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="absolute top-1 right-1 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    )}
                                     <div className="md:col-span-3">
                                         <FormField control={form.control} name={`actionSteps.${idx}.type`} render={({ field: iF }) => (
                                             <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly('actionSteps')}>
@@ -579,15 +587,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
                                         )} />
                                     </div>
-                                    <div className="md:col-span-3">
+                                    <div className="md:col-span-4">
                                         <FormField control={form.control} name={`actionSteps.${idx}.completionDate`} render={({ field: iF }) => (
-                                            <FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
+                                            <FormItem><FormLabel className="text-[8px] font-black uppercase text-muted-foreground">Target Date</FormLabel>
+                                            <FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
                                         )} />
-                                    </div>
-                                    <div className="md:col-span-1 flex justify-end">
-                                        {!isFieldReadOnly('actionSteps') && (
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                                        )}
                                     </div>
                                     <div className="md:col-span-12 mt-2">
                                         <FormField control={form.control} name={`actionSteps.${idx}.evidenceLink`} render={({ field: iF }) => (
@@ -605,7 +609,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             ))}
                             {!isFieldReadOnly('actionSteps') && (
                                 <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase">
-                                    <PlusCircle className="h-3 w-3 mr-2" /> Add Step
+                                    <PlusCircle className="h-3 w-3 mr-2" /> Add Action Step
                                 </Button>
                             )}
                         </div>
@@ -617,26 +621,41 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             <h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Auditor Follow-up & Final Verification</h4>
                         </div>
                         <div className="space-y-6">
-                            <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">Follow-up Logs</h5>
+                            <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">Follow-up Logs (Site Inspections)</h5>
                             {followUpFields.map((field, idx) => (
-                                <div key={field.id} className="p-5 rounded-2xl border bg-slate-50/50 space-y-4">
+                                <div key={field.id} className="p-5 rounded-2xl border bg-slate-50/50 space-y-4 relative group">
+                                    {isInstitutionalViewer && (
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeFollowUp(idx)} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></Button>
+                                    )}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name={`followUpLogs.${idx}.status`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase">Audit Determination</FormLabel>
+                                                <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`followUpLogs.${idx}.status`)}>
+                                                    <FormControl><SelectTrigger className="h-9 bg-white font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Verified (Pass)">Verified (Pass)</SelectItem>
+                                                        <SelectItem value="Needs Improvement">Needs Improvement</SelectItem>
+                                                        <SelectItem value="Require Additional Actions">Require Additional Actions</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name={`followUpLogs.${idx}.date`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Date</FormLabel><FormControl><Input type="date" {...iF} className="h-9 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`followUpLogs.${idx}.date`)} /></FormControl></FormItem>
+                                        )} />
+                                    </div>
                                     <FormField control={form.control} name={`followUpLogs.${idx}.result`} render={({ field: iF }) => (
-                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Observation</FormLabel>
+                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verification Observation</FormLabel>
                                             <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${idx}.result`)} /></FormControl>
                                         </FormItem>
                                     )} />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormField control={form.control} name={`followUpLogs.${idx}.verifiedBy`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase">Auditor</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`followUpLogs.${idx}.verifiedBy`)} /></FormControl></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name={`followUpLogs.${idx}.date`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`followUpLogs.${idx}.date`)} /></FormControl></FormItem>
-                                        )} />
-                                    </div>
+                                    <FormField control={form.control} name={`followUpLogs.${idx}.verifiedBy`} render={({ field: iF }) => (
+                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verifying Auditor</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`followUpLogs.${idx}.verifiedBy`)} /></FormControl></FormItem>
+                                    )} />
                                 </div>
                             ))}
                             {isInstitutionalViewer && (
-                                <Button type="button" variant="outline" size="sm" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })} className="w-full border-dashed h-9 font-black text-[9px] uppercase">
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), status: 'Verified (Pass)', remarks: '' })} className="w-full border-dashed h-9 font-black text-[9px] uppercase">
                                     Add Follow-up Log
                                 </Button>
                             )}
@@ -645,19 +664,22 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         <div className="space-y-6">
                             <h5 className="text-[10px] font-black uppercase text-emerald-600 tracking-widest border-b pb-1">Final Verification of Effectiveness</h5>
                             {effectivenessFields.map((field, idx) => (
-                                <div key={field.id} className="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 space-y-4">
+                                <div key={field.id} className="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 space-y-4 relative group">
+                                    {isInstitutionalViewer && (
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEffectiveness(idx)} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></Button>
+                                    )}
                                     <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
-                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Effectiveness Result</FormLabel>
+                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Effectiveness Audit Summary</FormLabel>
                                             <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl>
                                         </FormItem>
                                     )} />
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel>
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Official Determination</FormLabel>
                                                 <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}>
-                                                    <FormControl><SelectTrigger className="h-8 text-[9px] bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger className="h-9 text-[9px] bg-white font-bold"><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="Close the NC">Close the NC</SelectItem>
+                                                        <SelectItem value="Close the NC">Close the NC (Verified Effective)</SelectItem>
                                                         <SelectItem value="Continue Monitoring the NC">Continue Monitoring</SelectItem>
                                                         <SelectItem value="Provide More Actions to Address the NC">Require More Action</SelectItem>
                                                     </SelectContent>
@@ -665,17 +687,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.verifiedBy`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verifying Auditor</FormLabel><FormControl><Input {...iF} className="h-9 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
                                         )} />
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-9 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>
                                         )} />
                                     </div>
                                 </div>
                             ))}
                             {isInstitutionalViewer && (
                                 <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), action: 'Close the NC', remarks: '' })} className="w-full border-dashed h-9 border-emerald-200 text-emerald-700 font-black text-[9px] uppercase hover:bg-emerald-50">
-                                    Add Final Verification
+                                    Add Final Effectiveness Verification
                                 </Button>
                             )}
                         </div>
@@ -705,12 +727,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     <span>{c.authorName}</span>
                                     <span>{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
                                 </div>
-                                <p className="text-[11px] text-slate-700 italic">"{c.text}"</p>
+                                <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
                                 <p className="text-[7px] text-right text-muted-foreground uppercase font-black">{c.authorRole}</p>
                             </div>
                         ))}
                         {!liveCar?.comments?.length && (
-                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-2">
+                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
                                 <HistoryIcon className="h-10 w-10"/>
                                 <p className="text-[10px] font-black uppercase">No history</p>
                             </div>
@@ -727,8 +749,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           </div>
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px]">
-                {(isSubmitting) ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2"/>}{editingCar ? 'Update Registry' : 'Issue Record'}
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11">
+                {(isSubmitting) ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4 mr-2"/>}{editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
           </DialogFooter>
         </DialogContent>
