@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -30,7 +29,7 @@ import {
     List,
     Search,
     ArrowUpDown,
-    ClipboardCheck,
+    ClipboardList,
     Undo2,
     Check,
     Activity,
@@ -67,7 +66,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
-import { useRouter } from 'next/navigation';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -122,7 +120,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const { userProfile, isAdmin, userRole, isAuditor, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
@@ -492,7 +489,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 )}
             </TabsList>
         </ScrollArea>
-        <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">{renderRegistryTable(processedCars)}</TabsContent>
+        <TabsContent value="activeSubTab" className="mt-0 animate-in fade-in duration-500">{renderRegistryTable(processedCars)}</TabsContent>
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
@@ -556,7 +553,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             </FormItem>
                         )} />
                         <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase text-slate-500">Corrective Actions & Evidence</Label>
+                            <Label className="text-[10px] font-black uppercase text-slate-500">Corrective Actions & Target Dates</Label>
                             {actionFields.map((field, idx) => (
                                 <Card key={field.id} className="p-4 rounded-xl border bg-muted/5 shadow-sm space-y-4 group relative">
                                     {!isFieldReadOnly('actionSteps') && (
