@@ -15,7 +15,7 @@ import {
     Send, 
     Building2, 
     ListChecks, 
-    History, 
+    History as HistoryIcon, 
     Info, 
     User, 
     ShieldCheck, 
