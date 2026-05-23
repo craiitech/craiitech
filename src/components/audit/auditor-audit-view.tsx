@@ -18,8 +18,13 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { cn } from '@/lib/utils';
 
+/**
+ * AUDITOR AUDIT VIEW
+ * The primary workspace for internal auditors to claim and conduct audits.
+ * Optimized for OFFLINE CLAIMING and selective module visibility.
+ */
 export function AuditorAuditView() {
-  const { user, userProfile, isUserLoading, userRole } = useUser();
+  const { user, userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const isOnline = useNetworkStatus();
@@ -88,12 +93,7 @@ export function AuditorAuditView() {
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
-    
-    // OFFLINE CLAIMING ENABLED: 
-    // Firestore persistence allows local writes which sync later. 
-    // This removes the "must be online" gating.
     const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
-    
     try {
         await updateDoc(scheduleRef, {
             auditorId: user.uid,
@@ -109,7 +109,6 @@ export function AuditorAuditView() {
 
   const handleUnclaimAudit = async (scheduleId: string) => {
       if (!firestore) return;
-      
       const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
       try {
           await updateDoc(scheduleRef, {
@@ -152,7 +151,7 @@ export function AuditorAuditView() {
                         <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length})
                     </TabsTrigger>
                     <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <CalendarSearch className="h-4 w-4"/> Pool ({availableSchedulesRaw.length})
+                        <CalendarSearch className="h-4 w-4"/> Available Pool ({availableSchedulesRaw.length})
                     </TabsTrigger>
                     <TabsTrigger 
                         value="results" 
@@ -289,3 +288,4 @@ export function AuditorAuditView() {
     </div>
   );
 }
+
