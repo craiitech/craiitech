@@ -15,7 +15,7 @@ import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'rea
 import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, School, Info } from 'lucide-react';
+import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
@@ -26,8 +26,10 @@ import { Logo } from '@/components/logo';
 import { PageGuidance } from '@/components/dashboard/page-guidance';
 import { InstallPwaDialog } from '@/components/dashboard/install-pwa-dialog';
 import { SoftwareEvaluationGate } from '@/components/evaluation/software-evaluation-gate';
+import { useNetworkStatus } from '@/hooks/use-network-status';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
-const CURRENT_SYSTEM_VERSION = '2.5.0'; // Current release version
+const CURRENT_SYSTEM_VERSION = '2.5.0'; 
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -90,19 +92,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const isOnline = useNetworkStatus();
   const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   
   const [isGuidanceVisible, setIsGuidanceVisible] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [isEmergencyLocked, setIsEmergencyLocked] = useState(false);
 
   useEffect(() => {
     const storedVisibility = localStorage.getItem('rsu_eoms_guidance_visible');
     if (storedVisibility !== null) {
       setIsGuidanceVisible(storedVisibility === 'true');
     }
+    
+    // Emergency Lock Check
+    const checkMirror = () => {
+        const hasMirror = !!localStorage.getItem('rsu_last_mirror_time');
+        if (!isOnline && !hasMirror && isAuditor) {
+            setIsEmergencyLocked(true);
+        } else {
+            setIsEmergencyLocked(false);
+        }
+    };
+    checkMirror();
     setHasHydrated(true);
-  }, []);
+  }, [isOnline, isAuditor]);
 
   const toggleGuidance = useCallback(() => {
     setIsGuidanceVisible(prev => {
@@ -177,28 +192,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return query(col, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
-  /**
-   * CORRECTED CAR NOTIFICATION LOGIC
-   * Units: Alert for newly issued or sent back for update.
-   * Admin/Auditors: Alert for items in Verification Queue (For Final Verification).
-   */
   const getCarNotificationQuery = (): Query | null => {
       if (!firestore || !userProfile || !userRole) return null;
       const col = collection(firestore, 'correctiveActionRequests');
-      
       const isInstitutionalViewer = isAdmin || isAuditor;
-
-      // 1. Auditors & Admins: Actionable items in Verification Queue
-      if (isInstitutionalViewer) {
-          return query(col, where('status', '==', 'For Final Verification'));
-      }
-      
-      // 2. Campus Supervisors: Site-level items awaiting verification
-      if (isSupervisor) {
-          return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
-      }
-      
-      // 3. Units: Items requiring local investigation or response
+      if (isInstitutionalViewer) return query(col, where('status', '==', 'For Final Verification'));
+      if (isSupervisor) return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
       return query(col, where('unitId', '==', userProfile.unitId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
   }
 
@@ -241,21 +240,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.push('/awaiting-verification'); 
             return; 
         }
-        
         const roleLower = userRole?.toLowerCase() || '';
-        const isUnitOptionalUser = 
-            roleLower === 'campus director' || 
-            roleLower === 'campus odimo' || 
-            roleLower === 'auditor' || 
-            roleLower.includes('vice president');
-
-        const isProfileIncomplete = isUnitOptionalUser
-            ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex
-            : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
-            
-        if (isProfileIncomplete) {
-            router.push('/complete-registration');
-        }
+        const isUnitOptionalUser = roleLower === 'campus director' || roleLower === 'campus odimo' || roleLower === 'auditor' || roleLower.includes('vice president');
+        const isProfileIncomplete = isUnitOptionalUser ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
+        if (isProfileIncomplete) router.push('/complete-registration');
     } else {
       router.push('/complete-registration');
     }
@@ -266,22 +254,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const scale = userProfile?.accessibility?.fontSize || 1.0;
       document.documentElement.style.fontSize = `${scale * 100}%`;
     }
-    return () => {
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.fontSize = ''; 
-      }
-    };
   }, [userProfile?.accessibility?.fontSize]);
 
   const accessibilityClasses = useMemo(() => {
     if (!userProfile?.accessibility) return '';
     const { highContrast, dyslexicFont, reducedMotion, themeColor } = userProfile.accessibility;
-    return cn(
-      highContrast && 'accessibility-high-contrast',
-      dyslexicFont && 'accessibility-dyslexic-font',
-      reducedMotion && 'accessibility-reduced-motion',
-      themeColor && themeColor !== 'default' && `theme-${themeColor}`
-    );
+    return cn(highContrast && 'accessibility-high-contrast', dyslexicFont && 'accessibility-dyslexic-font', reducedMotion && 'accessibility-reduced-motion', themeColor && themeColor !== 'default' && `theme-${themeColor}`);
   }, [userProfile?.accessibility]);
 
 
@@ -308,7 +286,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
                   <p className="font-black text-sm leading-tight text-white">{displayName}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mt-1">{displayRole}</p>
-                  
                   <div className="mt-2 space-y-1">
                     {userProfile?.unitId && (
                       <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 font-bold uppercase tracking-tight">
@@ -351,18 +328,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarInset>
         </SidebarProvider>
       </div>
+
+      {isEmergencyLocked && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 animate-in fade-in duration-700">
+              <Card className="w-full max-w-xl border-destructive border-4 shadow-2xl bg-white animate-in zoom-in duration-500 overflow-hidden">
+                  <CardHeader className="text-center pb-2 bg-destructive/10 border-b-2 border-destructive py-10">
+                      <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white mb-6 animate-pulse">
+                          <ShieldAlert className="h-12 w-12" />
+                      </div>
+                      <CardTitle className="text-3xl font-black uppercase text-destructive leading-tight">Institutional Lockdown: Mirror Missing</CardTitle>
+                      <CardDescription className="text-base font-bold text-destructive/80">Disconnected Session Policy Enforcement</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-8">
+                      <div className="p-6 rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-start gap-4">
+                          <WifiOff className="h-8 w-8 text-slate-400 shrink-0 mt-1" />
+                          <div className="space-y-2">
+                              <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Please connect first and download the mirror data</h4>
+                              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                                  You are currently offline and no institutional mirror was detected on this device. To protect audit integrity, field conduct modules are restricted until a data handshake is established.
+                              </p>
+                          </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-700">
+                              <Database className="h-5 w-5" />
+                              <span className="text-[11px] font-black uppercase">Institutional Data Sync</span>
+                          </div>
+                          <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700">
+                              <CloudDownload className="h-5 w-5" />
+                              <span className="text-[11px] font-black uppercase">Persistent Cache Lock</span>
+                          </div>
+                      </div>
+                  </CardContent>
+                  <CardFooter className="bg-slate-50 border-t py-6 px-10 flex justify-center">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Quality Assurance Office &bull; Field Conduct Protocol</p>
+                  </CardFooter>
+              </Card>
+          </div>
+      )}
       
       <InstallPwaDialog />
-      
-      <WhatsNewDialog 
-        isOpen={isWhatsNewOpen}
-        onOpenChange={setIsWhatsNewOpen}
-        onAcknowledge={handleAcknowledgeUpdates}
-      />
-
-      {!isEvaluationComplete && !isLoadingEval && (
-          <SoftwareEvaluationGate />
-      )}
+      <WhatsNewDialog isOpen={isWhatsNewOpen} onOpenChange={setIsWhatsNewOpen} onAcknowledge={handleAcknowledgeUpdates} />
+      {!isEvaluationComplete && !isLoadingEval && <SoftwareEvaluationGate />}
     </ActivityLogProvider>
   );
 }

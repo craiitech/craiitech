@@ -52,8 +52,8 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
- * AUDITOR OFFLINE MANAGER v10.0 (INSTITUTIONAL MIRROR)
- * Implements Deep Data Mirroring, Persistent Route Caching, and Global UI Blocking.
+ * AUDITOR OFFLINE MANAGER v11.0 (INSTITUTIONAL MIRROR)
+ * Implements Global Blocking Overlays, Deep Mirroring, and Emergency Lockdown logic.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -74,11 +74,11 @@ export function AuditorOfflineManager() {
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<'none' | 'found' | 'expired'>('none');
 
-  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours for high-integrity audit standards
+  const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 Hours expiry
 
   useEffect(() => {
     const checkMirrorAge = () => {
-        const storedTime = localStorage.getItem('rsu_eoms_last_mirror_time');
+        const storedTime = localStorage.getItem('rsu_last_mirror_time');
         if (storedTime) {
             const date = new Date(storedTime);
             if (!isNaN(date.getTime())) {
@@ -86,6 +86,8 @@ export function AuditorOfflineManager() {
                 const diff = Date.now() - date.getTime();
                 setMirrorStatus(diff > MIRROR_EXPIRY_MS ? 'expired' : 'found');
             }
+        } else {
+            setMirrorStatus('none');
         }
     };
     
@@ -115,18 +117,15 @@ export function AuditorOfflineManager() {
         await getDocs(collection(firestore, 'campuses'));
         await getDoc(doc(firestore, 'system', 'signatories'));
 
-        // 2. Mirror TOTAL Audit Pool (Allows offline claiming)
-        setDownloadProgress('Mirroring entire institutional audit pool...');
+        // 2. Mirror TOTAL Audit Pool
+        setDownloadProgress('Mirroring institutional audit pool...');
         const schedSnap = await getDocs(collection(firestore, 'auditSchedules'));
         const allScheds = schedSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         for (const s of allScheds) {
             setDownloadProgress(`Syncing Session: ${s.targetName}`);
-            
-            // Prime Firestore Local Persistence
             await getDoc(doc(firestore, 'auditSchedules', s.id));
             
-            // Deep Mirror for my assigned units
             if (s.auditorId === user.uid) {
                 if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
                 await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
@@ -134,11 +133,10 @@ export function AuditorOfflineManager() {
                     await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
                 }
 
-                // PERSISTENT ROUTE CACHING: Force RSC payloads into browser disk cache
+                // PERSISTENT ROUTE CACHING
                 const rscUrl = `/audit/${s.id}`;
                 try {
                     await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
-                    router.prefetch(rscUrl);
                 } catch (e) {}
             }
         }
@@ -149,7 +147,6 @@ export function AuditorOfflineManager() {
             setDownloadProgress(`Caching Core Path: ${route}`);
             try {
                 await fetch(route, { headers: { 'RSC': '1' }, cache: 'force-cache' });
-                router.prefetch(route);
             } catch (e) {}
         }
 
