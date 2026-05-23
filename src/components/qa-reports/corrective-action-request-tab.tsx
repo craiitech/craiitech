@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -12,51 +11,41 @@ import { Button } from '@/components/ui/button';
 import { 
     Loader2, 
     PlusCircle, 
-    Trash2, 
-    Edit, 
-    ShieldCheck, 
-    FileText, 
-    ClipboardCheck, 
-    Clock, 
-    UserCheck, 
-    Printer, 
-    Search, 
-    Filter, 
-    TrendingUp, 
-    AlertTriangle, 
-    CheckCircle2, 
-    Hash, 
-    Eye, 
-    ListTodo, 
+    Calendar, 
+    Send, 
+    Building2, 
+    ListChecks, 
+    History, 
     Info, 
     User, 
-    ShieldAlert, 
+    ShieldCheck, 
+    Hash, 
+    ChevronRight, 
+    Eye, 
+    LayoutList, 
     Target, 
-    History as HistoryIcon, 
-    Calendar, 
-    Link as LinkIcon, 
-    ExternalLink,
+    Filter, 
+    BarChart3, 
+    List,
+    Search,
     ArrowUpDown,
-    TableProperties,
-    ListChecks,
-    ChevronRight,
-    Gavel,
-    BookOpen,
-    School,
-    Save,
+    ClipboardList,
     Undo2,
     Check,
-    Building2,
-    Send,
-    X,
-    ThumbsUp,
-    ThumbsDown,
-    RefreshCcw,
-    PanelLeftClose,
-    PanelLeftOpen,
+    Activity,
+    Printer,
+    Trash2,
+    Edit,
+    Gavel,
+    History as HistoryIcon,
     MessageSquare,
-    ClipboardList,
-    HelpCircle
+    School,
+    Building,
+    Save,
+    AlertTriangle,
+    Link as LinkIcon,
+    ExternalLink,
+    ShieldAlert
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -451,6 +440,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </Card>
   );
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -489,81 +490,194 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <ScrollArea className="flex-1 border-r">
                 <Form {...form}><form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10 pb-20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="carNumber" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">CAR Number</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-black h-11" disabled={isFieldReadOnly('carNumber')} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-rose-600">Time Limit for Reply (Response Deadline)</FormLabel><FormControl><Input type="date" {...field} className="bg-rose-50/30 border-rose-100 font-bold h-11" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="carNumber" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase">CAR Number</FormLabel>
+                                <FormControl><Input {...field} className="bg-slate-50 font-black h-11" disabled={isFieldReadOnly('carNumber')} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase text-rose-600">Time Limit for Reply (Response Deadline)</FormLabel>
+                                <FormControl><Input type="date" {...field} className="bg-rose-50/30 border-rose-100 font-bold h-11" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl>
+                            </FormItem>
+                        )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
-                        <FormField control={form.control} name="procedureTitle" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase">Procedure / Context</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('procedureTitle')} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="concerningClause" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">ISO Clause</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-mono" disabled={isFieldReadOnly('concerningClause')} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="procedureTitle" render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                                <FormLabel className="text-[10px] font-black uppercase">Procedure / Context</FormLabel>
+                                <FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('procedureTitle')} /></FormControl>
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="concerningClause" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase">ISO Clause</FormLabel>
+                                <FormControl><Input {...field} className="bg-slate-50 font-mono" disabled={isFieldReadOnly('concerningClause')} /></FormControl>
+                            </FormItem>
+                        )} />
                     </div>
-                    <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase">Statement of Non-Conformance</FormLabel>
+                            <FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl>
+                        </FormItem>
+                    )} />
                     
                     <Separator />
                     
                     <div className="pt-6 space-y-6">
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Activity className="h-4 w-4" /> Root Cause & Action Registry</h4>
-                        <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-slate-500">Root Cause Analysis (RCA)</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify systemic failure..." className="bg-muted/5 italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase text-slate-500">Root Cause Analysis (RCA)</FormLabel>
+                                <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify systemic failure..." className="bg-muted/5 italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl>
+                            </FormItem>
+                        )} />
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase text-slate-500">Corrective Actions & Target Dates</Label>
                             {actionFields.map((field, idx) => (
                                 <div key={field.id} className="p-4 rounded-xl border bg-muted/5 grid grid-cols-1 md:grid-cols-12 gap-4 items-end transition-all hover:border-primary/20">
-                                    <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${idx}.type`} render={({ field: iF }) => (<Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate</SelectItem><SelectItem value="Long-term Corrective Action">Long-term</SelectItem></SelectContent></Select>)} /></div>
-                                    <div className="md:col-span-6"><FormField control={form.control} name={`actionSteps.${idx}.description`} render={({ field: iF }) => (<FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl>)} /></div>
-                                    <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${idx}.completionDate`} render={({ field: iF }) => (<FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl>)} /></div>
+                                    <div className="md:col-span-3">
+                                        <FormField control={form.control} name={`actionSteps.${idx}.type`} render={({ field: iF }) => (
+                                            <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly('actionSteps')}>
+                                                <FormControl><SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Immediate Correction">Immediate</SelectItem>
+                                                    <SelectItem value="Long-term Corrective Action">Long-term</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )} />
+                                    </div>
+                                    <div className="md:col-span-6">
+                                        <FormField control={form.control} name={`actionSteps.${idx}.description`} render={({ field: iF }) => (
+                                            <FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
+                                        )} />
+                                    </div>
+                                    <div className="md:col-span-3">
+                                        <FormField control={form.control} name={`actionSteps.${idx}.completionDate`} render={({ field: iF }) => (
+                                            <FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
+                                        )} />
+                                    </div>
                                 </div>
                             ))}
-                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase"><PlusCircle className="h-3 w-3 mr-2" /> Add Step</Button>}
+                            {!isFieldReadOnly('actionSteps') && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase">
+                                    <PlusCircle className="h-3 w-3 mr-2" /> Add Step
+                                </Button>
+                            )}
                         </div>
                     </div>
 
                     <div className="pt-10 border-t space-y-10">
-                        <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div><h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Auditor Follow-up & Final Verification</h4></div>
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div>
+                            <h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Auditor Follow-up & Final Verification</h4>
+                        </div>
                         <div className="space-y-6">
                             <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">Follow-up Logs</h5>
                             {followUpFields.map((field, idx) => (
                                 <div key={field.id} className="p-5 rounded-2xl border bg-slate-50/50 space-y-4">
-                                    <FormField control={form.control} name={`followUpLogs.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Observation</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${idx}.result`)} /></FormControl></FormItem>)} />
+                                    <FormField control={form.control} name={`followUpLogs.${idx}.result`} render={({ field: iF }) => (
+                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Observation</FormLabel>
+                                            <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${idx}.result`)} /></FormControl>
+                                        </FormItem>
+                                    )} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <FormField control={form.control} name={`followUpLogs.${idx}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Auditor</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`followUpLogs.${idx}.verifiedBy`)} /></FormControl></FormItem>)} />
-                                        <FormField control={form.control} name={`followUpLogs.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`followUpLogs.${idx}.date`)} /></FormControl></FormItem>)} />
+                                        <FormField control={form.control} name={`followUpLogs.${idx}.verifiedBy`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase">Auditor</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`followUpLogs.${idx}.verifiedBy`)} /></FormControl></FormItem>
+                                        )} />
+                                        <FormField control={form.control} name={`followUpLogs.${idx}.date`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`followUpLogs.${idx}.date`)} /></FormControl></FormItem>
+                                        )} />
                                     </div>
                                 </div>
                             ))}
-                            {isInstitutionalViewer && <Button type="button" variant="outline" size="sm" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })} className="w-full border-dashed h-9 font-black text-[9px] uppercase">Add Follow-up Log</Button>}
+                            {isInstitutionalViewer && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })} className="w-full border-dashed h-9 font-black text-[9px] uppercase">
+                                    Add Follow-up Log
+                                </Button>
+                            )}
                         </div>
 
                         <div className="space-y-6">
                             <h5 className="text-[10px] font-black uppercase text-emerald-600 tracking-widest border-b pb-1">Final Verification of Effectiveness</h5>
                             {effectivenessFields.map((field, idx) => (
                                 <div key={field.id} className="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 space-y-4">
-                                    <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Effectiveness Result</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white text-xs" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
+                                    <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
+                                        <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Effectiveness Result</FormLabel>
+                                            <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl>
+                                        </FormItem>
+                                    )} />
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel><Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}><FormControl><SelectTrigger className="h-8 text-[9px] bg-white"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Close the NC">Close the NC</SelectItem><SelectItem value="Continue Monitoring the NC">Continue Monitoring</SelectItem><SelectItem value="Provide More Actions to Address the NC">Require More Action</SelectItem></SelectContent></Select></FormItem>)} />
-                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>)} />
-                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>)} />
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel>
+                                                <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}>
+                                                    <FormControl><SelectTrigger className="h-8 text-[9px] bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Close the NC">Close the NC</SelectItem>
+                                                        <SelectItem value="Continue Monitoring the NC">Continue Monitoring</SelectItem>
+                                                        <SelectItem value="Provide More Actions to Address the NC">Require More Action</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.verifiedBy`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
+                                        )} />
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>
+                                        )} />
                                     </div>
                                 </div>
                             ))}
-                            {isInstitutionalViewer && <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), action: 'Close the NC', remarks: '' })} className="w-full border-dashed h-9 border-emerald-200 text-emerald-700 font-black text-[9px] uppercase hover:bg-emerald-50">Add Final Verification</Button>}
+                            {isInstitutionalViewer && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), action: 'Close the NC', remarks: '' })} className="w-full border-dashed h-9 border-emerald-200 text-emerald-700 font-black text-[9px] uppercase hover:bg-emerald-50">
+                                    Add Final Verification
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </form></Form>
             </ScrollArea>
             <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
                 <div className="p-4 bg-white border-b shrink-0 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-700">Registry Discussion Log</h4></div>
-                <ScrollArea className="flex-1"><div className="p-6 space-y-4">
-                    {liveCar?.comments?.map((c, i) => (
-                        <div key={i} className="p-4 rounded-xl border bg-white shadow-sm space-y-2"><div className="flex justify-between border-b pb-1 mb-1 text-[8px] font-black uppercase text-primary"><span>{c.authorName}</span><span>{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span></div><p className="text-[11px] text-slate-700 italic">"{c.text}"</p></div>
-                    ))}
-                    {!liveCar?.comments?.length && <div className="py-20 text-center opacity-10 flex flex-col items-center gap-2"><HistoryIcon className="h-10 w-10"/><p className="text-[10px] font-black uppercase">No history</p></div>}
-                </div></ScrollArea>
-                <div className="p-6 border-t bg-slate-50/50"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600 mt-0.5"/><p className="text-[10px] text-muted-foreground leading-relaxed italic">Changes to CAR dates or status immediately trigger system notifications to all relevant unit heads and supervisors.</p></div></div>
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-4">
+                        {liveCar?.comments?.map((c, i) => (
+                            <div key={i} className="p-4 rounded-xl border bg-white shadow-sm space-y-2">
+                                <div className="flex justify-between border-b pb-1 mb-1 text-[8px] font-black uppercase text-primary">
+                                    <span>{c.authorName}</span>
+                                    <span>{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-700 italic">"{c.text}"</p>
+                            </div>
+                        ))}
+                        {!liveCar?.comments?.length && (
+                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-2">
+                                <HistoryIcon className="h-10 w-10"/>
+                                <p className="text-[10px] font-black uppercase">No history</p>
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
+                <div className="p-6 border-t bg-slate-50/50">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-4 w-4 text-blue-600 mt-0.5"/>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">Changes to CAR dates or status immediately trigger system notifications to all relevant unit heads and supervisors.</p>
+                    </div>
+                </div>
             </div>
           </div>
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0"><Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button><Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px]">{(isSubmitting) ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2"/>}{editingCar ? 'Update Registry' : 'Issue Record'}</Button></DialogFooter>
+          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px]">
+                {(isSubmitting) ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2"/>}{editingCar ? 'Update Registry' : 'Issue Record'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
