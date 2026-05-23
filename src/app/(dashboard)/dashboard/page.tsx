@@ -999,7 +999,6 @@ export default function HomePage() {
                     )}
                 </div>
 
-                {/* NEW: Audit Observations (OFI) Block */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2 text-primary">

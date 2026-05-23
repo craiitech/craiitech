@@ -119,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setHasHydrated(true);
   }, [isOnline, isAuditor]);
 
-  const toggleGuidance = useCallback(() => {
+  const onToggleGuidance = useCallback(() => {
     setIsGuidanceVisible(prev => {
       const next = !prev;
       localStorage.setItem('rsu_eoms_guidance_visible', String(next));
