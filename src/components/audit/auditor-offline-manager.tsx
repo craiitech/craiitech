@@ -139,17 +139,10 @@ export function AuditorOfflineManager() {
             ? allScheds 
             : allScheds.filter((s: any) => s.campusId === selectedSite);
 
-        /**
-         * PROACTIVE CONDUCT CACHING
-         * We iterate through ALL schedules in the mirrored scope.
-         * This ensures that if the auditor claims a unit while offline, 
-         * the page code (RSC payload) for that unit is already in the persistent disk cache.
-         */
         for (const s of filteredScheds) {
             setDownloadProgress(`Syncing Session: ${s.targetName}`);
             await getDoc(doc(firestore, 'auditSchedules', s.id));
             
-            // Mirror findings for already assigned audits
             if (s.auditorId === user.uid) {
                 if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
                 await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
@@ -158,8 +151,6 @@ export function AuditorOfflineManager() {
                 }
             }
 
-            // CACHE THE CONDUCT PAGE (RSC)
-            // We prefetch EVERY potential session page to prevent "Not connected" error on claim.
             const rscUrl = `/audit/${s.id}`;
             try {
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
