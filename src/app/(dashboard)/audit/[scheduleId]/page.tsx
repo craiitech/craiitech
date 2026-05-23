@@ -30,7 +30,8 @@ import {
     ShieldAlert,
     ShieldX,
     Lock,
-    Activity
+    Activity,
+    Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -98,6 +99,8 @@ export default function AuditExecutionPage() {
   useEffect(() => {
     setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
   }, []);
+
+  const isActuallyOffline = !isOnline || isForcedOffline;
 
   const scheduleDocRef = useMemoFirebase(
     () => (firestore && scheduleId ? doc(firestore, 'auditSchedules', scheduleId as string) : null),
@@ -185,6 +188,10 @@ export default function AuditExecutionPage() {
       }
   }, [schedule, form]);
 
+  /**
+   * HIGH-SPEED OFFLINE AUTO-SAVE FOR SUMMARY
+   * This effect watches the summary fields and triggers a non-blocking save.
+   */
   useEffect(() => {
     if (!schedule || !scheduleDocRef) return;
 
@@ -200,7 +207,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 1200); 
+        }, 800); // Fast 800ms debounce for offline conduct
     }
 
     return () => {
@@ -217,14 +224,14 @@ export default function AuditExecutionPage() {
   };
 
   /**
-   * HIGH-SPEED OFFLINE FINALIZATION
-   * Optimized for < 1s UI response in offline environments.
+   * NON-BLOCKING OPTIMISTIC SAVE
+   * Handles both auto-save and manual finalization.
    */
   const handleSaveSummary = (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
 
-    // 1. Initial State Trigger
-    if (!isAutoSave) setIsSavingSummary(true);
+    // UI feedback only for manual clicks while online
+    if (!isAutoSave && !isActuallyOffline) setIsSavingSummary(true);
 
     try {
         const [year, month, day] = values.actualDate.split('-').map(Number);
@@ -234,7 +241,7 @@ export default function AuditExecutionPage() {
         const start = new Date(year, month - 1, day, sH, sM);
         const end = new Date(year, month - 1, day, eH, eM);
 
-        const updateData = {
+        const updateData: any = {
             officerInCharge: values.officerInCharge,
             summaryCommendable: values.summaryCommendable || '',
             summaryCompliance: values.summaryCompliance || '',
@@ -242,26 +249,28 @@ export default function AuditExecutionPage() {
             summaryNC: values.summaryNC || '',
             scheduledDate: Timestamp.fromDate(start),
             endScheduledDate: Timestamp.fromDate(end),
-            status: 'Completed' as const
         };
 
-        // 2. NON-BLOCKING Write to Firestore (Immediate resolution when offline)
+        // Only transition to 'Completed' on manual click while online
+        if (!isAutoSave && !isActuallyOffline) {
+            updateData.status = 'Completed';
+        }
+
+        // NON-BLOCKING write to local mirror (Firestore persistence handles background sync)
         updateDoc(scheduleDocRef, updateData)
             .then(() => {
-                if (!isAutoSave) {
-                    toast({ title: "Audit Finalized", description: "Progress secure in local storage." });
+                if (!isAutoSave && !isActuallyOffline) {
+                    toast({ title: "Audit Finalized", description: "Progress secure in institutional cloud." });
                 }
             })
             .catch(error => {
                 console.error("Async save failed:", error);
             });
 
-        // 3. OPTIMISTIC UI RESET (Happens in < 1s)
+        // Instant UI Response
         setLastSaved(new Date());
-        
         if (!isAutoSave) {
-            // Tiny artificial delay for user feedback, then unlock UI
-            setTimeout(() => setIsSavingSummary(false), 300);
+            setTimeout(() => setIsSavingSummary(false), 200);
         }
         
     } catch(error) {
@@ -294,7 +303,7 @@ export default function AuditExecutionPage() {
   };
 
   const handlePrintLog = () => {
-    if (!isOnline || isForcedOffline) {
+    if (isActuallyOffline) {
         handleRestrictedAction("Printing official evidence logs");
         return;
     }
@@ -395,14 +404,23 @@ export default function AuditExecutionPage() {
             </div>
         </div>
         <div className="flex items-center gap-2">
-            <Badge variant={isOnline && !isForcedOffline ? "outline" : "destructive"} className={cn("h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 transition-all", isOnline && !isForcedOffline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in")}>
-                {isForcedOffline ? <Lock className="h-3 w-3" /> : isOnline ? <Wifi className="h-3 w-3 text-emerald-500" /> : <WifiOff className="h-3 w-3 animate-pulse" />}
-                {isForcedOffline ? 'NETWORK LOCKED: OFFLINE' : isOnline ? 'Online Sync Active' : 'Offline Mode (Local Storage)'}
+            <Badge variant={!isActuallyOffline ? "outline" : "destructive"} className={cn("h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 transition-all", !isActuallyOffline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in")}>
+                {isActuallyOffline ? (
+                    <>
+                        <Smartphone className="h-3.5 w-3.5 animate-pulse" />
+                        Institutional Offline Auto-Sync Active
+                    </>
+                ) : (
+                    <>
+                        <Wifi className="h-3.5 w-3.5 text-emerald-500" />
+                        Online Conduct Mode
+                    </>
+                )}
             </Badge>
 
             <div className="mr-4 flex flex-col items-end">
                 {isSavingSummary ? (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Caching locally...</div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Syncing to Device...</div>
                 ) : lastSaved ? (
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored on Device ({format(lastSaved, 'HH:mm:ss')})</div>
                 ) : null}
@@ -413,10 +431,10 @@ export default function AuditExecutionPage() {
                 variant="outline" 
                 size="sm" 
                 onClick={handlePrintLog} 
-                className={cn("bg-white shadow-sm font-bold h-9", (!isOnline || isForcedOffline) && "opacity-50")}
-                title={isOnline && !isForcedOffline ? "Print Report" : "Restricted while Offline"}
+                className={cn("bg-white shadow-sm font-bold h-9", isActuallyOffline && "opacity-50")}
+                title={!isActuallyOffline ? "Print Report" : "Restricted while Offline"}
             >
-                {isOnline && !isForcedOffline ? <Printer className="mr-2 h-4 w-4" /> : <ShieldX className="mr-2 h-4 w-4" />}
+                {!isActuallyOffline ? <Printer className="mr-2 h-4 w-4" /> : <ShieldX className="mr-2 h-4 w-4" />}
                 Print Evidence Log
             </Button>
             
@@ -461,8 +479,30 @@ export default function AuditExecutionPage() {
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary" />2. Final Audit Report Summary</CardTitle><CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription></CardHeader>
-                    <CardContent className="space-y-8 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="summaryCommendable" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryCompliance" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl></FormItem>)} /><FormField control={form.control} name="summaryOFI" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl></FormItem>)} /><FormField control={form.control} name="summaryNC" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-destructive">Non-Conformance / Non-Compliance (NC)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl></FormItem>)} /></div></Form></CardContent>
-                    <CardFooter className="bg-slate-50 border-t py-6 px-8"><Button type="button" onClick={form.handleSubmit((v) => handleSaveSummary(v))} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">{isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}<Save className="mr-2 h-4 w-4"/>Finalize Audit Report</Button></CardFooter>
+                    <CardContent className="space-y-8 pt-8">
+                        <Form {...form}>
+                            <div className="space-y-6">
+                                <FormField control={form.control} name="summaryCommendable" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="summaryCompliance" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="summaryOFI" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="summaryNC" render={({ field }) => (<FormItem><FormLabel className="text-xs font-black uppercase text-destructive">Non-Conformance / Non-Compliance (NC)</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl></FormItem>)} />
+                            </div>
+                        </Form>
+                    </CardContent>
+                    <CardFooter className="bg-slate-50 border-t py-6 px-8">
+                        {isActuallyOffline ? (
+                            <div className="w-full p-4 rounded-xl border border-dashed border-primary/20 bg-white flex items-center justify-center gap-3">
+                                <ShieldCheck className="h-5 w-5 text-primary" />
+                                <span className="text-xs font-black uppercase tracking-widest text-primary">Institutional Auto-Sync Active (Finalization Disabled in Offline)</span>
+                            </div>
+                        ) : (
+                            <Button type="button" onClick={form.handleSubmit((v) => handleSaveSummary(v))} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
+                                {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                <Save className="mr-2 h-4 w-4"/>
+                                Finalize Audit Report
+                            </Button>
+                        )}
+                    </CardFooter>
                 </Card>
             </div>
         </div>

@@ -111,7 +111,7 @@ function ClauseForm({
         
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 800); // Accelerated debounce
+        }, 800); // Accelerated debounce for lag-free conduct
     }
 
     return () => {
@@ -122,8 +122,7 @@ function ClauseForm({
   const performSave = (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) return;
     
-    // Optimistically unlock UI
-    setIsSubmitting(true);
+    // Optimistically unlock UI immediately
     const findingId = `${scheduleId}-${clause.id}`;
     const findingRef = doc(firestore, 'auditFindings', findingId);
 
@@ -143,20 +142,19 @@ function ClauseForm({
         findingData.ncStatement = values.ncStatement;
     }
 
-    // FIRE AND FORGET - Don't await the resolve
+    // FIRE AND FORGET - Background sync to local database
     setDoc(findingRef, findingData, { merge: true })
         .then(() => {
             onSave(findingData); 
         });
 
-    // Immediate state update
-    setIsSubmitting(false);
+    // Instant state update for the user
     setLastSaved(new Date());
   };
 
   const onSubmit = (values: ClauseFormData) => {
       performSave(values);
-      toast({ title: isOnline ? "Progress Synced" : "Stored Locally", description: `Record for ${clause.id} updated.`});
+      toast({ title: isOnline ? "Progress Synced" : "Stored Locally", description: `Record for Clause ${clause.id} updated.`});
   };
 
   return (
@@ -280,7 +278,7 @@ function ClauseForm({
             <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                     {isSubmitting ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Caching...</div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Syncing...</div>
                     ) : lastSaved ? (
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored on Device ({format(lastSaved, 'HH:mm:ss')})</div>
                     ) : null}
