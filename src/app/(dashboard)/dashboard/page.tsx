@@ -339,7 +339,7 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-  const monitoringQuery = useMemoFirebase(() => {
+  const monitoringRecordsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'unitMonitoringRecords');
     if (isAdmin) return baseRef;
@@ -349,7 +349,7 @@ export default function HomePage() {
         where('campusId', '==', userProfile.campusId)
     );
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
-  const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
+  const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !selectedYear) return null;
@@ -446,14 +446,13 @@ export default function HomePage() {
   }, [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
 
-  // We need all schedules to properly filter findings by scope
   const allSchedulesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditSchedules') : null), [firestore]);
   const { data: allSchedules } = useCollection<AuditSchedule>(allSchedulesQuery);
 
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
-    const activeStatuses = ['Scheduled', 'In Progress', 'Completed']; // Show everything on dashboard
+    const activeStatuses = ['Scheduled', 'In Progress', 'Completed'];
     
     if (isAdmin) return query(baseRef, where('status', 'in', activeStatuses));
     if (isCampusLevel && userProfile.campusId) {
@@ -519,7 +518,6 @@ export default function HomePage() {
     }
   }, [announcement, globalAnnouncement]);
 
-  
   const unitsInCampus = useMemo(() => {
       if (!allUnits || !userProfile?.campusId) return [];
       return allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
@@ -888,7 +886,6 @@ export default function HomePage() {
         })
     ) || [];
 
-    // Filter OFIs based on scope
     const relevantOfis = auditFindings?.filter(f => {
         if (f.type !== 'Observation for Improvement') return false;
         const schedule = allSchedules?.find(s => s.id === f.auditScheduleId);

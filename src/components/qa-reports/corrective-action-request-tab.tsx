@@ -490,7 +490,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             </TabsList>
         </ScrollArea>
         
-        <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">
+        <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
+            {renderRegistryTable(processedCars)}
+        </TabsContent>
+        <TabsContent value="verification" className="mt-0 animate-in fade-in duration-500">
+            {renderRegistryTable(processedCars)}
+        </TabsContent>
+        <TabsContent value="my-unit" className="mt-0 animate-in fade-in duration-500">
             {renderRegistryTable(processedCars)}
         </TabsContent>
       </Tabs>
@@ -546,7 +552,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     
                     <Separator />
                     
-                    {/* UNIT RESPONSE SECTION */}
                     <div className="pt-6 space-y-6">
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Activity className="h-4 w-4" /> Root Cause & Unit Action Registry</h4>
                         <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
@@ -677,7 +682,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.verifiedBy`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified by</FormLabel><FormControl><Input {...iF} className="h-9 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified by</FormLabel><FormControl><Input {...iF} className="h-9 text-10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
                                         )} />
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (
                                             <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Date</FormLabel><FormControl><Input type="date" {...iF} className="h-9 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>

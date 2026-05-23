@@ -56,11 +56,6 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import type { Campus } from '@/lib/types';
 
-/**
- * AUDITOR OFFLINE MANAGER v13.0 (SELECTIVE CAMPUS MIRROR)
- * Hardened: Uses createPortal for absolute interaction blocking.
- * New: Selective Campus/Site mirroring and lock-in protocol.
- */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
   const { user, isAdmin } = useUser();
@@ -139,7 +134,6 @@ export function AuditorOfflineManager() {
             await getDocs(collection(firestore, 'activityLogs'));
         }
 
-        // SELECTIVE FILTERING BASED ON SITE CHOICE
         const filteredScheds = selectedSite === 'university-wide' 
             ? allScheds 
             : allScheds.filter((s: any) => s.campusId === selectedSite);
@@ -154,7 +148,6 @@ export function AuditorOfflineManager() {
                 if (s.targetId) {
                     await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
                 }
-                // Pre-cache individual pages
                 const rscUrl = `/audit/${s.id}`;
                 try {
                     await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
@@ -162,7 +155,6 @@ export function AuditorOfflineManager() {
             }
         }
 
-        // Cache main app logic routes
         const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
         for (const route of coreRoutes) {
             setDownloadProgress(`Caching Application Logic: ${route}`);
