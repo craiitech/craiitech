@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -197,7 +198,6 @@ export default function AuditExecutionPage() {
     if (hasChanged) {
         if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
         
-        // Reduced to 2 seconds for snappier offline feel
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
         }, 2000);
@@ -479,3 +479,4 @@ export default function AuditExecutionPage() {
     </div>
   );
 }
+

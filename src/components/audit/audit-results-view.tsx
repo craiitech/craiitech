@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -38,19 +39,23 @@ import {
     ClipboardCheck,
     Star,
     Layers,
-    Check
+    Check,
+    Lock,
+    WifiOff
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
+import { CARPrintTemplate } from '../qa-reports/car-print-template';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 
 interface AuditResultsViewProps {
   selectedYear: number;
@@ -77,6 +82,7 @@ export function AuditResultsView({
   const { userProfile, isAdmin, userRole } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const isOnline = useNetworkStatus();
   
   const [isProcessingReport, setIsProcessingReport] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -101,14 +107,12 @@ export function AuditResultsView({
     return units.filter(u => u.campusIds?.includes(campusFilter));
   }, [units, campusFilter]);
 
-  /**
-   * DATA PROCESSING PIPELINE WITH FILTERS
-   */
+  const isNetworkLocked = typeof window !== 'undefined' && localStorage.getItem('rsu_eoms_net_disabled') === 'true';
+
   const kpis = useMemo(() => {
     const yearPlans = plans.filter(p => p.year === selectedYear);
     const planIds = new Set(yearPlans.map(p => p.id));
     
-    // Filter schedules by Campus/Unit/Search
     let filteredSchedules = schedules.filter(s => planIds.has(s.auditPlanId));
     if (campusFilter !== 'all') filteredSchedules = filteredSchedules.filter(s => s.campusId === campusFilter);
     if (unitFilter !== 'all') filteredSchedules = filteredSchedules.filter(s => s.targetId === unitFilter);
@@ -163,7 +167,19 @@ export function AuditResultsView({
         });
   }, [kpis, cars]);
 
+  const handleRestrictedAction = (name: string) => {
+    toast({
+        variant: "destructive",
+        title: "Action Restricted",
+        description: `${name} is disabled in the offline workspace to ensure document integrity. Please sync with the university network to proceed.`,
+    });
+  };
+
   const handleNavigateToIssueCar = (item: any) => {
+    if (!isOnline || isNetworkLocked) {
+        handleRestrictedAction("Issuing new Corrective Action Requests");
+        return;
+    }
     const { finding } = item;
     const params = new URLSearchParams();
     params.set('tab', 'car');
@@ -174,6 +190,10 @@ export function AuditResultsView({
   };
 
   const handlePrintConsolidated = () => {
+    if (!isOnline || isNetworkLocked) {
+        handleRestrictedAction("Generating institutional reports");
+        return;
+    }
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
@@ -204,10 +224,7 @@ export function AuditResultsView({
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @page { size: 8.5in 13in !important; margin: 0.5in !important; }
-                        @media print { 
-                            body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } 
-                            .no-print { display: none !important; } 
-                        }
+                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
                         body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
                     </style>
                 </head>
@@ -221,224 +238,63 @@ export function AuditResultsView({
             `);
             printWindow.document.close();
         }
-    } catch (err) {
-        console.error(err);
-    } finally {
-        setIsProcessingReport(false);
-    }
+    } catch (err) { console.error(err); } finally { setIsProcessingReport(false); }
   };
 
   const handlePrintCar = (car: CorrectiveActionRequest) => {
+    if (!isOnline || isNetworkLocked) {
+        handleRestrictedAction("Printing formal CAR documents");
+        return;
+    }
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
-
     try {
-        const reportHtml = renderToStaticMarkup(
-            <CARPrintTemplate 
-                car={car} 
-                unitName={uName} 
-                campusName={cName} 
-                signatories={signatories || undefined} 
-            />
-        );
-
+        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>CAR - ${car.carNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
-                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
-                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
-                </body>
-                </html>
-            `);
+            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button></div><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (e) { console.error(e); }
   };
 
-  if (isLoading) return <div className="py-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      
-      {/* 1. KPI LAYER */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Compliance index</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-primary tabular-nums">{kpis?.complianceRate}%</div></CardContent>
-        </Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm flex flex-col">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-rose-700">Critical Gaps (NC)</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-rose-600 tabular-nums">{kpis?.ncCount}</div></CardContent>
-        </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm flex flex-col">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-amber-700">OFI Observations</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-amber-600 tabular-nums">{kpis?.ofiCount}</div></CardContent>
-        </Card>
-        <Card className="bg-indigo-50 border-indigo-100 shadow-sm flex flex-col">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-indigo-700">CAR Transition</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-indigo-600 tabular-nums">{kpis?.closureRate}%</div></CardContent>
-        </Card>
+        <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col"><CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Compliance index</CardTitle></CardHeader><CardContent className="px-6 pb-5"><div className="text-3xl font-black text-primary tabular-nums">{kpis?.complianceRate}%</div></CardContent></Card>
+        <Card className="bg-rose-50 border-rose-100 shadow-sm flex flex-col"><CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-rose-700">Critical Gaps (NC)</CardTitle></CardHeader><CardContent className="px-6 pb-5"><div className="text-3xl font-black text-rose-600 tabular-nums">{kpis?.ncCount}</div></CardContent></Card>
+        <Card className="bg-amber-50 border-amber-100 shadow-sm flex flex-col"><CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-amber-700">OFI Observations</CardTitle></CardHeader><CardContent className="px-6 pb-5"><div className="text-3xl font-black text-amber-600 tabular-nums">{kpis?.ofiCount}</div></CardContent></Card>
+        <Card className="bg-indigo-50 border-indigo-100 shadow-sm flex flex-col"><CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-indigo-700">CAR Transition</CardTitle></CardHeader><CardContent className="px-6 pb-5"><div className="text-3xl font-black text-indigo-600 tabular-nums">{kpis?.closureRate}%</div></CardContent></Card>
       </div>
 
-      {/* 2. REGISTRY FILTERS */}
       <Card className="border-primary/10 shadow-sm bg-muted/10">
         <CardContent className="p-4 space-y-4">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search finding by auditee or auditor..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium" />
-            </div>
+            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search finding by auditee or auditor..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium" /></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
-                    <Select value={campusFilter} onValueChange={(v) => { setCampusFilter(v); setUnitFilter('all'); }}>
-                        <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Institutional View (All)</SelectItem>
-                            {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Unit / Office</label>
-                    <Select value={unitFilter} onValueChange={setUnitFilter}>
-                        <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Units in Registry</SelectItem>
-                            {filteredUnits.sort((a,b) => a.name.localeCompare(b.name)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <div className="space-y-1.5"><label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label><Select value={campusFilter} onValueChange={(v) => { setCampusFilter(v); setUnitFilter('all'); }}><SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Institutional View (All)</SelectItem>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                <div className="space-y-1.5"><label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Unit / Office</label><Select value={unitFilter} onValueChange={setUnitFilter}><SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Units in Registry</SelectItem>{filteredUnits.sort((a,b) => a.name.localeCompare(b.name)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
                 <div className="flex gap-2">
-                    <Button onClick={handlePrintConsolidated} className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                        {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
-                        {campusFilter === 'all' ? 'Print System-Wide Report' : `Print Site Report`}
+                    <Button onClick={handlePrintConsolidated} disabled={!isOnline || isNetworkLocked} className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+                        {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : (!isOnline || isNetworkLocked ? <Lock className="h-4 w-4 mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />)}
+                        {(!isOnline || isNetworkLocked) ? 'Printing Restricted' : 'Print Consolidate Report'}
                     </Button>
                 </div>
             </div>
         </CardContent>
       </Card>
 
-      {/* 3. CATEGORIZED FINDINGS TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-              <TabsTrigger value="commendable" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <Star className="h-3.5 w-3.5 text-amber-500" /> Commendable (P)
-              </TabsTrigger>
-              <TabsTrigger value="compliance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Compliance (C)
-              </TabsTrigger>
-              <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <TrendingUp className="h-3.5 w-3.5 text-blue-600" /> Opportunities (OFI)
-              </TabsTrigger>
-              <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
-                  <ShieldAlert className="h-3.5 w-3.5" /> NC & CAR Manager
-              </TabsTrigger>
+              <TabsTrigger value="commendable" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Star className="h-3.5 w-3.5 text-amber-500" /> Commendable (P)</TabsTrigger>
+              <TabsTrigger value="compliance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Compliance (C)</TabsTrigger>
+              <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><TrendingUp className="h-3.5 w-3.5 text-blue-600" /> Opportunities (OFI)</TabsTrigger>
+              <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white"><ShieldAlert className="h-3.5 w-3.5" /> NC & CAR Manager</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="commendable" className="animate-in fade-in duration-500">
-              <Card className="shadow-md border-primary/10 overflow-hidden">
-                  <CardHeader className="bg-emerald-50 border-b py-4">
-                      <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Commendable Practices Registry</CardTitle>
-                      </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                      <Table>
-                          <TableHeader className="bg-muted/30">
-                              <TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">Auditor Commendation</TableHead></TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {commendableRegistry.map(s => (
-                                  <TableRow key={s.id} className="hover:bg-emerald-50/20">
-                                      <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
-                                  </TableRow>
-                              ))}
-                              {commendableRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No commendable findings logged</p></TableCell></TableRow>}
-                          </TableBody>
-                      </Table>
-                  </CardContent>
-              </Card>
-          </TabsContent>
-
-          <TabsContent value="compliance" className="animate-in fade-in duration-500">
-              <Card className="shadow-md border-primary/10 overflow-hidden">
-                  <CardHeader className="bg-emerald-50 border-b py-4">
-                      <div className="flex items-center gap-2">
-                          <Check className="h-5 w-5 text-emerald-600" />
-                          <CardTitle className="text-sm font-black uppercase tracking-tight">Verified Standard Compliances</CardTitle>
-                      </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                      <Table>
-                          <TableHeader className="bg-muted/30">
-                              <TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Auditee & Auditor</TableHead><TableHead className="text-[10px] font-black uppercase">Clause & Finding</TableHead></TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {complianceRegistry.map((item, idx) => (
-                                  <TableRow key={idx} className="hover:bg-emerald-50/20">
-                                      <TableCell className="pl-8 py-5">
-                                          <div className="space-y-1">
-                                              <p className="font-bold text-xs uppercase">{item.schedule?.targetName}</p>
-                                              <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div>
-                                          </div>
-                                      </TableCell>
-                                      <TableCell className="py-5">
-                                          <div className="space-y-1">
-                                              <Badge variant="secondary" className="h-4 text-[8px] font-black bg-emerald-50 text-emerald-700 border-none">ISO CLAUSE {item.finding.isoClause}</Badge>
-                                              <p className="text-xs text-slate-700 italic leading-relaxed">{item.finding.description}</p>
-                                          </div>
-                                      </TableCell>
-                                  </TableRow>
-                              ))}
-                              {complianceRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><ClipboardCheck className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No compliance findings logged</p></TableCell></TableRow>}
-                          </TableBody>
-                      </Table>
-                  </CardContent>
-              </Card>
-          </TabsContent>
-
-          <TabsContent value="ofi" className="animate-in fade-in duration-500">
-              <Card className="shadow-md border-primary/10 overflow-hidden">
-                  <CardHeader className="bg-amber-50 border-b py-4">
-                      <div className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-amber-600" />
-                          <CardTitle className="text-sm font-black uppercase tracking-tight text-amber-900">Institutional Opportunities for Improvement</CardTitle>
-                      </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                      <Table>
-                          <TableHeader className="bg-muted/30">
-                              <TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">OFI Finding / Recommendation</TableHead></TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {ofiRegistry.map(s => (
-                                  <TableRow key={s.id} className="hover:bg-amber-50/20">
-                                      <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryOFI}"</p></TableCell>
-                                  </TableRow>
-                              ))}
-                              {ofiRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Target className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No OFIs recorded</p></TableCell></TableRow>}
-                          </TableBody>
-                      </Table>
-                  </CardContent>
-              </Card>
-          </TabsContent>
+          <TabsContent value="commendable" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-emerald-50 border-b py-4"><div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Commendable Practices Registry</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">Auditor Commendation</TableHead></TableRow></TableHeader><TableBody>{commendableRegistry.map(s => (<TableRow key={s.id} className="hover:bg-emerald-50/20"><TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell><TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell></TableRow>))}{commendableRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No commendable findings logged</p></TableCell></TableRow>}</TableBody></Table></CardContent></Card></TabsContent>
+          <TabsContent value="compliance" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-emerald-50 border-b py-4"><div className="flex items-center gap-2"><Check className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Verified Standard Compliances</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Auditee & Auditor</TableHead><TableHead className="text-[10px] font-black uppercase">Clause & Finding</TableHead></TableRow></TableHeader><TableBody>{complianceRegistry.map((item, idx) => (<TableRow key={idx} className="hover:bg-emerald-50/20"><TableCell className="pl-8 py-5"><div className="space-y-1"><p className="font-bold text-xs uppercase">{item.schedule?.targetName}</p><div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div></div></TableCell><TableCell className="py-5"><div className="space-y-1"><Badge variant="secondary" className="h-4 text-[8px] font-black bg-emerald-50 text-emerald-700 border-none">ISO CLAUSE {item.finding.isoClause}</Badge><p className="text-xs text-slate-700 italic leading-relaxed">{item.finding.description}</p></div></TableCell></TableRow>))}{complianceRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><ClipboardCheck className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No compliance findings logged</p></TableCell></TableRow>}</TableBody></Table></CardContent></Card></TabsContent>
+          <TabsContent value="ofi" className="animate-in fade-in duration-500"><Card className="shadow-md border-primary/10 overflow-hidden"><CardHeader className="bg-amber-50 border-b py-4"><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-amber-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Opportunities for Improvement</CardTitle></div></CardHeader><CardContent className="p-0"><Table><TableHeader className="bg-muted/30"><TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Source Unit</TableHead><TableHead className="text-[10px] font-black uppercase">OFI Finding / Recommendation</TableHead></TableRow></TableHeader><TableBody>{ofiRegistry.map(s => (<TableRow key={s.id} className="hover:bg-amber-50/20"><TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell><TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryOFI}"</p></TableCell></TableRow>))}{ofiRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Target className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No OFIs recorded</p></TableCell></TableRow>}</TableBody></Table></CardContent></Card></TabsContent>
 
           <TabsContent value="nc-manager" className="animate-in fade-in duration-500">
               <Card className="shadow-lg border-rose-200 overflow-hidden">
@@ -485,7 +341,7 @@ export function AuditResultsView({
                                           <div className="flex items-center justify-end gap-2">
                                             {item.isIssued ? (
                                                 <>
-                                                    <Button variant="outline" size="sm" className="h-8 text-[9px] font-black bg-white gap-1.5" onClick={() => handlePrintCar(item.linkedCar)}><Printer className="h-3 w-3" /> PRINT</Button>
+                                                    <Button variant="outline" size="sm" className="h-8 text-[9px] font-black bg-white gap-1.5" onClick={() => handlePrintCar(item.linkedCar)}>{(!isOnline || isNetworkLocked) ? <Lock className="h-3 w-3"/> : <Printer className="h-3 w-3" />} PRINT</Button>
                                                     <Button variant="secondary" size="sm" className="h-8 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 gap-1.5" onClick={() => router.push(`/qa-reports?tab=car&id=${item.linkedCar.id}`)}><Target className="h-3 w-3" /> MANAGE</Button>
                                                 </>
                                             ) : (
@@ -505,3 +361,4 @@ export function AuditResultsView({
     </div>
   );
 }
+
