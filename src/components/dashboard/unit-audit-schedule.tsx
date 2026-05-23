@@ -1,24 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Clock, ClipboardList, Info, Printer, Loader2 } from 'lucide-react';
+import { Calendar, Clock, ClipboardList, Info, Printer, Loader2, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { AuditSchedule, AuditPlan, Signatories, AuditGroup } from '@/lib/types';
+import type { AuditSchedule, AuditPlan, Signatories, AuditGroup, AuditFinding, ISOClause, Unit, Campus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from '@/components/audit/audit-plan-print-template';
+import { ConsolidatedAuditReportTemplate } from '@/components/audit/consolidated-audit-report-template';
 import { useToast } from '@/hooks/use-toast';
 
 interface UnitAuditScheduleProps {
   schedules: AuditSchedule[] | null;
   isLoading: boolean;
   plans?: AuditPlan[];
+  findings?: AuditFinding[];
+  isoClauses?: ISOClause[];
+  units?: Unit[];
+  campuses?: Campus[];
   signatories?: Signatories;
   campusName?: string;
   isSupervisor?: boolean;
@@ -27,18 +32,23 @@ interface UnitAuditScheduleProps {
 /**
  * UNIT AUDIT SCHEDULE COMPONENT
  * Displays upcoming IQA sessions for the user's unit or campus.
- * Added: Print Audit Plan functionality for supervisors in the header.
+ * Added: Print Audit Report (Results) and Audit Plan (Itinerary) for supervisors.
  */
 export function UnitAuditSchedule({ 
     schedules, 
     isLoading, 
     plans = [], 
+    findings = [],
+    isoClauses = [],
+    units = [],
+    campuses = [],
     signatories, 
     campusName = 'Campus Site',
     isSupervisor = false 
 }: UnitAuditScheduleProps) {
   const { toast } = useToast();
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrintingPlan, setIsPrintingPlan] = useState(false);
+  const [isPrintingReport, setIsPrintingReport] = useState(false);
 
   if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
   if (!schedules || schedules.length === 0) return null;
@@ -46,9 +56,8 @@ export function UnitAuditSchedule({
   const handlePrintCampusPlan = () => {
     if (!plans.length || !schedules.length) return;
 
-    setIsPrinting(true);
+    setIsPrintingPlan(true);
     try {
-        // 1. Identify the relevant plan (use the first schedule's planId as a reference)
         const firstSchedule = schedules[0];
         const plan = plans.find(p => p.id === firstSchedule.auditPlanId);
 
@@ -57,16 +66,13 @@ export function UnitAuditSchedule({
             return;
         }
 
-        // 2. Identify sections/groups in this campus's itinerary
         const sectionsToPrint = Array.from(new Set(
             schedules.map(s => s.processCategory).filter(Boolean) as AuditGroup[]
         ));
 
-        // 3. Sort sections for standard layout
         const order = { 'Management Processes': 1, 'Operation Processes': 2, 'Support Processes': 3 };
         sectionsToPrint.sort((a, b) => (order[a as keyof typeof order] || 99) - (order[b as keyof typeof order] || 99));
 
-        // 4. Generate the composite HTML
         const reportsHtml = sectionsToPrint.map(section => {
             const sectionSchedules = schedules.filter(s => s.processCategory === section && s.auditPlanId === plan.id);
             return renderToStaticMarkup(
@@ -82,7 +88,6 @@ export function UnitAuditSchedule({
             );
         }).join('');
 
-        // 5. Trigger Print Window
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
@@ -98,8 +103,6 @@ export function UnitAuditSchedule({
                             .no-print { display: none !important; }
                             .print-page-break { page-break-after: always; }
                             .print-page-break:last-child { page-break-after: auto; }
-                            table { page-break-inside: auto; }
-                            tr { page-break-inside: avoid; page-break-after: auto; }
                         }
                         body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                     </style>
@@ -108,9 +111,7 @@ export function UnitAuditSchedule({
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Print Site Itinerary</button>
                     </div>
-                    <div id="print-content">
-                        ${reportsHtml}
-                    </div>
+                    <div id="print-content">${reportsHtml}</div>
                 </body>
                 </html>
             `);
@@ -120,7 +121,71 @@ export function UnitAuditSchedule({
         console.error("Print error:", err);
         toast({ title: "Print error", variant: "destructive" });
     } finally {
-        setIsPrinting(false);
+        setIsPrintingPlan(false);
+    }
+  };
+
+  const handlePrintSiteAuditReport = () => {
+    if (!plans.length || !schedules.length || !isoClauses.length) return;
+
+    setIsPrintingReport(true);
+    try {
+        const firstSchedule = schedules[0];
+        const plan = plans.find(p => p.id === firstSchedule.auditPlanId);
+
+        if (!plan) {
+            toast({ title: "Report Error", description: "Audit Plan metadata missing.", variant: "destructive" });
+            return;
+        }
+
+        const scheduleIds = new Set(schedules.map(s => s.id));
+        const filteredFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
+
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={plan}
+                schedules={schedules}
+                findings={filteredFindings}
+                clauses={isoClauses}
+                units={units}
+                campuses={campuses}
+                signatories={signatories}
+                campusName={campusName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Site Audit Report - ${campusName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; } 
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Site Audit Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        console.error(e);
+        toast({ title: "Report generation failed", variant: "destructive" });
+    } finally {
+        setIsPrintingReport(false);
     }
   };
 
@@ -138,16 +203,28 @@ export function UnitAuditSchedule({
                 </CardDescription>
             </div>
             {isSupervisor && (
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handlePrintCampusPlan} 
-                    disabled={isPrinting}
-                    className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
-                >
-                    {isPrinting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
-                    Print Site Plan
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handlePrintSiteAuditReport} 
+                        disabled={isPrintingReport}
+                        className="h-8 bg-white border-primary/20 text-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
+                    >
+                        {isPrintingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                        Print Site Report
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handlePrintCampusPlan} 
+                        disabled={isPrintingPlan}
+                        className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
+                    >
+                        {isPrintingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                        Print Site Plan
+                    </Button>
+                </div>
             )}
         </div>
       </CardHeader>
@@ -180,7 +257,8 @@ export function UnitAuditSchedule({
                             <div className="flex items-center gap-3 shrink-0">
                                 <Badge className={cn(
                                     "h-5 text-[9px] font-black uppercase border-none px-3 shadow-sm",
-                                    schedule.status === 'In Progress' ? "bg-blue-600 text-white animate-pulse" : "bg-amber-50 text-amber-950"
+                                    schedule.status === 'In Progress' ? "bg-blue-600 text-white animate-pulse" : 
+                                    schedule.status === 'Completed' ? "bg-emerald-600 text-white" : "bg-amber-50 text-amber-950"
                                 )}>
                                     {schedule.status}
                                 </Badge>

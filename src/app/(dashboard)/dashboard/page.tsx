@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -1079,7 +1078,18 @@ export default function HomePage() {
 
         {renderActionItems()}
 
-        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={isSupervisor || isAdmin} />
+        <UnitAuditSchedule 
+            schedules={sortedDashboardSchedules} 
+            isLoading={isLoadingSchedules} 
+            isSupervisor={isSupervisor || isAdmin}
+            plans={allAuditPlans || []}
+            findings={auditFindings || []}
+            isoClauses={isoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
+            signatories={signatories || undefined}
+            campusName={campusMap.get(userProfile?.campusId || '')}
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
@@ -1307,6 +1317,10 @@ export default function HomePage() {
                     isLoading={isLoadingSchedules} 
                     isSupervisor={isSupervisor || isAdmin}
                     plans={allAuditPlans || []}
+                    findings={auditFindings || []}
+                    isoClauses={isoClauses || []}
+                    units={allUnits || []}
+                    campuses={campuses || []}
                     signatories={signatories || undefined}
                     campusName={campusMap.get(userProfile?.campusId || '')}
                 />
@@ -1415,6 +1429,10 @@ export default function HomePage() {
             isLoading={isLoadingSchedules} 
             isSupervisor={isSupervisor || isAdmin}
             plans={allAuditPlans || []}
+            findings={auditFindings || []}
+            isoClauses={isoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
             signatories={signatories || undefined}
             campusName="Institutional"
         />
