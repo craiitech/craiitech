@@ -155,35 +155,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const isInstitutionalViewer = isAdmin || (userRole && /auditor|quality assurance/i.test(userRole));
-  
-  /**
-   * TOP MANAGEMENT DEFINITION:
-   * Includes Admins, Auditors, Directors, and ODIMOs who oversee quality frameworks.
-   */
   const isTopManagement = isInstitutionalViewer || isSupervisor;
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     const yrs = [];
-    for (let i = 0; i < 5; i++) {
-      yrs.push(String(current - i));
-    }
+    for (let i = 0; i < 5; i++) yrs.push(String(current - i));
     return yrs;
   }, []);
 
-  // ROLE-BASED LOCKING & DEFAULT TAB
   useEffect(() => {
     if (userProfile && !isUserLoading) {
-        if (!isInstitutionalViewer) {
-            setCampusFilter(userProfile.campusId);
-        }
-        
-        // Auto-select tab based on authority level
-        if (isTopManagement) {
-            setActiveSubTab('all');
-        } else {
-            setActiveSubTab('my-unit');
-        }
+        if (!isInstitutionalViewer) setCampusFilter(userProfile.campusId);
+        setActiveSubTab(isTopManagement ? 'all' : 'my-unit');
     }
   }, [userProfile, isInstitutionalViewer, isTopManagement, isUserLoading]);
 
@@ -236,145 +220,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     }
   });
 
-  useEffect(() => {
-    const action = searchParams.get('action');
-    const findingId = searchParams.get('findingId');
-    const scheduleId = searchParams.get('scheduleId');
-
-    if (action === 'new' && findingId && scheduleId && firestore && !isDialogOpen) {
-        const prepareBridge = async () => {
-            try {
-                const findingSnap = await getDoc(doc(firestore, 'auditFindings', findingId));
-                const scheduleSnap = await getDoc(doc(firestore, 'auditSchedules', scheduleId));
-
-                if (findingSnap.exists() && scheduleSnap.exists()) {
-                    const finding = findingSnap.data() as AuditFinding;
-                    const schedule = scheduleSnap.data() as AuditSchedule;
-                    
-                    const carCountQuery = await getDocs(collection(firestore, 'correctiveActionRequests'));
-                    const nextNum = carCountQuery.size + 1;
-                    const carNumber = `${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`;
-
-                    form.reset({
-                        carNumber,
-                        findingId,
-                        source: 'Audit Finding',
-                        natureOfFinding: 'NC',
-                        procedureTitle: schedule.procedureDescription || 'Internal Quality Audit',
-                        initiator: schedule.auditorName || 'IQA Auditor',
-                        concerningClause: finding.isoClause,
-                        concerningTopManagementName: 'Unit Head',
-                        descriptionOfNonconformance: finding.ncStatement || finding.description,
-                        unitId: schedule.targetId,
-                        campusId: schedule.campusId,
-                        unitHead: schedule.auditeeHeadName || 'Unit Head',
-                        preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
-                        approvedBy: signatories?.qaoDirector || 'Director, QAO',
-                        requestDate: format(new Date(), 'yyyy-MM-dd'),
-                        timeLimitForReply: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-                        status: 'Open',
-                        actionSteps: [],
-                        followUpLogs: [],
-                        effectivenessAudits: []
-                    });
-                    
-                    setIsDialogOpen(true);
-                    const newParams = new URLSearchParams(searchParams.toString());
-                    newParams.delete('action');
-                    newParams.delete('findingId');
-                    newParams.delete('scheduleId');
-                    router.replace(`/qa-reports?${newParams.toString()}`);
-                }
-            } catch (e) {
-                console.error("Bridge failure", e);
-            }
-        };
-        prepareBridge();
-    }
-  }, [searchParams, firestore, isDialogOpen, form, userProfile, signatories, router]);
-
-  const processedCars = useMemo(() => {
-    if (!rawCars || !userProfile) return [];
-
-    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-
-    let result = rawCars.filter(car => {
-        if (!isInstitutionalViewer) {
-            if (isCampusSupervisor) {
-                if (car.campusId !== userProfile.campusId) return false;
-            } else {
-                if (car.unitId !== userProfile.unitId) return false;
-            }
-        }
-
-        if (activeSubTab === 'verification' && !car.needsVerification) return false;
-        if (activeSubTab === 'my-unit' && car.unitId !== userProfile.unitId) return false;
-
-        const matchesSearch = 
-            car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (unitMap.get(car.unitId) || '').toLowerCase().includes(searchTerm.toLowerCase());
-        
-        if (!matchesSearch) return false;
-
-        const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
-        const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
-        if (!matchesYear) return false;
-
-        const matchesCampus = campusFilter === 'all' || car.campusId === campusFilter;
-        return matchesCampus;
-    });
-
-    if (sortConfig) {
-        const { key, direction } = sortConfig;
-        result.sort((a, b) => {
-            let valA: any, valB: any;
-            
-            switch(key) {
-                case 'carNumber': valA = a.carNumber; valB = b.carNumber; break;
-                case 'unit': valA = unitMap.get(a.unitId) || ''; valB = unitMap.get(b.unitId) || ''; break;
-                case 'status': valA = a.status; valB = b.status; break;
-                case 'updatedAt':
-                    valA = a.updatedAt?.toMillis?.() || new Date(a.updatedAt).getTime();
-                    valB = b.updatedAt?.toMillis?.() || new Date(b.updatedAt).getTime();
-                    break;
-                case 'deadline':
-                    valA = a.timeLimitForReply?.toMillis?.() || new Date(a.timeLimitForReply).getTime();
-                    valB = b.timeLimitForReply?.toMillis?.() || new Date(b.timeLimitForReply).getTime();
-                    break;
-                default: valA = ''; valB = '';
-            }
-
-            if (valA < valB) return direction === 'asc' ? -1 : 1;
-            if (valA > valB) return direction === 'asc' ? 1 : -1;
-            return 0;
-        });
-    }
-
-    return result;
-  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isAdmin, userRole, isInstitutionalViewer, campusMap]);
-
-  const carStats = useMemo(() => {
-    if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
-    
-    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-
-    const filteredForScope = rawCars.filter(car => {
-        if (isInstitutionalViewer) return true;
-        if (isCampusSupervisor) return car.campusId === userProfile.campusId;
-        return car.unitId === userProfile.unitId;
-    });
-
-    const total = filteredForScope.length;
-    const open = filteredForScope.filter(c => c.status === 'Open').length;
-    const inProgress = filteredForScope.filter(c => c.status === 'In Progress' || c.status === 'For Final Verification' || c.status === 'Awaiting Response/Update').length;
-    const closed = filteredForScope.filter(c => c.status === 'Closed').length;
-    const needsVerification = filteredForScope.filter(c => c.needsVerification).length;
-    const successRate = total > 0 ? Math.round((closed / total) * 100) : 100;
-
-    return { total, open, inProgress, closed, needsVerification, successRate };
-  }, [rawCars, userProfile, isAdmin, userRole, isInstitutionalViewer]);
-
   const { fields: actionFields, append: appendAction, remove: removeAction } = useFieldArray({
     control: form.control,
     name: "actionSteps"
@@ -390,13 +235,78 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "effectivenessAudits"
   });
 
+  const processedCars = useMemo(() => {
+    if (!rawCars || !userProfile) return [];
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+
+    let result = rawCars.filter(car => {
+        if (!isInstitutionalViewer) {
+            if (isCampusSupervisor) {
+                if (car.campusId !== userProfile.campusId) return false;
+            } else {
+                if (car.unitId !== userProfile.unitId) return false;
+            }
+        }
+        if (activeSubTab === 'verification' && !car.needsVerification) return false;
+        if (activeSubTab === 'my-unit' && car.unitId !== userProfile.unitId) return false;
+
+        const matchesSearch = car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             (unitMap.get(car.unitId) || '').toLowerCase().includes(searchTerm.toLowerCase());
+        if (!matchesSearch) return false;
+
+        const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
+        const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
+        if (!matchesYear) return false;
+
+        return campusFilter === 'all' || car.campusId === campusFilter;
+    });
+
+    if (sortConfig) {
+        const { key, direction } = sortConfig;
+        result.sort((a, b) => {
+            let valA: any, valB: any;
+            switch(key) {
+                case 'carNumber': valA = a.carNumber; valB = b.carNumber; break;
+                case 'unit': valA = unitMap.get(a.unitId) || ''; valB = unitMap.get(b.unitId) || ''; break;
+                case 'status': valA = a.status; valB = b.status; break;
+                case 'updatedAt': valA = a.updatedAt?.toMillis?.() || new Date(a.updatedAt).getTime(); valB = b.updatedAt?.toMillis?.() || new Date(b.updatedAt).getTime(); break;
+                case 'deadline': valA = a.timeLimitForReply?.toMillis?.() || new Date(a.timeLimitForReply).getTime(); valB = b.timeLimitForReply?.toMillis?.() || new Date(b.timeLimitForReply).getTime(); break;
+                default: valA = ''; valB = '';
+            }
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+    return result;
+  }, [rawCars, searchTerm, yearFilter, campusFilter, sortConfig, activeSubTab, unitMap, userProfile, isInstitutionalViewer, userRole]);
+
+  const carStats = useMemo(() => {
+    if (!rawCars || !userProfile) return { total: 0, open: 0, inProgress: 0, closed: 0, needsVerification: 0, successRate: 0 };
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+
+    const filteredForScope = rawCars.filter(car => {
+        if (isInstitutionalViewer) return true;
+        if (isCampusSupervisor) return car.campusId === userProfile.campusId;
+        return car.unitId === userProfile.unitId;
+    });
+
+    const total = filteredForScope.length;
+    const open = filteredForScope.filter(c => c.status === 'Open').length;
+    const inProgress = filteredForScope.filter(c => ['In Progress', 'For Final Verification', 'Awaiting Response/Update'].includes(c.status)).length;
+    const closed = filteredForScope.filter(c => c.status === 'Closed').length;
+    const needsVerification = filteredForScope.filter(c => c.needsVerification).length;
+    const successRate = total > 0 ? Math.round((closed / total) * 100) : 100;
+    return { total, open, inProgress, closed, needsVerification, successRate };
+  }, [rawCars, userProfile, isInstitutionalViewer, userRole]);
+
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => {
         if (!d) return '';
         const date = d instanceof Timestamp ? d.toDate() : new Date(d);
-        if (isNaN(date.getTime())) return '';
-        return format(date, 'yyyy-MM-dd');
+        return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
     };
     
     form.reset({
@@ -404,20 +314,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         adminFeedback: '',
         timeLimitForReply: safeDate(car.timeLimitForReply),
         requestDate: safeDate(car.requestDate),
-        actionSteps: (car.actionSteps || []).map(step => ({
-            ...step,
-            completionDate: safeDate(step.completionDate)
-        })),
-        followUpLogs: (car.followUpLogs || []).map(log => ({
-            ...log,
-            date: safeDate(log.date),
-            remarks: log.remarks || ''
-        })),
-        effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({
-            ...audit,
-            date: safeDate(audit.date),
-            remarks: audit.remarks || ''
-        }))
+        actionSteps: (car.actionSteps || []).map(step => ({ ...step, completionDate: safeDate(step.completionDate) })),
+        followUpLogs: (car.followUpLogs || []).map(log => ({ ...log, date: safeDate(log.date), remarks: log.remarks || '' })),
+        effectivenessAudits: (car.effectivenessAudits || []).map(audit => ({ ...audit, date: safeDate(audit.date), remarks: audit.remarks || '' }))
     });
     setIsDialogOpen(true);
   };
@@ -425,59 +324,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const handlePrint = (car: CorrectiveActionRequest) => {
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
-
     try {
-        const reportHtml = renderToStaticMarkup(
-            <CARPrintTemplate 
-                car={car} 
-                unitName={uName} 
-                campusName={cName} 
-                signatories={signatories || undefined} 
-            />
-        );
-
+        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>CAR - ${car.carNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { 
-                                margin: 0 !important; 
-                                padding: 0 !important; 
-                                background: white; 
-                                -webkit-print-color-adjust: exact;
-                            } 
-                            .no-print { display: none !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${reportHtml}
-                    </div>
-                </body>
-                </html>
-            `);
+            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button></div><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
-    } catch (err) {
-        console.error("Print error:", err);
-        toast({ title: "Print Failed", description: "Could not generate the CAR report.", variant: "destructive" });
-    }
+    } catch (err) { console.error(err); }
   };
 
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
@@ -490,28 +345,21 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
     const updatedComments = liveCar?.comments ? [...liveCar.comments] : [];
     if (isInstitutionalViewer && values.adminFeedback?.trim()) {
-        const feedbackComment: Comment = {
+        updatedComments.push({
             text: `[QA OFFICE FEEDBACK]: ${values.adminFeedback.trim()}`,
             authorId: userProfile.id,
             authorName: `${userProfile.firstName} ${userProfile.lastName}`,
             authorRole: userRole || 'Admin',
             createdAt: new Date(),
-        };
-        updatedComments.push(feedbackComment);
+        });
         form.setValue('adminFeedback', ''); 
     }
 
     if (isInstitutionalViewer) {
         const hasVerificationData = (values.followUpLogs?.length || 0) > (liveCar.followUpLogs?.length || 0) || 
                                    (values.effectivenessAudits?.length || 0) > (liveCar.effectivenessAudits?.length || 0);
-        
-        if (hasVerificationData) {
-            nextStatus = 'For Final Verification';
-        }
-
-        if (values.adminFeedback?.trim()) {
-            nextStatus = 'Awaiting Response/Update';
-        }
+        if (hasVerificationData) nextStatus = 'For Final Verification';
+        if (values.adminFeedback?.trim()) nextStatus = 'Awaiting Response/Update';
     }
 
     if (isUnitResponding) {
@@ -532,136 +380,72 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       comments: updatedComments,
       timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
       requestDate: Timestamp.fromDate(new Date(values.requestDate)),
-      actionSteps: (values.actionSteps || []).map(step => ({
-          ...step,
-          completionDate: Timestamp.fromDate(new Date(step.completionDate))
-      })),
-      followUpLogs: (values.followUpLogs || []).map(log => ({
-          ...log,
-          date: Timestamp.fromDate(new Date(log.date)),
-          remarks: log.remarks || ''
-      })),
-      effectivenessAudits: (values.effectivenessAudits || []).map(audit => ({
-          ...audit,
-          date: Timestamp.fromDate(new Date(audit.date)),
-          remarks: audit.remarks || ''
-      })),
+      actionSteps: (values.actionSteps || []).map(step => ({ ...step, completionDate: Timestamp.fromDate(new Date(step.completionDate)) })),
+      followUpLogs: (values.followUpLogs || []).map(log => ({ ...log, date: Timestamp.fromDate(new Date(log.date)) })),
+      effectivenessAudits: (values.effectivenessAudits || []).map(audit => ({ ...audit, date: Timestamp.fromDate(new Date(audit.date)) })),
       updatedAt: serverTimestamp(),
     };
 
     try {
         if (editingCar) {
-          const docRef = doc(firestore, 'correctiveActionRequests', editingCar.id);
-          await updateDoc(docRef, carData);
-          toast({ title: 'Success', description: 'CAR record updated.' });
+          await updateDoc(doc(firestore, 'correctiveActionRequests', editingCar.id), carData);
+          toast({ title: 'Success', description: 'CAR updated.' });
         } else {
-          const colRef = collection(firestore, 'correctiveActionRequests');
-          await addDoc(colRef, { ...carData, createdAt: serverTimestamp() });
+          await addDoc(collection(firestore, 'correctiveActionRequests'), { ...carData, createdAt: serverTimestamp() });
           toast({ title: 'Success', description: 'New CAR registered.' });
         }
         setIsDialogOpen(false);
-        form.reset();
         setEditingCar(null);
-    } catch (e) {
-        toast({ title: 'Submission Error', variant: 'destructive' });
-    } finally {
-        setIsSubmitting(false);
-    }
+    } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
   };
 
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
-    if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits')) return !isInstitutionalViewer;
-    if (fieldName === 'adminFeedback') return !isInstitutionalViewer;
-    
-    const responderFields = ['rootCauseAnalysis', 'actionSteps'];
-    if (responderFields.some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
+    if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits') || fieldName === 'adminFeedback') return !isInstitutionalViewer;
+    if (['rootCauseAnalysis', 'actionSteps'].some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
     if (fieldName === 'status') return !isInstitutionalViewer;
     return true; 
-  };
-
-  const isInvestigationStarted = !!form.watch('rootCauseAnalysis')?.trim();
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
         {isLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div> : (
-            <div className="overflow-x-auto">
-                <Table>
+            <Table>
                 <TableHeader className="bg-muted/30">
                     <TableRow>
-                    <TableHead className="py-4 pl-6"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>CAR Number & Unit {getSortIcon('carNumber')}</Button></TableHead>
-                    <TableHead className="py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsible Office {getSortIcon('unit')}</Button></TableHead>
-                    <TableHead className="py-4"><div className="text-[10px] font-black uppercase">Procedure / Context</div></TableHead>
-                    <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Deadline {getSortIcon('deadline')}</Button></TableHead>
-                    <TableHead className="text-center py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status & Guidance {getSortIcon('status')}</Button></TableHead>
+                    <TableHead className="py-4 pl-6 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>CAR & Dates {getSortIcon('carNumber')}</Button></TableHead>
+                    <TableHead className="py-4 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsibility {getSortIcon('unit')}</Button></TableHead>
+                    <TableHead className="py-4 text-[10px] font-black uppercase">Procedure / Context</TableHead>
+                    <TableHead className="text-center py-4 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Reply Deadline {getSortIcon('deadline')}</Button></TableHead>
+                    <TableHead className="text-center py-4 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status {getSortIcon('status')}</Button></TableHead>
                     <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {data.map((car, index) => {
-                        const latestComment = car.comments?.length ? car.comments[car.comments.length - 1] : null;
-                        return (
+                    {data.map(car => (
                         <TableRow key={car.id} className={cn("transition-colors cursor-pointer group", car.needsVerification && "bg-blue-50/30")} onClick={() => handleEdit(car)}>
                         <TableCell className="pl-6 py-4">
                             <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2"><span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>{car.needsVerification && <Badge variant="outline" className="h-4 text-[7px] font-black border-blue-200 text-blue-700 bg-white animate-pulse">UNIT RESPONDED</Badge>}</div>
-                                <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest"><HistoryIcon className="h-2.5 w-2.5" />Logged: {format(car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate), 'MM/dd/yy')}</div>
+                                <span className="font-black text-sm text-primary leading-none">{car.carNumber}</span>
+                                <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest"><Calendar className="h-2.5 w-2.5" />Issued: {format(car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate), 'MM/dd/yy')}</div>
                             </div>
                         </TableCell>
                         <TableCell><div className="flex flex-col gap-1"><span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span></div></TableCell>
-                        <TableCell className="max-w-xs font-bold text-xs"><p className="truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</p><p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p></TableCell>
-                        <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
+                        <TableCell className="max-w-xs font-bold text-xs truncate">{car.procedureTitle}</TableCell>
+                        <TableCell className="text-center"><div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 tabular-nums"><Clock className="h-3 w-3" />{format(car.timeLimitForReply instanceof Timestamp ? car.timeLimitForReply.toDate() : new Date(car.timeLimitForReply), 'MM/dd/yy')}</div></TableCell>
                         <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-1">
-                                <Badge className={cn(
-                                    "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap", 
-                                    car.status === 'Open' ? "bg-rose-600 text-white" : 
-                                    car.status === 'Awaiting Response/Update' ? "bg-indigo-600 text-white" :
-                                    car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
-                                    car.status === 'For Final Verification' ? "bg-blue-600 text-white animate-pulse" : 
-                                    "bg-emerald-600 text-white"
-                                )}>{car.status}</Badge>
-                                {latestComment && (
-                                    <p className="text-[8px] font-bold text-muted-foreground italic line-clamp-1 max-w-[120px]" title={latestComment.text}>
-                                        "{latestComment.text.replace('[QA OFFICE FEEDBACK]: ', '')}"
-                                    </p>
-                                )}
-                            </div>
+                            <Badge className={cn("text-[9px] font-black uppercase px-2 shadow-none border-none", car.status === 'Open' ? "bg-rose-600 text-white" : car.status === 'Closed' ? "bg-emerald-600 text-white" : "bg-amber-50 text-amber-950")}>{car.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                        <TableCell className="text-right pr-6 whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
-                                <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">{(isInstitutionalViewer || car.unitId === userProfile?.unitId) ? 'MANAGE' : 'VIEW'}</Button>
+                                <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[9px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
                             </div>
                         </TableCell>
                         </TableRow>
-                    )})}
-                    {!isLoading && data.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2 opacity-20">
-                                <ListChecks className="h-10 w-10" />
-                                <p className="text-xs font-bold uppercase tracking-widest">No results found</p>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    )}
+                    ))}
                 </TableBody>
-                </Table>
-            </div>
+            </Table>
         )}
         </CardContent>
     </Card>
@@ -669,291 +453,117 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Issued Requests</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-primary tabular-nums">{carStats.total}</div><p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Total CARs Logged</p></CardContent>
-        </Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Open Gaps</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div><p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Status</p></CardContent>
-        </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">In Progress</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div><p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Active Treatment</p></CardContent>
-        </Card>
-        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Verification Pending</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.needsVerification}</div><p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Handed off by Units</p></CardContent>
-        </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Resolution Rate</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.total > 0 ? Math.round((carStats.closed / carStats.total) * 100) : 0}%</div><p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase tracking-tighter">Effectiveness Score</p></CardContent>
-        </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Closure Maturity</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.successRate}%</div><p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Success Score</p></CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        {[{ l: 'Issued', v: carStats.total, c: 'primary' }, { l: 'Open', v: carStats.open, c: 'rose' }, { l: 'In Progress', v: carStats.inProgress, c: 'amber' }, { l: 'Pending Verify', v: carStats.needsVerification, c: 'blue' }, { l: 'Closed', v: carStats.closed, c: 'emerald' }, { l: 'Closure Rate', v: `${carStats.successRate}%`, c: 'emerald' }].map((s, i) => (
+            <Card key={i} className={cn("border-primary/10 shadow-sm relative overflow-hidden flex flex-col p-4", s.c === 'rose' && "bg-rose-50 border-rose-100", s.c === 'amber' && "bg-amber-50 border-amber-100", s.c === 'blue' && "bg-blue-50 border-blue-100", s.c === 'emerald' && "bg-emerald-50 border-emerald-100")}>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{s.l}</p>
+                <div className="text-2xl font-black tabular-nums mt-1">{s.v}</div>
+            </Card>
+        ))}
       </div>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex-1 w-full space-y-1.5 md:space-y-0">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Search className="h-2.5 w-2.5" /> Search Registry</label>
-                <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search CAR No, Unit, or Procedure..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 shadow-sm bg-background border-primary/10" /></div>
-            </div>
-            <div className="w-full md:w-48 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
-                <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
-                    <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
-                        <SelectValue placeholder="All Sites" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {isInstitutionalViewer && <SelectItem value="all">All Sites</SelectItem>}
-                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="w-full md:w-48 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Calendar className="h-2.5 w-2.5" /> Fiscal Year</label>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
-                    <SelectValue placeholder="All Years" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Years</SelectItem>
-                    {years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-            </div>
-          </div>
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search CAR No, Unit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 shadow-sm" /></div></div>
+            <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Site Location</label><Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}><SelectTrigger className="h-10 font-bold bg-white"><SelectValue placeholder="All Sites" /></SelectTrigger><SelectContent>{isInstitutionalViewer && <SelectItem value="all">All Sites</SelectItem>}{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Fiscal Year</label><Select value={yearFilter} onValueChange={setYearFilter}><SelectTrigger className="h-10 font-bold bg-white"><SelectValue placeholder="All Years" /></SelectTrigger><SelectContent><SelectItem value="all">All Years</SelectItem>{years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}</SelectContent></Select></div>
         </div>
-        <div className="flex items-center gap-2 pt-5">
-            {isInstitutionalViewer && <Button onClick={() => { setEditingCar(null); setIsDialogOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6"><PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR</Button>}
-        </div>
+        {isInstitutionalViewer && <Button onClick={() => { setEditingCar(null); setIsDialogOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6"><PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR</Button>}
       </div>
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
         <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                {isTopManagement && (
-                    <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>
-                )}
-                {isInstitutionalViewer && (
-                    <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue {carStats.needsVerification > 0 && <Badge className="ml-2 bg-white text-blue-600 border-none h-4 px-1 text-[8px] font-black">{carStats.needsVerification}</Badge>}</TabsTrigger>
-                )}
-                {!isAdmin && (
-                    <TabsTrigger value="my-unit" className="gap-2 text-[10px) font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>
-                )}
+                {isTopManagement && <TabsTrigger value="all" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><ListChecks className="h-3.5 w-3.5" /> Full Registry</TabsTrigger>}
+                {isInstitutionalViewer && <TabsTrigger value="verification" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-blue-600 data-[state=active]:text-white"><ShieldCheck className="h-3.5 w-3.5" /> Verification Queue</TabsTrigger>}
+                {!isAdmin && <TabsTrigger value="my-unit" className="gap-2 text-[10px) font-black uppercase tracking-widest px-6 h-8"><Building2 className="h-3.5 w-3.5" /> My Unit Gaps</TabsTrigger>}
             </TabsList>
-            <ScrollBar orientation="horizontal" />
         </ScrollArea>
-
-        <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
-            {isTopManagement && renderRegistryTable(processedCars)}
-        </TabsContent>
-        <TabsContent value="verification" className="mt-0 animate-in fade-in duration-500">
-            {isInstitutionalViewer && renderRegistryTable(processedCars.filter(c => c.needsVerification))}
-        </TabsContent>
-        <TabsContent value="my-unit" className="mt-0 animate-in fade-in duration-500">
-            {!isAdmin && renderRegistryTable(processedCars.filter(c => c.unitId === userProfile?.unitId))}
-        </TabsContent>
+        <TabsContent value={activeSubTab} className="mt-0 animate-in fade-in duration-500">{renderRegistryTable(processedCars)}</TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingReport(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary mb-1"><ShieldCheck className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span></div>
-                    <div className="flex items-center gap-3">
-                        <DialogTitle className="text-xl">
-                            {editingCar ? 'Modify' : 'Issue'} Corrective Action Request (CAR)
-                        </DialogTitle>
-                        {liveCar && <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white border-none">{liveCar.status}</Badge>}
-                    </div>
-                </div>
-                {!isAdmin && <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8"><X className="h-4 w-4" /></Button>}
-            </div>
-          </DialogHeader>
-          
+          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0"><DialogTitle className="text-xl font-black uppercase flex items-center gap-2"><ShieldCheck className="text-primary h-6 w-6" />{editingCar ? 'Manage' : 'Issue'} Corrective Action Request (CAR)</DialogTitle></DialogHeader>
           <div className="flex-1 flex overflow-hidden bg-white">
-            <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
-                <ScrollArea className="flex-1">
-                    <Form {...form}>
-                        <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10 pb-20">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField control={form.control} name="carNumber" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel>
-                                        <FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" disabled={isFieldReadOnly('carNumber')} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel>
-                                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 2025-NC-01" className="bg-slate-50" disabled={isFieldReadOnly('ncReportNumber')} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <FormField control={form.control} name="source" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent></Select></FormItem>
-                                )} />
-                                <FormField control={form.control} name="initiator" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent></Select></FormItem>
-                                )} />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                                <FormField control={form.control} name="procedureTitle" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Title of Procedure</FormLabel><FormControl><Input {...field} placeholder="Name of relevant procedure" className="bg-slate-50" disabled={isFieldReadOnly('procedureTitle')} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={form.control} name="concerningClause" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning ISO Clause</FormLabel><FormControl><Input {...field} placeholder="e.g. 7.5.3" className="bg-slate-50" disabled={isFieldReadOnly('concerningClause')} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                            </div>
-
-                            <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
-                                <FormItem><FormLabel className="text-sm font-black text-slate-800 uppercase tracking-tight">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
-                                <FormField control={form.control} name="campusId" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value} disabled={isFieldReadOnly('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={form.control} name="unitId" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('unitId') || !form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={form.control} name="unitHead" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('unitHead')} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="pt-6 space-y-4">
-                                <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary" /><h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis</h4></div>
-                                <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
-                                    <FormItem><FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                            </div>
-
-                            <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationStarted && "opacity-50 pointer-events-none grayscale")}>
-                                <div className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /><h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4></div>
-                                {actionFields.map((field, index) => (
-                                    <div key={field.id} className="p-4 rounded-lg border bg-muted/5 relative group space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                            <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="bg-white text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>)} /></div>
-                                            <div className="md:col-span-6"><FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
-                                            <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
-                                        </div>
-                                        <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: inputField }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-blue-600 flex items-center gap-1"><LinkIcon className="h-2 w-2" /> Evidence Link (Google Drive)</FormLabel>
-                                                <FormControl><div className="flex gap-2"><Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-blue-50/30 border-blue-100 flex-1" disabled={isFieldReadOnly('actionSteps')} />{inputField.value?.startsWith('https://drive.google.com/') && <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-[9px] font-black bg-white gap-1.5" asChild><a href={inputField.value} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /> VIEW</a></Button>}</div></FormControl>
-                                            </FormItem>
-                                        )} />
-                                        {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
-                                    </div>
-                                ))}
-                                {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2"><PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step</Button>}
-                            </div>
-
-                            <div className="space-y-10 pt-10 border-t border-dashed">
-                                <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div><div className="space-y-0.5"><h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Oversight & Verification</h4><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Internal Auditor / Quality Assurance Office Use Only</p></div></div>{isInstitutionalViewer && <div className="flex gap-2"><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up Log</Button><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Continue Monitoring the NC', remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Final Verification</Button></div>}</div>
-                                
-                                {isInstitutionalViewer && (
-                                    <section className="bg-primary/5 p-6 rounded-2xl border border-primary/20 space-y-4 animate-in slide-in-from-top-4 duration-500">
-                                        <div className="flex items-center gap-2 text-primary">
-                                            <MessageSquare className="h-5 w-5" />
-                                            <h4 className="text-xs font-black uppercase tracking-widest">QA Office Feedback to Unit</h4>
-                                        </div>
-                                        <FormField control={form.control} name="adminFeedback" render={({ field }) => (
-                                            <FormItem>
-                                                <FormControl><Textarea {...field} rows={3} placeholder="Provide guidance or requests for further detail to the unit coordinator..." className="bg-white border-primary/10 italic text-xs leading-relaxed" /></FormControl>
-                                            </FormItem>
-                                        )} />
-                                    </section>
-                                )}
-
-                                <div className="space-y-6">
-                                    <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">III. Follow-up Result Registry</h5>
-                                    {followUpFields.map((field, index) => {
-                                        return (
-                                        <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Official Auditor Observation</FormLabel><FormControl><Textarea {...inputField} rows={4} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
-                                                <FormField control={form.control} name={`followUpLogs.${index}.remarks`} render={({ field: inputField }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Follow-up Remarks</FormLabel><FormControl><Textarea {...inputField} value={inputField.value || ''} rows={2} className="bg-white text-xs" disabled={isFieldReadOnly(`followUpLogs.${index}.remarks`)} /></FormControl></FormItem>)} />
-                                                <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>)} />
-                                                <FormField control={form.control} name={`followUpLogs.${index}.date`} render={({ field: inputField }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>)} />
-                                            </div>
-                                        </div>
-                                    )})}
-                                </div>
-                            </div>
-                        </form>
-                    </Form>
-                </ScrollArea>
-            </div>
-
-            <div className="hidden lg:flex w-[420px] flex-col bg-muted/10 shrink-0 border-l divide-y overflow-hidden">
-                <div className="flex-1 flex flex-col min-w-0">
-                    <div className="p-4 bg-white border-b shrink-0 h-12 flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Discussion Log</h4>
+            <ScrollArea className="flex-1 border-r">
+                <Form {...form}><form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10 pb-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="carNumber" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">CAR Number</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-black h-11" disabled={isFieldReadOnly('carNumber')} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-rose-600">Time Limit for Reply (Response Deadline)</FormLabel><FormControl><Input type="date" {...field} className="bg-rose-50/30 border-rose-100 font-bold h-11" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl></FormItem>)} />
                     </div>
-                    <ScrollArea className="flex-1">
-                        <div className="p-6 space-y-4">
-                            {liveCar?.comments?.length ? (
-                                <div className="space-y-4">
-                                    {liveCar.comments.slice().sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)).map((c, i) => (
-                                        <div key={i} className="p-4 rounded-xl border bg-white shadow-sm space-y-2">
-                                            <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
-                                                <span className="text-[10px] font-black uppercase text-primary">{c.authorName}</span>
-                                                <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
-                                            </div>
-                                            <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
-                                        </div>
-                                    ))}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                        <FormField control={form.control} name="procedureTitle" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[10px] font-black uppercase">Procedure / Context</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('procedureTitle')} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="concerningClause" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">ISO Clause</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-mono" disabled={isFieldReadOnly('concerningClause')} /></FormControl></FormItem>)} />
+                    </div>
+                    <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl></FormItem>)} />
+                    
+                    <Separator />
+                    
+                    <div className="pt-6 space-y-6">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Activity className="h-4 w-4" /> Root Cause & Action Registry</h4>
+                        <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-slate-500">Root Cause Analysis (RCA)</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify systemic failure..." className="bg-muted/5 italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl></FormItem>)} />
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase text-slate-500">Corrective Actions & Target Dates</Label>
+                            {actionFields.map((field, idx) => (
+                                <div key={field.id} className="p-4 rounded-xl border bg-muted/5 grid grid-cols-1 md:grid-cols-12 gap-4 items-end transition-all hover:border-primary/20">
+                                    <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${idx}.type`} render={({ field: iF }) => (<Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate</SelectItem><SelectItem value="Long-term Corrective Action">Long-term</SelectItem></SelectContent></Select>)} /></div>
+                                    <div className="md:col-span-6"><FormField control={form.control} name={`actionSteps.${idx}.description`} render={({ field: iF }) => (<FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl>)} /></div>
+                                    <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${idx}.completionDate`} render={({ field: iF }) => (<FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl>)} /></div>
                                 </div>
-                            ) : (
-                                <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
-                                    <MessageSquare className="h-12 w-12" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">No history</p>
-                                </div>
-                            )}
+                            ))}
+                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase"><PlusCircle className="h-3 w-3 mr-2" /> Add Step</Button>}
                         </div>
-                    </ScrollArea>
-                </div>
-                <div className="flex-1 flex flex-col min-h-0 bg-slate-50/50 p-6 space-y-4">
-                    <div className="flex items-center gap-2 text-primary">
-                        <Info className="h-4 w-4 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-widest">Protocol Assist</h4>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                        <strong>ISO 10.1:</strong> When a nonconformity occurs, the unit must react, evaluate the need for action, and implement any correction needed. This digital registry ensures full traceability of that lifecycle.
-                    </p>
-                </div>
+
+                    <div className="pt-10 border-t space-y-10">
+                        <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div><h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Auditor Follow-up & Final Verification</h4></div>
+                        <div className="space-y-6">
+                            <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">Follow-up Logs</h5>
+                            {followUpFields.map((field, idx) => (
+                                <div key={field.id} className="p-5 rounded-2xl border bg-slate-50/50 space-y-4">
+                                    <FormField control={form.control} name={`followUpLogs.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Observation</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${idx}.result`)} /></FormControl></FormItem>)} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField control={form.control} name={`followUpLogs.${idx}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Auditor</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`followUpLogs.${idx}.verifiedBy`)} /></FormControl></FormItem>)} />
+                                        <FormField control={form.control} name={`followUpLogs.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`followUpLogs.${idx}.date`)} /></FormControl></FormItem>)} />
+                                    </div>
+                                </div>
+                            ))}
+                            {isInstitutionalViewer && <Button type="button" variant="outline" size="sm" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })} className="w-full border-dashed h-9 font-black text-[9px] uppercase">Add Follow-up Log</Button>}
+                        </div>
+
+                        <div className="space-y-6">
+                            <h5 className="text-[10px] font-black uppercase text-emerald-600 tracking-widest border-b pb-1">Final Verification of Effectiveness</h5>
+                            {effectivenessFields.map((field, idx) => (
+                                <div key={field.id} className="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 space-y-4">
+                                    <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Effectiveness Result</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white text-xs" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel><Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}><FormControl><SelectTrigger className="h-8 text-[9px] bg-white"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Close the NC">Close the NC</SelectItem><SelectItem value="Continue Monitoring the NC">Continue Monitoring</SelectItem><SelectItem value="Provide More Actions to Address the NC">Require More Action</SelectItem></SelectContent></Select></FormItem>)} />
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>)} />
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>)} />
+                                    </div>
+                                </div>
+                            ))}
+                            {isInstitutionalViewer && <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), action: 'Close the NC', remarks: '' })} className="w-full border-dashed h-9 border-emerald-200 text-emerald-700 font-black text-[9px] uppercase hover:bg-emerald-50">Add Final Verification</Button>}
+                        </div>
+                    </div>
+                </form></Form>
+            </ScrollArea>
+            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
+                <div className="p-4 bg-white border-b shrink-0 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-700">Registry Discussion Log</h4></div>
+                <ScrollArea className="flex-1"><div className="p-6 space-y-4">
+                    {liveCar?.comments?.map((c, i) => (
+                        <div key={i} className="p-4 rounded-xl border bg-white shadow-sm space-y-2"><div className="flex justify-between border-b pb-1 mb-1 text-[8px] font-black uppercase text-primary"><span>{c.authorName}</span><span>{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span></div><p className="text-[11px] text-slate-700 italic">"{c.text}"</p></div>
+                    ))}
+                    {!liveCar?.comments?.length && <div className="py-20 text-center opacity-10 flex flex-col items-center gap-2"><HistoryIcon className="h-10 w-10"/><p className="text-[10px] font-black uppercase">No history</p></div>}
+                </div></ScrollArea>
+                <div className="p-6 border-t bg-slate-50/50"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600 mt-0.5"/><p className="text-[10px] text-muted-foreground leading-relaxed italic">Changes to CAR dates or status immediately trigger system notifications to all relevant unit heads and supervisors.</p></div></div>
             </div>
           </div>
-
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
-                {editingCar ? 'Update Registry' : 'Issue Record'}
-            </Button>
-          </DialogFooter>
+          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0"><Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button><Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px]">{(isSubmitting) ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2"/>}{editingCar ? 'Update Registry' : 'Issue Record'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+

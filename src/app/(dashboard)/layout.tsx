@@ -94,7 +94,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   
-  // Persistent Guidance State
   const [isGuidanceVisible, setIsGuidanceVisible] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -153,10 +152,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
   const { data: allUnits } = useCollection<Unit>(unitsQuery);
 
-  /**
-   * SOFTWARE EVALUATION MANDATE (QUALITY GATE)
-   * Checks if the user has already conducted the ISO 25010 evaluation.
-   */
   const evaluationQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'softwareEvaluations'), where('userId', '==', user.uid));
@@ -165,18 +160,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: userEvaluations, isLoading: isLoadingEval } = useCollection<SoftwareEvaluation>(evaluationQuery);
 
   const isEvaluationComplete = useMemo(() => {
-    // For MVP/Demo: Admins can bypass if they need to setup.
-    // However, to satisfy the requirement, we check the database for any previous submission.
     if (isAdmin) return true;
-    if (isLoadingEval) return true; // Avoid flickering before data is loaded
+    if (isLoadingEval) return true; 
     return userEvaluations && userEvaluations.length > 0;
   }, [userEvaluations, isLoadingEval, isAdmin]);
 
-  /**
-   * NOTIFICATION QUERY LOGIC
-   * 1. Submissions: Awaiting Approval (for Admins/Supervisors) or Rejected (for Units)
-   * 2. CARs: For Final Verification (for Admins/Supervisors) or Open/Feedback (for Units)
-   */
   const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
     const col = collection(firestore, 'submissions');
@@ -202,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
       }
       
-      // Units see items requiring action
+      // Units see items requiring action (Open = Just issued, Awaiting = Auditor Feedback)
       return query(col, where('unitId', '==', userProfile.unitId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
   }
 
@@ -214,8 +202,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const notificationCount = useMemo(() => {
     let count = 0;
-
-    // Submissions Count
     if (subNotifications) {
         if (isAdmin) count += subNotifications.length;
         else if (isSupervisor && userProfile) {
@@ -224,12 +210,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             count += subNotifications.length;
         }
     }
-
-    // CARs Count
-    if (carNotifications) {
-        count += carNotifications.length;
-    }
-
+    if (carNotifications) count += carNotifications.length;
     return count;
   }, [subNotifications, carNotifications, userProfile, isAdmin, isSupervisor]);
 
@@ -318,11 +299,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
                 <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
                   <p className="font-black text-sm leading-tight text-white">{displayName}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900/80 mt-1">{displayRole}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mt-1">{displayRole}</p>
                   
                   <div className="mt-2 space-y-1">
                     {userProfile?.unitId && (
-                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900/70 font-bold uppercase tracking-tight">
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 font-bold uppercase tracking-tight">
                           <Building2 className="h-3 w-3 text-slate-900/40 shrink-0" />
                           <span className="truncate max-w-[150px]">{allUnits?.find(u => u.id === userProfile.unitId)?.name || 'Loading Unit...'}</span>
                       </div>
@@ -352,7 +333,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {children}
                 </div>
                 
-                {/* Persistent Dynamic Page Guidance Toggle */}
                 {hasHydrated && isGuidanceVisible && (
                     <Suspense fallback={<div className="w-80 shrink-0" />}>
                         <PageGuidance className="hidden lg:block h-full" />
@@ -372,7 +352,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         onAcknowledge={handleAcknowledgeUpdates}
       />
 
-      {/* SOFTWARE QUALITY GATE (MANDATORY EVALUATION) */}
       {!isEvaluationComplete && !isLoadingEval && (
           <SoftwareEvaluationGate />
       )}
