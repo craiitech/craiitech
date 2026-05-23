@@ -3,10 +3,11 @@
 import { useMemo, useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
-import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, Signatories, AuditPlan, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building, LayoutList } from 'lucide-react';
+import { Loader2, CalendarCheck, CalendarSearch, Check, Search, Building, LayoutList, ShieldAlert } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
+import { AuditorNCManager } from './auditor-nc-manager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
@@ -34,6 +35,12 @@ export function AuditorAuditView() {
     return collection(firestore, 'auditFindings');
   }, [firestore]);
   const { data: findings, isLoading: isLoadingFindings } = useCollection<AuditFinding>(findingsQuery);
+
+  const carsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'correctiveActionRequests');
+  }, [firestore]);
+  const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carsQuery);
 
   const plansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
   const { data: plans } = useCollection<AuditPlan>(plansQuery);
@@ -103,7 +110,7 @@ export function AuditorAuditView() {
       }
   };
 
-  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses || isLoadingFindings;
+  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses || isLoadingFindings || isLoadingCars;
 
   return (
     <div className="space-y-4">
@@ -116,7 +123,7 @@ export function AuditorAuditView() {
                     <LayoutList className="h-6 w-6 text-primary" />
                     Internal Quality Audits
                   </h2>
-                  <p className="text-muted-foreground text-sm font-medium">Manage audits assigned to you and claim new audits from the available pool.</p>
+                  <p className="text-muted-foreground text-sm font-medium">Manage audits assigned to you and oversee institutional non-conformances.</p>
                 </div>
             </div>
 
@@ -152,12 +159,15 @@ export function AuditorAuditView() {
             </div>
 
             <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
+                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-3 md:inline-flex animate-tab-highlight rounded-md">
                     <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                        <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length} Units)
+                        <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length})
                     </TabsTrigger>
                     <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                        <CalendarSearch className="h-4 w-4"/> Available Pool ({availableSchedulesRaw.length} Units)
+                        <CalendarSearch className="h-4 w-4"/> Pool ({availableSchedulesRaw.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="nc-manager" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
+                        <ShieldAlert className="h-4 w-4" /> NC & CAR Manager
                     </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -198,6 +208,19 @@ export function AuditorAuditView() {
                             isClaimView={true}
                             onClaimAudit={handleClaimAudit}
                         />
+                    </TabsContent>
+
+                    <TabsContent value="nc-manager" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
+                         <AuditorNCManager 
+                            findings={findings || []}
+                            schedules={allSchedules || []}
+                            cars={cars || []}
+                            campuses={campuses || []}
+                            units={units || []}
+                            signatories={signatories || undefined}
+                            campusFilter={campusFilter}
+                            searchTerm={searchTerm}
+                         />
                     </TabsContent>
                   </>
               )}
