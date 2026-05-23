@@ -27,7 +27,7 @@ import { PageGuidance } from '@/components/dashboard/page-guidance';
 import { InstallPwaDialog } from '@/components/dashboard/install-pwa-dialog';
 import { SoftwareEvaluationGate } from '@/components/evaluation/software-evaluation-gate';
 import { useNetworkStatus } from '@/hooks/use-network-status';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; 
 
@@ -311,7 +311,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Header 
                 notificationCount={notificationCount} 
                 isGuidanceVisible={isGuidanceVisible}
-                onToggleGuidance={toggleGuidance}
+                onToggleGuidance={onToggleGuidance}
             />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-y-auto h-full pr-2">
@@ -361,7 +361,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                   </CardContent>
                   <CardFooter className="bg-slate-50 border-t py-6 px-10 flex justify-center">
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Quality Assurance Office &bull; Field Conduct Protocol</p>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Quality Assurance Office & bull; Field Conduct Protocol</p>
                   </CardFooter>
               </Card>
           </div>
