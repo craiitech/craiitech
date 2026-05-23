@@ -50,11 +50,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '../ui/badge';
+import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import type { Campus } from '@/lib/types';
 
 export function AuditorOfflineManager() {
@@ -139,29 +139,31 @@ export function AuditorOfflineManager() {
             ? allScheds 
             : allScheds.filter((s: any) => s.campusId === selectedSite);
 
+        // TOTAL ITINERARY CACHING: Prefetch RSC payloads for ALL sessions in the scope
         for (const s of filteredScheds) {
-            setDownloadProgress(`Syncing Session: ${s.targetName}`);
+            setDownloadProgress(`Locking Session: ${s.targetName}`);
             await getDoc(doc(firestore, 'auditSchedules', s.id));
             
-            // Proactively cache potential conduct pages (including findings and CAR history)
             if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
             if (s.targetId) {
                 await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
             }
 
-            // Prefetch RSC payloads for ALL sessions in the scope to ensure claiming works offline
+            // Lock the Evidence Log page for this session into persistent disk storage
             const rscUrl = `/audit/${s.id}`;
             try {
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+                await fetch(rscUrl, { cache: 'force-cache' });
             } catch (e) {}
         }
 
         const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
         for (const route of coreRoutes) {
-            setDownloadProgress(`Caching Application Logic: ${route}`);
+            setDownloadProgress(`Caching Module Logic: ${route}`);
             try {
                 await fetch(route, { headers: { 'RSC': '1' }, cache: 'force-cache' });
+                await fetch(route, { cache: 'force-cache' });
             } catch (e) {}
         }
 
@@ -311,7 +313,7 @@ export function AuditorOfflineManager() {
                     <Progress value={undefined} className="h-3" />
                 </div>
                 <p className="text-[11px] font-bold leading-relaxed text-center text-destructive uppercase">
-                    INTERACTION DISABLED: LOCKING APPLICATION CODE AND INSTITUTIONAL REGISTRY INTO LOCAL STORAGE.
+                    STRICT ISOLATION: ALL INTERACTIONS BLOCKED WHILE LOCKING APPLICATION CODE AND INSTITUTIONAL REGISTRY INTO LOCAL STORAGE.
                 </p>
             </CardContent>
         </Card>
