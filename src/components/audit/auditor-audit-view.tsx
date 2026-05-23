@@ -6,7 +6,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff } from 'lucide-react';
+import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff, School } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
 import { AuditResultsView } from './audit-results-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -19,9 +19,9 @@ import { useNetworkStatus } from '@/hooks/use-network-status';
 import { cn } from '@/lib/utils';
 
 /**
- * AUDITOR AUDIT VIEW
- * The primary workspace for internal auditors to claim and conduct audits.
- * Optimized for OFFLINE CLAIMING and selective module visibility.
+ * AUDITOR AUDIT VIEW v13.0
+ * The primary workspace for internal auditors.
+ * Hardened: Implements Selective Site Locking during offline conduct.
  */
 export function AuditorAuditView() {
   const { user, userProfile, isUserLoading } = useUser();
@@ -32,10 +32,13 @@ export function AuditorAuditView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [isForcedOffline, setIsForcedOffline] = useState(false);
+  const [siteLock, setSiteLock] = useState<string | null>(null);
 
   useEffect(() => {
     const checkState = () => {
         setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+        const lock = localStorage.getItem('rsu_offline_site_lock');
+        setSiteLock(lock === 'university-wide' ? null : lock);
     };
     checkState();
     window.addEventListener('storage', checkState);
@@ -75,8 +78,15 @@ export function AuditorAuditView() {
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
+  /**
+   * SITE LOCK FILTERING
+   * When offline and a site-lock is present, restrict visibility to that specific campus.
+   */
   const filterSchedules = (list: AuditSchedule[]) => {
     return list.filter(s => {
+        // Enforce Site Lock
+        if (isActuallyOffline && siteLock && s.campusId !== siteLock) return false;
+
         const matchesSearch = 
             s.targetName.toLowerCase().includes(searchTerm.toLowerCase()) || 
             (s.procedureDescription || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -88,8 +98,8 @@ export function AuditorAuditView() {
   const mySchedulesRaw = useMemo(() => allSchedules?.filter(s => s.auditorId === user?.uid) || [], [allSchedules, user?.uid]);
   const availableSchedulesRaw = useMemo(() => allSchedules?.filter(s => s.auditorId === null) || [], [allSchedules]);
 
-  const mySchedulesFiltered = useMemo(() => filterSchedules(mySchedulesRaw), [mySchedulesRaw, searchTerm, campusFilter]);
-  const availableSchedulesFiltered = useMemo(() => filterSchedules(availableSchedulesRaw), [availableSchedulesRaw, searchTerm, campusFilter]);
+  const mySchedulesFiltered = useMemo(() => filterSchedules(mySchedulesRaw), [mySchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock]);
+  const availableSchedulesFiltered = useMemo(() => filterSchedules(availableSchedulesRaw), [availableSchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock]);
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
@@ -130,12 +140,20 @@ export function AuditorAuditView() {
         {/* Sticky Header with Filters and Tabs */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+                <div className="space-y-1">
                   <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                     <LayoutList className="h-6 w-6 text-primary" />
                     IQA Conduct Workspace
                   </h2>
-                  <p className="text-muted-foreground text-sm font-medium">Manage your assignments and record on-site evidence logs.</p>
+                  <div className="flex items-center gap-2">
+                      <p className="text-muted-foreground text-sm font-medium">Manage your assignments and record on-site evidence logs.</p>
+                      {isActuallyOffline && siteLock && (
+                          <Badge variant="outline" className="h-5 text-[8px] font-black uppercase border-primary/30 text-primary bg-primary/5">
+                            <School className="h-2 w-2 mr-1" />
+                            Site Lock: {campuses?.find(c => c.id === siteLock)?.name || 'Local Cache'}
+                          </Badge>
+                      )}
+                  </div>
                 </div>
                 {isActuallyOffline && (
                     <Badge variant="destructive" className="h-9 px-4 font-black uppercase text-[9px] gap-2 animate-in zoom-in">
@@ -199,7 +217,7 @@ export function AuditorAuditView() {
                                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                                         <Building className="h-2.5 w-2.5" /> Site Location
                                     </label>
-                                    <Select value={campusFilter} onValueChange={setCampusFilter}>
+                                    <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!!siteLock && isActuallyOffline}>
                                         <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
                                             <SelectValue placeholder="All Campuses" />
                                         </SelectTrigger>
@@ -244,7 +262,7 @@ export function AuditorAuditView() {
                                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                                         <Building className="h-2.5 w-2.5" /> Campus Selection
                                     </label>
-                                    <Select value={campusFilter} onValueChange={setCampusFilter}>
+                                    <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!!siteLock && isActuallyOffline}>
                                         <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
                                             <SelectValue placeholder="All Campuses" />
                                         </SelectTrigger>

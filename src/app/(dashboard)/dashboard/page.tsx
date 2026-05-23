@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -1162,7 +1163,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
 
       <TabsContent value="history">
         <Card>
@@ -1556,9 +1557,31 @@ export default function HomePage() {
                userRole === 'Auditor' ? renderAuditorHome() : 
                isCampusSupervisor ? renderSupervisorHome() : 
                renderUnitUserHome()}
+
+              <TabsContent value="history">
+                <Card>
+                  <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                        <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
+                                <TableRow key={s.id}>
+                                <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
+                                <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
+                                <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
+                                <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
+                                </TableRow>
+                            ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
+                        </TableBody>
+                        </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
            </div>
        )}
     </div>
   );
 }
-

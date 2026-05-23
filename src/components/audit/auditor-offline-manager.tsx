@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { 
     collection, 
@@ -43,7 +44,9 @@ import {
     FileUp,
     AlertTriangle,
     RotateCw,
-    Smartphone
+    Smartphone,
+    Globe,
+    School
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -51,10 +54,13 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import type { Campus } from '@/lib/types';
 
 /**
- * AUDITOR OFFLINE MANAGER v12.0 (DEEP INSTITUTIONAL MIRROR)
- * Hardened: Uses createPortal to ensure the blocking overlay is globally on top.
+ * AUDITOR OFFLINE MANAGER v13.0 (SELECTIVE CAMPUS MIRROR)
+ * Hardened: Uses createPortal for absolute interaction blocking.
+ * New: Selective Campus/Site mirroring and lock-in protocol.
  */
 export function AuditorOfflineManager() {
   const firestore = useFirestore();
@@ -75,13 +81,20 @@ export function AuditorOfflineManager() {
   const [lastDownload, setLastDownload] = useState<Date | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<'none' | 'found' | 'expired'>('none');
   const [mounted, setMounted] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<string>('university-wide');
 
   const MIRROR_EXPIRY_MS = 2 * 60 * 60 * 1000; 
+
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
 
   useEffect(() => {
     setMounted(true);
     const checkMirrorAge = () => {
         const storedTime = localStorage.getItem('rsu_last_mirror_time');
+        const storedSite = localStorage.getItem('rsu_offline_site_lock');
+        if (storedSite) setSelectedSite(storedSite);
+
         if (storedTime) {
             const date = new Date(storedTime);
             if (!isNaN(date.getTime())) {
@@ -127,7 +140,12 @@ export function AuditorOfflineManager() {
             await getDocs(collection(firestore, 'activityLogs'));
         }
 
-        for (const s of allScheds) {
+        // SELECTIVE FILTERING BASED ON SITE CHOICE
+        const filteredScheds = selectedSite === 'university-wide' 
+            ? allScheds 
+            : allScheds.filter((s: any) => s.campusId === selectedSite);
+
+        for (const s of filteredScheds) {
             setDownloadProgress(`Syncing Session: ${s.targetName}`);
             await getDoc(doc(firestore, 'auditSchedules', s.id));
             
@@ -137,6 +155,7 @@ export function AuditorOfflineManager() {
                 if (s.targetId) {
                     await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
                 }
+                // Pre-cache individual pages
                 const rscUrl = `/audit/${s.id}`;
                 try {
                     await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
@@ -144,6 +163,7 @@ export function AuditorOfflineManager() {
             }
         }
 
+        // Cache main app logic routes
         const coreRoutes = ['/dashboard', '/audit', '/activity-log', '/profile', '/audit-log'];
         for (const route of coreRoutes) {
             setDownloadProgress(`Caching Application Logic: ${route}`);
@@ -156,10 +176,13 @@ export function AuditorOfflineManager() {
         setLastDownload(now);
         setMirrorStatus('found');
         localStorage.setItem('rsu_last_mirror_time', now.toISOString());
+        localStorage.setItem('rsu_offline_site_lock', selectedSite);
 
         toast({ 
             title: 'Deep Mirror Complete', 
-            description: 'Institutional pool and conduct code are now locked in persistent storage.' 
+            description: selectedSite === 'university-wide' 
+                ? 'Full institutional pool and conduct code are now locked in persistent storage.' 
+                : `Registry for ${campuses?.find(c => c.id === selectedSite)?.name} is locked and ready for offline use.`
         });
     } catch (e) {
         console.error("Mirroring error:", e);
@@ -203,7 +226,7 @@ export function AuditorOfflineManager() {
             const snap = await getDocsFromCache(collection(firestore, colName));
             packageData[colName] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         }
-        const blob = new Blob([JSON.stringify({ version: '2.5', exportedAt: new Date().toISOString(), data: packageData })], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify({ version: '2.5', exportedAt: new Date().toISOString(), data: packageData, siteLock: selectedSite })], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -233,6 +256,10 @@ export function AuditorOfflineManager() {
                 await Promise.all(batchPromises);
             }
             localStorage.setItem('rsu_last_mirror_time', content.exportedAt || new Date().toISOString());
+            if (content.siteLock) {
+                localStorage.setItem('rsu_offline_site_lock', content.siteLock);
+                setSelectedSite(content.siteLock);
+            }
             setMirrorStatus('found');
             setLastDownload(new Date(content.exportedAt || Date.now()));
             toast({ title: 'Workspace Imported', description: 'Local database updated from file.' });
@@ -268,13 +295,12 @@ export function AuditorOfflineManager() {
       }
   };
 
-  // PORTAL OVERLAY - Mandatory Blocking
   const globalOverlay = (isDownloading && mounted) ? createPortal(
     <div 
         className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 pointer-events-auto cursor-wait select-none"
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onKeyDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
         <Card className="w-full max-w-xl border-destructive border-4 shadow-[0_0_50px_rgba(255,0,0,0.3)] bg-white scale-110">
             <CardHeader className="text-center space-y-4 pb-2 bg-destructive/10 border-b-2 border-destructive">
@@ -337,7 +363,7 @@ export function AuditorOfflineManager() {
                 <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800">1. Synchronize Mirror</h4>
+                            <h4 className="text-xs font-black uppercase text-slate-800">1. Selective Site Mirroring</h4>
                             <p className="text-[10px] text-muted-foreground italic">Sync: {lastDownload ? format(lastDownload, 'PP p') : 'Never'}</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={handleSearchMirror} disabled={isScanning || isDownloading} className="h-8 px-3 font-black uppercase text-[9px] bg-white border-primary/20 text-primary gap-1.5">
@@ -345,6 +371,32 @@ export function AuditorOfflineManager() {
                             Scan
                         </Button>
                     </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-[9px] font-black uppercase text-slate-500">Scope Context Selection</Label>
+                        <Select value={selectedSite} onValueChange={setSelectedSite} disabled={isDownloading || isNetworkDisabled}>
+                            <SelectTrigger className="h-10 font-bold bg-slate-50 border-primary/10">
+                                <SelectValue placeholder="Select Scope" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="university-wide" className="font-bold text-primary">
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="h-3.5 w-3.5" />
+                                        University-Wide (Institutional)
+                                    </div>
+                                </SelectItem>
+                                {campuses?.map(c => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                        <div className="flex items-center gap-2">
+                                            <School className="h-3.5 w-3.5" />
+                                            {c.name}
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {isOnline && mirrorStatus === 'expired' && !isNetworkDisabled && (
                         <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-3">
                             <AlertTitle className="text-[9px] font-black uppercase flex items-center gap-2">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -98,26 +99,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const [isGuidanceVisible, setIsGuidanceVisible] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
-  const [isEmergencyLocked, setIsEmergencyLocked] = useState(false);
 
   useEffect(() => {
     const storedVisibility = localStorage.getItem('rsu_eoms_guidance_visible');
     if (storedVisibility !== null) {
       setIsGuidanceVisible(storedVisibility === 'true');
     }
-    
-    // Emergency Lock Check
-    const checkMirror = () => {
-        const hasMirror = !!localStorage.getItem('rsu_last_mirror_time');
-        if (!isOnline && !hasMirror && isAuditor) {
-            setIsEmergencyLocked(true);
-        } else {
-            setIsEmergencyLocked(false);
-        }
-    };
-    checkMirror();
     setHasHydrated(true);
-  }, [isOnline, isAuditor]);
+  }, []);
 
   const onToggleGuidance = useCallback(() => {
     setIsGuidanceVisible(prev => {
@@ -328,44 +317,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarInset>
         </SidebarProvider>
       </div>
-
-      {isEmergencyLocked && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 animate-in fade-in duration-700">
-              <Card className="w-full max-w-xl border-destructive border-4 shadow-2xl bg-white animate-in zoom-in duration-500 overflow-hidden">
-                  <CardHeader className="text-center pb-2 bg-destructive/10 border-b-2 border-destructive py-10">
-                      <div className="mx-auto h-24 w-24 rounded-full bg-destructive flex items-center justify-center text-white mb-6 animate-pulse">
-                          <ShieldAlert className="h-12 w-12" />
-                      </div>
-                      <CardTitle className="text-3xl font-black uppercase text-destructive leading-tight">Institutional Lockdown: Mirror Missing</CardTitle>
-                      <CardDescription className="text-base font-bold text-destructive/80">Disconnected Session Policy Enforcement</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-10 space-y-8">
-                      <div className="p-6 rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-start gap-4">
-                          <WifiOff className="h-8 w-8 text-slate-400 shrink-0 mt-1" />
-                          <div className="space-y-2">
-                              <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Please connect first and download the mirror data</h4>
-                              <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                                  You are currently offline and no institutional mirror was detected on this device. To protect audit integrity, field conduct modules are restricted until a data handshake is established.
-                              </p>
-                          </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-700">
-                              <Database className="h-5 w-5" />
-                              <span className="text-[11px] font-black uppercase">Institutional Data Sync</span>
-                          </div>
-                          <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700">
-                              <CloudDownload className="h-5 w-5" />
-                              <span className="text-[11px] font-black uppercase">Persistent Cache Lock</span>
-                          </div>
-                      </div>
-                  </CardContent>
-                  <CardFooter className="bg-slate-50 border-t py-6 px-10 flex justify-center">
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Quality Assurance Office & bull; Field Conduct Protocol</p>
-                  </CardFooter>
-              </Card>
-          </div>
-      )}
       
       <InstallPwaDialog />
       <WhatsNewDialog isOpen={isWhatsNewOpen} onOpenChange={setIsWhatsNewOpen} onAcknowledge={handleAcknowledgeUpdates} />
