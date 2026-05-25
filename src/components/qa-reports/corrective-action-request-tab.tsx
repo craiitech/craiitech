@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, where, arrayUnion } from 'firebase/firestore';
-import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, CARActionStep } from '@/lib/types';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
+import type { CorrectiveActionRequest, Campus, Unit, Signatories, CARActionStep, CAREffectivenessAudit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,40 +15,25 @@ import {
     ExternalLink, 
     Trash2, 
     ListChecks, 
-    History as HistoryIcon, 
+    History, 
     Info, 
     User, 
     ShieldCheck, 
     Hash, 
     ChevronRight, 
-    Eye, 
-    LayoutList, 
-    Target, 
-    Filter, 
-    BarChart3, 
-    List,
+    Edit, 
+    Gavel,
+    MessageSquare,
     Search,
     ArrowUpDown,
     ClipboardList,
     Undo2,
-    Check,
-    Activity,
     Printer,
-    Edit,
-    Gavel,
-    MessageSquare,
-    School,
-    Save,
-    AlertTriangle,
-    Link as LinkIcon,
-    ShieldAlert,
-    Clock,
-    UserMinus,
-    CheckCircle2,
-    XCircle,
-    RotateCw,
-    X,
-    Building2
+    Target,
+    Filter,
+    Building2,
+    Activity,
+    Link as LinkIcon
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -60,7 +45,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -133,7 +117,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const isInstitutionalViewer = isAdmin || isAuditor;
-  const isTopManagement = isAdmin || isSupervisor || isAuditor;
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -678,6 +661,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <SelectContent>
                                                         <SelectItem value="Effective">Verified Effective (Close NC)</SelectItem>
                                                         <SelectItem value="Not Effective">Not Effective (More Action Required)</SelectItem>
+                                                        <SelectItem value="Close the NC">Close the NC</SelectItem>
+                                                        <SelectItem value="Continue Monitoring the NC">Continue Monitoring</SelectItem>
+                                                        <SelectItem value="Provide More Actions to Address the NC">Request More Actions</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </FormItem>
@@ -698,19 +684,56 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             )}
                         </div>
                     </div>
+                </form>
+                </Form>
+            </ScrollArea>
+
+            <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
+                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground bg-white flex items-center gap-2">
+                    <History className="h-4 w-4" /> Official Log & Feedback
                 </div>
-            </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-4 px-8">
-                <div className="flex items-start gap-4">
-                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-muted-foreground italic leading-tight">
-                        <strong>Standard Note:</strong> Issued CARs represent institutional quality gaps.
-                    </p>
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-6">
+                        {isInstitutionalViewer && (
+                            <Form {...form}><form className="space-y-4">
+                                <FormField control={form.control} name="adminFeedback" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black uppercase text-primary">Internal Auditor Feedback</FormLabel>
+                                        <FormControl><Textarea {...field} placeholder="Add comments for the unit coordinator..." className="bg-white text-xs italic" rows={4} /></FormControl>
+                                    </FormItem>
+                                )} />
+                            </form></Form>
+                        )}
+                        
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Communication History</h4>
+                            {liveCar.comments?.length ? (
+                                <div className="space-y-4">
+                                    {liveCar.comments.slice().sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)).map((c, i) => (
+                                        <div key={i} className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm space-y-2">
+                                            <div className="flex justify-between items-center gap-2">
+                                                <span className="text-[9px] font-black text-primary uppercase truncate">{c.authorName}</span>
+                                                <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MM/dd/yy')}</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-700 italic leading-relaxed">"{c.text}"</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : <p className="text-[10px] text-muted-foreground italic text-center py-10 opacity-30">No history</p>}
+                        </div>
+                    </div>
+                </ScrollArea>
+                <div className="p-6 border-t bg-white">
+                    <Button type="submit" form="car-form" disabled={isSubmitting} className="w-full h-12 shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
+                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
+                        Commit All Changes
+                    </Button>
                 </div>
-            </CardFooter>
-        </Card>
-      </DialogContent>
-    </Dialog>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
