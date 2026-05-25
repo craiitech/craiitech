@@ -79,7 +79,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </div>
 
       {/* Main Evidence Log Table */}
-      <table className="w-full border-collapse border-2 border-black mb-6" style={{ fontSize: '11pt' }}>
+      <table className="w-full border-separate border-2 border-black mb-6" style={{ fontSize: '11pt', borderCollapse: 'collapse' }}>
         <thead style={{ display: 'table-header-group' }}>
           <tr className="bg-white">
             <th className="border-2 border-black p-2 text-center w-[12%] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
@@ -105,7 +105,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                     </ul>
                   </div>
                   
-                  <Separator className="bg-slate-200" />
+                  <div style={{ borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
 
                   <div className={cn("pt-4", isBlankTemplate ? "min-h-[220px]" : "min-h-[100px]")}>
                     <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
@@ -124,19 +124,19 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 <td className="border-2 border-black p-4 align-top pt-20">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className={cn("w-4 h-4 border border-black flex items-center justify-center", finding?.type === 'Compliance' && "bg-black")}>
+                        <div style={{ width: '16px', height: '16px', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
                             {finding?.type === 'Compliance' && <Check className="h-3 w-3 text-white" />}
                         </div>
                         <span className="text-[10pt] font-medium">Compliant</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className={cn("w-4 h-4 border border-black flex items-center justify-center", finding?.type === 'Observation for Improvement' && "bg-black")}>
+                        <div style={{ width: '16px', height: '16px', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
                             {finding?.type === 'Observation for Improvement' && <Check className="h-3 w-3 text-white" />}
                         </div>
                         <span className="text-[10pt] font-medium">OFI</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className={cn("w-4 h-4 border border-black flex items-center justify-center", finding?.type === 'Non-Conformance' && "bg-black")}>
+                        <div style={{ width: '16px', height: '16px', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
                             {finding?.type === 'Non-Conformance' && <Check className="h-3 w-3 text-white" />}
                         </div>
                         <span className="text-[10pt] font-medium">NC</span>

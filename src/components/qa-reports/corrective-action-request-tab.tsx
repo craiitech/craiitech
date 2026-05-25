@@ -34,7 +34,8 @@ import {
     Building2, 
     Activity, 
     Link as LinkIcon,
-    Save
+    Save,
+    Clock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -753,6 +754,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </div>
             </div>
           </div>
+          <DialogFooter className="p-4 border-t bg-slate-50 shrink-0">
+                <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Close Registry</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

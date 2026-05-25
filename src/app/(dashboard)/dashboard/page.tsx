@@ -480,11 +480,11 @@ export default function HomePage() {
   }, [dashboardSchedules]);
   
   const years = useMemo(() => {
-    if (!allCycles) return [new Date().getFullYear()];
-    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a, b) => b - a);
-    if (uniqueYears.length === 0) return [new Date().getFullYear()];
-    if (!uniqueYears.includes(new Date().getFullYear())) uniqueYears.unshift(new Date().getFullYear());
-    return uniqueYears;
+    const current = new Date().getFullYear();
+    const yrSet = new Set<number>();
+    for (let i = -2; i < 6; i++) yrSet.add(current - i);
+    allCycles?.forEach(c => yrSet.add(Number(c.year)));
+    return Array.from(yrSet).sort((a, b) => b - a);
   }, [allCycles]);
 
   useEffect(() => {
@@ -1187,6 +1187,13 @@ export default function HomePage() {
     );
   };
 
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitUserHome();
+  };
+
   const renderAuditorHome = () => (
     <div className="space-y-6">
         <div className="sticky top-0 z-40 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
@@ -1517,13 +1524,6 @@ export default function HomePage() {
       </TabsContent>
     </Tabs>
   );
-
-  const renderHomeContent = () => {
-    if (isAdmin) return renderAdminHome();
-    if (userRole === 'Auditor') return renderAuditorHome();
-    if (isCampusSupervisor) return renderSupervisorHome();
-    return renderUnitUserHome();
-  };
 
   const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
 
