@@ -45,7 +45,8 @@ import {
     Search,
     X,
     Check,
-    Monitor
+    Monitor,
+    Building2
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';

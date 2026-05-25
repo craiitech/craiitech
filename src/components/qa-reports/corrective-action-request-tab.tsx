@@ -47,7 +47,8 @@ import {
     CheckCircle2,
     XCircle,
     RotateCw,
-    X
+    X,
+    Building2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';

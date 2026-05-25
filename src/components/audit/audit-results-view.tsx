@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -41,7 +40,8 @@ import {
     Layers,
     Check,
     Lock,
-    WifiOff
+    WifiOff,
+    Building2
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
