@@ -150,21 +150,21 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
               <ScrollArea className="flex-1">
-                <div className="p-4 sm:p-8 space-y-8 sm:space-y-12 pb-24">
-                  <div className="p-4 sm:p-6 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner space-y-2">
+                <div className="p-4 sm:p-8 space-y-8 sm:space-y-10 pb-24">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner space-y-1">
                     <h3 className="font-black text-primary text-[11px] sm:text-sm uppercase tracking-wider">{currentCategory?.name}</h3>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium italic">"{currentCategory?.description}"</p>
                   </div>
 
-                  <div className="space-y-10 sm:space-y-16">
+                  <div className="space-y-10">
                     {currentCategory?.subCharacteristics.map((sub) => (
                       <FormField
                         key={sub.id}
                         control={form.control}
                         name={`scores.${sub.id}`}
                         render={({ field }) => (
-                          <FormItem className="space-y-4 sm:space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
+                          <FormItem className="space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                                 <div className="space-y-1 flex-1">
                                     <FormLabel className="text-sm sm:text-base font-black text-slate-800 tracking-tight">{sub.name}</FormLabel>
                                     <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed max-w-2xl">{sub.desc}</p>
@@ -180,7 +180,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                               <RadioGroup
                                 onValueChange={(val) => field.onChange(parseInt(val))}
                                 value={field.value ? String(field.value) : undefined}
-                                className="grid grid-cols-1 sm:grid-cols-5 gap-2 sm:gap-3"
+                                className="grid grid-cols-1 sm:grid-cols-5 gap-2"
                               >
                                 {LIKERT_OPTIONS.map((opt) => (
                                     <FormItem key={opt.value} className="flex flex-col items-center">
@@ -190,14 +190,14 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                                         <Label
                                             htmlFor={`${sub.id}-${opt.value}`}
                                             className={cn(
-                                                "w-full flex flex-row sm:flex-col items-center justify-center gap-3 p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50",
+                                                "w-full flex flex-row sm:flex-col items-center justify-center gap-2 p-2 sm:p-3 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50",
                                                 field.value === opt.value 
                                                     ? cn("border-primary shadow-lg ring-1 ring-primary/20", opt.bg) 
                                                     : "border-slate-100 bg-white opacity-60 hover:opacity-100"
                                             )}
                                         >
-                                            <span className={cn("text-lg sm:text-xl font-black tabular-nums", field.value === opt.value ? "text-primary" : "text-slate-400")}>{opt.value}</span>
-                                            <span className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", field.value === opt.value ? "text-primary" : "text-slate-500")}>{opt.label}</span>
+                                            <span className={cn("text-lg font-black tabular-nums", field.value === opt.value ? "text-primary" : "text-slate-400")}>{opt.value}</span>
+                                            <span className={cn("text-[9px] font-black uppercase tracking-widest", field.value === opt.value ? "text-primary" : "text-slate-500")}>{opt.label}</span>
                                         </Label>
                                     </FormItem>
                                 ))}
@@ -210,7 +210,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                   </div>
 
                   {isLastStep && (
-                    <div className="space-y-6 sm:space-y-8 pt-8 sm:pt-12 border-t mt-8 sm:mt-12 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="space-y-6 sm:space-y-8 pt-8 border-t mt-8 animate-in slide-in-from-bottom-4 duration-500">
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                             <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -220,7 +220,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Concluding Remarks for the System Maturity Report.</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="generalComments"

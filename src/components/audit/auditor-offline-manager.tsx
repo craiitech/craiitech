@@ -151,6 +151,7 @@ export function AuditorOfflineManager() {
 
             const rscUrl = `/audit/${s.id}`;
             try {
+                // Hardened Caching: Fetch both with and without RSC header to ensure Next.js cache is populated
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });
                 await fetch(rscUrl, { cache: 'force-cache' });
             } catch (e) {
