@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, CARActionStep, CAREffectivenessAudit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -118,14 +117,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const isInstitutionalViewer = isAdmin || isAuditor;
-  const isTopManagement = isAdmin || isSupervisor;
-
-  const years = useMemo(() => {
-    const current = new Date().getFullYear();
-    const yrs = [];
-    for (let i = 0; i < 5; i++) yrs.push(String(current - i));
-    return yrs;
-  }, []);
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -256,10 +247,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     };
   }, [rawCars, userProfile, isInstitutionalViewer, isSupervisor]);
 
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
-
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => {
@@ -297,14 +284,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             printWindow.document.close();
         }
     } catch (err) { console.error(err); }
-  };
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
   };
 
   const isFieldReadOnly = (fieldName: string) => {
@@ -375,6 +354,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         setIsDialogOpen(false);
         setEditingCar(null);
     } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
   };
 
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
@@ -452,7 +435,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
         <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                {isTopManagement && (
+                {(isAdmin || isSupervisor) && (
                     <TabsTrigger value="all" className="gap-3 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <ListChecks className="h-3.5 w-3.5" /> 
                         Full Registry
@@ -557,7 +540,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         <div className="md:col-span-3">
                                             <FormField control={form.control} name={`actionSteps.${idx}.type`} render={({ field: iF }) => (
                                                 <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly('actionSteps')}>
-                                                    <FormControl><SelectTrigger className="h-8 text-[10px] bg-white font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger className="h-8 text-[10px] bg-white font-bold"><SelectValue placeholder="Action Type" /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="Immediate Correction">Immediate</SelectItem>
                                                         <SelectItem value="Long-term Corrective Action">Long-term</SelectItem>
@@ -697,7 +680,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-6">
                         {isInstitutionalViewer && (
-                            <Form {...form}><form className="space-y-4">
+                            <Form {...form}><form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                                 <FormField control={form.control} name="adminFeedback" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-[10px] font-black uppercase text-primary">Internal Auditor Feedback</FormLabel>
