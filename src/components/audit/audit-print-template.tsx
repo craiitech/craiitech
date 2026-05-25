@@ -6,7 +6,6 @@ import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
-import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AuditPrintTemplateProps {
@@ -80,11 +79,11 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
       {/* Main Evidence Log Table */}
       <table className="w-full border-collapse border-2 border-black mb-6" style={{ fontSize: '11pt' }}>
-        <thead className="display-table-header-group" style={{ display: 'table-header-group' }}>
-          <tr className="bg-slate-100">
-            <th className="border border-black p-2 text-center w-[70px] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
-            <th className="border border-black p-2 text-left uppercase font-black" style={{ fontSize: '10pt' }}>Requirements & Observations (Objective Evidence)</th>
-            <th className="border border-black p-2 text-center w-[90px] uppercase font-black" style={{ fontSize: '10pt' }}>Findings (C, NC, OFI, N/A)</th>
+        <thead style={{ display: 'table-header-group' }}>
+          <tr className="bg-white">
+            <th className="border-2 border-black p-2 text-center w-[12%] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
+            <th className="border-2 border-black p-2 text-left uppercase font-black" style={{ fontSize: '10pt' }}>REQUIREMENTS & OBSERVATIONS (OBJECTIVE EVIDENCE)</th>
+            <th className="border-2 border-black p-2 text-center w-[18%] uppercase font-black" style={{ fontSize: '10pt' }}>FINDINGS (C, NC, OFI)</th>
           </tr>
         </thead>
         <tbody>
@@ -93,44 +92,55 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
             const questions = clauseQuestions[clause.id] || [];
             
             return (
-              <tr key={clause.id} className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <td className="border border-black p-2 text-center font-black align-top pt-4">
+              <tr key={clause.id} className="break-inside-avoid">
+                <td className="border-2 border-black p-2 text-center font-black align-top pt-4">
                   {clause.id}
                 </td>
-                <td className="border border-black p-2 align-top space-y-4">
-                  <div className="space-y-1">
-                    <p className="font-black uppercase text-primary/80" style={{ fontSize: '11pt' }}>{clause.title}</p>
-                    <ul className="list-disc pl-5 text-muted-foreground/80 leading-relaxed font-medium" style={{ fontSize: '10pt' }}>
+                <td className="border-2 border-black p-4 align-top space-y-4">
+                  <div className="space-y-2">
+                    <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
+                    <ul className="space-y-1.5 pl-6 text-slate-800 leading-relaxed font-bold" style={{ fontSize: '10pt' }}>
                         {questions.map((q, i) => <li key={i}>{q}</li>)}
                     </ul>
                   </div>
-                  <div className={cn("pt-2 border-t border-slate-100", isBlankTemplate ? "min-h-[180px]" : "min-h-[80px]")}>
-                    <p className="font-black uppercase text-slate-400 mb-1" style={{ fontSize: '9pt' }}>Auditor Observations / Objective Evidence:</p>
+                  
+                  <Separator className="bg-slate-200" />
+
+                  <div className={cn("pt-4", isBlankTemplate ? "min-h-[220px]" : "min-h-[100px]")}>
+                    <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                     <p className="whitespace-pre-wrap leading-relaxed">
                         {finding?.evidence || ""}
                     </p>
-                    {finding?.type === 'Non-Conformance' && finding.ncStatement && (
-                        <div className="mt-3 p-4 bg-red-50/50 border border-black border-dashed">
-                            <p className="font-black uppercase mb-1 text-red-700" style={{ fontSize: '9pt' }}>Statement of Non-Conformance:</p>
-                            <p className="italic leading-relaxed font-bold">"{finding.ncStatement}"</p>
-                        </div>
-                    )}
+                  </div>
+
+                  <div className="pt-8">
+                     <p className="font-black uppercase text-slate-900" style={{ fontSize: '9pt' }}>Findings Statement:</p>
+                     <p className="mt-2 italic leading-relaxed min-h-[40px]">
+                        {finding?.ncStatement || finding?.description || ""}
+                     </p>
                   </div>
                 </td>
-                <td className="border border-black p-2 text-center font-black align-top pt-4">
-                  {finding ? (
-                      <span className={cn(
-                          "text-base",
-                          finding.type === 'Non-Conformance' ? "text-red-600" : 
-                          finding.type === 'Compliance' ? "text-green-600" : 
-                          finding.type === 'Not Applicable' ? "text-slate-400" :
-                          "text-amber-600"
-                      )}>
-                          {finding.type === 'Compliance' ? 'C' : 
-                           finding.type === 'Non-Conformance' ? 'NC' : 
-                           finding.type === 'Not Applicable' ? 'N/A' : 'OFI'}
-                      </span>
-                  ) : ''}
+                <td className="border-2 border-black p-4 align-top pt-20">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className={cn("w-4 h-4 border border-black flex items-center justify-center", finding?.type === 'Compliance' && "bg-black")}>
+                            {finding?.type === 'Compliance' && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <span className="text-[10pt] font-medium">Compliant</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className={cn("w-4 h-4 border border-black flex items-center justify-center", finding?.type === 'Observation for Improvement' && "bg-black")}>
+                            {finding?.type === 'Observation for Improvement' && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <span className="text-[10pt] font-medium">OFI</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className={cn("w-4 h-4 border border-black flex items-center justify-center", finding?.type === 'Non-Conformance' && "bg-black")}>
+                            {finding?.type === 'Non-Conformance' && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <span className="text-[10pt] font-medium">NC</span>
+                    </div>
+                  </div>
                 </td>
               </tr>
             );
@@ -138,35 +148,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
         </tbody>
       </table>
 
-      {/* Consolidated Audit Summary */}
-      <div className="space-y-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-        <h3 className="font-black uppercase border-b-2 border-black pb-1 flex items-center gap-2" style={{ fontSize: '12pt' }}>
-            <CheckCircle2 className="h-5 w-5" />
-            Consolidated Audit Summary
-        </h3>
-        
-        <div className="grid grid-cols-1 border-2 border-black divide-y-2 divide-black" style={{ fontSize: '11pt' }}>
-            <div className="p-4 bg-blue-50/30">
-                <h4 className="font-black uppercase text-blue-700 mb-1" style={{ fontSize: '10pt' }}>Summary of Commendable Practices (P)</h4>
-                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryCommendable || ''}</div>
-            </div>
-            <div className="p-4">
-                <h4 className="font-black uppercase text-green-700 mb-1" style={{ fontSize: '10pt' }}>Summary of Compliance (C)</h4>
-                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryCompliance || ''}</div>
-            </div>
-            <div className="p-4">
-                <h4 className="font-black uppercase text-amber-700 mb-1" style={{ fontSize: '10pt' }}>Opportunities for Improvement (OFI)</h4>
-                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryOFI || ''}</div>
-            </div>
-            <div className="p-4 bg-slate-50">
-                <h4 className="font-black uppercase text-red-700 mb-1" style={{ fontSize: '10pt' }}>Non-Conformance / Non-Compliance (NC)</h4>
-                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryNC || ''}</div>
-            </div>
-        </div>
-      </div>
-
       {/* Official Signatories Section */}
-      <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10" style={{ pageBreakInside: 'avoid' }}>
+      <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10">
         <div>
           <div className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[30px]">
             {schedule.auditorName || '__________________________'}
@@ -182,7 +165,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </div>
 
       {/* System Generated Note */}
-      <div className="mt-6 text-center font-bold italic text-slate-500" style={{ fontSize: '10pt' }}>
+      <div className="mt-8 text-center font-bold italic text-slate-500" style={{ fontSize: '10pt' }}>
         This is a system-generated report; signature is not required.
       </div>
 

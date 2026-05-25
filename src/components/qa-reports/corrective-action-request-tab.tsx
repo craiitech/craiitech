@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -117,6 +118,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const isInstitutionalViewer = isAdmin || isAuditor;
+  const isTopManagement = isAdmin || isSupervisor;
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -646,7 +648,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             {effectivenessFields.map((field, idx) => (
                                 <div key={field.id} className="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 space-y-4 relative group">
                                     {isInstitutionalViewer && (
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEffectiveness(idx)} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEffectiveness(idx)} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></Button>
                                     )}
                                     <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
                                         <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Audit Determination Summary</FormLabel>
@@ -736,4 +738,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
