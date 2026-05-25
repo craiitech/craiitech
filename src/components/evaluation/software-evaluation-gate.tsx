@@ -3,7 +3,7 @@
 /**
  * @fileOverview A blocking overlay component that mandates a software evaluation.
  * In compliance with ISO/IEC 25010 standards, this gate ensures all users provide feedback.
- * Optimized: Improved responsiveness and fitting for all screen sizes.
+ * Optimized: Reduced padding and improved fit for all screen sizes.
  */
 
 import { useState } from 'react';
@@ -30,56 +30,56 @@ export function SoftwareEvaluationGate() {
 
       <Card className="w-full max-w-2xl max-h-[95vh] bg-white/95 border-primary/20 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)] animate-in zoom-in duration-500 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1">
-            <CardHeader className="bg-primary/5 border-b py-6 sm:py-10 px-6 sm:px-10 text-center">
-                <div className="mx-auto bg-white p-3 sm:p-4 rounded-3xl shadow-xl border border-primary/10 w-fit mb-4 sm:mb-6">
+            <CardHeader className="bg-primary/5 border-b py-6 sm:py-8 px-6 sm:px-10 text-center">
+                <div className="mx-auto bg-white p-3 rounded-3xl shadow-xl border border-primary/10 w-fit mb-4">
                     <MonitorCheck className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                 </div>
                 <div className="space-y-2">
                     <div className="flex items-center justify-center gap-2 mb-1">
                         <Badge variant="outline" className="h-5 text-[8px] font-black tracking-widest border-primary/30 text-primary uppercase bg-white">ISO/IEC 25010:2011</Badge>
                     </div>
-                    <CardTitle className="text-xl sm:text-3xl font-black uppercase tracking-tight text-slate-900 leading-tight">Institutional Software Audit</CardTitle>
-                    <CardDescription className="text-sm sm:text-base text-slate-600 font-medium">
+                    <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Institutional Software Audit</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-slate-600 font-medium">
                         Mandatory Quality Assurance Participation Protocol
                     </CardDescription>
                 </div>
             </CardHeader>
-            <CardContent className="p-6 sm:p-10 space-y-6 sm:space-y-8">
+            <CardContent className="p-6 sm:p-8 space-y-6">
                 <div className="space-y-4">
                     <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-center font-medium">
                         In alignment with the university's commitment to continuous improvement and our <strong>ISO 21001:2018 Certification</strong>, all registered stakeholders are required to conduct a formal evaluation of the EOMS Portal software.
                     </p>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2 sm:pt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                         {[
                             { icon: <Activity className="h-4 w-4 text-emerald-600" />, title: "Performance Efficiency", desc: "Speed and resource optimization." },
                             { icon: <ShieldCheck className="h-4 w-4 text-blue-600" />, title: "Functional Suitability", desc: "Meeting your operational needs." },
                             { icon: <Landmark className="h-4 w-4 text-purple-600" />, title: "System Reliability", desc: "Uptime and data integrity." },
                             { icon: <Info className="h-4 w-4 text-amber-600" />, title: "Security Maturity", desc: "Data protection standards." }
                         ].map((item, i) => (
-                            <div key={i} className="flex gap-4 p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-primary/20 transition-all">
-                                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">{item.icon}</div>
+                            <div key={i} className="flex gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-primary/20 transition-all">
+                                <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">{item.icon}</div>
                                 <div className="space-y-0.5">
                                     <h4 className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800">{item.title}</h4>
-                                    <p className="text-[8px] sm:text-[9px] text-muted-foreground font-medium">{item.desc}</p>
+                                    <p className="text-[8px] text-muted-foreground font-medium">{item.desc}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="p-4 sm:p-5 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
+                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
                     <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                        <p className="text-[10px] sm:text-xs font-black uppercase text-blue-900 tracking-tight">Oversight Lock Active</p>
-                        <p className="text-[9px] sm:text-[11px] text-blue-800/80 leading-relaxed italic font-medium">
+                        <p className="text-[10px] font-black uppercase text-blue-900 tracking-tight">Oversight Lock Active</p>
+                        <p className="text-[9px] sm:text-[10px] text-blue-800/80 leading-relaxed italic font-medium">
                             Your access to EOMS modules is temporarily restricted. Complete the evaluation instrument below to automatically restore full portal functionality.
                         </p>
                     </div>
                 </div>
             </CardContent>
           </ScrollArea>
-          <CardFooter className="bg-slate-50 border-t py-6 sm:py-8 px-6 sm:px-10 shrink-0">
+          <CardFooter className="bg-slate-50 border-t py-6 px-6 sm:px-10 shrink-0">
               <Button 
                   size="lg" 
                   className="w-full h-14 sm:h-16 text-sm sm:text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/30 group transition-all hover:scale-[1.02] active:scale-95" 

@@ -331,6 +331,11 @@ export default function AuditExecutionPage() {
     setSelectedNewClauses(prev => prev.includes(clauseId) ? prev.filter(id => id !== clauseId) : [...prev, clauseId]);
   };
 
+  /**
+   * SYNCHRONIZED SUMMARY UPDATE LOGIC
+   * Performs a strict search-and-replace using the Clause ID as a key.
+   * This prevents multiple redundant entries for the same clause in the Final Summary.
+   */
   const handleFindingSync = (finding: any) => {
     const clauseId = finding.isoClause;
     const type = finding.type;
@@ -354,19 +359,22 @@ export default function AuditExecutionPage() {
     if (!targetFieldName) return;
 
     summaryFields.forEach(fName => {
+        // Skip metadata fields
         if (['officerInCharge', 'actualDate', 'actualStartTime', 'actualEndTime'].includes(fName)) return;
         
-        const val = form.getValues(fName) || '';
-        const lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const currentVal = form.getValues(fName) || '';
+        const lines = currentVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        // Robust filtering: Remove ANY line that starts with this clause prefix
-        const filteredLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]:`));
+        // 1. FILTER: Remove any existing entry that matches this Clause ID prefix
+        const prefix = `[Clause ${clauseId}]:`;
+        const otherLines = lines.filter(l => !l.startsWith(prefix));
         
+        // 2. RECONSTRUCT: Add the new formatted entry only to the target field
         if (fName === targetFieldName) {
-            filteredLines.push(formattedEntry);
+            otherLines.push(formattedEntry);
         }
         
-        const finalContent = filteredLines.join('\n');
+        const finalContent = otherLines.join('\n');
         form.setValue(fName, finalContent);
     });
   };
