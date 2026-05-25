@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -7,6 +6,8 @@ import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { cn } from '@/lib/utils';
+import { Separator } from '../ui/separator';
+import { Check } from 'lucide-react';
 
 interface AuditPrintTemplateProps {
   schedule: AuditSchedule;

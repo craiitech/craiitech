@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { iso25010Categories } from '@/lib/iso-25010-data';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, ChevronRight, ChevronLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, ShieldCheck, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 

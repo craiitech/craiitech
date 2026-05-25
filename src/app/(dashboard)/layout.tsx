@@ -28,6 +28,7 @@ import { InstallPwaDialog } from '@/components/dashboard/install-pwa-dialog';
 import { SoftwareEvaluationGate } from '@/components/evaluation/software-evaluation-gate';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; 
 
