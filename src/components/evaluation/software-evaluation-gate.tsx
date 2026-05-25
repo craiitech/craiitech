@@ -22,7 +22,7 @@ export function SoftwareEvaluationGate() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/40 backdrop-blur-2xl animate-in fade-in duration-700 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/40 backdrop-blur-2xl animate-in fade-in duration-700 overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
           <div className="absolute top-[10%] left-[20%] w-[60%] h-[60%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
           <div className="absolute bottom-[10%] right-[20%] w-[60%] h-[60%] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />

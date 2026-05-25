@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -190,10 +189,6 @@ export default function AuditExecutionPage() {
       }
   }, [schedule, form]);
 
-  /**
-   * HIGH-SPEED OFFLINE AUTO-SAVE FOR SUMMARY
-   * This effect watches the summary fields and triggers a non-blocking save.
-   */
   useEffect(() => {
     if (!schedule || !scheduleDocRef) return;
 
@@ -209,7 +204,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 800); // Fast 800ms debounce for offline conduct
+        }, 800); 
     }
 
     return () => {
@@ -217,22 +212,9 @@ export default function AuditExecutionPage() {
     };
   }, [watchAll, schedule, scheduleDocRef]);
 
-  const handleRestrictedAction = (name: string) => {
-    toast({
-        variant: "destructive",
-        title: "Action Restricted",
-        description: `${name} is not available in the offline workspace. Please connect to the university network to proceed.`,
-    });
-  };
-
-  /**
-   * NON-BLOCKING OPTIMISTIC SAVE
-   * Handles both auto-save and manual finalization.
-   */
   const handleSaveSummary = (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
 
-    // UI feedback only for manual clicks while online
     if (!isAutoSave && !isActuallyOffline) setIsSavingSummary(true);
 
     try {
@@ -253,12 +235,10 @@ export default function AuditExecutionPage() {
             endScheduledDate: Timestamp.fromDate(end),
         };
 
-        // Only transition to 'Completed' on manual click while online
         if (!isAutoSave && !isActuallyOffline) {
             updateData.status = 'Completed';
         }
 
-        // NON-BLOCKING write to local mirror (Firestore persistence handles background sync)
         setDoc(scheduleDocRef, updateData, { merge: true })
             .then(() => {
                 if (!isAutoSave && !isActuallyOffline) {
@@ -269,7 +249,6 @@ export default function AuditExecutionPage() {
                 console.error("Async save failed:", error);
             });
 
-        // Instant UI Response
         setLastSaved(new Date());
         if (!isAutoSave) {
             setTimeout(() => setIsSavingSummary(false), 200);
@@ -306,7 +285,7 @@ export default function AuditExecutionPage() {
 
   const handlePrintLog = () => {
     if (isActuallyOffline) {
-        handleRestrictedAction("Printing official evidence logs");
+        toast({ title: "Action Restricted", description: "Printing is disabled in offline mode.", variant: "destructive" });
         return;
     }
     if (!schedule || !findings || !allIsoClauses) return;
@@ -375,16 +354,20 @@ export default function AuditExecutionPage() {
     if (!targetFieldName) return;
 
     summaryFields.forEach(fName => {
-        if (fName === 'officerInCharge' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualEndTime') return;
+        if (['officerInCharge', 'actualDate', 'actualStartTime', 'actualEndTime'].includes(fName)) return;
         
         const val = form.getValues(fName) || '';
-        let lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        lines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
+        const lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        
+        // Robust filtering: Remove ANY line that starts with this clause prefix
+        const filteredLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]:`));
+        
         if (fName === targetFieldName) {
-            lines.push(formattedEntry);
+            filteredLines.push(formattedEntry);
         }
-        const uniqueLines = Array.from(new Set(lines));
-        form.setValue(fName, uniqueLines.join('\n'));
+        
+        const finalContent = filteredLines.join('\n');
+        form.setValue(fName, finalContent);
     });
   };
 
@@ -449,31 +432,40 @@ export default function AuditExecutionPage() {
             <div className="space-y-6">
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><UserCheck className="h-6 w-6 text-primary" />1. Session Conduct Verification</CardTitle><CardDescription className="font-medium">Verify the auditee representative and the actual time of audit conduct.</CardDescription></CardHeader>
-                    <CardContent className="space-y-6 pt-8"><Form {...form}><div className="space-y-6"><FormField control={form.control} name="officerInCharge" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
-                        <FormControl><Input {...field} placeholder="Enter name of the actual representative present..." className="h-11 font-black bg-white" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><FormField control={form.control} name="actualDate" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
-                        <FormControl><Input type="date" {...field} className="h-11 bg-white font-bold" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} /><FormField control={form.control} name="actualStartTime" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
-                        <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} /><FormField control={form.control} name="actualEndTime" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
-                        <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} /></div></div></Form></CardContent>
+                    <CardContent className="space-y-6 pt-8"><Form {...form}>
+                      <div className="space-y-6">
+                        <FormField control={form.control} name="officerInCharge" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
+                            <FormControl><Input {...field} placeholder="Enter name of the actual representative present..." className="h-11 font-black bg-white" /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <FormField control={form.control} name="actualDate" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
+                              <FormControl><Input type="date" {...field} className="h-11 bg-white font-bold" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name="actualStartTime" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
+                              <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name="actualEndTime" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
+                              <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        </div>
+                      </div>
+                    </Form></CardContent>
                 </Card>
 
                 <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} />

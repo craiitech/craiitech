@@ -126,7 +126,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-4 sm:p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">

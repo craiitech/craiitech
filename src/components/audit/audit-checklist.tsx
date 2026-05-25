@@ -93,36 +93,10 @@ function ClauseForm({
     }
   }, [watchType, clause.id, form]);
 
-  /**
-   * HIGH-SPEED OFFLINE AUTO-SAVE
-   * Triggers non-blocking background write for maximum UI responsiveness.
-   */
-  useEffect(() => {
-    if (!watchAll.type || !firestore || !user) return;
-
-    const hasChanged = 
-        watchAll.evidence !== (finding?.evidence || '') ||
-        watchAll.description !== (finding?.description || '') ||
-        watchAll.ncStatement !== (finding?.ncStatement || '') ||
-        watchAll.type !== (finding?.type || '');
-
-    if (hasChanged) {
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        
-        saveTimeoutRef.current = setTimeout(() => {
-            performSave(watchAll);
-        }, 800); // Accelerated debounce for lag-free conduct
-    }
-
-    return () => {
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [watchAll, finding, firestore, user]);
-
-  const performSave = (values: ClauseFormData) => {
+  const performSave = async (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) return;
     
-    // Optimistically unlock UI immediately
+    setIsSubmitting(true);
     const findingId = `${scheduleId}-${clause.id}`;
     const findingRef = doc(firestore, 'auditFindings', findingId);
 
@@ -131,30 +105,28 @@ function ClauseForm({
         auditScheduleId: scheduleId,
         isoClause: clause.id,
         type: values.type,
-        description: values.description || (values.type === 'Non-Conformance' ? values.ncStatement : ''),
+        description: values.type === 'Non-Conformance' ? values.ncStatement : values.description,
+        ncStatement: values.type === 'Non-Conformance' ? values.ncStatement : '',
         evidence: values.evidence,
         authorId: user.uid,
         createdAt: finding?.createdAt || serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
 
-    if (values.type === 'Non-Conformance') {
-        findingData.ncStatement = values.ncStatement;
+    try {
+        await setDoc(findingRef, findingData, { merge: true });
+        onSave(findingData); 
+        setLastSaved(new Date());
+    } catch(err) {
+        console.error("Finding save failed:", err);
+    } finally {
+        setIsSubmitting(false);
     }
-
-    // FIRE AND FORGET - Background sync to local database
-    setDoc(findingRef, findingData, { merge: true })
-        .then(() => {
-            onSave(findingData); 
-        });
-
-    // Instant state update for the user
-    setLastSaved(new Date());
   };
 
   const onSubmit = (values: ClauseFormData) => {
       performSave(values);
-      toast({ title: isOnline ? "Progress Synced" : "Stored Locally", description: `Record for Clause ${clause.id} updated.`});
+      toast({ title: isOnline ? "Record Verified" : "Stored Locally", description: `Audit results for Clause ${clause.id} have been registered.`});
   };
 
   return (
@@ -278,12 +250,12 @@ function ClauseForm({
             <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                     {isSubmitting ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Syncing...</div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Committing...</div>
                     ) : lastSaved ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored on Device ({format(lastSaved, 'HH:mm:ss')})</div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored & Synced ({format(lastSaved, 'HH:mm:ss')})</div>
                     ) : null}
                 </div>
-                <Button type="submit" disabled={isSubmitting || !watchType} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+                <Button type="submit" disabled={isSubmitting || !watchType} className="h-10 px-8 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20">
                     {lastSaved ? 'Re-Commit Finding' : `Commit Clause ${clause.id}`}
                 </Button>
             </div>
