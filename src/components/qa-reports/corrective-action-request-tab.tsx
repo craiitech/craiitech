@@ -33,7 +33,8 @@ import {
     Filter, 
     Building2, 
     Activity, 
-    Link as LinkIcon 
+    Link as LinkIcon,
+    Save
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -746,7 +747,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </ScrollArea>
                 <div className="p-6 border-t bg-white">
                     <Button type="submit" form="car-form" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full h-12 shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
-                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                         Commit All Changes
                     </Button>
                 </div>

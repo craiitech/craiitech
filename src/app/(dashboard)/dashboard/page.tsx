@@ -42,7 +42,8 @@ import {
   Pencil,
   Globe,
   Eye,
-  Search
+  Search,
+  Activity
 } from 'lucide-react';
 import {
   useUser,

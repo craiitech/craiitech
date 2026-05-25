@@ -37,10 +37,6 @@ const Card = React.forwardRef<
           <div className="absolute top-[20%] right-[10%] w-40 h-40 bg-primary/5 rounded-full blur-[60px] animate-float-blob" style={{ animationDelay: '2s' }} />
         </div>
       )}
-      {/* 
-         Children are rendered directly so that flex-based parents (like PageGuidance) 
-         can correctly pass flex properties to their children (CardHeader, CardContent, etc.)
-      */}
       {props.children}
     </div>
   )
