@@ -22,18 +22,18 @@ import {
     Hash, 
     ChevronRight, 
     Edit, 
-    Gavel,
-    MessageSquare,
-    Search,
-    ArrowUpDown,
-    ClipboardList,
-    Undo2,
-    Printer,
-    Target,
-    Filter,
-    Building2,
-    Activity,
-    Link as LinkIcon
+    Gavel, 
+    MessageSquare, 
+    Search, 
+    ArrowUpDown, 
+    ClipboardList, 
+    Undo2, 
+    Printer, 
+    Target, 
+    Filter, 
+    Building2, 
+    Activity, 
+    Link as LinkIcon 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -137,6 +137,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+
+  const years = useMemo(() => {
+    const start = 2024;
+    const current = new Date().getFullYear();
+    const res = [];
+    for (let i = start; i <= current + 1; i++) res.push(i.toString());
+    return res.reverse();
+  }, []);
 
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
@@ -367,11 +375,27 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <Table>
                 <TableHeader className="bg-muted/30">
                     <TableRow>
-                    <TableHead className="py-4 pl-6 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>CAR & Dates {getSortIcon('carNumber')}</Button></TableHead>
-                    <TableHead className="py-4 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>Responsibility {getSortIcon('unit')}</Button></TableHead>
+                    <TableHead className="py-4 pl-6 text-[10px] font-black uppercase">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
+                            CAR & Dates {getSortIcon('carNumber')}
+                        </Button>
+                    </TableHead>
+                    <TableHead className="py-4 text-[10px] font-black uppercase">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>
+                            Responsibility {getSortIcon('unit')}
+                        </Button>
+                    </TableHead>
                     <TableHead className="py-4 text-[10px] font-black uppercase">Procedure / Context</TableHead>
-                    <TableHead className="text-center py-4 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>Reply Deadline {getSortIcon('deadline')}</Button></TableHead>
-                    <TableHead className="text-center py-4 text-[10px] font-black uppercase"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>Status {getSortIcon('status')}</Button></TableHead>
+                    <TableHead className="text-center py-4 text-[10px] font-black uppercase">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>
+                            Reply Deadline {getSortIcon('deadline')}
+                        </Button>
+                    </TableHead>
+                    <TableHead className="text-center py-4 text-[10px] font-black uppercase">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
+                            Status {getSortIcon('status')}
+                        </Button>
+                    </TableHead>
                     <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -654,7 +678,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.verifiedBy`} render={({ field: iF }) => (
-                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified by</FormLabel><FormControl><Input {...iF} className="h-9 text-10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
+                                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Verified by</FormLabel><FormControl><Input {...iF} className="h-9 text-[10px] bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.verifiedBy`)} /></FormControl></FormItem>
                                         )} />
                                         <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (
                                             <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Date</FormLabel><FormControl><Input type="date" {...iF} className="h-9 text-[10px] bg-white font-black" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>
@@ -709,7 +733,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     </div>
                 </ScrollArea>
                 <div className="p-6 border-t bg-white">
-                    <Button type="submit" form="car-form" disabled={isSubmitting} className="w-full h-12 shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
+                    <Button type="submit" form="car-form" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full h-12 shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
                         Commit All Changes
                     </Button>
