@@ -199,7 +199,7 @@ export function UnitsWithoutSubmissions({
                                         onClick={() => onUnitClick(unit.id, campus.campusId)}
                                     >
                                         <div className="flex items-center gap-2">
-                                            <FileX className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />
+                                            <Building className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />
                                             <span className="text-[11px] font-bold text-slate-700 truncate text-left">{unit.name}</span>
                                         </div>
                                         <Badge variant="destructive" className="text-[8px] font-black h-4">0%</Badge>
@@ -218,7 +218,7 @@ export function UnitsWithoutSubmissions({
           <div className="flex items-start gap-2">
               <Info className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground italic leading-tight">
-                  Units that have not yet received an <strong>Approved</strong> status for any mandatory documents in {selectedYear}.
+                  Units that have not yet received an <strong>Approved</strong> status.
               </p>
           </div>
       </CardFooter>
@@ -227,7 +227,10 @@ export function UnitsWithoutSubmissions({
     <AlertDialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Confirm Verification Reminders</AlertDialogTitle>
+                <div className="flex items-center gap-2 text-primary mb-2">
+                    <Info className="h-6 w-6" />
+                    <AlertDialogTitle>Confirm Verification Reminders</AlertDialogTitle>
+                </div>
                 <AlertDialogDescription>
                     This will post a compliance reminder to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) with zero-approved submissions for {selectedYear}.
                 </AlertDialogDescription>

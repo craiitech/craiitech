@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { HelpCircle, Lightbulb, Map } from 'lucide-react';
+import { HelpCircle, Lightbulb, Map, Info } from 'lucide-react';
 import { helpContent, type PageHelp } from '@/lib/contextual-help-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -114,9 +114,12 @@ export function ContextualHelp() {
                   <Map className="h-3 w-3" />
                   <span className="text-[8px] font-black uppercase tracking-tighter">EOMS CONTEXTUAL LAYER</span>
               </div>
-              <AlertDialogAction className="bg-primary font-black uppercase text-[10px] tracking-widest px-10 h-10 shadow-lg shadow-primary/20">
-                Proceed to Task
-              </AlertDialogAction>
+              <div className="flex items-center gap-2">
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <AlertDialogAction className="bg-primary font-black uppercase text-[10px] tracking-widest px-10 h-10 shadow-lg shadow-primary/20">
+                    Proceed to Task
+                  </AlertDialogAction>
+              </div>
           </div>
         </AlertDialogFooter>
       </AlertDialogContent>

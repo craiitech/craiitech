@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -14,7 +13,7 @@ import type {
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, CheckCircle, Circle, AlertCircle, Eye, Info } from 'lucide-react';
+import { X, CheckCircle, Circle, AlertCircle, Eye, Info, Building2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
@@ -227,6 +226,16 @@ export function UnitSubmissionDetailCard({
             </div>
         </ScrollArea>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-2 px-6">
+          <div className="flex items-start gap-3">
+              <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                  <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+                      <strong>Institutional Intelligence:</strong> Detailed compliance drill-down.
+                  </p>
+              </div>
+          </div>
+      </CardFooter>
     </Card>
   );
 }

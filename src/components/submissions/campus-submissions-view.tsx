@@ -364,7 +364,7 @@ export function CampusSubmissionsView({
                                 body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
                                 .no-print { display: none !important; } 
                             } 
-                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
                         </style>
                     </head>
                     <body>
@@ -413,7 +413,7 @@ export function CampusSubmissionsView({
                                 body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
                                 .no-print { display: none !important; } 
                             } 
-                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
                         </style>
                     </head>
                     <body>
@@ -456,7 +456,10 @@ export function CampusSubmissionsView({
         )}>
           <Card className="flex flex-col h-full shadow-sm border-primary/10 overflow-hidden">
             <CardHeader className="bg-muted/30 border-b pb-4 shrink-0 space-y-4">
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Institutional Scope</CardTitle>
+              <div className="flex items-center justify-between">
+                  <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Institutional Scope</CardTitle>
+                  <Info className="h-4 w-4 text-primary opacity-40" />
+              </div>
               
               {/* ADMIN SIDEBAR FILTERS */}
               <div className="space-y-3">
@@ -469,7 +472,7 @@ export function CampusSubmissionsView({
                         className="h-8 pl-8 text-[10px] bg-white border-primary/10"
                       />
                   </div>
-                  <Select value={sidebarCampusFilter} onValueChange={setSidebarCampusFilter}>
+                  <Select value={sidebarCampusFilter} onValueChange={sidebarCampusFilter}>
                       <SelectTrigger className="h-8 text-[10px] font-black uppercase bg-white border-primary/10">
                           <div className="flex items-center gap-1.5"><Filter className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Sites" /></div>
                       </SelectTrigger>
@@ -480,7 +483,7 @@ export function CampusSubmissionsView({
                   </Select>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-0">
+            <CardContent className="p-0 flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <Accordion type="multiple" className="w-full" defaultValue={campusGroups.map(c => c.id)}>
                   {campusGroups.map(campus => (
@@ -560,7 +563,7 @@ export function CampusSubmissionsView({
                     <div className="space-y-1">
                         <h3 className="font-black text-xl uppercase tracking-tight text-slate-900">{unitMap.get(selectedUnitId)}</h3>
                         <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                            <span className="flex items-center gap-1.5"><CalendarIcon className="h-3 w-3" /> AY {selectedYear}</span>
+                            <span className="flex items-center gap-1.5"><CalendarIcon className="h-3.5 w-3.5" /> AY {selectedYear}</span>
                         </div>
                     </div>
                     <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")} onClick={() => handlePrintUnitNotice(unitData.score >= 100 ? 'Compliance' : 'Non-Compliance')}>
@@ -612,6 +615,12 @@ export function CampusSubmissionsView({
                                 <p className="text-3xl font-black text-rose-600">{unitData.missingFirst.length + unitData.missingFinal.length} Items</p>
                                 <p className="text-[11px] text-muted-foreground mt-2 font-medium">Requirements missing or rejected.</p>
                             </Card>
+                        </div>
+                        <div className="p-4 bg-muted/10 border rounded-xl flex items-start gap-3">
+                            <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-muted-foreground italic leading-tight">
+                                <strong>Analytical Perspecive:</strong> Data roll-up for {selectedYear}.
+                            </p>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, BookOpen, Hash, FileText, Calendar, ShieldCheck, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Loader2, BookOpen, Hash, FileText, Calendar, ShieldCheck, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -181,7 +180,7 @@ export default function EomsPolicyManualPage() {
               )}
             </CardContent>
             {selectedManual && (
-                <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
+                <CardFooter className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <Hash className="h-3 w-3 text-primary"/>
                         <span>Revision: {selectedManual.revisionNumber}</span>
@@ -193,6 +192,10 @@ export default function EomsPolicyManualPage() {
                     <div className="flex items-center gap-2">
                         <Calendar className="h-3 w-3 text-primary"/>
                         <span className="truncate">Executed: {selectedManual.executionDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Info className="h-3 w-3 text-primary"/>
+                        <span>Institutional Policy</span>
                     </div>
                 </CardFooter>
             )}

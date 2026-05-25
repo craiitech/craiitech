@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy, CalendarDays } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy, CalendarDays, Info } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -662,217 +661,228 @@ export function AuditPlanList({
   }
 
   return (
-    <Accordion type="multiple" className="w-full space-y-6">
-      {sortedPlans.map(plan => {
-        const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
-        const completedCount = planSchedules.filter(s => s.status === 'Completed').length;
-        const progress = planSchedules.length > 0 ? (completedCount / planSchedules.length) * 100 : 0;
+    <div className="space-y-6">
+        <Card className="bg-muted/10 border-none shadow-none">
+            <CardContent className="p-4 flex items-start gap-4">
+                <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <p className="text-[10px] text-muted-foreground italic leading-tight">
+                    <strong>Admin Note:</strong> The Itinerary Registry allows for framework duplication and batch report generation.
+                </p>
+            </CardContent>
+        </Card>
 
-        const teamAuditors = Array.from(new Set(
-            planSchedules
-                .map(s => s.auditorName)
-                .filter((name): name is string => !!name && name !== plan.leadAuditorName)
-        )).sort();
+        <Accordion type="multiple" className="w-full space-y-6">
+          {sortedPlans.map(plan => {
+            const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
+            const completedCount = planSchedules.filter(s => s.status === 'Completed').length;
+            const progress = planSchedules.length > 0 ? (completedCount / planSchedules.length) * 100 : 0;
 
-        return (
-          <AccordionItem value={plan.id} key={plan.id} className="border-none rounded-2xl shadow-xl overflow-hidden bg-background">
-            <AccordionTrigger className="hover:no-underline px-8 py-6 data-[state=open]:bg-slate-50 border-b transition-colors">
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full pr-6 text-left gap-6">
-                    <div className="space-y-2 min-w-0">
-                        <div className="flex items-center gap-3">
-                            <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
-                                NO: {plan.auditNumber || '--'}
-                            </Badge>
-                            <p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p>
+            const teamAuditors = Array.from(new Set(
+                planSchedules
+                    .map(s => s.auditorName)
+                    .filter((name): name is string => !!name && name !== plan.leadAuditorName)
+            )).sort();
+
+            return (
+              <AccordionItem value={plan.id} key={plan.id} className="border-none rounded-2xl shadow-xl overflow-hidden bg-background">
+                <AccordionTrigger className="hover:no-underline px-8 py-6 data-[state=open]:bg-slate-50 border-b transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between w-full pr-6 text-left gap-6">
+                        <div className="space-y-2 min-w-0">
+                            <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
+                                    NO: {plan.auditNumber || '--'}
+                                </Badge>
+                                <p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p>
+                            </div>
+                            <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5">
+                                    {plan.campusId === 'university-wide' ? <Globe className="h-3.5 w-3.5 text-primary" /> : <Building2 className="h-3.5 w-3.5 text-primary" />} 
+                                    {campusMap.get(plan.campusId) || '...'}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1">
+                                    <Settings2 className="h-3.5 w-3.5 text-primary mr-1" />
+                                    {Array.isArray(plan.auditeeType) ? (
+                                        plan.auditeeType.map((type, idx) => (
+                                            <Badge key={`${plan.id}-${type}-${idx}`} variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{type}</Badge>
+                                        ))
+                                    ) : (
+                                        <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{plan.auditeeType}</Badge>
+                                    )}
+                                </div>
+                                <span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                            <span className="flex items-center gap-1.5">
-                                {plan.campusId === 'university-wide' ? <Globe className="h-3.5 w-3.5 text-primary" /> : <Building2 className="h-3.5 w-3.5 text-primary" />} 
-                                {campusMap.get(plan.campusId) || '...'}
-                            </span>
-                            <div className="flex flex-wrap items-center gap-1">
-                                <Settings2 className="h-3.5 w-3.5 text-primary mr-1" />
-                                {Array.isArray(plan.auditeeType) ? (
-                                    plan.auditeeType.map((type, idx) => (
-                                        <Badge key={`${plan.id}-${type}-${idx}`} variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{type}</Badge>
-                                    ))
-                                ) : (
-                                    <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{plan.auditeeType}</Badge>
+                        <div className="flex items-center gap-8 shrink-0">
+                            <div className="text-right hidden lg:block border-l pl-8 border-slate-200">
+                                <div className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.1em] mb-1.5">Execution Milestone</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-sm font-black tabular-nums text-slate-800">{completedCount} <span className="text-[10px] text-muted-foreground font-medium">/ {planSchedules.length}</span></div>
+                                    <div className="w-20 h-2 bg-muted rounded-full overflow-hidden shadow-inner">
+                                        <div className="h-full bg-primary transition-all duration-1000 shadow-lg" style={{ width: `${progress}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent className="p-0 bg-white">
+                  <div className="p-8 space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200 border rounded-xl overflow-hidden shadow-sm">
+                        <div className="bg-white p-5 space-y-4">
+                            <div className="space-y-3">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Team</p>
+                                <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10 shadow-sm">
+                                    <UserCheck className="h-5 w-5 text-primary" />
+                                    <div>
+                                        <p className="text-[10px] font-black text-primary leading-none uppercase tracking-tighter">Lead Auditor</p>
+                                        <p className="text-sm font-bold text-slate-900 mt-1">{plan.leadAuditorName || 'TBA'}</p>
+                                    </div>
+                                </div>
+
+                                {teamAuditors.length > 0 && (
+                                    <div className="pl-11 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="h-3 w-3 text-muted-foreground" />
+                                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Assigned Team Auditors</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {teamAuditors.map((auditor, aIdx) => (
+                                                <Badge key={aIdx} variant="outline" className="h-5 text-[9px] font-bold border-slate-200 text-slate-600 bg-slate-50 uppercase shadow-sm">
+                                                    {auditor}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                            <span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-8 shrink-0">
-                        <div className="text-right hidden lg:block border-l pl-8 border-slate-200">
-                            <div className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.1em] mb-1.5">Execution Milestone</div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-sm font-black tabular-nums text-slate-800">{completedCount} <span className="text-[10px] text-muted-foreground font-medium">/ {planSchedules.length}</span></div>
-                                <div className="w-20 h-2 bg-muted rounded-full overflow-hidden shadow-inner">
-                                    <div className="h-full bg-primary transition-all duration-1000 shadow-lg" style={{ width: `${progress}%` }} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-0 bg-white">
-              <div className="p-8 space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200 border rounded-xl overflow-hidden shadow-sm">
-                    <div className="bg-white p-5 space-y-4">
-                        <div className="space-y-3">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Team</p>
-                            <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10 shadow-sm">
-                                <UserCheck className="h-5 w-5 text-primary" />
-                                <div>
-                                    <p className="text-[10px] font-black text-primary leading-none uppercase tracking-tighter">Lead Auditor</p>
-                                    <p className="text-sm font-bold text-slate-900 mt-1">{plan.leadAuditorName || 'TBA'}</p>
-                                </div>
-                            </div>
-
-                            {teamAuditors.length > 0 && (
-                                <div className="pl-11 space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <Users className="h-3 w-3 text-muted-foreground" />
-                                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Assigned Team Auditors</p>
+                            <div className="space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Meeting Milestones</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-muted/10 rounded-lg border border-slate-100">
+                                        <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Opening Meeting</p>
+                                        <p className="text-[10px] font-bold text-slate-700">{safeFormatDateTime(plan.openingMeetingDate)}</p>
                                     </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {teamAuditors.map((auditor, aIdx) => (
-                                            <Badge key={aIdx} variant="outline" className="h-5 text-[9px] font-bold border-slate-200 text-slate-600 bg-slate-50 uppercase shadow-sm">
-                                                {auditor}
-                                            </Badge>
-                                        ))}
+                                    <div className="p-3 bg-muted/10 rounded-lg border border-slate-100">
+                                        <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Closing Meeting</p>
+                                        <p className="text-[10px] font-bold text-slate-700">{safeFormatDateTime(plan.closingMeetingDate)}</p>
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Meeting Milestones</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-muted/10 rounded-lg border border-slate-100">
-                                    <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Opening Meeting</p>
-                                    <p className="text-[10px] font-bold text-slate-700">{safeFormatDateTime(plan.openingMeetingDate)}</p>
+                        <div className="bg-white p-5 space-y-4">
+                            <div className="space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Reference Document</p>
+                                <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10">
+                                    <ShieldCheck className="h-5 w-5 text-primary" />
+                                    <p className="text-xs font-black text-primary">{plan.referenceDocument || 'ISO 21001:2018'}</p>
                                 </div>
-                                <div className="p-3 bg-muted/10 rounded-lg border border-slate-100">
-                                    <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Closing Meeting</p>
-                                    <p className="text-[10px] font-bold text-slate-700">{safeFormatDateTime(plan.closingMeetingDate)}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Scope & Criteria</p>
+                                <div className="p-3 bg-slate-50 rounded-lg border min-h-[84px]">
+                                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed italic">{plan.scope}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-5 space-y-4">
-                        <div className="space-y-1">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Reference Document</p>
-                            <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10">
-                                <ShieldCheck className="h-5 w-5 text-primary" />
-                                <p className="text-xs font-black text-primary">{plan.referenceDocument || 'ISO 21001:2018'}</p>
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Scope & Criteria</p>
-                            <div className="p-3 bg-slate-50 rounded-lg border min-h-[84px]">
-                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed italic">{plan.scope}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <ListChecks className="h-5 w-5 text-primary" />
-                        <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Audit Itinerary Entries</h4>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <ListChecks className="h-5 w-5 text-primary" />
+                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Audit Itinerary Entries</h4>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); handlePrintConsolidatedReport(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 gap-2"
+                            >
+                                <FileText className="h-3.5 w-3.5"/> Consolidate Report
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); handlePrintAllEvidenceLogs(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 gap-2"
+                            >
+                                <Printer className="h-3.5 w-3.5"/> Print All Evidence Logs
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); handlePrintUnitSchedule(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-white border-primary/10 text-primary shadow-sm gap-2"
+                            >
+                                <Calendar className="h-3.5 w-3.5"/> Unit Schedule
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); handlePrintAuditorSchedule(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-100 text-indigo-800 shadow-sm gap-2"
+                            >
+                                <CalendarDays className="h-3.5 w-3.5"/> Auditor Schedule
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); handlePrintPlan(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-primary border-primary/20 hover:bg-primary/5"
+                            >
+                                <Printer className="h-3.5 w-3.5"/> Print Audit Plan
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); onClonePlan(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 gap-2"
+                            >
+                                <Copy className="h-3.5 w-3.5"/> Clone Plan
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); onEditPlan(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2"
+                            >
+                                <Edit className="h-3.5 w-3.5"/> Edit Plan
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); onDeletePlan(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-destructive border-destructive/20 hover:bg-destructive/5"
+                            >
+                                <Trash2 className="h-3.5 w-3.5"/> Delete
+                            </Button>
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); onScheduleAudit(plan); }} 
+                                className="h-9 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 gap-2"
+                            >
+                                <CalendarPlus className="h-3.5 w-3.5"/> Add Entry
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); handlePrintConsolidatedReport(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 gap-2"
-                        >
-                            <FileText className="h-3.5 w-3.5"/> Consolidate Report
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); handlePrintAllEvidenceLogs(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 gap-2"
-                        >
-                            <Printer className="h-3.5 w-3.5"/> Print All Evidence Logs
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); handlePrintUnitSchedule(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white border-primary/10 text-primary shadow-sm gap-2"
-                        >
-                            <Calendar className="h-3.5 w-3.5"/> Unit Schedule
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); handlePrintAuditorSchedule(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-100 text-indigo-800 shadow-sm gap-2"
-                        >
-                            <CalendarDays className="h-3.5 w-3.5"/> Auditor Schedule
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); handlePrintPlan(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-primary border-primary/20 hover:bg-primary/5"
-                        >
-                            <Printer className="h-3.5 w-3.5"/> Print Audit Plan
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); onClonePlan(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 gap-2"
-                        >
-                            <Copy className="h-3.5 w-3.5"/> Clone Plan
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); onEditPlan(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2"
-                        >
-                            <Edit className="h-3.5 w-3.5"/> Edit Plan
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); onDeletePlan(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-destructive border-destructive/20 hover:bg-destructive/5"
-                        >
-                            <Trash2 className="h-3.5 w-3.5"/> Delete
-                        </Button>
-                        <Button 
-                            variant="default" 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); onScheduleAudit(plan); }} 
-                            className="h-9 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 gap-2"
-                        >
-                            <CalendarPlus className="h-3.5 w-3.5"/> Add Entry
-                        </Button>
-                    </div>
-                </div>
-                
-                <PlanItineraryRegistry 
-                    plan={plan}
-                    schedules={planSchedules}
-                    allSchedules={schedules}
-                    isoClauses={isoClauses}
-                    signatories={signatories || undefined}
-                    onEdit={onEditSchedule}
-                    onDelete={onDeleteSchedule}
-                    campusMap={campusMap}
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        )
-      })}
-    </Accordion>
+                    
+                    <PlanItineraryRegistry 
+                        plan={plan}
+                        schedules={planSchedules}
+                        allSchedules={schedules}
+                        isoClauses={isoClauses}
+                        signatories={signatories || undefined}
+                        onEdit={onEditSchedule}
+                        onDelete={onDeleteSchedule}
+                        campusMap={campusMap}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )
+          })}
+        </Accordion>
+    </div>
   );
 }

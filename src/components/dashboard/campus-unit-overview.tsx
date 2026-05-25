@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { Unit, Submission, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building } from 'lucide-react';
+import { Building, Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '../ui/badge';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
@@ -125,6 +124,14 @@ export function CampusUnitOverview({
           ))}
         </List>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3">
+          <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-[9px] text-muted-foreground italic leading-tight">
+                  Unit documentation performance roll-up.
+              </p>
+          </div>
+      </CardFooter>
     </Card>
   );
 }

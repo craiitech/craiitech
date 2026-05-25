@@ -698,59 +698,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             )}
                         </div>
                     </div>
-                </form></Form>
-            </ScrollArea>
-            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 shrink-0 border-l overflow-hidden">
-                <div className="p-4 bg-white border-b shrink-0 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-700">Auditor / Admin Registry Feedback</h4></div>
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-4">
-                        {isInstitutionalViewer && (
-                            <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-3">
-                                <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Internal Feedback Panel</Label>
-                                <Textarea 
-                                    placeholder="Add specific instructions for the unit coordinator..." 
-                                    className="bg-white text-xs italic"
-                                    value={form.watch('adminFeedback')}
-                                    onChange={(e) => form.setValue('adminFeedback', e.target.value)}
-                                />
-                                <p className="text-[8px] text-muted-foreground">Feedback provided here will be stored in the permanent audit trail.</p>
-                            </div>
-                        )}
-
-                        {liveCar?.comments?.map((c, i) => (
-                            <div key={i} className="p-4 rounded-xl border bg-white shadow-sm space-y-2">
-                                <div className="flex justify-between border-b pb-1 mb-1 text-[8px] font-black uppercase text-primary">
-                                    <span>{c.authorName}</span>
-                                    <span>{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
-                                </div>
-                                <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
-                                <p className="text-[7px] text-right text-muted-foreground uppercase font-black">{c.authorRole}</p>
-                            </div>
-                        ))}
-                        {!liveCar?.comments?.length && (
-                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-2">
-                                <HistoryIcon className="h-10 w-10"/>
-                                <p className="text-[10px] font-black uppercase">No history</p>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-                <div className="p-6 border-t bg-slate-50/50">
-                    <div className="flex items-start gap-3">
-                        <Info className="h-4 w-4 text-blue-600 mt-0.5"/>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">Changes to CAR dates or status immediately trigger system notifications to all relevant unit heads and supervisors.</p>
-                    </div>
                 </div>
-            </div>
-          </div>
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11">
-                {(isSubmitting) ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4 mr-2"/>}{editingCar ? 'Update Registry' : 'Issue Record'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-4 px-8">
+                <div className="flex items-start gap-4">
+                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-muted-foreground italic leading-tight">
+                        <strong>Standard Note:</strong> Issued CARs represent institutional quality gaps.
+                    </p>
+                </div>
+            </CardFooter>
+        </Card>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 }

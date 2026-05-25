@@ -7,7 +7,7 @@ import type { ProcedureManual, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, BookOpen, Building, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Hash, Calendar, Layers } from 'lucide-react';
+import { Loader2, Search, BookOpen, Building, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Hash, Calendar, Layers, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -228,7 +228,7 @@ export default function ProcedureManualsPage() {
             )}
             </CardContent>
             {selectedManual && (
-                <CardFooter className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
+                <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <Hash className="h-3 w-3 text-primary"/>
                         <span>Revision: {selectedManual.revisionNumber}</span>
@@ -236,6 +236,10 @@ export default function ProcedureManualsPage() {
                     <div className="flex items-center gap-2">
                         <Calendar className="h-3 w-3 text-primary"/>
                         <span className="truncate">Implemented: {selectedManual.dateImplemented}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Info className="h-3 w-3 text-primary"/>
+                        <span>Official Quality Doc</span>
                     </div>
                 </CardFooter>
             )}

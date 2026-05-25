@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import type { Submission, Cycle, Unit } from '@/lib/types';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { TrendingUp, Target, Activity } from 'lucide-react';
+import { TrendingUp, Target, Activity, Info } from 'lucide-react';
 
 interface ComplianceOverTimeProps {
   allSubmissions: Submission[] | null;
@@ -79,9 +78,9 @@ export function ComplianceOverTime({ allSubmissions, allCycles, allUnits }: Comp
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
-            <Target className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
             <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-                <strong>Strategic Guidance:</strong> This trend analyzes the "adoption rate" of the digital portal. An upward trajectory signifies increasing institutional maturity and successful digital transformation of the quality assurance process. Significant dips between years should trigger a review of administrative documentation friction or technical access barriers.
+                <strong>Strategic Guidance:</strong> This trend analyzes the "adoption rate" of the digital portal. An upward trajectory signifies increasing institutional maturity.
             </p>
         </div>
       </CardFooter>
