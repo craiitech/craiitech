@@ -152,7 +152,7 @@ export default function QaAdvisoriesPage() {
           <div className="flex-1 bg-muted relative">
             {previewAdvisory && (
               <iframe 
-                src={getEmbedUrl(advisory.googleDriveLink)} 
+                src={getEmbedUrl(previewAdvisory.googleDriveLink)} 
                 className="absolute inset-0 w-full h-full border-none bg-white" 
                 allow="autoplay" 
                 title="QA Advisory Preview"

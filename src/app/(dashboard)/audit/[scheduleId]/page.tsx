@@ -189,29 +189,6 @@ export default function AuditExecutionPage() {
       }
   }, [schedule, form]);
 
-  useEffect(() => {
-    if (!schedule || !scheduleDocRef) return;
-
-    const hasChanged = 
-        watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
-        watchAll.summaryCommendable !== (schedule.summaryCommendable || '') ||
-        watchAll.summaryCompliance !== (schedule.summaryCompliance || '') ||
-        watchAll.summaryOFI !== (schedule.summaryOFI || '') ||
-        watchAll.summaryNC !== (schedule.summaryNC || '');
-
-    if (hasChanged) {
-        if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
-        
-        summarySaveTimeoutRef.current = setTimeout(() => {
-            handleSaveSummary(watchAll, true);
-        }, 800); 
-    }
-
-    return () => {
-        if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
-    };
-  }, [watchAll, schedule, scheduleDocRef]);
-
   const handleSaveSummary = (values: z.infer<typeof summarySchema>, isAutoSave: boolean = false) => {
     if (!scheduleDocRef) return;
 
@@ -258,6 +235,29 @@ export default function AuditExecutionPage() {
         setIsSavingSummary(false);
     }
   };
+
+  useEffect(() => {
+    if (!schedule || !scheduleDocRef) return;
+
+    const hasChanged = 
+        watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
+        watchAll.summaryCommendable !== (schedule.summaryCommendable || '') ||
+        watchAll.summaryCompliance !== (schedule.summaryCompliance || '') ||
+        watchAll.summaryOFI !== (schedule.summaryOFI || '') ||
+        watchAll.summaryNC !== (schedule.summaryNC || '');
+
+    if (hasChanged) {
+        if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
+        
+        summarySaveTimeoutRef.current = setTimeout(() => {
+            handleSaveSummary(watchAll, true);
+        }, 800); 
+    }
+
+    return () => {
+        if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
+    };
+  }, [watchAll, schedule, scheduleDocRef]);
 
   const handleAddClausesToScope = async () => {
     if (!scheduleDocRef || selectedNewClauses.length === 0) return;

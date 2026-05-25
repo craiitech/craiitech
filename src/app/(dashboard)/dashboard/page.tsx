@@ -236,7 +236,7 @@ function DashboardSkeleton() {
                         <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                             <p className="text-xs font-black uppercase text-indigo-900">Pro-Tip for Coordinators</p>
-                            <p className="text-[11px] text-indigo-800/80 leading-relaxed italic font-medium">
+                            <p className="text-[11px] text-indigo-800/80 leading-relaxed font-medium italic">
                                 "Use the <strong>Contextual Operational Guide</strong> in the right sidebar of every module for step-by-step instructions on registration and auditing."
                             </p>
                         </div>

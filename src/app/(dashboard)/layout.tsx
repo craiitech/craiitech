@@ -15,7 +15,7 @@ import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'rea
 import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload } from 'lucide-react';
+import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
@@ -332,7 +332,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onToggleGuidance={handleToggleGuidance}
             />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
-                <div className="flex-1 min-w-0 overflow-y-auto h-full pr-2">
+                <div className="flex-1 min-0 overflow-y-auto h-full pr-2">
                     {children}
                 </div>
                 

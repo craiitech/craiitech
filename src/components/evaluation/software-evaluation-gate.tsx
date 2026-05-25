@@ -28,7 +28,7 @@ export function SoftwareEvaluationGate() {
           <div className="absolute bottom-[10%] right-[20%] w-[60%] h-[60%] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
-      <Card className="w-full max-w-2xl max-h-[95vh] bg-white/95 border-primary/20 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)] animate-in zoom-in duration-500 flex flex-col overflow-hidden">
+      <Card className="w-full max-w-xl max-h-[95vh] bg-white/95 border-primary/20 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)] animate-in zoom-in duration-500 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1">
             <CardHeader className="bg-primary/5 border-b py-4 sm:py-6 px-6 sm:px-10 text-center">
                 <div className="mx-auto bg-white p-2 rounded-2xl shadow-xl border border-primary/10 w-fit mb-4">
