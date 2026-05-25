@@ -1547,7 +1547,7 @@ export default function HomePage() {
                         <Megaphone className="h-5 w-5 text-primary" />
                         <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
                         <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-                            <span className="text-sm font-medium text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
+                            <span className="text-sm font-bold text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
                             <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
                                 <Link href="/advisories">Open Advisory Vault</Link>
                             </Button>
