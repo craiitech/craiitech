@@ -149,7 +149,6 @@ export function AuditorOfflineManager() {
                 await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
             }
 
-            // TOTAL ITINERARY CACHING: Prefetch the RSC payload for the audit conduct page
             const rscUrl = `/audit/${s.id}`;
             try {
                 await fetch(rscUrl, { headers: { 'RSC': '1' }, cache: 'force-cache' });

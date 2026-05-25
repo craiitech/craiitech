@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
@@ -64,7 +64,6 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
   const currentCategory = iso25010Categories[currentStep];
   const isLastStep = currentStep === iso25010Categories.length - 1;
 
-  // Validation helper for step transition
   const validateCurrentStep = () => {
     const scores = form.getValues('scores');
     const missing = currentCategory.subCharacteristics.filter(sub => !scores[sub.id]);
@@ -92,8 +91,10 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
     
     setIsSubmitting(true);
 
-    const totalPoints = Object.values(values.scores).reduce((a, b) => a + b, 0);
-    const overallScore = totalPoints / Object.keys(values.scores).length;
+    const scoreEntries = Object.values(values.scores);
+    const overallScore = scoreEntries.length > 0 
+        ? scoreEntries.reduce((a, b) => a + b, 0) / scoreEntries.length
+        : 0;
 
     const displayName = userProfile 
         ? `${userProfile.firstName} ${userProfile.lastName}` 
@@ -125,20 +126,20 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+      <DialogContent className="max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogHeader className="p-4 sm:p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                    <ShieldCheck className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Quality Audit</span>
+                <div className="flex items-center gap-2 text-primary mb-0.5">
+                    <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">Institutional Quality Audit</span>
                 </div>
-                <DialogTitle className="text-xl font-bold">ISO/IEC 25010 Software Quality Assessment</DialogTitle>
-                <DialogDescription className="text-xs">
+                <DialogTitle className="text-base sm:text-xl font-bold">ISO/IEC 25010 Software Quality Assessment</DialogTitle>
+                <DialogDescription className="text-[10px] sm:text-xs">
                     Step {currentStep + 1} of {iso25010Categories.length}: {currentCategory?.name}
                 </DialogDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="hidden sm:flex gap-2">
                  <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary">AY 2025</Badge>
                  <Badge variant="secondary" className="h-6 font-black uppercase text-[9px]">{currentCategory?.name}</Badge>
             </div>
@@ -149,27 +150,27 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
               <ScrollArea className="flex-1">
-                <div className="p-8 space-y-12 pb-24">
-                  <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner space-y-2">
-                    <h3 className="font-black text-primary text-sm uppercase tracking-wider">{currentCategory?.name}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium italic">"{currentCategory?.description}"</p>
+                <div className="p-4 sm:p-8 space-y-8 sm:space-y-12 pb-24">
+                  <div className="p-4 sm:p-6 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner space-y-2">
+                    <h3 className="font-black text-primary text-[11px] sm:text-sm uppercase tracking-wider">{currentCategory?.name}</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium italic">"{currentCategory?.description}"</p>
                   </div>
 
-                  <div className="space-y-16">
+                  <div className="space-y-10 sm:space-y-16">
                     {currentCategory?.subCharacteristics.map((sub) => (
                       <FormField
                         key={sub.id}
                         control={form.control}
                         name={`scores.${sub.id}`}
                         render={({ field }) => (
-                          <FormItem className="space-y-6">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="space-y-1.5 flex-1">
-                                    <FormLabel className="text-base font-black text-slate-800 tracking-tight">{sub.name}</FormLabel>
-                                    <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">{sub.desc}</p>
+                          <FormItem className="space-y-4 sm:space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
+                                <div className="space-y-1 flex-1">
+                                    <FormLabel className="text-sm sm:text-base font-black text-slate-800 tracking-tight">{sub.name}</FormLabel>
+                                    <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed max-w-2xl">{sub.desc}</p>
                                 </div>
                                 {field.value && (
-                                    <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] animate-in zoom-in duration-300", LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color)}>
+                                    <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-fit animate-in zoom-in duration-300", LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color)}>
                                         {LIKERT_OPTIONS.find(o => o.value === field.value)?.label}
                                     </Badge>
                                 )}
@@ -179,7 +180,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                               <RadioGroup
                                 onValueChange={(val) => field.onChange(parseInt(val))}
                                 value={field.value ? String(field.value) : undefined}
-                                className="grid grid-cols-1 sm:grid-cols-5 gap-3"
+                                className="grid grid-cols-1 sm:grid-cols-5 gap-2 sm:gap-3"
                               >
                                 {LIKERT_OPTIONS.map((opt) => (
                                     <FormItem key={opt.value} className="flex flex-col items-center">
@@ -189,14 +190,14 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                                         <Label
                                             htmlFor={`${sub.id}-${opt.value}`}
                                             className={cn(
-                                                "w-full flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50",
+                                                "w-full flex flex-row sm:flex-col items-center justify-center gap-3 p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50",
                                                 field.value === opt.value 
                                                     ? cn("border-primary shadow-lg ring-1 ring-primary/20", opt.bg) 
                                                     : "border-slate-100 bg-white opacity-60 hover:opacity-100"
                                             )}
                                         >
-                                            <span className={cn("text-xl font-black tabular-nums", field.value === opt.value ? "text-primary" : "text-slate-400")}>{opt.value}</span>
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", field.value === opt.value ? "text-primary" : "text-slate-500")}>{opt.label}</span>
+                                            <span className={cn("text-lg sm:text-xl font-black tabular-nums", field.value === opt.value ? "text-primary" : "text-slate-400")}>{opt.value}</span>
+                                            <span className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", field.value === opt.value ? "text-primary" : "text-slate-500")}>{opt.label}</span>
                                         </Label>
                                     </FormItem>
                                 ))}
@@ -209,25 +210,25 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                   </div>
 
                   {isLastStep && (
-                    <div className="space-y-8 pt-12 border-t mt-12 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="space-y-6 sm:space-y-8 pt-8 sm:pt-12 border-t mt-8 sm:mt-12 animate-in slide-in-from-bottom-4 duration-500">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-                            <CheckCircle2 className="h-6 w-6" />
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                            <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
                         </div>
                         <div>
-                            <h3 className="font-black text-lg text-slate-900 uppercase tracking-tight">Final Auditor Comments</h3>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Concluding Remarks for the System Maturity Report.</p>
+                            <h3 className="font-black text-base sm:text-lg text-slate-900 uppercase tracking-tight">Final Auditor Comments</h3>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Concluding Remarks for the System Maturity Report.</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <FormField
                             control={form.control}
                             name="generalComments"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase text-slate-500">General Experience Remarks</FormLabel>
+                                <FormLabel className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">General Experience Remarks</FormLabel>
                                 <FormControl>
-                                <Textarea {...field} placeholder="Summarize your overall interaction with the portal..." rows={5} className="bg-slate-50 border-slate-200 shadow-inner" />
+                                <Textarea {...field} placeholder="Summarize your overall interaction with the portal..." rows={5} className="bg-slate-50 border-slate-200 shadow-inner text-xs" />
                                 </FormControl>
                             </FormItem>
                             )}
@@ -237,9 +238,9 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                             name="recommendations"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase text-slate-500">Technical Suggestions</FormLabel>
+                                <FormLabel className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">Technical Suggestions</FormLabel>
                                 <FormControl>
-                                <Textarea {...field} placeholder="What improvements or new modules would you like to see?" rows={5} className="bg-slate-50 border-slate-200 shadow-inner" />
+                                <Textarea {...field} placeholder="What improvements or new modules would you like to see?" rows={5} className="bg-slate-50 border-slate-200 shadow-inner text-xs" />
                                 </FormControl>
                             </FormItem>
                             )}
@@ -250,7 +251,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 shadow-inner">
+              <DialogFooter className="p-4 sm:p-6 border-t bg-slate-50 shrink-0 shadow-inner">
                 <div className="flex w-full items-center justify-between">
                   <div className="flex gap-2">
                     <Button
@@ -259,33 +260,33 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
                       size="sm"
                       onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
                       disabled={currentStep === 0}
-                      className="font-black text-[10px] uppercase tracking-widest h-10 px-6 bg-white"
+                      className="font-black text-[9px] sm:text-[10px] uppercase tracking-widest h-9 sm:h-10 px-4 sm:px-6 bg-white"
                     >
-                      <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                      <ChevronLeft className="mr-1 sm:mr-2 h-4 w-4" /> Previous
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => onOpenChange(false)}
-                      className="font-bold text-[10px] uppercase tracking-widest h-10 px-6 text-muted-foreground hover:text-rose-600"
+                      className="font-bold text-[9px] sm:text-[10px] uppercase tracking-widest h-9 sm:h-10 px-4 sm:px-6 text-muted-foreground hover:text-rose-600"
                     >
-                      Abort Audit
+                      Abort
                     </Button>
                   </div>
 
                   {isLastStep ? (
-                    <Button type="submit" disabled={isSubmitting} className="font-black text-xs uppercase tracking-widest px-10 h-11 shadow-xl shadow-primary/30">
+                    <Button type="submit" disabled={isSubmitting} className="font-black text-[10px] sm:text-xs uppercase tracking-widest px-6 sm:px-10 h-9 sm:h-11 shadow-xl shadow-primary/30">
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-                      Finalize Audit Report
+                      Finalize Report
                     </Button>
                   ) : (
                     <Button
                       type="button"
                       onClick={handleNext}
-                      className="font-black text-xs uppercase tracking-widest px-10 h-11 shadow-lg shadow-primary/20"
+                      className="font-black text-[10px] sm:text-xs uppercase tracking-widest px-6 sm:px-10 h-9 sm:h-11 shadow-lg shadow-primary/20"
                     >
-                      Next: Category {currentStep + 2} <ChevronRight className="ml-2 h-4 w-4" />
+                      Next <ChevronRight className="ml-1 sm:ml-2 h-4 w-4" />
                     </Button>
                   )}
                 </div>
