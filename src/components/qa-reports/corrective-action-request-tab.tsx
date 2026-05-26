@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -571,7 +572,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     {actionFields.map((field, idx) => (
                                         <Card key={field.id} className="p-4 rounded-xl border bg-muted/5 shadow-sm space-y-4 group relative">
                                             {!isFieldReadOnly('actionSteps') && (
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="absolute top-1 right-1 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="absolute top-1 right-1 h-6 i-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></Button>
                                             )}
                                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                                                 <div className="md:col-span-3">
@@ -768,4 +769,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-

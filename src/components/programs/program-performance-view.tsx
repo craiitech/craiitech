@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -75,7 +76,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp, collection, query, where } from 'firebase/firestore';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
@@ -86,7 +87,7 @@ interface ProgramPerformanceViewProps {
   onResolveDeficiency?: (tab: string) => void;
 }
 
-const COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<string, string> = {
     'Aligned': 'hsl(142 71% 45%)',
     'Needs Correction': 'hsl(var(--destructive))',
     'Others': 'hsl(var(--chart-3))',
@@ -168,9 +169,9 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
     const facultyPieData = [
-        { name: 'Aligned', value: alignedFaculty, fill: COLORS.Aligned },
-        { name: 'Others', value: othersFaculty, fill: COLORS.Others },
-        { name: 'Unqualified', value: Math.max(0, totalFaculty - alignedFaculty - othersFaculty), fill: COLORS['Needs Correction'] }
+        { name: 'Aligned', value: alignedFaculty, fill: STATUS_COLORS.Aligned },
+        { name: 'Others', value: othersFaculty, fill: STATUS_COLORS.Others },
+        { name: 'Unqualified', value: Math.max(0, totalFaculty - alignedFaculty - othersFaculty), fill: STATUS_COLORS['Needs Correction'] }
     ].filter(d => d.value > 0);
 
     const latestBoard = record.boardPerformance && record.boardPerformance.length > 0 

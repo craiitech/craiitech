@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -34,7 +35,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
   return (
     <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
-      {/* Institutional Branding Header - Logo Removed */}
+      {/* Institutional Branding Header */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
             <h1 className="text-xl font-bold uppercase tracking-tight leading-none" style={{ fontSize: '14pt' }}>Romblon State University</h1>
