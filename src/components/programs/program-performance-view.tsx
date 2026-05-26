@@ -25,7 +25,7 @@ import {
     History,
     Calendar,
     Target,
-    Activity,
+    Activity, // Added
     PieChart as PieIcon,
     BookOpen,
     ShieldAlert,
@@ -40,8 +40,8 @@ import {
     ClipboardCheck,
     X,
     FileX,
-    Zap,
-    ListChecks
+    Zap, // Added
+    ListChecks // Added
 } from 'lucide-react';
 import { 
     PieChart, 

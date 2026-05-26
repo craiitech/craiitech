@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, serverTimestamp, deleteDoc, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, CARActionStep, CAREffectivenessAudit, Comment } from '@/lib/types';
