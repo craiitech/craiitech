@@ -390,7 +390,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             Reply Deadline {getSortIcon('deadline')}
                         </Button>
                     </TableHead>
-                    <TableHead className="text-center py-4 text-[10px) font-black uppercase">
+                    <TableHead className="text-center py-4 text-[10px] font-black uppercase">
                         <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
                             Status {getSortIcon('status')}
                         </Button>
@@ -671,12 +671,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeEffectiveness(idx)} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></Button>
                                             )}
                                             <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
-                                                <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Audit Determination Summary</FormLabel>
-                                                    <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormItem>
+                                                <FormItem>
+                                                    <FormLabel className="text-[9px] font-black uppercase text-emerald-700">Audit Determination Summary</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} />
+                                                    </FormControl>
+                                                </FormItem>
                                             )} />
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (
-                                                    <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel>
+                                                    <FormItem>
+                                                        <FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel>
                                                         <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}>
                                                             <FormControl><SelectTrigger className="h-9 text-[9px] bg-white font-bold"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent>
@@ -712,19 +717,20 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
             <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
                 <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground bg-white flex items-center gap-2">
-                    <HistoryIcon className="h-4 w-4" /> Official Log & Feedback
+                    <History className="h-4 w-4" /> Official Log & Feedback
                 </div>
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-6">
                         {isInstitutionalViewer && (
-                            <Form {...form}><form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                                <FormField control={form.control} name="adminFeedback" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-black uppercase text-primary">Internal Auditor Feedback</FormLabel>
-                                        <FormControl><Textarea {...field} placeholder="Add comments for the unit coordinator..." className="bg-white text-xs italic" rows={4} /></FormControl>
-                                    </FormItem>
-                                )} />
-                            </form></Form>
+                            <div className="space-y-4">
+                                <Label className="text-[10px] font-black uppercase text-primary">Internal Auditor Feedback</Label>
+                                <Textarea 
+                                    placeholder="Add comments for the unit coordinator..." 
+                                    className="bg-white text-xs italic" 
+                                    rows={4} 
+                                    onChange={(e) => form.setValue('adminFeedback', e.target.value)}
+                                />
+                            </div>
                         )}
                         
                         <div className="space-y-4">
@@ -734,7 +740,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     {liveCar.comments.slice().sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)).map((c, i) => (
                                         <div key={i} className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm space-y-2">
                                             <div className="flex justify-between items-center gap-2">
-                                                <span className="text-[9px] font-black text-primary uppercase truncate">{c.authorName}</span>
+                                                <span className="text-[9px] font-black uppercase text-primary truncate">{c.authorName}</span>
                                                 <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MM/dd/yy')}</span>
                                             </div>
                                             <p className="text-[11px] text-slate-700 italic leading-relaxed">"{c.text}"</p>
@@ -746,7 +752,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                     </div>
                 </ScrollArea>
                 <div className="p-6 border-t bg-white">
-                    <Button type="submit" form="car-form" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full h-12 shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
+                    <Button type="submit" form="car-form" disabled={isSubmitting} className="w-full h-12 shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                         Commit All Changes
                     </Button>
