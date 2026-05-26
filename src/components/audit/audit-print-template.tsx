@@ -36,7 +36,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
     <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
       {/* Institutional Branding Header - Logo Removed */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
-        <div className="flex flex-col items-center gap-1 mb-2">
+        <div className="flex flex-col items-center justify-center gap-1 mb-2">
             <h1 className="text-xl font-bold uppercase tracking-tight leading-none" style={{ fontSize: '14pt' }}>Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight leading-none mt-1" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
             <p className="text-xs italic">Odiongan, Romblon</p>

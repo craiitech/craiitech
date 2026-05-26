@@ -10,7 +10,7 @@ import type {
     AccreditationRecommendation
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
     FileText, 
@@ -25,7 +25,7 @@ import {
     History,
     Calendar,
     Target,
-    Activity, // Added
+    Activity,
     PieChart as PieIcon,
     BookOpen,
     ShieldAlert,
@@ -40,8 +40,8 @@ import {
     ClipboardCheck,
     X,
     FileX,
-    Zap, // Added
-    ListChecks // Added
+    Zap,
+    ListChecks
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -64,11 +64,12 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 interface ProgramPerformanceViewProps {
