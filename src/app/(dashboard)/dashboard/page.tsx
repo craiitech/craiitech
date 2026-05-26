@@ -43,7 +43,8 @@ import {
   Globe,
   Eye,
   Search,
-  Activity
+  Activity,
+  Zap
 } from 'lucide-react';
 import {
   useUser,
@@ -1159,7 +1160,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </Tabs>
+      </TabsContent>
 
       <TabsContent value="history">
         <Card>

@@ -705,6 +705,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     ))}
                                     {isInstitutionalViewer && (
                                         <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), action: 'Effective', remarks: '' })} className="w-full border-dashed h-9 border-emerald-200 text-emerald-700 font-black text-[9px] uppercase hover:bg-emerald-50">
+                                            <PlusCircle className="h-3 w-3 mr-2" />
                                             Add Effectiveness Audit Result
                                         </Button>
                                     )}
@@ -767,3 +768,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+
