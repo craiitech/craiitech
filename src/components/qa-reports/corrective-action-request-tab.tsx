@@ -608,7 +608,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                         <FormControl><Input {...iF} value={iF.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white border-blue-100" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
                                                         {iF.value && (
                                                             <Button type="button" variant="outline" size="sm" className="h-8 bg-blue-50 text-blue-700 font-bold text-[9px]" asChild>
-                                                                <a href={iF.value} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3 mr-1" /> View</a>
+                                                                <a href={iF.value} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View</a>
                                                             </Button>
                                                         )}
                                                     </div>

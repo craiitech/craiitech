@@ -40,7 +40,8 @@ import {
     ClipboardCheck,
     X,
     FileX,
-    Zap
+    Zap,
+    ListChecks
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -67,7 +68,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 interface ProgramPerformanceViewProps {
