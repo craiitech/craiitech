@@ -35,7 +35,8 @@ import {
     Activity, 
     Link as LinkIcon,
     Save,
-    Clock
+    Clock,
+    Zap
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -362,7 +363,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           await addDoc(collection(firestore, 'correctiveActionRequests'), { ...carData, createdAt: serverTimestamp() });
           toast({ title: 'Success', description: 'New CAR registered.' });
         }
-        setIsDialogOpen(true);
+        setIsDialogOpen(false);
         setEditingCar(null);
     } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
   };
@@ -673,9 +674,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
                                                 <FormItem>
                                                     <FormLabel className="text-[9px] font-black uppercase text-emerald-700">Audit Determination Summary</FormLabel>
-                                                    <FormControl>
-                                                        <Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} />
-                                                    </FormControl>
+                                                    <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl>
                                                 </FormItem>
                                             )} />
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
