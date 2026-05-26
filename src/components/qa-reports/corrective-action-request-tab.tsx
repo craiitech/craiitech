@@ -740,7 +740,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 <div className="space-y-4">
                                     {liveCar.comments.slice().sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)).map((c, i) => (
                                         <div key={i} className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm space-y-2">
-                                            <div className="flex justify-between items-center gap-2">
+                                            <div className="flex justify-between items-center gap-2 border-b pb-1 mb-1">
                                                 <span className="text-[9px] font-black uppercase text-primary truncate">{c.authorName}</span>
                                                 <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MM/dd/yy')}</span>
                                             </div>
@@ -768,4 +768,3 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
-
