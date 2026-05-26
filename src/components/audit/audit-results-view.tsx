@@ -41,9 +41,12 @@ import {
     Check,
     Lock,
     WifiOff,
-    Building2
+    Building2,
+    Edit,
+    Trash2,
+    Save
 } from 'lucide-react';
-import { Timestamp, collection, doc, query, where } from 'firebase/firestore';
+import { Timestamp, collection, doc, query, where, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -56,6 +59,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNetworkStatus } from '@/hooks/use-network-status';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AuditResultsViewProps {
   selectedYear: number;
@@ -79,7 +85,7 @@ export function AuditResultsView({
     isLoading 
 }: AuditResultsViewProps) {
   const firestore = useFirestore();
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { user, userProfile, isAdmin } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const isOnline = useNetworkStatus();
@@ -89,6 +95,11 @@ export function AuditResultsView({
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('nc-manager');
+  
+  // EDIT FINDING STATES
+  const [editingFinding, setEditingFinding] = useState<AuditFinding | null>(null);
+  const [editFindingText, setEditFindingText] = useState('');
+  const [isSavingFinding, setIsSavingFinding] = useState(false);
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
@@ -259,6 +270,50 @@ export function AuditResultsView({
     } catch (e) { console.error(e); }
   };
 
+  /**
+   * ADMIN EDIT FINDING LOGIC
+   */
+  const handleOpenEditFinding = (finding: AuditFinding) => {
+      setEditingFinding(finding);
+      setEditFindingText(finding.ncStatement || finding.description);
+  };
+
+  const handleSaveFindingUpdate = async () => {
+    if (!firestore || !editingFinding) return;
+    setIsSavingFinding(true);
+    try {
+        const findingRef = doc(firestore, 'auditFindings', editingFinding.id);
+        const updateData: any = {
+            updatedAt: serverTimestamp(),
+        };
+
+        if (editingFinding.type === 'Non-Conformance') {
+            updateData.ncStatement = editFindingText;
+            updateData.description = editFindingText;
+        } else {
+            updateData.description = editFindingText;
+        }
+
+        await updateDoc(findingRef, updateData);
+        toast({ title: 'Finding Updated', description: 'Institutional audit log has been revised.' });
+        setEditingFinding(null);
+    } catch (e) {
+        toast({ title: 'Update Failed', variant: 'destructive' });
+    } finally {
+        setIsSavingFinding(false);
+    }
+  };
+
+  const handleDeleteFinding = async (findingId: string) => {
+      if (!firestore || !window.confirm('Are you absolutely sure you want to DELETE this finding? This action is restricted to the original author.')) return;
+      try {
+          await deleteDoc(doc(firestore, 'auditFindings', findingId));
+          toast({ title: 'Finding Removed', description: 'Entry has been purged from the registry.' });
+      } catch (e) {
+          toast({ title: 'Delete Failed', description: 'You may not have authorization to delete this record.', variant: 'destructive' });
+      }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -334,8 +389,8 @@ export function AuditResultsView({
                           <TableHeader className="bg-muted/30">
                               <TableRow>
                                   <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit & Auditor</TableHead>
-                                  <TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead>
-                                  <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase">Finding & Clause</TableHead>
+                                  <TableHead className="text-center text-[10px] font-black uppercase">CAR Status</TableHead>
                                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
                               </TableRow>
                           </TableHeader>
@@ -360,7 +415,30 @@ export function AuditResultsView({
                                           ) : <Badge variant="outline" className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase">PENDING</Badge>}
                                       </TableCell>
                                       <TableCell className="text-right pr-8">
-                                          <div className="flex items-center justify-end gap-2">
+                                          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                            {/* ADMIN EDIT / OWNER DELETE BRIDGE */}
+                                            {isAdmin && (
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="h-8 text-[9px] font-black uppercase tracking-widest bg-white gap-1.5 border-primary/20 text-primary shadow-sm"
+                                                    onClick={() => handleOpenEditFinding(item.finding)}
+                                                >
+                                                    <Edit className="h-3 w-3" /> EDIT STMT
+                                                </Button>
+                                            )}
+                                            {item.finding.authorId === user?.uid && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                                    onClick={() => handleDeleteFinding(item.finding.id)}
+                                                    title="Purge Finding"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            
                                             {item.isIssued ? (
                                                 <>
                                                     <Button variant="outline" size="sm" className="h-8 text-[9px] font-black bg-white gap-1.5" onClick={() => handlePrintCar(item.linkedCar)}>{(!isOnline || isNetworkLocked) ? <Lock className="h-3 w-3"/> : <Printer className="h-3 w-3" />} PRINT</Button>
@@ -380,6 +458,51 @@ export function AuditResultsView({
               </Card>
           </TabsContent>
       </Tabs>
+
+      {/* --- EDIT FINDING DIALOG (ADMIN OVERRIDE) --- */}
+      <Dialog open={!!editingFinding} onOpenChange={(open) => !open && setEditingFinding(null)}>
+        <DialogContent className="sm:max-w-xl border-primary/20 shadow-2xl overflow-hidden p-0">
+            <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+                <div className="flex items-center gap-2 text-primary mb-1">
+                    <Edit className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Oversight Override</span>
+                </div>
+                <DialogTitle>Refine Finding Statement</DialogTitle>
+                <DialogDescription className="text-xs">Adjust the descriptive finding for Clause {editingFinding?.isoClause} to improve professional quality.</DialogDescription>
+            </DialogHeader>
+            <div className="p-8 space-y-6">
+                <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Finding Content (Audit Log)</Label>
+                    <Textarea 
+                        value={editFindingText}
+                        onChange={(e) => setEditFindingText(e.target.value)}
+                        rows={8}
+                        className="text-xs font-medium leading-relaxed italic bg-slate-50 border-primary/10 shadow-inner"
+                        placeholder="Refine the audit statement..."
+                    />
+                </div>
+                <Alert className="bg-primary/5 border-primary/20">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    <AlertTitle className="text-[10px] font-black uppercase text-primary">Registry Integrity Note</AlertTitle>
+                    <AlertDescription className="text-[10px] leading-tight font-medium text-slate-600">
+                        Editing the statement will update the permanent audit log and any consolidated reports. The original author remains credited in the system metadata.
+                    </AlertDescription>
+                </Alert>
+            </div>
+            <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+                <Button variant="ghost" className="font-bold text-[10px] uppercase tracking-widest" onClick={() => setEditingFinding(null)}>Discard</Button>
+                <Button 
+                    onClick={handleSaveFindingUpdate} 
+                    disabled={isSavingFinding || !editFindingText.trim()}
+                    className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11"
+                >
+                    {isSavingFinding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Commit Changes
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
