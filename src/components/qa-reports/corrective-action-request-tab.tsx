@@ -362,7 +362,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           await addDoc(collection(firestore, 'correctiveActionRequests'), { ...carData, createdAt: serverTimestamp() });
           toast({ title: 'Success', description: 'New CAR registered.' });
         }
-        setIsDialogOpen(false);
+        setIsDialogOpen(true);
         setEditingCar(null);
     } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
   };

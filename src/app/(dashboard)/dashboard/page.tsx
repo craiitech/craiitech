@@ -982,7 +982,7 @@ export default function HomePage() {
                                     {assignedRecommendations.map((r, i) => (
                                         <div key={i} className="p-2.5 rounded-lg bg-white border border-amber-100 shadow-sm">
                                             <p className="text-[8px] font-black text-amber-600 uppercase mb-1">{r.programName} ({r.level})</p>
-                                            <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{r.recommendation.text}"</p>
+                                            <p className="text-[10px] font-bold text-slate-800 leading-relaxed italic line-clamp-2">"{r.recommendation.text}"</p>
                                         </div>
                                     ))}
                                 </div>
