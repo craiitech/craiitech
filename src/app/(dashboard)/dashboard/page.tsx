@@ -506,7 +506,7 @@ export default function HomePage() {
   const { data: globalSetting, isLoading: isLoadingGlobalSettings } = useDoc(globalAnnouncementDocRef);
 
   const announcement = campusSetting?.announcement;
-  const globalAnnouncement = globalSetting?.announcement;
+  const globalAnnouncement = globalAnnouncementDocRef ? globalSetting?.announcement : null;
   
   useEffect(() => {
     if (announcement || globalAnnouncement) {

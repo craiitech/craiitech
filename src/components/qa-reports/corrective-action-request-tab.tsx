@@ -390,7 +390,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                             Reply Deadline {getSortIcon('deadline')}
                         </Button>
                     </TableHead>
-                    <TableHead className="text-center py-4 text-[10px] font-black uppercase">
+                    <TableHead className="text-center py-4 text-[10px) font-black uppercase">
                         <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
                             Status {getSortIcon('status')}
                         </Button>
@@ -672,8 +672,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             )}
                                             <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
                                                 <FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-700">Audit Determination Summary</FormLabel>
-                                                    <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl>
-                                                </FormItem>
+                                                    <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormItem>
                                             )} />
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (
@@ -713,7 +712,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
             <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
                 <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground bg-white flex items-center gap-2">
-                    <History className="h-4 w-4" /> Official Log & Feedback
+                    <HistoryIcon className="h-4 w-4" /> Official Log & Feedback
                 </div>
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-6">
