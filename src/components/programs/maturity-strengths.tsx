@@ -20,7 +20,8 @@ import {
     ShieldAlert,
     AlertTriangle,
     School,
-    FileX
+    FileX,
+    Building2
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -216,7 +217,10 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
               </div>
           </CardContent>
           <CardFooter className="bg-rose-50/50 border-t py-2 px-6">
-              <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance: Documentation gaps signify institutional risk during external audits.</p>
+              <div className="flex items-center gap-2">
+                 <Building2 className="h-3 w-3" />
+                 <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance: Documentation gaps signify institutional risk during external audits.</p>
+              </div>
           </CardFooter>
       </Card>
     </div>
