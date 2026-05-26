@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -684,7 +683,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-emerald-700">Determination</FormLabel>
                                                         <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}>
-                                                            <FormControl><SelectTrigger className="h-9 text-[9px] bg-white font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                                            <FormControl><SelectTrigger className="h-9 text-[9px] bg-white font-bold"><SelectValue placeholder="Select Action" /></SelectTrigger></FormControl>
                                                             <SelectContent>
                                                                 <SelectItem value="Effective">Verified Effective (Close NC)</SelectItem>
                                                                 <SelectItem value="Not Effective">Not Effective (More Action Required)</SelectItem>

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -405,7 +404,7 @@ export default function HomePage() {
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
-   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses')) : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
   
   const campusMap = useMemo(() => {
