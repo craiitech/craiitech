@@ -1011,7 +1011,7 @@ export default function HomePage() {
                                     {relevantOfis.slice(0, 5).map(ofi => (
                                         <div key={ofi.id} className="p-2.5 rounded-lg bg-white border border-primary/10 shadow-sm">
                                             <p className="text-[8px] font-black text-primary uppercase mb-1">ISO Clause {ofi.isoClause}</p>
-                                            <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{ofi.description}"</p>
+                                            <p className="text-[10px] font-bold text-slate-800 leading-relaxed italic line-clamp-2">"{ofi.description}"</p>
                                         </div>
                                     ))}
                                 </div>
