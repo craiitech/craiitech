@@ -607,51 +607,6 @@ export default function HomePage() {
     } catch (e) { console.error(e); }
   };
 
-  const handlePrintAuditTemplate = async (schedule: AuditSchedule) => {
-    if (!isoClauses || !firestore) return;
-    const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
-    
-    let leadAuditorName = '';
-    try {
-        const planSnap = await getDoc(doc(firestore, 'auditPlans', schedule.auditPlanId));
-        if (planSnap.exists()) {
-            leadAuditorName = planSnap.data()?.leadAuditorName || '';
-        }
-    } catch(e) {}
-
-    try {
-        const reportHtml = renderToStaticMarkup(
-            <AuditPrintTemplate 
-                schedule={schedule}
-                findings={[]} 
-                clauses={clausesInScope}
-                signatories={signatories || undefined}
-                leadAuditorName={leadAuditorName}
-            />
-        );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Evidence Log Template - ${schedule.targetName}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Blank Evidence Log</button></div><div id="print-content">${reportHtml}</div></body></html>`);
-            printWindow.document.close();
-        }
-    } catch (err) {
-        console.error("Print error:", err);
-    }
-  };
-
   const isLoading =
     isUserLoading ||
     isLoadingSubmissions ||
@@ -1165,7 +1120,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </Tabs>
+      </TabsContent>
 
       <TabsContent value="history">
         <Card>
@@ -1423,6 +1378,59 @@ export default function HomePage() {
         <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
+  );
+
+  const renderAuditorHome = () => (
+    <div className="space-y-6">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview of your assigned audits for AY {selectedYear}.</p>
+            </div>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+
+        <AuditorOfflineManager />
+
+        <UnitAuditSchedule 
+            schedules={sortedMySchedules} 
+            isLoading={isLoading} 
+            isSupervisor={false}
+            plans={allAuditPlans || []}
+            findings={auditFindings || []}
+            isoClauses={isoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
+            signatories={signatories || undefined}
+            campusName="My Assignments"
+        />
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Quick Access</CardTitle>
+                <CardDescription>Shortcut to your auditing tools.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button asChild variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
+                    <Link href="/audit">
+                        <ClipboardCheck className="h-6 w-6" />
+                        <span className="font-bold uppercase text-xs">Enter Audit Hub</span>
+                    </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
+                    <Link href="/qa-reports?tab=car">
+                        <ShieldAlert className="h-6 w-6" />
+                        <span className="font-bold uppercase text-xs">CAR Registry</span>
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
+    </div>
   );
 
   const renderHomeContent = () => {
