@@ -44,7 +44,11 @@ import {
   Eye,
   Search,
   Activity,
-  Zap
+  Zap,
+  Briefcase,
+  Home as HomeIcon,
+  Download,
+  Calendar
 } from 'lucide-react';
 import {
   useUser,
@@ -1547,6 +1551,13 @@ export default function HomePage() {
       </TabsContent>
     </Tabs>
     );
+  };
+
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitUserHome();
   };
 
   const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
