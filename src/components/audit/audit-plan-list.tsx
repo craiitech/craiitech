@@ -721,7 +721,7 @@ export function AuditPlanList({
                             </div>
                         </div>
                         <div className="flex items-center gap-8 shrink-0">
-                            <div className="text-right hidden lg:block border-l pl-8 border-slate-200">
+                            <div className="text-right hidden lg:block border-l pr-8 border-slate-200">
                                 <div className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.1em] mb-1.5">Execution Milestone</div>
                                 <div className="flex items-center gap-3">
                                     <div className="text-sm font-black tabular-nums text-slate-800">{completedCount} <span className="text-[10px] text-muted-foreground font-medium">/ {planSchedules.length}</span></div>

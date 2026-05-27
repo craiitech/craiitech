@@ -419,7 +419,7 @@ export default function HomePage() {
     return map;
   }, [allUnits]);
 
-  const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
+  const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
 
   const advisoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'qaAdvisories'), orderBy('releaseDate', 'desc'), limit(1)) : null), [firestore]);
@@ -653,7 +653,6 @@ export default function HomePage() {
     (canViewCampusAnnouncements && isLoadingSettings) ||
     isLoadingUnits ||
     isLoadingCampuses ||
-    isLoadingGlobalSettings ||
     isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||

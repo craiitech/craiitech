@@ -243,9 +243,6 @@ export function AuditResultsView({
     } catch (err) { console.error(err); } finally { setIsProcessingReport(false); }
   };
 
-  /**
-   * ADMIN EDIT FINDING LOGIC
-   */
   const handleOpenEditFinding = (finding: AuditFinding) => {
       setEditingFinding(finding);
       setEditFindingText(finding.ncStatement || finding.description);
@@ -506,3 +503,4 @@ export function AuditResultsView({
     </div>
   );
 }
+

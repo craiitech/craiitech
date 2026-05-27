@@ -53,7 +53,6 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DecisionAnalytics } from './decision-analytics';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -571,7 +570,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     {actionFields.map((field, idx) => (
                                         <Card key={field.id} className="p-4 rounded-xl border bg-muted/5 shadow-sm space-y-4 group relative">
                                             {!isFieldReadOnly('actionSteps') && (
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="absolute top-1 right-1 h-6 i-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAction(idx)} className="absolute top-1 right-1 h-6 i-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-10" disabled={isSubmitting}><Trash2 className="h-4 w-4" /></Button>
                                             )}
                                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                                                 <div className="md:col-span-3">
@@ -668,7 +667,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     {effectivenessFields.map((field, idx) => (
                                         <div key={field.id} className="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 space-y-4 relative group">
                                             {isInstitutionalViewer && (
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeEffectiveness(idx)} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEffectiveness(idx)}><Trash2 className="h-4 w-4" /></Button>
                                             )}
                                             <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
                                                 <FormItem>
@@ -768,3 +767,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </div>
   );
 }
+
