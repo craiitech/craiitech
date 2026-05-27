@@ -1164,7 +1164,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </Tabs>
+      </TabsContent>
 
       <TabsContent value="history">
         <Card>
@@ -1192,11 +1192,139 @@ export default function HomePage() {
     );
   };
 
-  const renderHomeContent = () => {
-    if (isAdmin) return renderAdminHome();
-    if (userRole === 'Auditor') return renderAuditorHome();
-    if (isCampusSupervisor) return renderSupervisorHome();
-    return renderUnitUserHome();
+  const renderAdminHome = () => (
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+              </div>
+              <div className="w-full sm:w-[150px] space-y-1">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                      <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                          <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+          </div>
+          <ScrollArea className="w-full">
+            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            </TabsList>
+          </ScrollArea>
+      </div>
+
+      <TabsContent value="overview" className="space-y-4">
+        <UnitAuditSchedule 
+            schedules={sortedDashboardSchedules} 
+            isLoading={isLoadingSchedules} 
+            isSupervisor={isSupervisor || isAdmin}
+            plans={allAuditPlans || []}
+            findings={auditFindings || []}
+            isoClauses={isoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
+            signatories={signatories || undefined}
+            campusName="Institutional"
+        />
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+          {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+          {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+
+        {renderActionItems()}
+        
+        {!isLoading && (
+            <StrategicSwotAnalysis 
+                submissions={submissions?.filter(s => s.year === selectedYear) || []}
+                risks={risks?.filter(r => r.year === selectedYear) || []}
+                monitoringRecords={monitoringRecords || []}
+                programCompliances={allCompliances?.filter(c => c.academicYear === selectedYear) || []}
+                auditFindings={auditFindings || []} 
+                correctiveActionRequests={correctiveActionRequests || []}
+                mrOutputs={mrOutputs || []}
+                scope="campus"
+                name="University-Wide"
+                selectedYear={selectedYear}
+            />
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+            <div className="lg:col-span-4 space-y-4">
+                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+            </div>
+             <div className="lg:col-span-3 space-y-4">
+                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+                <div className="grid grid-cols-1 gap-4">
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                </div>
+                <Badge variant="outline" className="h-6 font-black uppercase text-primary border-primary/20 w-fit mx-auto">University Integrity Tracker</Badge>
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                 <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Institutional audit trail of latest evidence logs. Use this to monitor university-wide documentation frequency.
+                        </p>
+                    </div>
+                </CardFooter></Card>
+            </div>
+        </div>
+        {selectedDetail && (
+            <div className="sticky top-[10rem] z-20">
+                <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+            </div>
+        )}
+      </TabsContent>
+      <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
+      </TabsContent>
+      <TabsContent value="strategic" className="space-y-6">
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
+      </TabsContent>
+      <TabsContent value="history">
+        <Card>
+          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
+                        <TableRow key={s.id}>
+                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
+                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
+                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
+                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
+                        </TableRow>
+                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
+                </TableBody>
+                </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+    );
   };
 
   const renderAuditorHome = () => (
@@ -1417,141 +1545,6 @@ export default function HomePage() {
       </TabsContent>
     </Tabs>
   );
-
-  const renderAdminHome = () => (
-    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
-                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
-              </div>
-              <div className="w-full sm:w-[150px] space-y-1">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                      <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                          <SelectValue placeholder="Select Year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
-          </div>
-          <ScrollArea className="w-full">
-            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
-                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
-            </TabsList>
-          </ScrollArea>
-      </div>
-
-      <TabsContent value="overview" className="space-y-4">
-        <UnitAuditSchedule 
-            schedules={sortedDashboardSchedules} 
-            isLoading={isLoadingSchedules} 
-            isSupervisor={isSupervisor || isAdmin}
-            plans={allAuditPlans || []}
-            findings={auditFindings || []}
-            isoClauses={isoClauses || []}
-            units={allUnits || []}
-            campuses={campuses || []}
-            signatories={signatories || undefined}
-            campusName="Institutional"
-        />
-
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-          {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-          {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
-        </div>
-
-        {renderActionItems()}
-        
-        {!isLoading && (
-            <StrategicSwotAnalysis 
-                submissions={submissions?.filter(s => s.year === selectedYear) || []}
-                risks={risks?.filter(r => r.year === selectedYear) || []}
-                monitoringRecords={monitoringRecords || []}
-                programCompliances={allCompliances?.filter(c => c.academicYear === selectedYear) || []}
-                auditFindings={auditFindings || []} 
-                correctiveActionRequests={correctiveActionRequests || []}
-                mrOutputs={mrOutputs || []}
-                scope="campus"
-                name="University-Wide"
-                selectedYear={selectedYear}
-            />
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-            <div className="lg:col-span-4 space-y-4">
-                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
-                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
-            </div>
-             <div className="lg:col-span-3 space-y-4">
-                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
-                <div className="grid grid-cols-1 gap-4">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
-                </div>
-                <Badge variant="outline" className="h-6 font-black uppercase text-primary border-primary/20 w-fit mx-auto">University Integrity Tracker</Badge>
-                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
-                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
-                 <CardFooter className="bg-muted/5 border-t py-3">
-                    <div className="flex items-start gap-3">
-                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            Institutional audit trail of latest evidence logs. Use this to monitor university-wide documentation frequency.
-                        </p>
-                    </div>
-                </CardFooter></Card>
-            </div>
-        </div>
-        {selectedDetail && (
-            <div className="sticky top-[10rem] z-20">
-                <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
-            </div>
-        )}
-      </TabsContent>
-      <TabsContent value="analytics" className="space-y-4">
-        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
-        <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
-        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
-        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
-      </TabsContent>
-      <TabsContent value="strategic" className="space-y-6">
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
-        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
-        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
-        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
-      </TabsContent>
-      <TabsContent value="history">
-        <Card>
-          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
-                        <TableRow key={s.id}>
-                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
-                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
-                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
-                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
-                        </TableRow>
-                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
-                </TableBody>
-                </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
-    );
-  };
 
   const renderHomeContent = () => {
     if (isAdmin) return renderAdminHome();

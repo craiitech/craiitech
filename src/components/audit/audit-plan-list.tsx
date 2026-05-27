@@ -343,7 +343,7 @@ function PlanItineraryRegistry({
                                                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditor</p>
                                                 <div className="flex items-center gap-1">
                                                     <UserCheck className="h-2.5 w-2.5 text-primary" />
-                                                    <span className="text-[10px] font-black text-slate-700 truncate">{schedule.auditorName || 'UNCLAIMED'}</span>
+                                                    <span className="text-[10px] font-black text-slate-700 truncate">{schedule.auditorName || 'UNASSIGNED'}</span>
                                                 </div>
                                             </div>
                                             <div className="space-y-0.5">
