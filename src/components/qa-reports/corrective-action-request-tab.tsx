@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -264,7 +263,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     setEditingCar(car);
     const safeDate = (d: any) => {
         if (!d) return '';
-        const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+        const date = d instanceof Timestamp ? d.toDate() : new Date(date);
         return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
     };
     
@@ -497,13 +496,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </ScrollArea>
         
         <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedCars)}
+            {renderRegistryTable(processedOutputs)}
         </TabsContent>
         <TabsContent value="verification" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedCars)}
+            {renderRegistryTable(processedOutputs)}
         </TabsContent>
         <TabsContent value="my-unit" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedCars)}
+            {renderRegistryTable(processedOutputs)}
         </TabsContent>
       </Tabs>
 

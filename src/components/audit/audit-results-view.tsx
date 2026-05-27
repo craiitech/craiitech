@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -63,7 +62,7 @@ import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface AuditResultsViewProps {
   selectedYear: number;
@@ -499,7 +498,7 @@ export function AuditResultsView({
                     disabled={isSavingFinding || !editFindingText.trim()}
                     className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11"
                 >
-                    {isSavingFinding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    {isSavingFinding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4 mr-2" />}
                     Commit Changes
                 </Button>
             </DialogFooter>

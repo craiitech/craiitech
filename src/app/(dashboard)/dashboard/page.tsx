@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -1161,7 +1160,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
 
       <TabsContent value="history">
         <Card>
@@ -1548,6 +1547,735 @@ export default function HomePage() {
       </TabsContent>
     </Tabs>
   );
+
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitUserHome();
+  };
+
+  const renderAuditorHome = () => (
+    <div className="space-y-6">
+        <div className="sticky top-0 z-40 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+                </div>
+                <div className="w-full sm:w-[150px] space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                            <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
+                <AuditorOfflineManager />
+            </div>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+        
+        <Card className="shadow-lg border-primary/10 overflow-hidden">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between border-b gap-4 bg-muted/10">
+                <div>
+                    <CardTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Active Audit Conduct</CardTitle>
+                    <CardDescription className="text-xs">Your claimed and upcoming internal quality audit schedules.</CardDescription>
+                </div>
+                <Button onClick={() => router.push('/audit')} className="w-full md:w-auto font-black uppercase text-[10px] tracking-widest h-9">Manage Full Audit Hub</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+                {sortedMySchedules && sortedMySchedules.length > 0 ? (
+                    <ScrollArea className="h-[500px]">
+                        <div className="overflow-x-auto pb-4">
+                            <Table>
+                                <TableHeader className="bg-muted/30">
+                                    <TableRow>
+                                        <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Auditee Unit</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Time</TableHead>
+                                        <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                        <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {sortedMySchedules.map(s => (
+                                        <TableRow key={s.id} className="hover:bg-muted/10 transition-colors">
+                                            <TableCell className="pl-8 font-bold text-xs">{s.targetName}</TableCell>
+                                            <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
+                                            <TableCell className="text-xs font-bold">{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                            <TableCell className="text-xs font-medium tabular-nums">
+                                                {format(s.scheduledDate.toDate(), 'p')}
+                                                {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
+                                            </TableCell>
+                                            <TableCell className="text-center"><Badge variant="secondary" className="text-[9px] font-black uppercase">{s.status}</Badge></TableCell>
+                                            <TableCell className="text-right pr-8 whitespace-nowrap space-x-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={() => handlePrintAuditTemplate(s)}
+                                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary shadow-sm"
+                                                >
+                                                    <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                                    Print
+                                                </Button>
+                                                <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest shadow-sm" asChild>
+                                                    <Link href={`/audit/${s.id}`}>
+                                                        Conduct
+                                                    </Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </ScrollArea>
+                ) : (
+                    <div className="py-20 text-center text-muted-foreground border border-dashed rounded-lg m-6 opacity-30">
+                        <ClipboardCheck className="h-10 w-10 mx-auto mb-2" />
+                        <p className="text-xs font-black uppercase">No assignments found</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    </div>
+  );
+
+  const renderSupervisorHome = () => (
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+                </div>
+                <div className="w-full sm:w-[150px] space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                            <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <ScrollArea className="w-full">
+                <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+                    <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                    <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                    <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
+                    <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
+
+      <TabsContent value="overview" className="space-y-4">
+         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+            <div className="lg:col-span-4 space-y-4">
+                {unitsInCampus.length === 0 && !isLoading && (
+                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')} size="sm">
+                                <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
+                )}
+                
+                <UnitAuditSchedule 
+                    schedules={sortedDashboardSchedules} 
+                    isLoading={isLoadingSchedules} 
+                    isSupervisor={isSupervisor || isAdmin}
+                    plans={allAuditPlans || []}
+                    findings={auditFindings || []}
+                    isoClauses={isoClauses || []}
+                    units={allUnits || []}
+                    campuses={campuses || []}
+                    signatories={signatories || undefined}
+                    campusName={campusMap.get(userProfile?.campusId || '')}
+                />
+
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+                    {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+                    {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+                </div>
+
+                {renderActionItems()}
+                
+                {!isLoading && userProfile?.campusId && (
+                    <StrategicSwotAnalysis 
+                        submissions={submissions?.filter(s => s.campusId === userProfile.campusId && s.year === selectedYear) || []}
+                        risks={risks?.filter(r => r.campusId === userProfile.campusId && r.year === selectedYear) || []}
+                        monitoringRecords={monitoringRecords?.filter(r => r.campusId === userProfile.campusId) || []}
+                        programCompliances={allCompliances?.filter(c => c.campusId === userProfile.campusId && c.academicYear === selectedYear) || []}
+                        auditFindings={auditFindings || []} 
+                        correctiveActionRequests={correctiveActionRequests?.filter(car => car.campusId === userProfile.campusId) || []}
+                        mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === userProfile.campusId)) || []}
+                        scope="campus"
+                        name={campusMap.get(userProfile.campusId) || 'Campus'}
+                        selectedYear={selectedYear}
+                    />
+                )}
+
+                <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
+            </div>
+            <div className="lg:col-span-3 space-y-4">
+                <div className="space-y-4">
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                </div>
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-2">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Real-time campus contribution log. High activity density indicates active document control and unit engagement.
+                        </p>
+                    </div>
+                </CardFooter></Card>
+                {selectedDetail && (
+                    <div className="sticky top-[10rem] z-20">
+                        <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+                    </div>
+                )}
+            </div>
+        </div>
+      </TabsContent>
+       <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+        <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
+        <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
+      </TabsContent>
+       <TabsContent value="users" className="space-y-4">
+        {isCampusSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
+      </TabsContent>
+       <TabsContent value="strategic" className="space-y-6">
+        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
+      </TabsContent>
+    </Tabs>
+  );
+
+  const renderAdminHome = () => (
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+              </div>
+              <div className="w-full sm:w-[150px] space-y-1">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                      <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                          <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+          </div>
+          <ScrollArea className="w-full">
+            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            </TabsList>
+          </ScrollArea>
+      </div>
+
+      <TabsContent value="overview" className="space-y-4">
+        <UnitAuditSchedule 
+            schedules={sortedDashboardSchedules} 
+            isLoading={isLoadingSchedules} 
+            isSupervisor={isSupervisor || isAdmin}
+            plans={allAuditPlans || []}
+            findings={auditFindings || []}
+            isoClauses={isoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
+            signatories={signatories || undefined}
+            campusName="Institutional"
+        />
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+          {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+          {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+
+        {renderActionItems()}
+        
+        {!isLoading && (
+            <StrategicSwotAnalysis 
+                submissions={submissions?.filter(s => s.year === selectedYear) || []}
+                risks={risks?.filter(r => r.year === selectedYear) || []}
+                monitoringRecords={monitoringRecords || []}
+                programCompliances={allCompliances?.filter(c => c.academicYear === selectedYear) || []}
+                auditFindings={auditFindings || []} 
+                correctiveActionRequests={correctiveActionRequests || []}
+                mrOutputs={mrOutputs || []}
+                scope="campus"
+                name="University-Wide"
+                selectedYear={selectedYear}
+            />
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+            <div className="lg:col-span-4 space-y-4">
+                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+            </div>
+             <div className="lg:col-span-3 space-y-4">
+                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+                <div className="grid grid-cols-1 gap-4">
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                </div>
+                <Badge variant="outline" className="h-6 font-black uppercase text-primary border-primary/20 w-fit mx-auto">University Integrity Tracker</Badge>
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                 <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Institutional audit trail of latest evidence logs. Use this to monitor university-wide documentation frequency.
+                        </p>
+                    </div>
+                </CardFooter></Card>
+            </div>
+        </div>
+        {selectedDetail && (
+            <div className="sticky top-[10rem] z-20">
+                <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+            </div>
+        )}
+      </TabsContent>
+      <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
+      </TabsContent>
+      <TabsContent value="strategic" className="space-y-6">
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
+      </TabsContent>
+      <TabsContent value="history">
+        <Card>
+          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
+                        <TableRow key={s.id}>
+                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
+                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
+                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
+                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
+                        </TableRow>
+                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
+                </TableBody>
+                </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+    );
+  };
+
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitUserHome();
+  };
+
+  const renderAuditorHome = () => (
+    <div className="space-y-6">
+        <div className="sticky top-0 z-40 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+                </div>
+                <div className="w-full sm:w-[150px] space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                            <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
+                <AuditorOfflineManager />
+            </div>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+        
+        <Card className="shadow-lg border-primary/10 overflow-hidden">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between border-b gap-4 bg-muted/10">
+                <div>
+                    <CardTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Active Audit Conduct</CardTitle>
+                    <CardDescription className="text-xs">Your claimed and upcoming internal quality audit schedules.</CardDescription>
+                </div>
+                <Button onClick={() => router.push('/audit')} className="w-full md:w-auto font-black uppercase text-[10px] tracking-widest h-9">Manage Full Audit Hub</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+                {sortedMySchedules && sortedMySchedules.length > 0 ? (
+                    <ScrollArea className="h-[500px]">
+                        <div className="overflow-x-auto pb-4">
+                            <Table>
+                                <TableHeader className="bg-muted/30">
+                                    <TableRow>
+                                        <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Auditee Unit</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Time</TableHead>
+                                        <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                        <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {sortedMySchedules.map(s => (
+                                        <TableRow key={s.id} className="hover:bg-muted/10 transition-colors">
+                                            <TableCell className="pl-8 font-bold text-xs">{s.targetName}</TableCell>
+                                            <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
+                                            <TableCell className="text-xs font-bold">{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                            <TableCell className="text-xs font-medium tabular-nums">
+                                                {format(s.scheduledDate.toDate(), 'p')}
+                                                {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
+                                            </TableCell>
+                                            <TableCell className="text-center"><Badge variant="secondary" className="text-[9px] font-black uppercase">{s.status}</Badge></TableCell>
+                                            <TableCell className="text-right pr-8 whitespace-nowrap space-x-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={() => handlePrintAuditTemplate(s)}
+                                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary shadow-sm"
+                                                >
+                                                    <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                                    Print
+                                                </Button>
+                                                <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest shadow-sm" asChild>
+                                                    <Link href={`/audit/${s.id}`}>
+                                                        Conduct
+                                                    </Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </ScrollArea>
+                ) : (
+                    <div className="py-20 text-center text-muted-foreground border border-dashed rounded-lg m-6 opacity-30">
+                        <ClipboardCheck className="h-10 w-10 mx-auto mb-2" />
+                        <p className="text-xs font-black uppercase">No assignments found</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    </div>
+  );
+
+  const renderSupervisorHome = () => (
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+                </div>
+                <div className="w-full sm:w-[150px] space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                            <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <ScrollArea className="w-full">
+                <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+                    <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                    <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                    <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
+                    <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+                </TabsList>
+            </ScrollArea>
+        </div>
+
+      <TabsContent value="overview" className="space-y-4">
+         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+            <div className="lg:col-span-4 space-y-4">
+                {unitsInCampus.length === 0 && !isLoading && (
+                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')} size="sm">
+                                <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
+                )}
+                
+                <UnitAuditSchedule 
+                    schedules={sortedDashboardSchedules} 
+                    isLoading={isLoadingSchedules} 
+                    isSupervisor={isSupervisor || isAdmin}
+                    plans={allAuditPlans || []}
+                    findings={auditFindings || []}
+                    isoClauses={isoClauses || []}
+                    units={allUnits || []}
+                    campuses={campuses || []}
+                    signatories={signatories || undefined}
+                    campusName={campusMap.get(userProfile?.campusId || '')}
+                />
+
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+                    {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+                    {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+                </div>
+
+                {renderActionItems()}
+                
+                {!isLoading && userProfile?.campusId && (
+                    <StrategicSwotAnalysis 
+                        submissions={submissions?.filter(s => s.campusId === userProfile.campusId && s.year === selectedYear) || []}
+                        risks={risks?.filter(r => r.campusId === userProfile.campusId && r.year === selectedYear) || []}
+                        monitoringRecords={monitoringRecords?.filter(r => r.campusId === userProfile.campusId) || []}
+                        programCompliances={allCompliances?.filter(c => c.campusId === userProfile.campusId && c.academicYear === selectedYear) || []}
+                        auditFindings={auditFindings || []} 
+                        correctiveActionRequests={correctiveActionRequests?.filter(car => car.campusId === userProfile.campusId) || []}
+                        mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === userProfile.campusId)) || []}
+                        scope="campus"
+                        name={campusMap.get(userProfile.campusId) || 'Campus'}
+                        selectedYear={selectedYear}
+                    />
+                )}
+
+                <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
+            </div>
+            <div className="lg:col-span-3 space-y-4">
+                <div className="space-y-4">
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                </div>
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-2">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Real-time campus contribution log. High activity density indicates active document control and unit engagement.
+                        </p>
+                    </div>
+                </CardFooter></Card>
+                {selectedDetail && (
+                    <div className="sticky top-[10rem] z-20">
+                        <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+                    </div>
+                )}
+            </div>
+        </div>
+      </TabsContent>
+       <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+        <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
+        <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
+      </TabsContent>
+       <TabsContent value="users" className="space-y-4">
+        {isCampusSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
+      </TabsContent>
+       <TabsContent value="strategic" className="space-y-6">
+        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
+      </TabsContent>
+      <TabsContent value="history">
+        <Card>
+          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
+                        <TableRow key={s.id}>
+                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
+                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
+                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
+                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
+                        </TableRow>
+                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
+                </TableBody>
+                </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+    );
+  };
+
+  const renderAdminHome = () => (
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
+              </div>
+              <div className="w-full sm:w-[150px] space-y-1">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
+                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                      <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
+                          <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+          </div>
+          <ScrollArea className="w-full">
+            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            </TabsList>
+          </ScrollArea>
+      </div>
+
+      <TabsContent value="overview" className="space-y-4">
+        <UnitAuditSchedule 
+            schedules={sortedDashboardSchedules} 
+            isLoading={isLoadingSchedules} 
+            isSupervisor={isSupervisor || isAdmin}
+            plans={allAuditPlans || []}
+            findings={auditFindings || []}
+            isoClauses={isoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
+            signatories={signatories || undefined}
+            campusName="Institutional"
+        />
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+          {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+          {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+
+        {renderActionItems()}
+        
+        {!isLoading && (
+            <StrategicSwotAnalysis 
+                submissions={submissions?.filter(s => s.year === selectedYear) || []}
+                risks={risks?.filter(r => r.year === selectedYear) || []}
+                monitoringRecords={monitoringRecords || []}
+                programCompliances={allCompliances?.filter(c => c.academicYear === selectedYear) || []}
+                auditFindings={auditFindings || []} 
+                correctiveActionRequests={correctiveActionRequests || []}
+                mrOutputs={mrOutputs || []}
+                scope="campus"
+                name="University-Wide"
+                selectedYear={selectedYear}
+            />
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+            <div className="lg:col-span-4 space-y-4">
+                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+            </div>
+             <div className="lg:col-span-3 space-y-4">
+                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+                <div className="grid grid-cols-1 gap-4">
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                </div>
+                <Badge variant="outline" className="h-6 font-black uppercase text-primary border-primary/20 w-fit mx-auto">University Integrity Tracker</Badge>
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                 <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Institutional audit trail of latest evidence logs. Use this to monitor university-wide documentation frequency.
+                        </p>
+                    </div>
+                </CardFooter></Card>
+            </div>
+        </div>
+        {selectedDetail && (
+            <div className="sticky top-[10rem] z-20">
+                <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
+            </div>
+        )}
+      </TabsContent>
+      <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
+      </TabsContent>
+      <TabsContent value="strategic" className="space-y-6">
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
+      </TabsContent>
+    </Tabs>
+  );
+
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitUserHome();
+  };
 
   const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
 

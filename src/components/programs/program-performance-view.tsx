@@ -1,10 +1,11 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { 
     AcademicProgram, 
     ProgramComplianceRecord, 
+    AccreditationRecord, 
+    CurriculumRecord, 
     CorrectiveActionRequest, 
     ManagementReviewOutput, 
     AuditFinding,
