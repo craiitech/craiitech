@@ -447,7 +447,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                   <CardContent className="flex-1 flex flex-col items-center justify-center p-6">
                       {program.isBoardProgram && analyticsData.latestBoard ? (
                         <>
-                          <ChartContainer config={{}} className="h-[180px] w-full">
+                          <ChartContainer config={{}} className="h-[180px] w-[180px]">
                               <ResponsiveContainer>
                                   <BarChart data={analyticsData.boardComparisonData} margin={{ top: 20 }}>
                                       <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />

@@ -51,7 +51,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
-import { CARPrintTemplate } from '../qa-reports/car-print-template';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -62,7 +61,7 @@ import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface AuditResultsViewProps {
   selectedYear: number;

@@ -674,7 +674,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (
                                                 <FormItem>
                                                     <FormLabel className="text-[9px] font-black uppercase text-emerald-700">Audit Determination Summary</FormLabel>
-                                                    <FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl>
+                                                    <FormControl>
+                                                        <Textarea {...iF} rows={3} className="bg-white text-xs italic" placeholder="Summarize overall effectiveness analysis..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} />
+                                                    </FormControl>
                                                 </FormItem>
                                             )} />
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
