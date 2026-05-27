@@ -53,8 +53,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { CARPrintTemplate } from './car-print-template';
+import { DecisionAnalytics } from './decision-analytics';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -496,13 +495,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </ScrollArea>
         
         <TabsContent value="all" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedOutputs)}
+            {renderRegistryTable(processedCars)}
         </TabsContent>
         <TabsContent value="verification" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedOutputs)}
+            {renderRegistryTable(processedCars)}
         </TabsContent>
         <TabsContent value="my-unit" className="mt-0 animate-in fade-in duration-500">
-            {renderRegistryTable(processedOutputs)}
+            {renderRegistryTable(processedCars)}
         </TabsContent>
       </Tabs>
 

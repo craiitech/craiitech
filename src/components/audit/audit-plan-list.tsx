@@ -4,7 +4,14 @@ import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { 
+    Card, 
+    CardContent, 
+    CardDescription, 
+    CardHeader, 
+    CardTitle, 
+    CardFooter 
+} from '@/components/ui/card';
 import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy, CalendarDays, Info } from 'lucide-react';
 import {
   Table,
@@ -634,7 +641,7 @@ export function AuditPlanList({
                         thead { display: table-header-group !important; }
                         tr { page-break-inside: avoid !important; }
                     }
-                    body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; font-size: 12pt; }
                 </style>
             </head>
             <body>
