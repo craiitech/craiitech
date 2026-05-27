@@ -367,6 +367,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
   };
 
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
@@ -434,8 +446,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </CardContent>
     </Card>
   );
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">

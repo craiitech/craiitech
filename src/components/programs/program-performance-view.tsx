@@ -15,6 +15,7 @@ import type {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '../ui/skeleton';
 import { 
     FileText, 
     ExternalLink, 

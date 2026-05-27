@@ -394,7 +394,7 @@ export function AuditResultsView({
                               <TableRow>
                                   <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit & Auditor</TableHead>
                                   <TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead>
-                                  <TableHead className="text-center text-[10px] font-black uppercase">CAR Status</TableHead>
+                                  <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
                                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
                               </TableRow>
                           </TableHeader>
@@ -415,10 +415,7 @@ export function AuditResultsView({
                                       </TableCell>
                                       <TableCell className="text-center">
                                           {item.linkedCar ? (
-                                              <div className="flex flex-col items-center gap-1">
-                                                  <Badge className="bg-emerald-600 text-white font-black text-[9px] h-5 px-2">CAR {item.linkedCar.carNumber}</Badge>
-                                                  <p className="text-[7px] font-black text-muted-foreground uppercase">{item.linkedCar.status}</p>
-                                              </div>
+                                              <Badge className="bg-emerald-600 text-white font-black text-[9px] h-5 px-2">CAR {item.linkedCar.carNumber}</Badge>
                                           ) : <Badge variant="outline" className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase">PENDING</Badge>}
                                       </TableCell>
                                       <TableCell className="text-right pr-8">

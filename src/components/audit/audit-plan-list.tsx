@@ -659,16 +659,6 @@ export function AuditPlanList({
     }
   };
 
-  if (plans.length === 0) {
-    return (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-40">
-            <ClipboardCheck className="h-12 w-12 text-muted-foreground" />
-            <p className="text-xs font-black uppercase tracking-[0.2em]">Institutional Framework Registry Empty</p>
-            <p className="text-[10px] max-w-xs">Establish an audit plan to begin scheduling unit-level itineraries.</p>
-        </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
         <Card className="bg-muted/10 border-none shadow-none">

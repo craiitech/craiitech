@@ -1165,7 +1165,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
 
       <TabsContent value="history">
         <Card>
@@ -1302,128 +1302,7 @@ export default function HomePage() {
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
         <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
-      <TabsContent value="history">
-        <Card>
-          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
-                        <TableRow key={s.id}>
-                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
-                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
-                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
-                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
-                        </TableRow>
-                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
-                </TableBody>
-                </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
     </Tabs>
-  );
-
-  const renderAuditorHome = () => (
-    <div className="space-y-6">
-        <div className="sticky top-0 z-40 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
-                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
-                </div>
-                <div className="w-full sm:w-[150px] space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                            <SelectValue placeholder="Select Year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            <div className="animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
-                <AuditorOfflineManager />
-            </div>
-        </div>
-
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
-        </div>
-        
-        <Card className="shadow-lg border-primary/10 overflow-hidden">
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between border-b gap-4 bg-muted/10">
-                <div>
-                    <CardTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Active Audit Conduct</CardTitle>
-                    <CardDescription className="text-xs">Your claimed and upcoming internal quality audit schedules.</CardDescription>
-                </div>
-                <Button onClick={() => router.push('/audit')} className="w-full md:w-auto font-black uppercase text-[10px] tracking-widest h-9">Manage Full Audit Hub</Button>
-            </CardHeader>
-            <CardContent className="p-0">
-                {sortedMySchedules && sortedMySchedules.length > 0 ? (
-                    <ScrollArea className="h-[500px]">
-                        <div className="overflow-x-auto pb-4">
-                            <Table>
-                                <TableHeader className="bg-muted/30">
-                                    <TableRow>
-                                        <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Auditee Unit</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Time</TableHead>
-                                        <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
-                                        <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedMySchedules.map(s => (
-                                        <TableRow key={s.id} className="hover:bg-muted/10 transition-colors">
-                                            <TableCell className="pl-8 font-bold text-xs">{s.targetName}</TableCell>
-                                            <TableCell className="text-xs">{campusMap.get(s.campusId) || '...'}</TableCell>
-                                            <TableCell className="text-xs font-bold">{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
-                                            <TableCell className="text-xs font-medium tabular-nums">
-                                                {format(s.scheduledDate.toDate(), 'p')}
-                                                {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
-                                            </TableCell>
-                                            <TableCell className="text-center"><Badge variant="secondary" className="text-[9px] font-black uppercase">{s.status}</Badge></TableCell>
-                                            <TableCell className="text-right pr-8 whitespace-nowrap space-x-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={() => handlePrintAuditTemplate(s)}
-                                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary shadow-sm"
-                                                >
-                                                    <Printer className="h-3.5 w-3.5 mr-1.5" />
-                                                    Print
-                                                </Button>
-                                                <Button variant="default" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest shadow-sm" asChild>
-                                                    <Link href={`/audit/${s.id}`}>
-                                                        Conduct
-                                                    </Link>
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </ScrollArea>
-                ) : (
-                    <div className="py-20 text-center text-muted-foreground border border-dashed rounded-lg m-6 opacity-30">
-                        <ClipboardCheck className="h-10 w-10 mx-auto mb-2" />
-                        <p className="text-xs font-black uppercase">No assignments found</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    </div>
   );
 
   const renderSupervisorHome = () => (
