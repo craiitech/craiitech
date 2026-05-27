@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -242,24 +243,6 @@ export function AuditResultsView({
             printWindow.document.close();
         }
     } catch (err) { console.error(err); } finally { setIsProcessingReport(false); }
-  };
-
-  const handlePrintCar = (car: CorrectiveActionRequest) => {
-    if (!isOnline || isNetworkLocked) {
-        handleRestrictedAction("Printing formal CAR documents");
-        return;
-    }
-    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
-    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
-    try {
-        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />);
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button></div><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
-            printWindow.document.close();
-        }
-    } catch (e) { console.error(e); }
   };
 
   /**

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -294,7 +295,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
               <CardFooter className="bg-muted/5 border-t py-3">
                   <div className="flex items-start gap-3">
                       <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">
                           <strong>Insight:</strong> Measures balance across 5 compliance pillars. A symmetrical radar indicates consistent quality assurance across all modules.
                       </p>
                   </div>
