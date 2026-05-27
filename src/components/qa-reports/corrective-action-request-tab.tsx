@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -434,17 +435,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     </Card>
   );
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">

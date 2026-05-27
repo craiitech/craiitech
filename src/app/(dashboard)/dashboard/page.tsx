@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -1324,8 +1325,7 @@ export default function HomePage() {
         </Card>
       </TabsContent>
     </Tabs>
-    );
-  };
+  );
 
   const renderAuditorHome = () => (
     <div className="space-y-6">

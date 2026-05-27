@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -94,7 +95,7 @@ export function AuditResultsView({
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState('nc-manager');
+  const [activeTab, setActiveTab] = useState('non-conformance');
   
   // EDIT FINDING STATES
   const [editingFinding, setEditingFinding] = useState<AuditFinding | null>(null);
