@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, CARActionStep, CAREffectivenessAudit, Comment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -591,10 +590,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                                     )} />
                                                 </div>
                                                 <div className="md:col-span-4">
+                                                    <FormItem><FormLabel className="text-[8px] font-black uppercase text-muted-foreground">Target Date</FormLabel>
                                                     <FormField control={form.control} name={`actionSteps.${idx}.completionDate`} render={({ field: iF }) => (
-                                                        <FormItem><FormLabel className="text-[8px] font-black uppercase text-muted-foreground">Target Date</FormLabel>
-                                                        <FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
-                                                    )} />
+                                                        <FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white font-black" disabled={isFieldReadOnly('actionSteps')} /></FormControl>
+                                                    )} /></FormItem>
                                                 </div>
                                             </div>
                                             
@@ -640,7 +639,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && (
                                         <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '', verificationStatus: 'Pending', verificationRemarks: '' })} className="w-full h-10 border-dashed font-black text-[9px] uppercase">
-                                            <PlusCircle className="h-3 w-3 mr-2" /> Add Correction Step
+                                            <PlusCircle className="h-3.5 w-3.5 mr-2" /> Add Correction Step
                                         </Button>
                                     )}
                                 </div>
@@ -705,7 +704,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     ))}
                                     {isInstitutionalViewer && (
                                         <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile?.firstName + ' ' + userProfile?.lastName, date: format(new Date(), 'yyyy-MM-dd'), action: 'Effective', remarks: '' })} className="w-full border-dashed h-9 border-emerald-200 text-emerald-700 font-black text-[9px] uppercase hover:bg-emerald-50">
-                                            <PlusCircle className="h-3 w-3 mr-2" />
+                                            <PlusCircle className="h-3.5 w-3.5 mr-2" />
                                             Add Effectiveness Audit Result
                                         </Button>
                                     )}
