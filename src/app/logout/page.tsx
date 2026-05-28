@@ -164,7 +164,7 @@ export default function LogoutPage() {
                     <p className="text-sm text-slate-600 font-medium leading-relaxed font-sans text-center">Administrator detected. Perform a full system backup before ending this session?</p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 pb-8">
-                    <Button className="w-full h-12 text-lg font-black uppercase" onClick={handleBackup} disabled={isBackingUp}>{isBackingUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />} Yes, Perform Backup</Button>
+                    <Button className="w-full h-12 text-lg font-black uppercase" onClick={handleBackup} disabled={isBackingUp}>{isBackingUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Yes, Perform Backup</Button>
                     <Button variant="ghost" className="w-full text-muted-foreground font-bold" onClick={() => setView('feedback')} disabled={isBackingUp}>Skip</Button>
                 </CardFooter>
             </div>
