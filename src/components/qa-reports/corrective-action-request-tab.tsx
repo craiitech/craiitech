@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -97,7 +97,7 @@ const carSchema = z.object({
 });
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, isAuditor } = useUser();
+  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -300,14 +300,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             )} />
                         </div>
                         <FormField control={form.control} name="procedureTitle" render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-black uppercase">Title of Procedure Affected</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-bold" /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel className="text-[10px] font-black uppercase">Title of Procedure Affected</FormLabel><FormControl><Input {...field} placeholder="e.g. Hiring Process" className="bg-slate-50 font-bold" /></FormControl><FormMessage /></FormItem>
                         )} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
                                 <FormItem><FormLabel className="text-[10px] font-black uppercase">Campus Site</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50 h-10"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
                             )} />
                             <FormField control={form.control} name="unitId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50 h-10"><SelectValue /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-[10px] font-black uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50 h-10"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
                             )} />
                         </div>
                     </section>

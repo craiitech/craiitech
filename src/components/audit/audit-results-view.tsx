@@ -16,11 +16,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
+    FileText, 
+    AlertTriangle, 
+    CheckCircle2, 
     Printer, 
     TrendingUp, 
     Info, 
     ShieldAlert, 
     Target,
+    Zap,
     Search,
     Gavel,
     History,
@@ -29,18 +33,18 @@ import {
     User,
     Building,
     School,
+    Filter,
     Activity,
+    ClipboardCheck,
     Star,
-    Edit,
-    Trash2,
-    Save
+    Layers
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
-import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -107,7 +111,10 @@ export function AuditResultsView({
     if (unitFilter !== 'all') filteredSchedules = filteredSchedules.filter(s => s.targetId === unitFilter);
     if (searchTerm) {
         const low = searchTerm.toLowerCase();
-        filteredSchedules = filteredSchedules.filter(s => s.targetName.toLowerCase().includes(low) || (s.auditorName || '').toLowerCase().includes(low));
+        filteredSchedules = filteredSchedules.filter(s => 
+            s.targetName.toLowerCase().includes(low) || 
+            (s.auditorName || '').toLowerCase().includes(low)
+        );
     }
     const scheduleIds = new Set(filteredSchedules.map(s => s.id));
     const filteredFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
@@ -129,8 +136,23 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-        const cName = campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'UNIVERSITY-WIDE');
-        const reportHtml = renderToStaticMarkup(<ConsolidatedAuditReportTemplate plan={kpis.activePlan} schedules={kpis.yearSchedules} findings={kpis.yearFindings} clauses={isoClauses} units={units} campuses={campuses} signatories={signatories || undefined} campusName={cName} />);
+        const cName = unitFilter !== 'all' 
+            ? (unitMap.get(unitFilter) || 'UNIT')
+            : (campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'UNIVERSITY-WIDE'));
+
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={kpis.activePlan} 
+                schedules={kpis.yearSchedules} 
+                findings={kpis.yearFindings} 
+                clauses={isoClauses} 
+                units={units} 
+                campuses={campuses} 
+                signatories={signatories || undefined} 
+                campusName={cName}
+            />
+        );
+
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
@@ -144,7 +166,11 @@ export function AuditResultsView({
     if (!firestore || !editingFinding) return;
     setIsSavingFinding(true);
     try {
-        await updateDoc(doc(firestore, 'auditFindings', editingFinding.id), { description: editFindingText, ncStatement: editFindingText, updatedAt: serverTimestamp() });
+        await updateDoc(doc(firestore, 'auditFindings', editingFinding.id), { 
+            description: editFindingText, 
+            ncStatement: editFindingText, 
+            updatedAt: serverTimestamp() 
+        });
         toast({ title: 'Finding Updated' });
         setEditingFinding(null);
     } catch (e) { toast({ title: 'Update Failed', variant: 'destructive' }); } finally { setIsSavingFinding(false); }
@@ -167,9 +193,31 @@ export function AuditResultsView({
       <Card className="border-primary/10 shadow-sm bg-muted/10">
         <CardContent className="p-4 space-y-4">
             <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search findings..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-11 bg-white border-primary/10" /></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select value={campusFilter} onValueChange={setCampusFilter}><SelectTrigger className="h-10 bg-white font-bold"><SelectValue placeholder="Campus" /></SelectTrigger><SelectContent><SelectItem value="all">All Sites</SelectItem>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-                <Button onClick={handlePrintConsolidated} className="font-black uppercase text-[10px] h-10 shadow-lg">{isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 mr-1.5" />} Print Site Report</Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
+                    <Select value={campusFilter} onValueChange={(v) => { setCampusFilter(v); setUnitFilter('all'); }}>
+                        <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Institutional View (All)</SelectItem>
+                            {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Unit / Office</label>
+                    <Select value={unitFilter} onValueChange={setUnitFilter} disabled={campusFilter === 'all' && !isAdmin}>
+                        <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Units in Campus</SelectItem>
+                            {units.filter(u => campusFilter === 'all' || u.campusIds?.includes(campusFilter)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Button onClick={handlePrintConsolidated} className="font-black uppercase text-[10px] h-10 shadow-lg shadow-primary/20">
+                    {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 mr-1.5" />} 
+                    {campusFilter === 'all' ? 'Print System Report' : `Print ${campusMap.get(campusFilter)} Report`}
+                </Button>
             </div>
         </CardContent>
       </Card>
@@ -189,8 +237,13 @@ export function AuditResultsView({
                       <TableBody>
                           {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').map(finding => (
                               <TableRow key={finding.id} className="hover:bg-rose-50/20 group">
-                                  <TableCell className="pl-8 py-5"><p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p></TableCell>
-                                  <TableCell className="py-5"><Badge className="bg-rose-600 text-white h-4 px-1.5 text-[8px] font-black mb-2">Clause {finding.isoClause}</Badge><p className="text-xs font-bold italic">"{finding.ncStatement || finding.description}"</p></TableCell>
+                                  <TableCell className="pl-8 py-5">
+                                      <p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p>
+                                  </TableCell>
+                                  <TableCell className="py-5">
+                                      <Badge className="bg-rose-600 text-white h-4 px-1.5 text-[8px] font-black mb-2">Clause {finding.isoClause}</Badge>
+                                      <p className="text-xs font-bold italic">"{finding.ncStatement || finding.description}"</p>
+                                  </TableCell>
                                   <TableCell className="text-right pr-8">
                                       <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
                                           {isAdmin && (
@@ -210,6 +263,30 @@ export function AuditResultsView({
                                   </TableCell>
                               </TableRow>
                           ))}
+                          {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').length === 0 && (
+                              <TableRow><TableCell colSpan={3} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase tracking-widest">No verified NCs in this scope</p></TableCell></TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="commendable" className="animate-in fade-in duration-500">
+              <Card className="shadow-md border-primary/10 overflow-hidden">
+                   <Table>
+                      <TableHeader className="bg-muted/30">
+                          <TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Unit / Auditee</TableHead><TableHead className="text-[10px] font-black uppercase">Positive Observations</TableHead></TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {kpis.yearSchedules.filter(s => s.summaryCommendable).map(s => (
+                              <TableRow key={s.id} className="hover:bg-emerald-50/20 transition-colors">
+                                  <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
+                                  <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
+                              </TableRow>
+                          ))}
+                          {kpis.yearSchedules.filter(s => s.summaryCommendable).length === 0 && (
+                              <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Star className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No positive findings recorded</p></TableCell></TableRow>
+                          )}
                       </TableBody>
                   </Table>
               </Card>
@@ -218,13 +295,13 @@ export function AuditResultsView({
 
       <Dialog open={!!editingFinding} onOpenChange={() => setEditingFinding(null)}>
         <DialogContent className="sm:max-w-xl">
-            <DialogHeader><DialogTitle className="font-black uppercase">Refine Finding Statement</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="font-black uppercase tracking-tight">Refine Audit Statement</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
-                <Label className="text-[10px] font-black uppercase">Statement Content</Label>
+                <Label className="text-[10px] font-black uppercase text-slate-500">Statement Description</Label>
                 <Textarea value={editFindingText} onChange={(e) => setEditFindingText(e.target.value)} rows={6} className="bg-slate-50 italic text-xs leading-relaxed" />
-                <Alert className="bg-primary/5 border-primary/20"><ShieldCheck className="h-4 w-4 text-primary" /><AlertTitle className="text-[10px] font-black uppercase text-primary">Admin Override</AlertTitle><AlertDescription className="text-[10px] italic">Updates will be reflected in all official reports.</AlertDescription></Alert>
+                <Alert className="bg-primary/5 border-primary/20"><ShieldCheck className="h-4 w-4 text-primary" /><AlertTitle className="text-[10px] font-black uppercase text-primary">System Override</AlertTitle><AlertDescription className="text-[10px] italic">Updates will be synchronized across all official institutional reports.</AlertDescription></Alert>
             </div>
-            <DialogFooter><Button variant="ghost" onClick={() => setEditingFinding(null)}>Cancel</Button><Button onClick={handleSaveFindingUpdate} disabled={isSavingFinding}>{isSavingFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Updates</Button></DialogFooter>
+            <DialogFooter><Button variant="ghost" onClick={() => setEditingFinding(null)} className="font-bold text-xs uppercase">Cancel</Button><Button onClick={handleSaveFindingUpdate} disabled={isSavingFinding} className="font-black uppercase text-xs shadow-lg">{isSavingFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save & Refine</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
