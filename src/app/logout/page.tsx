@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
   Card,
@@ -16,7 +16,7 @@ import {
 import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck, Database, RefreshCw, ShieldCheck, Download, AlertTriangle, ExternalLink, ChevronRight, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import { collection, addDoc, serverTimestamp, doc, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDocs, Timestamp, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -179,12 +179,12 @@ export default function LogoutPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 space-y-6 text-center">
-                    <p className="text-sm font-medium text-slate-600 leading-relaxed">
+                    <p className="text-sm font-medium text-slate-600 leading-relaxed font-sans">
                         To maintain our **ISO 21001:2018 Certification**, we require all stakeholders to evaluate the portal maturity index. Please complete the assessment before signing out.
                     </p>
                     <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3 text-left">
-                        <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0" />
-                        <p className="text-[11px] text-blue-800 font-medium">
+                        <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-blue-800 font-medium font-sans">
                             Your feedback directly impacts the institutional roadmap for system improvements.
                         </p>
                     </div>
@@ -212,7 +212,7 @@ export default function LogoutPage() {
                     <CardTitle className="text-2xl font-black uppercase">Institutional Redundancy</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-8 space-y-4">
-                    <p className="text-sm text-slate-600 font-medium leading-relaxed">Administrator detected. Perform a full system backup before ending this session?</p>
+                    <p className="text-sm text-slate-600 font-medium leading-relaxed font-sans text-center">Administrator detected. Perform a full system backup before ending this session?</p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 pb-8">
                     <Button className="w-full h-12 text-lg font-black uppercase" onClick={handleBackup} disabled={isBackingUp}>

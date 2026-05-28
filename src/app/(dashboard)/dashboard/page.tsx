@@ -1118,7 +1118,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </TabsContent>
+      </Tabs>
 
       <TabsContent value="history">
         <Card>
@@ -1244,7 +1244,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
