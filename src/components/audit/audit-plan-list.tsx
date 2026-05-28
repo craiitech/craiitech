@@ -12,7 +12,33 @@ import {
     CardTitle, 
     CardFooter 
 } from '@/components/ui/card';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy, CalendarDays, Info } from 'lucide-react';
+import { 
+    Edit, 
+    CalendarPlus, 
+    Building2, 
+    ClipboardCheck, 
+    Clock, 
+    UserCheck, 
+    ChevronRight, 
+    Settings2, 
+    User as UserIcon, 
+    Calendar, 
+    ShieldCheck, 
+    Flag, 
+    ListChecks, 
+    Trash2, 
+    Globe, 
+    Printer, 
+    Search, 
+    ArrowUpDown, 
+    Users, 
+    FileText, 
+    AlertTriangle, 
+    School, 
+    Copy, 
+    CalendarDays, 
+    Info 
+} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -29,8 +55,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { AuditPrintTemplate } from './audit-print-template';
-import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
-import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -49,7 +73,6 @@ interface AuditPlanListProps {
   onScheduleAudit: (plan: AuditPlan) => void;
   onEditSchedule: (plan: AuditPlan, schedule: AuditSchedule) => void;
   onDeleteSchedule: (schedule: AuditSchedule) => void;
-  onDeletePlanConfirm?: (plan: AuditPlan) => void;
   onClonePlan: (plan: AuditPlan) => void;
 }
 
@@ -59,7 +82,6 @@ type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 function PlanItineraryRegistry({ 
     plan, 
     schedules,
-    allSchedules,
     isoClauses,
     signatories,
     onEdit, 
@@ -68,7 +90,6 @@ function PlanItineraryRegistry({
 }: { 
     plan: AuditPlan; 
     schedules: AuditSchedule[];
-    allSchedules: AuditSchedule[];
     isoClauses: ISOClause[];
     signatories?: Signatories;
     onEdit: (plan: AuditPlan, s: AuditSchedule) => void;
@@ -80,7 +101,6 @@ function PlanItineraryRegistry({
 
     const processedSchedules = useMemo(() => {
         let result = [...schedules];
-
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
             result = result.filter(s => 
@@ -89,7 +109,6 @@ function PlanItineraryRegistry({
                 s.procedureDescription.toLowerCase().includes(lower)
             );
         }
-
         if (sortConfig) {
             const { key, direction } = sortConfig;
             result.sort((a, b) => {
@@ -107,7 +126,7 @@ function PlanItineraryRegistry({
             });
         }
         return result;
-    }, [schedules, searchTerm, sortConfig, campusMap]);
+    }, [schedules, searchTerm, sortConfig]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -136,7 +155,6 @@ function PlanItineraryRegistry({
         <div className="space-y-4">
             <div className="relative w-full max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search itinerary..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-9 text-xs bg-white shadow-sm border-primary/10" /></div>
             <div className="rounded-2xl border bg-white shadow-lg overflow-hidden">
-                <TooltipProvider>
                 {processedSchedules.length > 0 ? (
                 <Table>
                     <TableHeader className="bg-slate-50">
@@ -155,9 +173,32 @@ function PlanItineraryRegistry({
                                 <TableCell className="py-6 pl-8"><div className="flex flex-col gap-1.5"><div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-primary" /><span className="font-black text-sm text-slate-800 tabular-nums">{format(schedule.scheduledDate.toDate(), 'MM/dd/yyyy')}</span></div><div className="flex items-center gap-2 bg-muted/20 w-fit px-2 py-1 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{format(schedule.scheduledDate.toDate(), 'hh:mm a')} - {format(schedule.endScheduledDate.toDate(), 'hh:mm a')}</span></div></div></TableCell>
                                 <TableCell className="py-6 text-center">{schedule.processCategory && <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary whitespace-nowrap">{schedule.processCategory.replace(' Processes', '')}</Badge>}</TableCell>
                                 <TableCell className="py-6"><div className="flex flex-wrap gap-1 max-w-[180px]">{schedule.isoClausesToAudit.map((cls, clsIdx) => <Badge key={`${schedule.id}-${cls}-${clsIdx}`} variant="outline" className="text-[9px] font-black bg-white border-slate-200 h-4 px-1">{cls}</Badge>)}</div></TableCell>
-                                <TableCell className="py-6"><div className="space-y-3 max-w-xs"><div className="p-3 rounded-lg border bg-muted/10 border-dashed group-hover:bg-white transition-colors"><p className="text-[10px] font-black uppercase text-primary mb-1">Focus Area</p><p className="text-xs font-medium text-slate-600 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description.'}</p></div><div className="grid grid-cols-2 gap-2"><div><p className="text-[8px] font-bold text-muted-foreground uppercase">Auditor</p><div className="flex items-center gap-1"><UserCheck className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 truncate">{schedule.auditorName || 'UNASSIGNED'}</span></div></div><div><p className="text-[8px] font-bold text-muted-foreground uppercase">Auditee</p><div className="flex flex-col"><div className="flex items-center gap-1"><Building2 className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 truncate">{schedule.targetName}</span></div></div></div></div></div></TableCell>
+                                <TableCell className="py-6">
+                                    <div className="space-y-3 max-w-xs">
+                                        <div className="p-3 rounded-lg border bg-muted/10 border-dashed group-hover:bg-white transition-colors">
+                                            <p className="text-[10px] font-black uppercase text-primary mb-1">Focus Area</p>
+                                            <p className="text-xs font-medium text-slate-600 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description.'}</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditor</p>
+                                                <div className="flex items-center gap-1"><UserCheck className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 truncate">{schedule.auditorName || 'UNASSIGNED'}</span></div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditee</p>
+                                                <div className="flex flex-col"><div className="flex items-center gap-1"><Building2 className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 truncate">{schedule.targetName}</span></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </TableCell>
                                 <TableCell className="text-right py-6"><Badge className={cn("text-[9px] font-black uppercase border-none px-3 shadow-sm", schedule.status === 'Completed' ? "bg-emerald-600 text-white" : "bg-amber-50 text-amber-950")}>{schedule.status}</Badge></TableCell>
-                                <TableCell className="text-right py-6 pr-8 whitespace-nowrap"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end"><Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/5" onClick={() => handlePrintTemplate(schedule)}><Printer className="h-3.5 w-3.5" /></Button><Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/5" onClick={() => onEdit(plan, schedule)}><Edit className="h-3.5 w-3.5" /></Button><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/5" onClick={() => onDelete(schedule)}><Trash2 className="h-3.5 w-3.5" /></Button></div></TableCell>
+                                <TableCell className="text-right py-6 pr-8 whitespace-nowrap">
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/5" onClick={() => handlePrintTemplate(schedule)} title="Print Evidence Template"><Printer className="h-3.5 w-3.5" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/5" onClick={() => onEdit(plan, schedule)} title="Edit Itinerary"><Edit className="h-3.5 w-3.5" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/5" onClick={() => onDelete(schedule)} title="Delete Session"><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </div>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -165,7 +206,6 @@ function PlanItineraryRegistry({
                 ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-20"><Clock className="h-12 w-12 text-muted-foreground" /><p className="text-xs font-black uppercase tracking-[0.2em]">Itinerary Provisioning Required</p></div>
                 )}
-                </TooltipProvider>
             </div>
         </div>
     );
@@ -177,8 +217,6 @@ export function AuditPlanList({
     findings,
     isoClauses,
     campuses, 
-    users,
-    units, 
     onEditPlan, 
     onDeletePlan,
     onScheduleAudit, 
@@ -197,18 +235,53 @@ export function AuditPlanList({
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const handlePrintPlan = (plan: AuditPlan, schedules: AuditSchedule[]) => {
+      if (!schedules.length) {
+          toast({ title: "Itinerary Empty", description: "Please provision audit sessions before printing the plan.", variant: "destructive" });
+          return;
+      }
+      try {
+          const sections = Array.from(new Set(schedules.map(s => s.processCategory).filter(Boolean) as AuditGroup[]));
+          const cName = campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE';
+          
+          const reportsHtml = sections.map(section => {
+              const sectionSchedules = schedules.filter(s => s.processCategory === section);
+              return renderToStaticMarkup(
+                  <div key={section} className="print-page-break mb-12">
+                      <AuditPlanPrintTemplate plan={plan} schedules={sectionSchedules} campusName={cName} signatories={signatories || undefined} section={section} />
+                  </div>
+              );
+          }).join('');
+
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+              printWindow.document.open();
+              printWindow.document.write(`<html><head><title>Audit Plan - ${plan.auditNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Detailed Plan</button></div><div id="print-content">${reportsHtml}</div></body></html>`);
+              printWindow.document.close();
+          }
+      } catch (err) { console.error(err); }
+  };
+
+  const handlePrintConsolidated = (plan: AuditPlan, schedules: AuditSchedule[]) => {
+    if (!schedules.some(s => s.status === 'Completed')) {
+        toast({ title: "No Verified Data", description: "A consolidated report requires at least one completed evidence log.", variant: "destructive" });
+        return;
+    }
+    try {
+        const cName = campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE';
+        const reportHtml = renderToStaticMarkup(<ConsolidatedAuditReportTemplate plan={plan} schedules={schedules} findings={findings} clauses={isoClauses} units={[]} campuses={campuses} signatories={signatories || undefined} campusName={cName} />);
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`<html><head><title>Audit Report - ${plan.auditNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.close();
+        }
+    } catch (err) { console.error(err); }
+  };
   
   return (
     <div className="space-y-6">
-        <Card className="bg-muted/10 border-none shadow-none">
-            <CardContent className="p-4 flex items-start gap-4">
-                <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground italic leading-tight">
-                    <strong>Admin Note:</strong> The Itinerary Registry allows for framework duplication and batch report generation.
-                </p>
-            </CardContent>
-        </Card>
-
         <Accordion type="multiple" className="w-full space-y-6">
           {plans.map(plan => {
             const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
@@ -219,6 +292,15 @@ export function AuditPlanList({
                         <div className="space-y-2 min-w-0">
                             <div className="flex items-center gap-3"><Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">NO: {plan.auditNumber}</Badge><p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p></div>
                             <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest"><span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-primary" /> {campusMap.get(plan.campusId) || '...'}</span><span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span></div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button size="sm" variant="outline" className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2" onClick={() => handlePrintConsolidated(plan, planSchedules)}><FileText className="h-3.5 w-3.5" /> Consolidate Results</Button>
+                            <Button size="sm" variant="outline" className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2" onClick={() => handlePrintPlan(plan, planSchedules)}><Printer className="h-3.5 w-3.5" /> Print Plan</Button>
+                            <div className="w-px h-6 bg-border mx-1" />
+                            <Button size="sm" onClick={() => onScheduleAudit(plan)} className="h-8 font-black uppercase text-[9px] gap-2"><CalendarPlus className="h-3.5 w-3.5" /> Schedule Audit</Button>
+                            <Button size="sm" variant="secondary" onClick={() => onClonePlan(plan)} className="h-8 font-black uppercase text-[9px] gap-2"><Copy className="h-3.5 w-3.5" /> Clone</Button>
+                            <Button size="sm" variant="ghost" onClick={() => onEditPlan(plan)} className="h-8 w-8 p-0 text-primary"><Edit className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => onDeletePlan(plan)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                         </div>
                     </div>
                 </AccordionTrigger>

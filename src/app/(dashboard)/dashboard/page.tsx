@@ -27,7 +27,10 @@ import {
   Globe,
   Briefcase,
   Home as HomeIcon,
-  Circle
+  Circle,
+  Activity,
+  ArrowRight,
+  ChevronRight
 } from 'lucide-react';
 import {
   useUser,
@@ -54,7 +57,10 @@ import type {
     Risk, 
     ManagementReviewOutput, 
     QaAdvisory, 
-    AuditSchedule 
+    AuditSchedule,
+    AuditPlan,
+    ISOClause,
+    AuditFinding
 } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';

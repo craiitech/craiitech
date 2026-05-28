@@ -73,7 +73,6 @@ export default function ApprovalsPage() {
   const filteredSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
     // Supervisors shouldn't see their own submissions in the approval queue to prevent self-approval
-    // Admins bypass this for system-wide oversight
     if (isAdmin) return rawSubmissions;
     return rawSubmissions.filter(s => s.userId !== userProfile?.id);
   }, [rawSubmissions, isAdmin, userProfile?.id]);

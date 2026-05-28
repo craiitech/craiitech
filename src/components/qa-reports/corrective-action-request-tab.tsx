@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -93,7 +93,7 @@ const carSchema = z.object({
   findingId: z.string().optional(),
 });
 
-export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
+export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
   const { userProfile, isAdmin, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -101,15 +101,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const isInstitutionalViewer = isAdmin || isAuditor;
 
   const carQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null), [firestore]);
   const { data: rawCars, isLoading } = useCollection<CorrectiveActionRequest>(carQuery);
-
-  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
-  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
@@ -161,7 +155,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-black uppercase text-slate-900">Corrective Action Registry</h3>
-        {isInstitutionalViewer && <Button onClick={() => { setEditingCar(null); form.reset(); setIsDialogOpen(true); }} size="sm"><PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR</Button>}
+        {(isAdmin || isAuditor) && <Button onClick={() => { setEditingCar(null); form.reset(); setIsDialogOpen(true); }} size="sm"><PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR</Button>}
       </div>
 
       <Card className="shadow-md border-primary/10 overflow-hidden">
@@ -222,7 +216,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                 </div>
                             </div>
                         ))}
-                        {isInstitutionalViewer && <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Effective' })} className="w-full h-10 border-dashed text-[9px] font-black uppercase"><PlusCircle className="h-3.5 w-3.5 mr-2" /> Add Effectiveness Result</Button>}
+                        {(isAdmin || isAuditor) && <Button type="button" variant="outline" size="sm" onClick={() => appendEffectiveness({ result: '', verifiedBy: '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Effective', remarks: '' })} className="w-full h-10 border-dashed text-[9px] font-black uppercase"><PlusCircle className="h-3.5 w-3.5 mr-2" /> Add Effectiveness Result</Button>}
                     </div>
                 </form>
             </Form>
