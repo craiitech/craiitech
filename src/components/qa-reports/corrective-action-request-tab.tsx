@@ -36,7 +36,8 @@ import {
     Link as LinkIcon,
     Save,
     Clock,
-    ShieldAlert
+    ShieldAlert,
+    AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
