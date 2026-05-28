@@ -41,7 +41,7 @@ export default function ApprovalsPage() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  // REAL-TIME SUBMISSIONS LISTENER: Matches Layout logic for 100% parity
+  // REAL-TIME SUBMISSIONS LISTENER
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !isSupervisor) return null;
     const baseRef = collection(firestore, 'submissions');
@@ -50,7 +50,6 @@ export default function ApprovalsPage() {
         return query(baseRef, where('statusId', '==', 'submitted'));
     }
     
-    // Site supervisors see pending submissions for their campus
     return query(
         baseRef, 
         where('statusId', '==', 'submitted'),
@@ -60,19 +59,16 @@ export default function ApprovalsPage() {
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  // REAL-TIME USERS LISTENER for submitter mapping
   const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
   const userMap = useMemo(() => new Map(allUsers?.map(u => [u.id, u])), [allUsers]);
 
-  // REAL-TIME CAMPUSES LISTENER
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
   const filteredSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
-    // Supervisors shouldn't see their own submissions in the approval queue to prevent self-approval
     if (isAdmin) return rawSubmissions;
     return rawSubmissions.filter(s => s.userId !== userProfile?.id);
   }, [rawSubmissions, isAdmin, userProfile?.id]);
