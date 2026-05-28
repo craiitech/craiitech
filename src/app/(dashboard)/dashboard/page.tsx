@@ -478,7 +478,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-6">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingEvents} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">

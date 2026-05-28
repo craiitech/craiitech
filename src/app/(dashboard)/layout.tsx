@@ -81,7 +81,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   
-  const [isGuidanceVisible, setIsGuidanceVisible] = useState(true);
+  // Defaulting guidance to false (hidden) as requested
+  const [isGuidanceVisible, setIsGuidanceVisible] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
