@@ -15,26 +15,18 @@ import {
   Clock,
   Users,
   Megaphone,
-  AlertCircle,
   ShieldCheck,
   BarChart,
   LayoutDashboard,
   BrainCircuit,
-  Info,
   ClipboardCheck,
   TrendingUp,
-  ListTodo,
-  Settings,
   Loader2,
   CheckCircle2,
-  Target,
-  MessageSquare,
   Pencil,
   Globe,
   Briefcase,
   Home as HomeIcon,
-  Download,
-  Calendar,
   Circle
 } from 'lucide-react';
 import {
@@ -61,26 +53,17 @@ import type {
     Cycle, 
     Risk, 
     ManagementReviewOutput, 
-    AuditPlan, 
     QaAdvisory, 
-    UnitMonitoringRecord, 
-    ProgramComplianceRecord, 
-    AuditFinding, 
-    CorrectiveActionRequest, 
-    AuditSchedule, 
-    Signatories, 
-    ISOClause 
+    AuditSchedule 
 } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
 import { UnitsWithoutSubmissions } from '@/components/dashboard/units-without-submissions';
-import { CampusUnitOverview } from '@/components/dashboard/campus-unit-overview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -92,10 +75,8 @@ import {
 import { format } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
-import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
 import { SubmissionSchedule } from '@/components/dashboard/submission-schedule';
 import { RiskStatusOverview } from '@/components/dashboard/risk-status-overview';
 import { OverdueWarning } from '@/components/dashboard/overdue-warning';
@@ -104,16 +85,14 @@ import { Leaderboard } from '@/components/dashboard/leaderboard';
 import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-over-time';
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
-import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
 import { normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
-import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
 import { Separator } from '@/components/ui/separator';
 
@@ -127,41 +106,6 @@ const statusVariant: Record<
   submitted: 'outline',
   'awaiting approval': 'outline',
 };
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500 min-h-screen">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-        <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-48" />
-        </div>
-        <Skeleton className="h-10 w-32" />
-      </div>
-
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-        <Skeleton className="h-28 rounded-2xl" />
-        <Skeleton className="h-28 rounded-2xl" />
-        <Skeleton className="h-28 rounded-2xl" />
-      </div>
-
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
-        <div className="w-full max-w-4xl space-y-12 animate-in zoom-in duration-700 relative z-10">
-            <div className="flex flex-col items-center gap-4 text-center">
-                <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                </div>
-                <div className="space-y-1">
-                    <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
-                </div>
-            </div>
-            <Progress value={undefined} className="h-2" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor } = useUser();
@@ -219,43 +163,6 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-  const monitoringRecordsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || isUserLoading) return null;
-    const baseRef = collection(firestore, 'unitMonitoringRecords');
-    if (isAdmin) return baseRef;
-    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
-  const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
-
-  const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || !selectedYear) return null;
-    const baseRef = collection(firestore, 'programCompliances');
-    return query(baseRef, where('academicYear', '==', selectedYear));
-  }, [firestore, userProfile, selectedYear]);
-  const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
-
-  const carQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || isUserLoading) return null;
-    const baseRef = collection(firestore, 'correctiveActionRequests');
-    if (isAdmin) return baseRef;
-    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
-  const { data: correctiveActionRequests } = useCollection<CorrectiveActionRequest>(carQuery);
-
-  const mrOutputsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-    return collection(firestore, 'managementReviewOutputs');
-  }, [firestore, userProfile]);
-  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
-
-  const auditFindingsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-    return collection(firestore, 'auditFindings');
-  }, [firestore, userProfile]);
-  const { data: auditFindings } = useCollection<AuditFinding>(auditFindingsQuery);
-
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
     const baseRef = collection(firestore, 'users');
@@ -275,11 +182,10 @@ export default function HomePage() {
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
-  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
+  const campusesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'campuses') : null, [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
   
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
-  const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -455,7 +361,7 @@ export default function HomePage() {
                         <TableBody>
                             {yearSubs.sort((a,b) => b.submissionDate.getTime() - a.submissionDate.getTime()).map(s => (
                                 <TableRow key={s.id} className="hover:bg-muted/20">
-                                    <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle &bull; {s.controlNumber}</p></TableCell>
+                                    <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle & bull; {s.controlNumber}</p></TableCell>
                                     <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{format(s.submissionDate, 'MM/dd/yy')}</TableCell>
                                     <TableCell className="text-center"><Badge variant={statusVariant[s.statusId]} className="text-[8px] font-black uppercase">{s.statusId}</Badge></TableCell>
                                     <TableCell className="text-right pr-8"><Button variant="ghost" size="sm" asChild className="h-7 text-[9px] font-black uppercase"><Link href={`/submissions/${s.id}`}>View</Link></Button></TableCell>
@@ -501,7 +407,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
             <div className="lg:col-span-4 space-y-6">
                  <Card className="shadow-md"><CardHeader><CardTitle>Submission Volume</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
-                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
             </div>
              <div className="lg:col-span-3 space-y-6">
                 <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
@@ -570,7 +476,7 @@ export default function HomePage() {
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
-        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
@@ -617,13 +523,25 @@ export default function HomePage() {
     return renderUnitUserHome();
   };
 
-  const isLoading = isUserLoading || isLoadingSubmissions;
-
-  if (isLoading) return <DashboardSkeleton />;
+  if (isUserLoading || isLoadingSubmissions) {
+      return (
+          <div className="flex h-screen items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
+              <div className="flex flex-col items-center gap-4 text-center">
+                  <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                      <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
+                  </div>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="space-y-6">
-        {!isLoading && (campusSetting?.announcement || globalSetting?.announcement) && (
+        {(campusSetting?.announcement || globalSetting?.announcement) && (
           <div className="space-y-4">
             {globalSetting?.announcement && isGlobalAnnouncementVisible && (
               <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md">
@@ -644,7 +562,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {!isLoading && latestAdvisory && (
+        {latestAdvisory && (
             <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4">
                 <Megaphone className="h-5 w-5 text-primary" />
                 <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>

@@ -51,7 +51,6 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -77,22 +76,17 @@ const carSchema = z.object({
   preparedBy: z.string().min(1, 'Prepared by is required'),
   approvedBy: z.string().min(1, 'Approved by is required'),
   rootCauseAnalysis: z.string().optional().or(z.literal('')),
-  adminFeedback: z.string().optional().or(z.literal('')),
-  nextVerificationDate: z.string().optional().or(z.literal('')),
   actionSteps: z.array(z.object({
     description: z.string().min(1, 'Description is required'),
     type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
     completionDate: z.string().min(1, 'Date is required'),
     status: z.enum(['Pending', 'Completed']),
-    evidenceLink: z.string().url('Invalid URL').optional().or(z.literal('')),
-    verificationStatus: z.enum(['Accepted', 'Not Accepted', 'Pending']).optional(),
-    verificationRemarks: z.string().optional().or(z.literal('')),
   })).optional(),
   effectivenessAudits: z.array(z.object({
     result: z.string().min(1, 'Effectiveness result is required'),
     verifiedBy: z.string().min(1, 'Required'),
     date: z.string().min(1, 'Required'),
-    action: z.enum(['Effective', 'Not Effective', 'Close the NC', 'Continue Monitoring the NC', 'Provide More Actions to Address the NC']),
+    action: z.enum(['Effective', 'Not Effective', 'Close the NC', 'Continue Monitoring the NC']),
     remarks: z.string().optional().or(z.literal('')),
   })).optional(),
   status: z.enum(['Open', 'In Progress', 'Awaiting Response/Update', 'For Final Verification', 'Closed']),
@@ -100,7 +94,7 @@ const carSchema = z.object({
 });
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage: initialCanManage }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   

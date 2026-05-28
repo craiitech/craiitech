@@ -93,7 +93,10 @@ export function AuditResultsView({
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses } = useCollection<ISOClause>(isoClausesQuery);
 
-  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const kpis = useMemo(() => {
@@ -147,6 +150,18 @@ export function AuditResultsView({
     } catch (e) { toast({ title: 'Update Failed', variant: 'destructive' }); } finally { setIsSavingFinding(false); }
   };
 
+  const handleDeleteFinding = async (id: string, authorId: string) => {
+    if (!firestore || !window.confirm('Are you sure you want to remove this verified finding?')) return;
+    if (!isAdmin && user?.uid !== authorId) {
+        toast({ title: "Access Restricted", description: "You can only delete findings that you authored.", variant: "destructive" });
+        return;
+    }
+    try {
+        await deleteDoc(doc(firestore, 'auditFindings', id));
+        toast({ title: 'Finding Removed' });
+    } catch (e) { toast({ title: 'Delete Failed', variant: 'destructive' }); }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-primary/10 shadow-sm bg-muted/10">
@@ -173,13 +188,24 @@ export function AuditResultsView({
                       </TableHeader>
                       <TableBody>
                           {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').map(finding => (
-                              <TableRow key={finding.id} className="hover:bg-rose-50/20">
+                              <TableRow key={finding.id} className="hover:bg-rose-50/20 group">
                                   <TableCell className="pl-8 py-5"><p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p></TableCell>
                                   <TableCell className="py-5"><Badge className="bg-rose-600 text-white h-4 px-1.5 text-[8px] font-black mb-2">Clause {finding.isoClause}</Badge><p className="text-xs font-bold italic">"{finding.ncStatement || finding.description}"</p></TableCell>
                                   <TableCell className="text-right pr-8">
-                                      <div className="flex gap-2 justify-end">
-                                          {isAdmin && <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase bg-white border-primary/20 text-primary" onClick={() => { setEditingFinding(finding); setEditFindingText(finding.ncStatement || finding.description); }}><Edit className="h-3 w-3 mr-1" /> EDIT</Button>}
-                                          <Button size="sm" onClick={() => handleNavigateToIssueCar({ finding })} className="h-8 text-[9px] font-black uppercase bg-indigo-600"><Gavel className="h-3.5 w-3.5 mr-1.5" /> ISSUE CAR</Button>
+                                      <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
+                                          {isAdmin && (
+                                              <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase bg-white border-primary/20 text-primary" onClick={() => { setEditingFinding(finding); setEditFindingText(finding.ncStatement || finding.description); }}>
+                                                  <Edit className="h-3 w-3 mr-1" /> EDIT STMT
+                                              </Button>
+                                          )}
+                                          <Button size="sm" onClick={() => handleNavigateToIssueCar({ finding })} className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md">
+                                              <Gavel className="h-3.5 w-3.5 mr-1.5" /> ISSUE CAR
+                                          </Button>
+                                          {(isAdmin || user?.uid === finding.authorId) && (
+                                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteFinding(finding.id, finding.authorId)}>
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                              </Button>
+                                          )}
                                       </div>
                                   </TableCell>
                               </TableRow>

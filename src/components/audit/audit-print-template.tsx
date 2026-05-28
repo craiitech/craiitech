@@ -106,39 +106,50 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                   
                   <div style={{ borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
 
-                  <div className={cn("pt-4", isBlankTemplate ? "min-h-[220px]" : "min-h-[100px]")}>
+                  <div className={cn("pt-4", isBlankTemplate ? "min-h-[140px]" : "min-h-[80px]")}>
                     <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
-                    <p className="whitespace-pre-wrap leading-relaxed">
-                        {finding?.evidence || ""}
-                    </p>
+                    {isBlankTemplate ? (
+                        <div className="space-y-3 pl-2">
+                            <p className="font-bold">1.</p>
+                            <p className="font-bold">2.</p>
+                            <p className="font-bold">3.</p>
+                        </div>
+                    ) : (
+                        <p className="whitespace-pre-wrap leading-relaxed">{finding?.evidence || ""}</p>
+                    )}
                   </div>
 
-                  <div className="pt-8">
-                     <p className="font-black uppercase text-slate-900" style={{ fontSize: '9pt' }}>Findings Statement:</p>
-                     <p className="mt-2 italic leading-relaxed min-h-[40px]">
-                        {finding?.ncStatement || finding?.description || ""}
-                     </p>
+                  <div className="pt-4 border-t border-slate-100 mt-4">
+                     <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: '9pt' }}>Finding Statement:</p>
+                     {isBlankTemplate ? (
+                        <div className="space-y-3 pl-2">
+                            <p className="font-bold">1.</p>
+                            <p className="font-bold">2.</p>
+                        </div>
+                    ) : (
+                        <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>
+                    )}
                   </div>
                 </td>
                 <td className="border-2 border-black p-4 align-top pt-20">
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex items-center gap-3">
-                        <div style={{ width: '16px', height: '16px', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
-                            {finding?.type === 'Compliance' && <Check className="h-3 w-3 text-white" />}
+                        <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
+                            {finding?.type === 'Compliance' && <Check className="h-4 w-4 text-white" />}
                         </div>
-                        <span className="text-[10pt] font-medium">Compliant</span>
+                        <span className="text-[10pt] font-black uppercase">Compliant</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div style={{ width: '16px', height: '16px', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
-                            {finding?.type === 'Observation for Improvement' && <Check className="h-3 w-3 text-white" />}
+                        <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
+                            {finding?.type === 'Observation for Improvement' && <Check className="h-4 w-4 text-white" />}
                         </div>
-                        <span className="text-[10pt] font-medium">OFI</span>
+                        <span className="text-[10pt] font-black uppercase">OFI</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div style={{ width: '16px', height: '16px', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
-                            {finding?.type === 'Non-Conformance' && <Check className="h-3 w-3 text-white" />}
+                        <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
+                            {finding?.type === 'Non-Conformance' && <Check className="h-4 w-4 text-white" />}
                         </div>
-                        <span className="text-[10pt] font-medium">NC</span>
+                        <span className="text-[10pt] font-black uppercase">NC</span>
                     </div>
                   </div>
                 </td>
@@ -151,7 +162,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       {/* Official Signatories Section */}
       <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10">
         <div>
-          <div className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[30px]">
+          <div className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[30px] uppercase">
             {schedule.auditorName || '__________________________'}
           </div>
           <p className="uppercase font-black text-slate-500" style={{ fontSize: '10pt' }}>Internal Auditor</p>

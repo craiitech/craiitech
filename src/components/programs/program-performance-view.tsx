@@ -103,20 +103,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
   const firestore = useFirestore();
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
 
-  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<any>(unitsQuery);
-  const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
-
-  const carQuery = useMemoFirebase(() => {
-    if (!firestore || !record?.unitId || !record?.campusId) return null;
-    return query(
-        collection(firestore, 'correctiveActionRequests'), 
-        where('unitId', '==', record.unitId),
-        where('campusId', '==', record.campusId)
-    );
-  }, [firestore, record?.unitId, record?.campusId]);
-  const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
-
   const analyticsData = useMemo(() => {
     if (!record) return null;
 

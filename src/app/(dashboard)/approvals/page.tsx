@@ -23,7 +23,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { useMemo } from 'react';
 import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, ClipboardCheck, LayoutList, User, School, Building2, CheckCircle2 } from 'lucide-react';
+import { Loader2, ClipboardCheck, LayoutList, User, Building2, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -145,7 +145,7 @@ export default function ApprovalsPage() {
                         <TableCell>
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
-                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    <User className="h-3.5 w-3.5 text-muted-foreground" />
                                     <span className="font-bold text-xs">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
