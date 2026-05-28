@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -318,7 +317,7 @@ export function AuditResultsView({
               <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <TrendingUp className="h-3.5 w-3.5 text-blue-600" /> Opportunities (OFI)
               </TabsTrigger>
-              <TabsTrigger value="non-conformance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
+              <TabsTrigger value="non-conformance" className="gap-2 text-[10px) font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white">
                   <ShieldAlert className="h-3.5 w-3.5" /> Non-Conformance (NC)
               </TabsTrigger>
           </TabsList>

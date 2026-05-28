@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -181,83 +180,7 @@ function DashboardSkeleton() {
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
                 </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                    <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
-                        <Sparkles className="h-4 w-4 text-amber-50" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Quality Hub Capabilities</h3>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-4">
-                        {[
-                            { icon: <ShieldCheck className="text-emerald-600" />, title: "Documentation Control", desc: "Automated ISO 7.5.3 compliance for all evidence logs." },
-                            { icon: <Target className="text-rose-600" />, title: "Risk Proactivity", desc: "Digital identifying factors and treatment velocity tracking." },
-                            { icon: <MonitorCheck className="text-blue-600" />, title: "Site Parity", desc: "Comparative maturity benchmarks across all campuses." },
-                            { icon: <ClipboardCheck className="text-indigo-600" />, title: "Audit Integrity", desc: "Real-time Evidence Log Sheets for institutional IQA." }
-                        ].map((cap, i) => (
-                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/90 border border-slate-100 shadow-sm transition-all hover:bg-white">
-                                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                                    {cap.icon}
-                                </div>
-                                <div className="space-y-0.5">
-                                    <h4 className="text-xs font-black uppercase text-slate-900">{cap.title}</h4>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{cap.desc}"</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
-                        <FileText className="h-4 w-4 text-primary" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">EOMS Compliance Framework</h3>
-                    </div>
-
-                    <Card className="bg-primary/5 border-primary/20 shadow-none overflow-hidden group">
-                        <CardHeader className="py-4 border-b border-primary/10 bg-white/90">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                <ListChecks className="h-3.5 w-3.5" />
-                                6 Core Registry Documents
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-2">
-                            {submissionTypes.map((type, i) => (
-                                <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-700">
-                                    <CheckCircle2 className="h-3 text-emerald-500" />
-                                    {type}
-                                </div>
-                            ))}
-                        </CardContent>
-                        <CardFooter className="bg-white/90 border-t py-2">
-                            <p className="text-[8px] font-medium text-muted-foreground italic leading-tight">
-                                Mandatory per submission cycle to maintain ISO 21001:2018 Certification.
-                            </p>
-                        </CardFooter>
-                    </Card>
-
-                    <div className="p-5 rounded-2xl bg-indigo-50/80 border border-indigo-100 backdrop-blur-sm flex items-start gap-4">
-                        <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                            <p className="text-xs font-black uppercase text-indigo-900">Pro-Tip for Coordinators</p>
-                            <p className="text-[11px] text-indigo-800/80 leading-relaxed font-medium italic">
-                                "Use the <strong>Contextual Operational Guide</strong> in the right sidebar of every module for step-by-step instructions on registration and auditing."
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="pt-8 border-t border-primary/10 flex justify-between items-center opacity-40">
-                <div className="flex items-center gap-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                    <Building2 className="h-3 w-3" />
-                    Romblon State University
-                </div>
-                <div className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                    Digital Excellence Registry v2.5.0
-                </div>
-            </div>
+            <Progress value={undefined} className="h-2" />
         </div>
       </div>
     </div>
@@ -616,7 +539,6 @@ export default function HomePage() {
     isLoadingRisks ||
     isLoadingUsers ||
     isLoadingSchedules;
-
 
   const stats = useMemo(() => {
     const defaultStats = {
@@ -1118,7 +1040,7 @@ export default function HomePage() {
              <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
-      </Tabs>
+      </TabsContent>
 
       <TabsContent value="history">
         <Card>
