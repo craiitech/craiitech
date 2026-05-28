@@ -26,8 +26,6 @@ import type { BackupSettings, SoftwareEvaluation } from '@/lib/types';
 import { Iso25010Form } from '@/components/evaluation/iso-25010-form';
 import { Badge } from '@/components/ui/badge';
 
-const QAO_SURVEY_URL = "https://surveymars.com/q/38KA5k0nk";
-
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();

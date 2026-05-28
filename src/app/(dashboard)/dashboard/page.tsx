@@ -100,7 +100,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
-import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
 import { Separator } from '@/components/ui/separator';
 
 const statusVariant: Record<
@@ -388,7 +387,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Institutional Oversight for AY {selectedYear}</p></div>
               <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                  <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
                   <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
               </Select>
           </div>
@@ -442,7 +441,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Campus Oversight for AY {selectedYear}</p></div>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
                     <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                 </Select>
             </div>
@@ -504,8 +503,6 @@ export default function HomePage() {
                 </Card>
             ))}
         </div>
-
-        <AuditorOfflineManager />
 
         <UnitAuditSchedule 
             schedules={dashboardSchedules} 

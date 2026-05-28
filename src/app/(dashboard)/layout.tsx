@@ -1,6 +1,7 @@
 'use client';
 
-import { redirect, usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useMemo, useCallback, useRef, useState, useEffect, Suspense } from 'react';
 import { useFirebase, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -11,11 +12,10 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import { useEffect, useMemo, useCallback, useRef, useState, Suspense } from 'react';
 import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw } from 'lucide-react';
+import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw, Loader2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
@@ -32,33 +32,18 @@ import { Button } from '@/components/ui/button';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; 
 
-const LoadingSkeleton = () => (
-  <div className="flex items-start">
-    <div className="w-64 border-r h-screen p-4 flex-col gap-4 hidden md:flex">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-8 w-8" />
-        <Skeleton className="h-6 w-32" />
-      </div>
-      <div className="mt-4 flex flex-col gap-2">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-      </div>
-    </div>
-    <main className="flex-1 p-8">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-48 mb-4" />
-        <Skeleton className="h-8 w-8 rounded-full" />
-      </div>
-      <div className="space-y-4">
-        <Skeleton className="h-40 w-full" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Skeleton className="col-span-4 h-80" />
-          <Skeleton className="col-span-3 h-80" />
+const FullScreenLoader = () => (
+    <div className="flex h-screen w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
+        <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-700">
+            <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+            <div className="space-y-1">
+                <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
+            </div>
         </div>
-      </div>
-    </main>
-  </div>
+    </div>
 );
 
 const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) => {
@@ -87,7 +72,6 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
     };
   }, [resetTimer, enabled]);
 };
-
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -210,12 +194,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return count;
   }, [subNotifications, carNotifications, userProfile, isAdmin, isSupervisor]);
 
-
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
   const fallbackAvatar = displayName ? displayName.split(' ').map(n => n[0]).join('') : '?';
   const displayRole = isAdmin ? 'Admin' : userRole;
-
 
   useEffect(() => {
     if (isUserLoading) return; 
@@ -251,10 +233,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return cn(highContrast && 'accessibility-high-contrast', dyslexicFont && 'accessibility-dyslexic-font', reducedMotion && 'accessibility-reduced-motion', themeColor && themeColor !== 'default' && `theme-${themeColor}`);
   }, [userProfile?.accessibility]);
 
+  if (isUserLoading) return <FullScreenLoader />;
 
-  if (isUserLoading) return <LoadingSkeleton />;
-
-  // OFFLINE AUDITOR GATE: If auditor is offline and has no mirror, block the entire interface
   const isAuditorOfflineLockActive = !isOnline && isAuditor && !localStorage.getItem('rsu_last_mirror_time');
 
   if (isAuditorOfflineLockActive) {
