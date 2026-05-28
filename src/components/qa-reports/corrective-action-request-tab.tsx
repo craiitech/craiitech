@@ -195,10 +195,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       <Tabs defaultValue="registry" className="space-y-6">
           <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
               <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <ListChecks className="h-4 w-4" /> Strategic CAR Registry
+                  <ListChecks className="h-4 w-4" /> Full List
               </TabsTrigger>
               <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <ShieldAlert className="h-4 w-4 text-rose-600" /> Finding Bridge / NC Manager
+                  <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management
               </TabsTrigger>
           </TabsList>
 
@@ -304,7 +304,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         )} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase">Campus Site</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50 h-10"><SelectValue /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-[10px] font-black uppercase">Campus Site</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50 h-10"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
                             )} />
                             <FormField control={form.control} name="unitId" render={({ field }) => (
                                 <FormItem><FormLabel className="text-[10px] font-black uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50 h-10"><SelectValue /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>

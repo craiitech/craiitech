@@ -315,7 +315,7 @@ export default function HomePage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">AY {selectedYear} Quality Performance Overview</p></div>
                     <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                        <SelectTrigger className="w-[150px] h-9 bg-white font-bold"><SelectValue placeholder="Year" /></SelectTrigger>
+                        <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
                         <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
@@ -366,10 +366,10 @@ export default function HomePage() {
                             <TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Report Type</TableHead><TableHead className="text-[10px] font-black uppercase">Date</TableHead><TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
-                            {yearSubs.sort((a,b) => b.submissionDate.getTime() - a.submissionDate.getTime()).map(s => (
+                            {yearSubs.sort((a,b) => (b.submissionDate?.getTime?.() || 0) - (a.submissionDate?.getTime?.() || 0)).map(s => (
                                 <TableRow key={s.id} className="hover:bg-muted/20">
                                     <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle & bull; {s.controlNumber}</p></TableCell>
-                                    <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{format(s.submissionDate, 'MM/dd/yy')}</TableCell>
+                                    <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{s.submissionDate ? format(s.submissionDate, 'MM/dd/yy') : '--'}</TableCell>
                                     <TableCell className="text-center"><Badge variant={statusVariant[s.statusId]} className="text-[8px] font-black uppercase">{s.statusId}</Badge></TableCell>
                                     <TableCell className="text-right pr-8"><Button variant="ghost" size="sm" asChild className="h-7 text-[9px] font-black uppercase"><Link href={`/submissions/${s.id}`}>View</Link></Button></TableCell>
                                 </TableRow>
