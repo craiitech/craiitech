@@ -23,7 +23,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { useMemo } from 'react';
 import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, ClipboardCheck, LayoutList, User, School, Building2 } from 'lucide-react';
+import { Loader2, ClipboardCheck, LayoutList, User, School, Building2, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -180,7 +180,7 @@ export default function ApprovalsPage() {
               </TableBody>
             </Table>
             {filteredSubmissions.length === 0 && (
-              <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-3 opacity-20">
+              <div className="text-center py-20 text-muted-foreground flex flex-col items-center justify-center gap-3 opacity-20">
                 <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                 <p className="text-xs font-black uppercase tracking-[0.2em]">Zero Pending Verifications</p>
               </div>

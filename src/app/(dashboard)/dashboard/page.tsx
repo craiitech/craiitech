@@ -34,7 +34,8 @@ import {
   Briefcase,
   Home as HomeIcon,
   Download,
-  Calendar
+  Calendar,
+  Circle
 } from 'lucide-react';
 import {
   useUser,
@@ -114,6 +115,7 @@ import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
+import { Separator } from '@/components/ui/separator';
 
 const statusVariant: Record<
   string,
@@ -174,8 +176,6 @@ export default function HomePage() {
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
-
-  const canViewCampusAnnouncements = userProfile?.campusId;
 
   const roleLower = userRole?.toLowerCase() || '';
   const isCampusLevel = isAdmin || isVp || roleLower.includes('campus director') || roleLower.includes('campus odimo');
@@ -257,7 +257,7 @@ export default function HomePage() {
   const { data: auditFindings } = useCollection<AuditFinding>(auditFindingsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin && !isCampusSupervisor) return null;
+    if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
     const baseRef = collection(firestore, 'users');
     if (isAdmin) return baseRef;
     return query(baseRef, where('campusId', '==', userProfile?.campusId));
@@ -275,7 +275,7 @@ export default function HomePage() {
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
-  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
   
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
@@ -293,12 +293,6 @@ export default function HomePage() {
     const isAccessible = adv.scope === 'University-Wide' || adv.targetUnitId === userProfile.unitId || isAdmin;
     return isAccessible ? adv : null;
   }, [latestAdvisories, userProfile, isAdmin]);
-
-  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
-  const { data: isoClauses } = useCollection<ISOClause>(isoClausesQuery);
-
-  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
-  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
