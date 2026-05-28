@@ -14,9 +14,10 @@ interface AuditPrintTemplateProps {
   clauses: ISOClause[];
   signatories?: Signatories;
   leadAuditorName?: string;
+  campusName: string;
 }
 
-export function AuditPrintTemplate({ schedule, findings, clauses, signatories, leadAuditorName }: AuditPrintTemplateProps) {
+export function AuditPrintTemplate({ schedule, findings, clauses, signatories, leadAuditorName, campusName }: AuditPrintTemplateProps) {
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
     : (schedule.scheduledDate ? new Date(schedule.scheduledDate) : new Date());
@@ -53,7 +54,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 <span className="opacity-60 mr-2">UNIT:</span> {schedule.targetName}
             </div>
             <div className="p-2 font-bold">
-                <span className="opacity-60 mr-2">NC REPORT NO:</span> ___________________
+                <span className="opacity-60 mr-2">CAMPUS:</span> {campusName}
             </div>
         </div>
         <div className="grid grid-cols-1 border-b border-black">
@@ -113,6 +114,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                             <p className="font-bold">1.</p>
                             <p className="font-bold">2.</p>
                             <p className="font-bold">3.</p>
+                            <p className="font-bold">4.</p>
+                            <p className="font-bold">5.</p>
                         </div>
                     ) : (
                         <p className="whitespace-pre-wrap leading-relaxed">{finding?.evidence || ""}</p>
@@ -125,6 +128,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                         <div className="space-y-3 pl-2">
                             <p className="font-bold">1.</p>
                             <p className="font-bold">2.</p>
+                            <p className="font-bold">3.</p>
+                            <p className="font-bold">4.</p>
+                            <p className="font-bold">5.</p>
                         </div>
                     ) : (
                         <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>

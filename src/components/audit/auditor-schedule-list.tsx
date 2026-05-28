@@ -85,6 +85,7 @@ export function AuditorScheduleList({
 
     const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
     const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
+    const campusName = campusMap.get(schedule.campusId) || 'Institutional';
     
     const scheduleFindings = withData 
         ? findings.filter(f => f.auditScheduleId === schedule.id)
@@ -98,6 +99,7 @@ export function AuditorScheduleList({
                 clauses={clausesInScope}
                 signatories={signatories}
                 leadAuditorName={parentPlan?.leadAuditorName}
+                campusName={campusName}
             />
         );
 
@@ -116,7 +118,7 @@ export function AuditorScheduleList({
                             margin: 0.5in !important; 
                         }
                         @media print { 
-                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; } 
+                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } 
                             .no-print { display: none !important; }
                             table { page-break-inside: auto; width: 100% !important; border-collapse: collapse; }
                             tr { page-break-inside: avoid; page-break-after: auto; }

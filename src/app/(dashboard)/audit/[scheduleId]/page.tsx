@@ -3,7 +3,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc, setDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -126,6 +126,12 @@ export default function AuditExecutionPage() {
     [firestore]
   );
   const { data: allIsoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(allIsoClausesQuery);
+
+  const campusRef = useMemoFirebase(
+    () => (firestore && schedule?.campusId ? doc(firestore, 'campuses', schedule.campusId) : null),
+    [firestore, schedule?.campusId]
+  );
+  const { data: campus } = useDoc<Campus>(campusRef);
 
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
@@ -297,6 +303,7 @@ export default function AuditExecutionPage() {
                 clauses={clausesInScope}
                 signatories={signatories || undefined}
                 leadAuditorName={plan?.leadAuditorName}
+                campusName={campus?.name || 'Institutional'}
             />
         );
         const printWindow = window.open('', '_blank');

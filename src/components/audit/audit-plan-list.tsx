@@ -140,8 +140,9 @@ function PlanItineraryRegistry({
 
     const handlePrintTemplate = (schedule: AuditSchedule) => {
         const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+        const campusName = campusMap.get(schedule.campusId) || 'Institutional';
         try {
-            const reportHtml = renderToStaticMarkup(<AuditPrintTemplate schedule={schedule} findings={[]} clauses={clausesInScope} signatories={signatories} leadAuditorName={plan.leadAuditorName} />);
+            const reportHtml = renderToStaticMarkup(<AuditPrintTemplate schedule={schedule} findings={[]} clauses={clausesInScope} signatories={signatories} leadAuditorName={plan.leadAuditorName} campusName={campusName} />);
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.open();
@@ -306,7 +307,7 @@ export function AuditPlanList({
                 </AccordionTrigger>
                 <AccordionContent className="p-0 bg-white">
                   <div className="p-8 space-y-10">
-                    <PlanItineraryRegistry plan={plan} schedules={planSchedules} allSchedules={schedules} isoClauses={isoClauses} signatories={signatories || undefined} onEdit={onEditSchedule} onDelete={onDeleteSchedule} campusMap={campusMap} />
+                    <PlanItineraryRegistry plan={plan} schedules={planSchedules} isoClauses={isoClauses} signatories={signatories || undefined} onEdit={onEditSchedule} onDelete={onDeleteSchedule} campusMap={campusMap} />
                   </div>
                 </AccordionContent>
               </AccordionItem>
