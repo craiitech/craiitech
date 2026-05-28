@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -282,20 +283,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     setIsDialogOpen(true);
   };
 
-  const handlePrint = (car: CorrectiveActionRequest) => {
-    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
-    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
-    try {
-        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />);
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button></div><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
-            printWindow.document.close();
-        }
-    } catch (err) { console.error(err); }
-  };
-
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     if (fieldName.startsWith('effectivenessAudits') || fieldName === 'adminFeedback' || fieldName === 'nextVerificationDate') return !isInstitutionalViewer;
@@ -366,18 +353,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     } catch (e) { toast({ title: 'Error', variant: 'destructive' }); } finally { setIsSubmitting(false); }
   };
 
-  const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
-  };
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
   const renderRegistryTable = (data: CorrectiveActionRequest[]) => (
     <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
@@ -426,7 +401,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                         </TableCell>
                         <TableCell className="text-right pr-6 whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[9px] font-bold bg-white shadow-sm gap-1.5"><Printer className="h-3 w-3" /> PRINT</Button>
                                 <Button 
                                     variant="secondary" 
                                     size="sm" 
@@ -445,6 +419,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
         </CardContent>
     </Card>
   );
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
 
   return (
     <div className="space-y-6">

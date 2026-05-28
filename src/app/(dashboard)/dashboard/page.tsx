@@ -66,7 +66,6 @@ import {
   Timestamp,
   orderBy,
   limit,
-  getDoc,
 } from 'firebase/firestore';
 import type { 
     Submission, 
@@ -129,7 +128,6 @@ import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-a
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
-import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';

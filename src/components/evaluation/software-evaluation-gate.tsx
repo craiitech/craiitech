@@ -1,21 +1,36 @@
+
 'use client';
 
 /**
- * @fileOverview A blocking overlay component that mandates a software evaluation.
- * In compliance with ISO/IEC 25010 standards, this gate ensures all users provide feedback.
- * Optimized: Reduced padding and improved fit for all screen sizes.
+ * @fileOverview A dismissible overlay component that prompts for software evaluation.
+ * In compliance with ISO/IEC 25010 standards.
+ * Users can skip the evaluation for the current session, but it will be prompted again on logout.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MonitorCheck, ShieldCheck, ArrowRight, Activity, Landmark, Info } from 'lucide-react';
+import { MonitorCheck, ShieldCheck, ArrowRight, Activity, Landmark, Info, X } from 'lucide-react';
 import { Iso25010Form } from './iso-25010-form';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function SoftwareEvaluationGate() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSkipped, setIsSkipped] = useState(false);
+
+  useEffect(() => {
+    // Check if the user has already skipped the evaluation in this session
+    const skipped = sessionStorage.getItem('rsu_eval_skipped_session') === 'true';
+    setIsSkipped(skipped);
+  }, []);
+
+  const handleSkip = () => {
+    sessionStorage.setItem('rsu_eval_skipped_session', 'true');
+    setIsSkipped(true);
+  };
+
+  if (isSkipped) return null;
 
   if (isFormOpen) {
     return <Iso25010Form isOpen={isFormOpen} onOpenChange={setIsFormOpen} />;
@@ -30,7 +45,15 @@ export function SoftwareEvaluationGate() {
 
       <Card className="w-full max-w-xl max-h-[95vh] bg-white/95 border-primary/20 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)] animate-in zoom-in duration-500 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1">
-            <CardHeader className="bg-primary/5 border-b py-4 sm:py-6 px-6 sm:px-10 text-center">
+            <CardHeader className="bg-primary/5 border-b py-4 sm:py-6 px-6 sm:px-10 text-center relative">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-4 right-4 rounded-full" 
+                    onClick={handleSkip}
+                >
+                    <X className="h-4 w-4" />
+                </Button>
                 <div className="mx-auto bg-white p-2 rounded-2xl shadow-xl border border-primary/10 w-fit mb-4">
                     <MonitorCheck className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                 </div>
@@ -40,14 +63,14 @@ export function SoftwareEvaluationGate() {
                     </div>
                     <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Institutional Software Audit</CardTitle>
                     <CardDescription className="text-xs sm:text-sm text-slate-600 font-medium">
-                        Mandatory Quality Assurance Participation Protocol
+                        Quality Assurance Participation Protocol
                     </CardDescription>
                 </div>
             </CardHeader>
             <CardContent className="p-6 sm:p-8 space-y-4">
                 <div className="space-y-4">
                     <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-center font-medium">
-                        In alignment with our <strong>ISO 21001:2018 Certification</strong>, all stakeholders are required to evaluate the EOMS Portal.
+                        In alignment with our <strong>ISO 21001:2018 Certification</strong>, all stakeholders are encouraged to evaluate the EOMS Portal.
                     </p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
@@ -71,22 +94,30 @@ export function SoftwareEvaluationGate() {
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
                     <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase text-blue-900 tracking-tight">Oversight Lock Active</p>
+                        <p className="text-[10px] font-black uppercase text-blue-900 tracking-tight">Flexible Participation</p>
                         <p className="text-[9px] text-blue-800/80 leading-relaxed italic font-medium">
-                            Complete the evaluation instrument below to restore full portal functionality.
+                            You may skip this for now to continue your work. You will be prompted again during logout to fulfill this quality requirement.
                         </p>
                     </div>
                 </div>
             </CardContent>
           </ScrollArea>
-          <CardFooter className="bg-slate-50 border-t py-4 px-6 sm:px-10 shrink-0">
+          <CardFooter className="bg-slate-50 border-t py-4 px-6 sm:px-10 shrink-0 gap-3">
+              <Button 
+                  variant="outline"
+                  size="lg" 
+                  className="flex-1 h-12 sm:h-14 text-sm font-black uppercase tracking-widest border-slate-200" 
+                  onClick={handleSkip}
+              >
+                  Skip for Now
+              </Button>
               <Button 
                   size="lg" 
-                  className="w-full h-12 sm:h-14 text-sm sm:text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/30 group transition-all hover:scale-[1.02] active:scale-95" 
+                  className="flex-[2] h-12 sm:h-14 text-sm sm:text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/30 group transition-all hover:scale-[1.02] active:scale-95" 
                   onClick={() => setIsFormOpen(true)}
               >
                   <ShieldCheck className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-                  Start Software Audit
+                  Evaluate Now
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
           </CardFooter>
