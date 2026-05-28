@@ -17,265 +17,172 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Tooltip,
-  TooltipProvider,
-} from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  Timestamp,
-  Query,
-} from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { collection, query, where } from 'firebase/firestore';
+import { useMemo } from 'react';
 import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2, ClipboardCheck, LayoutList, User, School, Building2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-/**
- * Returns a Tailwind class string for row background based on the submission year.
- */
 const getYearRowColor = (year: number) => {
   const colors: Record<number, string> = {
-    2024: 'bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20',
-    2025: 'bg-green-50/50 hover:bg-green-100/50 dark:bg-green-900/10 dark:hover:bg-green-900/20',
-    2026: 'bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
-    2027: 'bg-purple-50/50 hover:bg-purple-100/50 dark:bg-purple-900/10 dark:hover:bg-purple-900/20',
-    2028: 'bg-rose-50/50 hover:bg-rose-100/50 dark:bg-rose-900/10 dark:hover:bg-rose-900/20',
+    2024: 'bg-blue-50/50 hover:bg-blue-100/50',
+    2025: 'bg-green-50/50 hover:bg-green-100/50',
+    2026: 'bg-amber-50/50 hover:bg-amber-100/50',
   };
-  return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/10 dark:hover:bg-slate-900/20';
+  return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50';
 };
 
 export default function ApprovalsPage() {
-  const { userProfile, isUserLoading, isAdmin, userRole } = useUser();
+  const { userProfile, isUserLoading, isAdmin, userRole, isSupervisor } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   const router = useRouter();
 
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<Record<string, AppUser>>({});
+  // REAL-TIME SUBMISSIONS LISTENER: Matches Layout logic for 100% parity
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || !isSupervisor) return null;
+    const baseRef = collection(firestore, 'submissions');
+    
+    if (isAdmin) {
+        return query(baseRef, where('statusId', '==', 'submitted'));
+    }
+    
+    // Site supervisors see pending submissions for their campus
+    return query(
+        baseRef, 
+        where('statusId', '==', 'submitted'),
+        where('campusId', '==', userProfile.campusId)
+    );
+  }, [firestore, userProfile, isAdmin, isSupervisor]);
 
-  // Fetch Campuses for mapping
+  const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+  // REAL-TIME USERS LISTENER for submitter mapping
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const { data: allUsers } = useCollection<AppUser>(usersQuery);
+  const userMap = useMemo(() => new Map(allUsers?.map(u => [u.id, u])), [allUsers]);
+
+  // REAL-TIME CAMPUSES LISTENER
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
-  const canApprove = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+  const filteredSubmissions = useMemo(() => {
+    if (!rawSubmissions) return [];
+    // Supervisors shouldn't see their own submissions in the approval queue to prevent self-approval
+    // Admins bypass this for system-wide oversight
+    if (isAdmin) return rawSubmissions;
+    return rawSubmissions.filter(s => s.userId !== userProfile?.id);
+  }, [rawSubmissions, isAdmin, userProfile?.id]);
 
-  useEffect(() => {
-    if (isUserLoading || !firestore || !userProfile) {
-        if (!isUserLoading) setIsLoading(false);
-        return;
-    }
-
-    const fetchSubmissions = async () => {
-        setIsLoading(true);
-        let submissionsQuery: Query | null = null;
-
-        if (isAdmin) {
-            // Admins see ALL pending submissions institutionally across all campuses
-            submissionsQuery = query(
-                collection(firestore, 'submissions'), 
-                where('statusId', '==', 'submitted')
-            );
-        } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
-            // Site supervisors see pending submissions for their campus
-            submissionsQuery = query(
-                collection(firestore, 'submissions'), 
-                where('statusId', '==', 'submitted'),
-                where('campusId', '==', userProfile.campusId)
-            );
-        }
-        
-        if (submissionsQuery) {
-            try {
-                const snapshot = await getDocs(submissionsQuery);
-                let fetchedSubmissions = snapshot.docs.map(doc => {
-                    const data = doc.data() as Submission;
-                    const submissionDate = data.submissionDate instanceof Timestamp
-                        ? data.submissionDate.toDate()
-                        : new Date((data.submissionDate as any)?.seconds * 1000);
-                    return { ...data, id: doc.id, submissionDate };
-                });
-
-                // Standard supervisors (non-admins) should not see their own submissions in the approval queue
-                // Admins bypass this to allow for self-approval testing and overrides.
-                if (!isAdmin) {
-                    fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
-                }
-                
-                setSubmissions(fetchedSubmissions);
-            } catch(e) {
-                console.error("Failed to fetch submissions:", e);
-                toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
-            }
-        } else {
-            setSubmissions([]);
-        }
-
-        setIsLoading(false);
-    };
-
-    fetchSubmissions();
-    
-  }, [firestore, userRole, userProfile, isAdmin, isUserLoading, toast]);
-
-
-  useEffect(() => {
-    if (!firestore || !submissions || submissions.length === 0) return;
-
-    const fetchUsers = async () => {
-      const userIds = [...new Set(submissions.map((s) => s.userId))];
-      const newUsers: Record<string, AppUser> = {};
-
-      if (userIds.length > 0) {
-        const chunks: string[][] = [];
-        for (let i = 0; i < userIds.length; i += 30) {
-          chunks.push(userIds.slice(i, i + 30));
-        }
-
-        await Promise.all(
-          chunks.map(async (chunk) => {
-            if (chunk.length === 0) return;
-            const usersQuery = query(
-              collection(firestore, 'users'),
-              where('id', 'in', chunk)
-            );
-            const usersSnapshot = await getDocs(usersQuery);
-            usersSnapshot.forEach((doc) => {
-              newUsers[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
-            });
-          })
-        );
-      }
-
-      setUsers((prevUsers) => ({ ...prevUsers, ...newUsers }));
-    };
-
-    fetchUsers();
-  }, [firestore, submissions]);
-
-  const getUserName = (userId: string) => {
-    const user = users[userId];
-    return user ? `${user.firstName} ${user.lastName}` : 'Loading...';
-  };
-
-  if (isLoading) {
+  if (isUserLoading || isLoadingSubmissions) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex flex-col items-center justify-center h-64 gap-3 opacity-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest">Synchronizing Approval Queue...</p>
       </div>
     );
   }
   
-  if (!canApprove) {
+  if (!isSupervisor) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-          <p className="text-muted-foreground">You do not have permission to view this page.</p>
-        </div>
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-black uppercase text-slate-900">Access Denied</h2>
+        <p className="text-muted-foreground text-sm mt-2">You do not have administrative oversight permissions.</p>
       </div>
     )
   }
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
-        {/* Sticky Header Enforced */}
+      <div className="space-y-6">
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
-          <h2 className="text-2xl font-bold tracking-tight">Approvals</h2>
-          <p className="text-muted-foreground">
-            Review and act on submissions awaiting your approval. Rows are color-coded by year for easier categorization.
+          <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Institutional Approvals</h2>
+          <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
+            Review and act on submissions awaiting your verification.
           </p>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Approval Queue</CardTitle>
-            <CardDescription>
-              You have {submissions.length} submissions to evaluate. Please click "Evaluate Submission" to check the document and complete the verification checklist.
+
+        <Card className="shadow-lg border-primary/10 overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-6">
+            <CardTitle className="text-lg">Approval Queue</CardTitle>
+            <CardDescription className="text-xs">
+              Review {filteredSubmissions.length} active applications. Only <strong>Approved</strong> documents achieve quality maturity index status.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead>Report Type</TableHead>
-                  <TableHead>Submitter Details</TableHead>
-                  <TableHead>Submitted At</TableHead>
-                  <TableHead>Cycle</TableHead>
-                  <TableHead>Year</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase pl-6">Document Type</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase">Submitter & Origin</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase">Submitted At</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase">Cycle Info</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submissions.map((submission) => (
-                  <TableRow 
-                    key={submission.id}
-                    className={cn("transition-colors", getYearRowColor(submission.year))}
-                  >
-                    <TableCell className="font-medium max-w-xs truncate">
-                      <div className="flex items-center gap-2">
-                        {submission.reportType}
-                        {submission.isDraft && (
-                            <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">DRAFT</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                                <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="font-bold text-sm text-slate-900">{getUserName(submission.userId)}</span>
+                {filteredSubmissions.map((submission) => {
+                  const submitter = userMap.get(submission.userId);
+                  const subDate = submission.submissionDate instanceof Date ? submission.submissionDate : (submission.submissionDate as any)?.toDate?.() || new Date();
+                  
+                  return (
+                    <TableRow 
+                        key={submission.id}
+                        className={cn("transition-colors group", getYearRowColor(submission.year))}
+                    >
+                        <TableCell className="pl-6 py-5">
+                            <div className="flex flex-col gap-1">
+                                <span className="font-black text-sm text-slate-900 uppercase group-hover:text-primary transition-colors">{submission.reportType}</span>
+                                {submission.isDraft && (
+                                    <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase w-fit">DRAFT</Badge>
+                                )}
                             </div>
-                            <div className="flex flex-col pl-5 gap-0.5">
-                                <div className="flex items-center gap-1.5 text-[10px] font-black text-primary/70 uppercase tracking-tighter">
-                                    <Building2 className="h-3 w-3" />
-                                    {submission.unitName}
+                        </TableCell>
+                        <TableCell>
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    <span className="font-bold text-xs">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground italic uppercase">
-                                    <School className="h-3 w-3" />
-                                    {campusMap.get(submission.campusId) || '...'}
+                                <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                                    <Building2 className="h-2.5 w-2.5" />
+                                    {submission.unitName} &bull; {campusMap.get(submission.campusId)}
                                 </div>
                             </div>
-                        </div>
-                    </TableCell>
-                    <TableCell>
-                      {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
-                    </TableCell>
-                    <TableCell className="capitalize text-xs">
-                      {submission.cycleId}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-background/50 font-bold">
-                        {submission.year}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant={submission.isDraft ? "secondary" : "default"}
-                        size="sm"
-                        onClick={() => router.push(`/submissions/${submission.id}`)}
-                        className={cn(submission.isDraft ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200" : "")}
-                      >
-                        {submission.isDraft ? <LayoutList className="mr-2 h-4 w-4" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
-                        {submission.isDraft ? 'Review Draft' : 'Evaluate Submission'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-slate-600">
+                            {format(subDate, 'PPp')}
+                        </TableCell>
+                        <TableCell>
+                            <div className="flex flex-col gap-1">
+                                <Badge variant="outline" className="h-4 text-[8px] font-black uppercase w-fit bg-white">{submission.year}</Badge>
+                                <span className="text-[10px] font-bold capitalize text-muted-foreground">{submission.cycleId} Cycle</span>
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                            <Button
+                                variant={submission.isDraft ? "secondary" : "default"}
+                                size="sm"
+                                onClick={() => router.push(`/submissions/${submission.id}`)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md"
+                            >
+                                {submission.isDraft ? <LayoutList className="mr-1.5 h-3 w-3" /> : <ClipboardCheck className="mr-1.5 h-3 w-3" />}
+                                {submission.isDraft ? 'Audit Draft' : 'Evaluate'}
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
-            {submissions.length === 0 && !isLoading && (
-              <div className="text-center py-10 text-muted-foreground">
-                No submissions awaiting your approval.
+            {filteredSubmissions.length === 0 && (
+              <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-3 opacity-20">
+                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+                <p className="text-xs font-black uppercase tracking-[0.2em]">Zero Pending Verifications</p>
               </div>
             )}
           </CardContent>

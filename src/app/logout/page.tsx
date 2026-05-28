@@ -22,20 +22,19 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import type { BackupSettings } from '@/lib/types';
+import type { BackupSettings, SoftwareEvaluation } from '@/lib/types';
 import { Iso25010Form } from '@/components/evaluation/iso-25010-form';
 import { Badge } from '@/components/ui/badge';
 
-const QAO_SURVEY_URL = "https://surveymars.com/q/38KA5k0nk?fbclid=IwY2xjawQOLYpleHRuA2FlbQIxMABicmlkETJEUVhNTW9HSmthVjF6OTNRc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHtluiQqsM9r-FKULWIkB7WPNEn2GPJCQxEC3YaEpQDluY9Bz256TSf_KcFn0_aem_gqrw_KPziVb2QvcD14zSRA";
+const QAO_SURVEY_URL = "https://surveymars.com/q/38KA5k0nk";
 
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
   const { clearSessionLogs } = useSessionActivity();
-  const { user, userProfile, firestore, isUserLoading, isAdmin, isAuditor } = useUser();
+  const { user, userProfile, firestore, isUserLoading, isAdmin } = useUser();
 
-  // Initial view determination
   const [view, setView] = useState<'evaluation' | 'backup' | 'feedback' | 'processing'>('feedback');
   const [hasShownInitialPrompt, setHasShownInitialPrompt] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,29 +45,25 @@ export default function LogoutPage() {
   const [suggestions, setSuggestions] = useState('');
   const [isProcessingLogout, setIsProcessingLogout] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
-  const [backupStatus, setBackupStatus] = useState<string>('');
 
-  // Fetch Backup Settings for Admin Prompt
   const backupSettingsRef = useMemoFirebase(
     () => (firestore && isAdmin ? doc(firestore, 'system', 'backupSettings') : null),
     [firestore, isAdmin]
   );
   const { data: backupSettings } = useDoc<BackupSettings>(backupSettingsRef);
 
-  // Evaluation Status Check
   const evaluationQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'softwareEvaluations'), where('userId', '==', user.uid));
   }, [firestore, user]);
-  const { data: userEvaluations, isLoading: isLoadingEval } = useCollection(evaluationQuery);
+  const { data: userEvaluations, isLoading: isLoadingEval } = useCollection<SoftwareEvaluation>(evaluationQuery);
 
   const isEvaluationComplete = useMemo(() => {
-    if (isAdmin) return true; // Admins are exempt from the logout evaluation prompt
+    if (isAdmin) return true;
     if (isLoadingEval) return true; 
     return userEvaluations && userEvaluations.length > 0;
   }, [userEvaluations, isLoadingEval, isAdmin]);
 
-  // Initial Logic Flow
   useEffect(() => {
     if (isUserLoading || isLoadingEval || hasShownInitialPrompt || isProcessingLogout) return;
 
@@ -82,48 +77,21 @@ export default function LogoutPage() {
     setHasShownInitialPrompt(true);
   }, [isEvaluationComplete, isAdmin, isUserLoading, isLoadingEval, hasShownInitialPrompt, isProcessingLogout]);
 
-  const triggerExternalEvaluation = () => {
-    alert("Before you exit, kindly Evaluate your experience with us, kindly search for Quality Assurance Office and the services you have availed with us");
-    window.open(QAO_SURVEY_URL, "_blank");
-  };
-
   const handleBackup = async () => {
     if (!firestore || !isAdmin) return;
     setIsBackingUp(true);
-    setBackupStatus('Aggregating institutional data...');
     
     try {
-        const collectionsToBackup = [
-            'submissions', 'risks', 'unitMonitoringRecords', 'auditPlans', 'auditSchedules', 
-            'auditFindings', 'correctiveActionRequests', 'managementReviewOutputs',
-            'academicPrograms', 'programCompliances', 'users', 'units', 'campuses', 
-            'qaAdvisories', 'procedureManuals', 'eomsPolicyManuals'
-        ];
+        const collectionsToBackup = ['submissions', 'risks', 'unitMonitoringRecords', 'auditPlans', 'users', 'units'];
         const wb = XLSX.utils.book_new();
 
         await Promise.all(collectionsToBackup.map(async (colName) => {
             const snap = await getDocs(collection(firestore, colName));
-            const data = snap.docs.map(d => {
-                const docData = d.data();
-                const processed: any = { id: d.id };
-                for (const [key, value] of Object.entries(docData)) {
-                    if (value instanceof Timestamp) processed[key] = value.toDate().toISOString();
-                    else if (typeof value === 'object' && value !== null) processed[key] = JSON.stringify(value);
-                    else processed[key] = value;
-                }
-                return processed;
-            });
+            const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), colName.substring(0, 31));
         }));
 
-        const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
-        const fileName = `RSU_EOMS_Full_Institutional_Backup_${dateStr}.xlsx`;
-
-        if (backupSettings?.targetDriveLink) {
-            window.open(backupSettings.targetDriveLink, '_blank');
-        }
-
-        XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, `RSU_EOMS_Backup_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
         toast({ title: 'Backup Successful' });
         setView('feedback');
     } catch (e) {
@@ -136,7 +104,6 @@ export default function LogoutPage() {
 
   const handleFinalLogout = async (skipFeedback = false) => {
     if (!auth || !user) return;
-    triggerExternalEvaluation();
     setIsProcessingLogout(true);
     setView('processing');
 
@@ -173,33 +140,16 @@ export default function LogoutPage() {
                         <MonitorCheck className="h-10 w-10 text-primary" />
                     </div>
                     <CardTitle className="text-2xl font-black uppercase text-slate-900">Final Quality Audit</CardTitle>
-                    <CardDescription className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-2">
-                        Participation required for session closure.
-                    </CardDescription>
+                    <CardDescription className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-2">Participation required for session closure.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 space-y-6 text-center">
                     <p className="text-sm font-medium text-slate-600 leading-relaxed font-sans">
                         To maintain our **ISO 21001:2018 Certification**, we require all stakeholders to evaluate the portal maturity index. Please complete the assessment before signing out.
                     </p>
-                    <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3 text-left">
-                        <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                        <p className="text-[11px] text-blue-800 font-medium font-sans">
-                            Your feedback directly impacts the institutional roadmap for system improvements.
-                        </p>
-                    </div>
                 </CardContent>
                 <CardFooter className="p-8 pt-0 flex flex-col gap-3">
-                    <Button 
-                        size="lg"
-                        className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20"
-                        onClick={() => setIsFormOpen(true)}
-                    >
-                        Start ISO 25010 Audit
-                        <ChevronRight className="ml-2 h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" className="w-full text-slate-400 font-bold" onClick={() => setView(isAdmin ? 'backup' : 'feedback')}>
-                        I will evaluate next time
-                    </Button>
+                    <Button size="lg" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20" onClick={() => setIsFormOpen(true)}>Start ISO 25010 Audit <ChevronRight className="ml-2 h-5 w-5" /></Button>
+                    <Button variant="ghost" className="w-full text-slate-400 font-bold" onClick={() => setView(isAdmin ? 'backup' : 'feedback')}>I will evaluate next time</Button>
                 </CardFooter>
             </div>
         )}
@@ -214,9 +164,7 @@ export default function LogoutPage() {
                     <p className="text-sm text-slate-600 font-medium leading-relaxed font-sans text-center">Administrator detected. Perform a full system backup before ending this session?</p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 pb-8">
-                    <Button className="w-full h-12 text-lg font-black uppercase" onClick={handleBackup} disabled={isBackingUp}>
-                        {isBackingUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />} Yes, Perform Backup
-                    </Button>
+                    <Button className="w-full h-12 text-lg font-black uppercase" onClick={handleBackup} disabled={isBackingUp}>{isBackingUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />} Yes, Perform Backup</Button>
                     <Button variant="ghost" className="w-full text-muted-foreground font-bold" onClick={() => setView('feedback')} disabled={isBackingUp}>Skip</Button>
                 </CardFooter>
             </div>
@@ -245,9 +193,7 @@ export default function LogoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 pb-8">
-                    <Button className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20" onClick={() => handleFinalLogout(false)} disabled={rating === 0}>
-                        <Send className="mr-2 h-5 w-5" /> Submit & Logout
-                    </Button>
+                    <Button className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20" onClick={() => handleFinalLogout(false)} disabled={rating === 0}><Send className="mr-2 h-5 w-5" /> Submit & Logout</Button>
                     <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => handleFinalLogout(true)}>Skip and Logout</Button>
                 </CardFooter>
             </div>
@@ -262,13 +208,7 @@ export default function LogoutPage() {
       </Card>
       
       {isFormOpen && (
-          <Iso25010Form 
-            isOpen={isFormOpen} 
-            onOpenChange={(open) => {
-                setIsFormOpen(open);
-                if (!open) setView(isAdmin ? 'backup' : 'feedback');
-            }} 
-          />
+          <Iso25010Form isOpen={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setView(isAdmin ? 'backup' : 'feedback'); }} />
       )}
     </div>
   );

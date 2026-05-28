@@ -17,34 +17,20 @@ import {
   Megaphone,
   AlertCircle,
   ShieldCheck,
-  AlertTriangle,
   BarChart,
-  User,
   LayoutDashboard,
   BrainCircuit,
   Info,
   ClipboardCheck,
   TrendingUp,
-  ShieldAlert,
   ListTodo,
-  Printer,
-  XCircle,
   Settings,
-  Building2,
-  Award,
   Loader2,
-  Sparkles,
   CheckCircle2,
-  ListChecks,
-  MonitorCheck,
   Target,
   MessageSquare,
   Pencil,
   Globe,
-  Eye,
-  Search,
-  Activity,
-  Zap,
   Briefcase,
   Home as HomeIcon,
   Download,
@@ -102,7 +88,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { format, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
@@ -118,18 +104,15 @@ import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
-import { cn, normalizeReportType } from '@/lib/utils';
+import { normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
 import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
-import { useToast } from '@/hooks/use-toast';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
 
 const statusVariant: Record<
@@ -160,20 +143,11 @@ function DashboardSkeleton() {
         <Skeleton className="h-28 rounded-2xl" />
       </div>
 
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/60 backdrop-blur-xl overflow-y-auto">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-            <div className="absolute top-[15%] -left-[10%] w-[70%] h-[70%] bg-yellow-400/20 rounded-full blur-[120px] animate-float-blob" />
-            <div className="absolute -bottom-[15%] -right-[10%] w-[70%] h-[70%] bg-emerald-50/20 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '4s' }} />
-            <div className="absolute top-[25%] left-[25%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[100px] animate-float-blob" style={{ animationDelay: '2s' }} />
-        </div>
-
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
         <div className="w-full max-w-4xl space-y-12 animate-in zoom-in duration-700 relative z-10">
             <div className="flex flex-col items-center gap-4 text-center">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
-                    <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    </div>
+                <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
                 <div className="space-y-1">
                     <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
@@ -193,7 +167,6 @@ export default function HomePage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { toast } = useToast();
 
   const currentTab = searchParams.get('tab') || 'overview';
 
@@ -215,26 +188,12 @@ export default function HomePage() {
   };
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    if (isAdmin) return collection(firestore, 'submissions');
-    if (!userProfile) return null;
-    
-    if (isCampusSupervisor) {
-      if (userProfile.campusId) {
-        return query(
-          collection(firestore, 'submissions'),
-          where('campusId', '==', userProfile.campusId)
-        );
-      }
-      return null;
-    }
-    
-    return query(
-      collection(firestore, 'submissions'),
-      where('unitId', '==', userProfile.unitId),
-      where('campusId', '==', userProfile.campusId)
-    );
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+    if (!firestore || !userProfile || isUserLoading) return null;
+    const baseRef = collection(firestore, 'submissions');
+    if (isAdmin) return baseRef;
+    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -251,31 +210,22 @@ export default function HomePage() {
   }, [rawSubmissions]);
   
   const risksQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-    const baseRisksQuery = collection(firestore, 'risks');
-    if (isAdmin) return baseRisksQuery;
-    if (isCampusSupervisor) {
-        if (userProfile.campusId) return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
-        return null; 
-    }
-    if (userProfile.unitId && userProfile.campusId) {
-        return query(baseRisksQuery, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-    }
-    return null; 
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+    if (!firestore || !userProfile || isUserLoading) return null;
+    const baseRef = collection(firestore, 'risks');
+    if (isAdmin) return baseRef;
+    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const monitoringRecordsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
+    if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'unitMonitoringRecords');
     if (isAdmin) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, 
-        where('unitId', '==', userProfile.unitId),
-        where('campusId', '==', userProfile.campusId)
-    );
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
   const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
@@ -286,22 +236,13 @@ export default function HomePage() {
   const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const carQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
+    if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
     if (isAdmin) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, 
-        where('unitId', '==', userProfile.unitId),
-        where('campusId', '==', userProfile.campusId)
-    );
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
   const { data: correctiveActionRequests } = useCollection<CorrectiveActionRequest>(carQuery);
-
-  const findingsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-    return collection(firestore, 'auditFindings');
-  }, [firestore, userProfile]);
-  const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
 
   const mrOutputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
@@ -309,15 +250,20 @@ export default function HomePage() {
   }, [firestore, userProfile]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
+  const auditFindingsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    return collection(firestore, 'auditFindings');
+  }, [firestore, userProfile]);
+  const { data: auditFindings } = useCollection<AuditFinding>(auditFindingsQuery);
+
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    if (isAdmin) return collection(firestore, 'users');
-    if (isCampusSupervisor && userProfile?.campusId) return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-    if (userProfile) return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
-    return null;
+    if (!firestore || !isAdmin && !isCampusSupervisor) return null;
+    const baseRef = collection(firestore, 'users');
+    if (isAdmin) return baseRef;
+    return query(baseRef, where('campusId', '==', userProfile?.campusId));
   }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
 
-  const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+  const { data: allUsersData } = useCollection<AppUser>(usersQuery);
 
   const allUsersMap = useMemo(() => {
     const userMap = new Map<string, AppUser>();
@@ -326,27 +272,17 @@ export default function HomePage() {
     return userMap;
   }, [allUsersData, userProfile]);
 
-
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
+  const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
   
-  const campusMap = useMemo(() => {
-    const map = new Map<string, string>();
-    campuses?.forEach(c => map.set(c.id, c.name));
-    return map;
-  }, [campuses]);
-
-  const unitMap = useMemo(() => {
-    const map = new Map<string, string>();
-    allUnits?.forEach(u => map.set(u.id, u.name));
-    return map;
-  }, [allUnits]);
+  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
-  const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
+  const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
 
   const advisoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'qaAdvisories'), orderBy('releaseDate', 'desc'), limit(1)) : null), [firestore]);
   const { data: latestAdvisories } = useCollection<QaAdvisory>(advisoriesQuery);
@@ -361,51 +297,20 @@ export default function HomePage() {
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses } = useCollection<ISOClause>(isoClausesQuery);
 
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
-
-  const auditPlansQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return collection(firestore, 'auditPlans');
-  }, [firestore]);
-  const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
-
-  const allSchedulesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditSchedules') : null), [firestore]);
-  const { data: allSchedules } = useCollection<AuditSchedule>(allSchedulesQuery);
 
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
-    const activeStatuses = ['Scheduled', 'In Progress', 'Completed'];
-    
-    if (isAdmin) return query(baseRef, where('status', 'in', activeStatuses));
-    if (isCampusLevel && userProfile.campusId) {
-        return query(baseRef, where('campusId', '==', userProfile.campusId), where('status', 'in', activeStatuses));
-    }
-    if (userProfile.unitId && userProfile.campusId) {
-        return query(baseRef, 
-            where('targetId', '==', userProfile.unitId), 
-            where('campusId', '==', userProfile.campusId),
-            where('status', 'in', activeStatuses)
-        );
-    }
+    if (isAdmin) return baseRef;
+    if (isCampusLevel && userProfile.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    if (userProfile.unitId) return query(baseRef, where('targetId', '==', userProfile.unitId));
     return null;
   }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
-  const sortedDashboardSchedules = useMemo(() => {
-    if (!dashboardSchedules) return [];
-    return [...dashboardSchedules].sort((a, b) => {
-        const timeA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
-        const timeB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
-        return timeA - timeB;
-    });
-  }, [dashboardSchedules]);
-  
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     const yrSet = new Set<number>();
@@ -414,682 +319,174 @@ export default function HomePage() {
     return Array.from(yrSet).sort((a, b) => b - a);
   }, [allCycles]);
 
-  useEffect(() => {
-    if (years.length > 0 && !years.includes(selectedYear)) setSelectedYear(years[0]);
-  }, [years, selectedYear]);
-
-  const campusSettingsDocRef = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.campusId || !canViewCampusAnnouncements) return null;
+  const campusSettingsRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.campusId) return null;
     return doc(firestore, 'campusSettings', userProfile.campusId);
-  }, [firestore, userProfile?.campusId, canViewCampusAnnouncements]);
+  }, [firestore, userProfile?.campusId]);
+  const { data: campusSetting } = useDoc(campusSettingsRef);
 
-  const { data: campusSetting, isLoading: isLoadingSettings } = useDoc(campusSettingsDocRef);
+  const globalSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'global') : null), [firestore]);
+  const { data: globalSetting } = useDoc(globalSettingsRef);
 
-  const globalAnnouncementDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'campusSettings', 'global');
-  }, [firestore, user]);
-  
-  const { data: globalSetting, isLoading: isLoadingGlobalSettings } = useDoc(globalAnnouncementDocRef);
-
-  const announcement = campusSetting?.announcement;
-  const globalAnnouncement = globalAnnouncementDocRef ? globalSetting?.announcement : null;
-  
   useEffect(() => {
-    if (announcement || globalAnnouncement) {
+    if (campusSetting?.announcement || globalSetting?.announcement) {
       const timer = setTimeout(() => {
         setIsAnnouncementVisible(false);
         setIsGlobalAnnouncementVisible(false);
-      }, 80000); 
+      }, 60000);
       return () => clearTimeout(timer);
     }
-  }, [announcement, globalAnnouncement]);
-
-  const unitsInCampus = useMemo(() => {
-      if (!allUnits || !userProfile?.campusId) return [];
-      return allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
-  }, [allUnits, userProfile]);
-
-  const schedulesQuery = useMemoFirebase(() => {
-    if (!firestore || userRole !== 'Auditor' || !user) return null;
-    return query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
-  }, [firestore, userRole, user]);
-  const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
-
-  const sortedMySchedules = useMemo(() => {
-    if (!mySchedules) return [];
-    return [...mySchedules].sort((a, b) => {
-        const timeA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
-        const timeB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
-        return timeA - timeB;
-    });
-  }, [mySchedules]);
-
-  const assignedRecommendations = useMemo(() => {
-    if (!allCompliances || !userProfile) return [];
-    
-    const results: any[] = [];
-    allCompliances.forEach(record => {
-        record.accreditationRecords?.forEach(milestone => {
-            milestone.recommendations?.forEach(reco => {
-                if (reco.status === 'Closed') return;
-
-                let isRelevant = false;
-                if (isAdmin) {
-                    isRelevant = true;
-                } else if (isCampusSupervisor) {
-                    isRelevant = reco.assignedUnitIds?.some(uid => {
-                        const unit = allUnits?.find(u => u.id === uid);
-                        return unit?.campusIds?.includes(userProfile.campusId);
-                    });
-                } else {
-                    isRelevant = reco.assignedUnitIds?.includes(userProfile.unitId);
-                }
-
-                if (isRelevant) {
-                    results.push({
-                        programId: record.programId,
-                        programName: allUnits?.find(u => u.id === record.programId)?.name || 'Academic Program',
-                        level: milestone.level,
-                        recommendation: reco
-                    });
-                }
-            });
-        });
-    });
-    return results;
-  }, [allCompliances, userProfile, allUnits, isAdmin, isCampusSupervisor]);
-
-  const handlePrintAssignedRecos = () => {
-    if (assignedRecommendations.length === 0 || !userProfile) return;
-
-    try {
-        const reportHtml = renderToStaticMarkup(
-            <AccreditationRecommendationReport 
-                items={assignedRecommendations.map((r: any) => ({
-                    programName: r.programName,
-                    abbreviation: '',
-                    level: r.level,
-                    recommendation: r.recommendation
-                }))}
-                unitMap={unitMap}
-                scope={isAdmin ? "institutional" : "unit"}
-                year={selectedYear}
-                unitName={!isAdmin ? unitMap.get(userProfile.unitId) : undefined}
-            />
-        );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`<html><head><title>Accreditation Gaps Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl font-black uppercase text-xs tracking-widest transition-all">Click to Print Folio Report</button></div><div id="print-content">${reportHtml}</div></body></html>`);
-            printWindow.document.close();
-        }
-    } catch (e) { console.error(e); }
-  };
-
-  const isLoading =
-    isUserLoading ||
-    isLoadingSubmissions ||
-    (canViewCampusAnnouncements && isLoadingSettings) ||
-    isLoadingUnits ||
-    isLoadingCampuses ||
-    isLoadingGlobalSettings ||
-    isLoadingCycles ||
-    isLoadingRisks ||
-    isLoadingUsers ||
-    isLoadingSchedules;
+  }, [campusSetting, globalSetting]);
 
   const stats = useMemo(() => {
-    const defaultStats = {
-      stat1: { title: 'Loading...', value: '...', icon: <Clock /> },
-      stat2: { title: 'Loading...', value: '...', icon: <Clock /> },
-      stat3: { title: 'Loading...', value: '...', icon: <Clock /> },
-    };
-
-    if (!submissions || !userProfile) return defaultStats;
-    
-    const yearSubmissions = submissions.filter((s) => s.year === selectedYear);
+    if (!submissions || !userProfile) return { stat1: { value: '0' }, stat2: { value: '0' }, stat3: { value: '0' } };
+    const yearSubs = submissions.filter((s) => s.year === selectedYear);
 
     if (isAdmin) {
       return {
-        stat1: {
-          title: 'Pending Approvals',
-          value: submissions.filter((s) => s.statusId === 'submitted' && s.year === selectedYear).length,
-          description: `Pending review for ${selectedYear}`,
-          icon: <Clock className="h-6 w-6 text-primary" />,
-        },
-        stat2: {
-          title: 'Total Submissions',
-          value: yearSubmissions.length,
-          description: `Total logs for ${selectedYear}`,
-          icon: <FileText className="h-6 w-6 text-primary" />,
-        },
-        stat3: {
-          title: 'Total Users',
-          value: allUsersMap.size,
-          description: `Institutional registry for ${selectedYear}`,
-          icon: <Users className="h-6 w-6 text-primary" />,
-        },
+        stat1: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
+        stat2: { title: 'Registry Volume', value: yearSubs.length, icon: <FileText /> },
+        stat3: { title: 'Active Users', value: allUsersMap.size, icon: <Users /> },
       };
     } else if (isCampusSupervisor) {
-      const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
-      const approvedSubmissionsCount = new Set(
-        yearSubmissions
-            .filter(s => s.statusId === 'approved')
-            .map(s => s.reportType + s.unitId + s.cycleId)
-      ).size;
-
       return {
-        stat1: {
-          title: 'Verified Maturity',
-          value: `${Math.round((approvedSubmissionsCount / (totalRequired || 1)) * 100)}%`,
-          description: `${approvedSubmissionsCount} of ${totalRequired} approved`,
-          icon: <CheckCircle className="h-6 w-6 text-primary" />,
-        },
-        stat2: {
-          title: 'Campus Activity',
-          value: yearSubmissions.length,
-          description: `Total uploads for ${selectedYear}`,
-          icon: <FileText className="h-6 w-6 text-primary" />,
-        },
-        stat3: {
-          title: 'Campus Users',
-          value: allUsersMap.size,
-          description: `Registered personnel: ${selectedYear}`,
-          icon: <Users className="h-6 w-6 text-primary" />,
-        },
+        stat1: { title: 'Campus Maturity', value: `${Math.round((yearSubs.filter(s => s.statusId === 'approved').length / (yearSubs.length || 1)) * 100)}%`, icon: <CheckCircle /> },
+        stat2: { title: 'Site Submissions', value: yearSubs.length, icon: <FileText /> },
+        stat3: { title: 'Site Users', value: allUsersMap.size, icon: <Users /> },
       };
-    } else if (userRole === 'Auditor') {
-        return {
-            stat1: {
-                title: 'My Audits',
-                value: mySchedules?.length || 0,
-                description: `Schedules for ${selectedYear}`,
-                icon: <ClipboardCheck className="h-6 w-6 text-primary" />,
-            },
-            stat2: {
-                title: 'Completed',
-                value: mySchedules?.filter(s => s.status === 'Completed').length || 0,
-                description: `Finalized reports: ${selectedYear}`,
-                icon: <CheckCircle className="h-6 w-6 text-primary" />,
-            },
-            stat3: {
-                title: 'In Progress',
-                value: mySchedules?.filter(s => s.status === 'In Progress').length || 0,
-                description: `Ongoing conduct: ${selectedYear}`,
-                icon: <Clock className="h-6 w-6 text-primary" />,
-            },
-        };
     } else {
-        const firstCycleApproved = yearSubmissions.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
-        const firstCycleRegistry = yearSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
-        const requiredFirstCycle = firstCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
-
-        const finalCycleApproved = yearSubmissions.filter(s => s.cycleId === 'final' && s.statusId === 'approved');
-        const finalCycleRegistry = yearSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
-        const requiredFinalCycle = finalCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
-
-        const firstCycleCount = new Set(firstCycleApproved.map(s => s.reportType)).size;
-        const finalCycleCount = new Set(finalCycleApproved.map(s => s.reportType)).size;
-        
+        const approved = yearSubs.filter(s => s.statusId === 'approved');
         return {
-            stat1: {
-              title: '1st Cycle (Verified)',
-              value: `${firstCycleCount} / ${requiredFirstCycle}`,
-              description: `Approved docs for ${selectedYear}`,
-              icon: <FileText className="h-6 w-6 text-primary" />,
-            },
-            stat2: {
-              title: 'Final Cycle (Verified)',
-              value: `${finalCycleCount} / ${requiredFinalCycle}`,
-              description: `Approved docs for ${selectedYear}`,
-              icon: <FileText className="h-6 w-6 text-primary" />,
-            },
-            stat3: {
-              title: 'Overall Maturity',
-              value: `${Math.round(((firstCycleCount + finalCycleCount) / (requiredFirstCycle + requiredFinalCycle)) * 100)}%`,
-              description: `Verification index: ${selectedYear}`,
-              icon: <TrendingUp className="h-6 w-6 text-primary" />,
-            },
+            stat1: { title: 'Verified Compliance', value: `${approved.length} / ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`, icon: <ShieldCheck /> },
+            stat2: { title: 'Quality Pulse', value: `${Math.round((approved.length / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100)}%`, icon: <TrendingUp /> },
+            stat3: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
         };
     }
-  }, [submissions, isCampusSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear, userRole, mySchedules]);
-
-  const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
-    const emptyResult = { firstCycleStatusMap: new Map<string, Submission>(), finalCycleStatusMap: new Map<string, Submission>() };
-    if (!submissions) return emptyResult;
-    const yearSubmissions = submissions.filter((s) => s.year === selectedYear);
-    const firstCycleMap = new Map(yearSubmissions.filter(s => s.cycleId === 'first').map((s) => [s.reportType, s]));
-    const finalCycleMap = new Map(yearSubmissions.filter(s => s.cycleId === 'final').map((s) => [s.reportType, s]));
-    return { firstCycleStatusMap: firstCycleMap, finalCycleStatusMap: finalCycleMap };
-  }, [submissions, selectedYear]);
-
-  const sortedSubmissions = useMemo(() => {
-    if (!submissions) return [];
-    return [...submissions].filter(s => s.year === selectedYear).sort((a,b) => {
-        const dateA = a.submissionDate instanceof Date ? a.submissionDate.getTime() : 0;
-        const dateB = b.submissionDate instanceof Date ? b.submissionDate.getTime() : 0;
-        return dateB - dateA;
-    });
-  }, [submissions, selectedYear]);
-  
-  const noRisksLogged = useMemo(() => {
-    const isUnitUser = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
-    if (!isUnitUser || !risks) return false;
-    const yearRisks = risks.filter(r => r.year === selectedYear);
-    return yearRisks.length === 0;
-  }, [risks, userRole, selectedYear]);
-  
-  const getStatusText = (status: string) => {
-    return status === 'submitted' ? 'Awaiting Approval' : status;
-  }
-
-  const renderCard = (
-    title: string,
-    value: string | number,
-    icon: React.ReactNode,
-    isLoading: boolean,
-    description?: string
-  ) => (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className='flex justify-between items-start'>
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            {icon}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? <Skeleton className="h-8 w-20" /> : (
-          <>
-            <div className="text-2xl font-bold">{value}</div>
-            {description && <p className="text-xs text-muted-foreground">{description}</p>}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const getIconForStatus = (status?: string) => {
-    switch (status) {
-      case 'approved': return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'rejected': return <AlertCircle className="h-5 w-5 text-destructive" />;
-      case 'submitted': return <Clock className="h-5 w-5 text-yellow-500" />;
-      default: return <XCircle className="h-5 w-5 text-muted-foreground" />;
-    }
-  };
-  
-  const renderSubmissionChecklist = (cycle: 'first' | 'final', statusMap: Map<string, Submission>) => {
-    const registryFormSubmission = statusMap.get('Risk and Opportunity Registry');
-    const isActionPlanNA = registryFormSubmission?.riskRating === 'low';
-    const requiredReports = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
-    
-    const approvedCount = Array.from(statusMap.values()).filter(s => s.statusId === 'approved' && requiredReports.includes(s.reportType)).length;
-    const progress = (approvedCount / requiredReports.length) * 100;
-    
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between text-sm font-medium mb-1">
-              <span>Verified Maturity ({cycle === 'first' ? 'First' : 'Final'} Cycle)</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} />
-            <ScrollArea className="h-[400px] pr-2">
-                <div className="space-y-3">
-                {submissionTypes.map((reportType) => {
-                    const submission = statusMap.get(reportType);
-                    const isSubmitted = !!submission;
-                    const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
-                    return (
-                    <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-4", isNA && "opacity-50 bg-muted/50")}>
-                        <div className="flex items-center gap-3">
-                            {getIconForStatus(isNA ? 'n/a' : submission?.statusId)}
-                            <span className="font-medium text-xs">{reportType}</span>
-                        </div>
-                        {isNA ? <Badge variant="secondary" className="text-[9px]">N/A</Badge> : isSubmitted ? <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">{getStatusText(submission.statusId)}</Badge> : <Badge variant="outline" className="text-[9px]">Not Submitted</Badge>}
-                    </div>
-                    );
-                })}
-                </div>
-            </ScrollArea>
-        </div>
-    );
-  }
-
-  const renderActionItems = () => {
-    const openCars = correctiveActionRequests?.filter(c => c.status !== 'Closed') || [];
-    const openDecisions = mrOutputs?.filter(o => 
-        (o.status === 'Open' || o.status === 'On-going' || o.status === 'Submit for Closure Verification') && 
-        o.assignments?.some(a => {
-            if (isAdmin) return true;
-            if (isCampusSupervisor) return a.campusId === userProfile?.campusId;
-            return a.unitId === userProfile?.unitId;
-        })
-    ) || [];
-
-    const relevantOfis = auditFindings?.filter(f => {
-        if (f.type !== 'Observation for Improvement') return false;
-        const schedule = allSchedules?.find(s => s.id === f.auditScheduleId);
-        if (!schedule) return false;
-        if (isAdmin) return true;
-        if (isCampusSupervisor) return schedule.campusId === userProfile?.campusId;
-        return schedule.targetId === userProfile?.unitId;
-    }) || [];
-
-    if (openCars.length === 0 && openDecisions.length === 0 && assignedRecommendations.length === 0 && relevantOfis.length === 0) return null;
-
-    return (
-        <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-            <CardHeader className="pb-3 border-b border-destructive/10">
-                <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
-                    <ShieldAlert className="h-4 w-4" />
-                    Outstanding Quality Action Items
-                </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Institutional findings requiring immediate resolution for AY {selectedYear}.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2">
-                        <div className="flex items-center gap-2 text-rose-600">
-                            <AlertTriangle className="h-4 w-4" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest">Corrective Actions</h4>
-                        </div>
-                        <Badge variant="destructive" className="h-4 text-[8px] font-black">{openCars.length}</Badge>
-                    </div>
-                    {openCars.length > 0 ? (
-                        <div className="space-y-2">
-                            {openCars.slice(0, 3).map(car => (
-                                <div key={car.id} className="p-2.5 rounded-lg bg-white border border-rose-100 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-900 uppercase truncate">{car.carNumber}</p>
-                                    <p className="text-[10px] text-muted-foreground leading-tight italic line-clamp-2">"{car.descriptionOfNonconformance}"</p>
-                                </div>
-                            ))}
-                            <Button size="sm" variant="outline" asChild className="w-full h-8 text-[9px] font-black uppercase bg-white border-rose-200 text-rose-700 hover:bg-rose-50">
-                                <Link href="/qa-reports?tab=car">Resolve CARs</Link>
-                            </Button>
-                        </div>
-                    ) : (
-                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No open non-conformances.</p>
-                    )}
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2">
-                        <div className="flex items-center gap-2 text-indigo-600">
-                            <ListTodo className="h-4 w-4" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest">MR Decisions</h4>
-                        </div>
-                        <Badge variant="outline" className="h-4 text-[8px] font-black border-indigo-200 text-indigo-700 bg-indigo-50">{openDecisions.length}</Badge>
-                    </div>
-                    {openDecisions.length > 0 ? (
-                        <div className="space-y-2">
-                            <ScrollArea className="h-[120px]">
-                                <div className="space-y-2 pr-2">
-                                    {openDecisions.map(o => (
-                                        <div key={o.id} className="p-2.5 rounded-lg bg-white border border-indigo-100 shadow-sm">
-                                            <p className="text-[10px] font-bold text-slate-800 leading-tight italic line-clamp-2">"{o.description}"</p>
-                                            <div className="mt-1.5 flex items-center justify-between">
-                                                <Badge className={cn("h-3 text-[7px] font-black uppercase", o.status === 'Open' ? "bg-rose-50" : "bg-blue-500")}>{o.status}</Badge>
-                                                <span className="text-[8px] font-bold text-muted-foreground">{format(o.followUpDate instanceof Timestamp ? o.followUpDate.toDate() : new Date(o.followUpDate), 'MM/dd')}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                            <Button size="sm" variant="outline" asChild className="w-full h-8 text-[9px] font-black uppercase bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50">
-                                <Link href="/qa-reports?tab=decisions">Update Progress</Link>
-                            </Button>
-                        </div>
-                    ) : (
-                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No pending decisions.</p>
-                    )}
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2">
-                        <div className="flex items-center gap-2 text-amber-600">
-                            <Award className="h-4 w-4" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest">Accreditation Gaps</h4>
-                        </div>
-                        <Badge variant="outline" className="h-4 text-[8px] font-black border-amber-200 text-amber-700 bg-amber-50">{assignedRecommendations.length}</Badge>
-                    </div>
-                    {assignedRecommendations.length > 0 ? (
-                        <div className="space-y-2">
-                            <ScrollArea className="h-[120px]">
-                                <div className="space-y-2 pr-2">
-                                    {assignedRecommendations.map((r, i) => (
-                                        <div key={i} className="p-2.5 rounded-lg bg-white border border-amber-100 shadow-sm">
-                                            <p className="text-[8px] font-black text-amber-600 uppercase mb-1">{r.programName} ({r.level})</p>
-                                            <p className="text-[10px] font-bold text-slate-800 leading-relaxed italic line-clamp-2">"{r.recommendation.text}"</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                            <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="w-full h-8 font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
-                                <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Folio Log
-                            </Button>
-                        </div>
-                    ) : (
-                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No academic gaps assigned.</p>
-                    )}
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2">
-                        <div className="flex items-center gap-2 text-primary">
-                            <ClipboardCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest">Audit observations</h4>
-                        </div>
-                        <Badge variant="outline" className="h-4 text-[8px] font-black border-primary/20 text-primary bg-primary/5">{relevantOfis.length}</Badge>
-                    </div>
-                    {relevantOfis.length > 0 ? (
-                        <div className="space-y-2">
-                            <ScrollArea className="h-[120px]">
-                                <div className="space-y-2 pr-2">
-                                    {relevantOfis.slice(0, 5).map(ofi => (
-                                        <div key={ofi.id} className="p-2.5 rounded-lg bg-white border border-primary/10 shadow-sm">
-                                            <p className="text-[8px] font-black text-primary uppercase mb-1">ISO Clause {ofi.isoClause}</p>
-                                            <p className="text-[10px] font-bold text-slate-800 leading-relaxed italic line-clamp-2">"{ofi.description}"</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                            <Button size="sm" variant="outline" asChild className="w-full h-8 text-[9px] font-black uppercase bg-white border-primary/20 text-primary">
-                                <Link href="/audit">Explore Audit Hub</Link>
-                            </Button>
-                        </div>
-                    ) : (
-                        <p className="text-[10px] text-muted-foreground italic text-center py-4">No observations recorded.</p>
-                    )}
-                </div>
-            </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-2 px-6">
-                <p className="text-[8px] text-muted-foreground italic leading-tight">Registry of mandatory corrections, observations, and improvement directives from recent audits and management reviews.</p>
-            </CardFooter>
-        </Card>
-    );
-  };
+  }, [submissions, isAdmin, isCampusSupervisor, allUsersMap, selectedYear, userProfile]);
 
   const renderUnitUserHome = () => {
-    const currentUnit = allUnits?.find(u => u.id === userProfile?.unitId);
-    
-    return (
-    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
-              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
-            </div>
-            <div className="w-full sm:w-[150px] space-y-1">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                        <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
-        <ScrollArea className="w-full">
-            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
-            </TabsList>
-        </ScrollArea>
-      </div>
-      
-      <TabsContent value="overview" className="space-y-4">
-        {noRisksLogged && !isLoading && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Action Required: Risk Register</AlertTitle>
-            <AlertDescription>
-              Your unit has not logged any risks or opportunities for {selectedYear}. It is critical to populate the{' '}
-              <Link href="/risk-register" className="font-semibold underline">Risk Register</Link>
-              {' '}to ensure compliance.
-            </AlertDescription>
-          </Alert>
-        )}
-        <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
-        
-        <RiskOverdueWarning risks={risks} isLoading={isLoading} />
+    const yearSubs = submissions?.filter(s => s.year === selectedYear) || [];
+    const firstCycleMap = new Map(yearSubs.filter(s => s.cycleId === 'first').map(s => [s.reportType, s]));
+    const finalCycleMap = new Map(yearSubs.filter(s => s.cycleId === 'final').map(s => [s.reportType, s]));
 
-        {renderActionItems()}
+    const renderChecklist = (cycle: string, statusMap: Map<string, Submission>) => {
+        const registry = statusMap.get('Risk and Opportunity Registry');
+        const isActionPlanNA = registry?.riskRating === 'low';
+        const required = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
+        const approved = Array.from(statusMap.values()).filter(s => s.statusId === 'approved' && required.includes(s.reportType)).length;
+        const progress = (approved / required.length) * 100;
 
-        <UnitAuditSchedule 
-            schedules={sortedDashboardSchedules} 
-            isLoading={isLoadingSchedules} 
-            isSupervisor={isSupervisor || isAdmin}
-            plans={allAuditPlans || []}
-            findings={auditFindings || []}
-            isoClauses={isoClauses || []}
-            units={allUnits || []}
-            campuses={campuses || []}
-            signatories={signatories || undefined}
-            campusName={campusMap.get(userProfile?.campusId || '')}
-        />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
-        </div>
-
-        {!isLoading && currentUnit && (
-            <StrategicSwotAnalysis 
-                submissions={submissions?.filter(s => s.unitId === userProfile?.unitId && s.year === selectedYear) || []}
-                risks={risks?.filter(r => r.unitId === userProfile?.unitId && r.year === selectedYear) || []}
-                monitoringRecords={monitoringRecords?.filter(r => r.unitId === userProfile?.unitId) || []}
-                programCompliances={allCompliances?.filter(c => c.unitId === userProfile?.unitId && c.academicYear === selectedYear) || []}
-                auditFindings={auditFindings || []}
-                correctiveActionRequests={correctiveActionRequests?.filter(car => car.unitId === userProfile?.unitId) || []}
-                mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === userProfile?.unitId)) || []}
-                scope="unit"
-                name={currentUnit.name}
-                selectedYear={selectedYear}
-            />
-        )}
-
-         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
-          <Card className="col-span-1 lg:col-span-4">
-            <CardHeader>
-              <CardTitle>Submissions Overview</CardTitle>
-              <CardDescription>Your monthly submission trend for the last 12 months.</CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <Overview submissions={submissions} isLoading={isLoading} />
-            </CardContent>
-          </Card>
-          <Card className="col-span-1 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your last 10 submissions across {selectedYear}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-            </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3">
-                <div className="flex items-start gap-2">
-                    <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[9px] text-muted-foreground italic leading-tight">
-                        Displays the most recent document updates. Use this to track real-time progression of your unit's documentation cycle.
-                    </p>
+        return (
+            <div className="space-y-4">
+                <div className="flex justify-between text-[10px] font-black uppercase text-primary">
+                    <span>{cycle} Cycle Verification</span>
+                    <span>{Math.round(progress)}%</span>
                 </div>
-            </CardFooter>
-          </Card>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="actions" className="space-y-4">
-        <Card>
-          <CardHeader><CardTitle>Verified Documentation Checklist</CardTitle><CardDescription>Only <strong>Approved</strong> documents contribute to your unit's compliance progress for {selectedYear}.</CardDescription></CardHeader>
-          <CardContent>
-              <Tabs defaultValue="first-cycle" className="space-y-4">
-                 <TabsList className="animate-tab-highlight rounded-md p-1 bg-muted"><TabsTrigger value="first-cycle">First Cycle</TabsTrigger><TabsTrigger value="final-cycle">Final Cycle</TabsTrigger></TabsList>
-                <TabsContent value="first-cycle">{renderSubmissionChecklist('first', firstCycleStatusMap)}</TabsContent>
-                <TabsContent value="final-cycle">{renderSubmissionChecklist('final', finalCycleStatusMap)}</TabsContent>
-              </Tabs>
-             <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="history">
-        <Card>
-          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
-                        <TableRow key={s.id}>
-                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
-                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
-                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
-                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
-                        </TableRow>
-                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
-                </TableBody>
-                </Table>
+                <Progress value={progress} className="h-1.5" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {submissionTypes.map(type => {
+                        const sub = statusMap.get(type);
+                        const isNA = type === 'Risk and Opportunity Action Plan' && isActionPlanNA;
+                        return (
+                            <div key={type} className={cn("flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm", isNA && "opacity-40 grayscale")}>
+                                <div className="flex items-center gap-3">
+                                    {isNA ? <CheckCircle className="h-4 w-4 text-slate-300" /> : sub?.statusId === 'approved' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : sub?.statusId === 'submitted' ? <Clock className="h-4 w-4 text-amber-500" /> : <Circle className="h-4 w-4 text-slate-200" />}
+                                    <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight truncate max-w-[150px]">{type}</span>
+                                </div>
+                                {isNA ? <Badge variant="secondary" className="h-4 text-[7px]">N/A</Badge> : sub && <Badge variant={statusVariant[sub.statusId]} className="h-4 text-[7px] font-black uppercase">{sub.statusId}</Badge>}
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+        );
+    };
+
+    return (
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+            <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">AY {selectedYear} Quality Performance Overview</p></div>
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="w-[150px] h-9 bg-white font-bold"><SelectValue placeholder="Year" /></SelectTrigger>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <ScrollArea className="w-full">
+                    <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="actions">Maturity Checklist</TabsTrigger>
+                        <TabsTrigger value="history">History</TabsTrigger>
+                    </TabsList>
+                </ScrollArea>
+            </div>
+
+            <TabsContent value="overview" className="space-y-6">
+                <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
+                <RiskOverdueWarning risks={risks} isLoading={isLoadingRisks} />
+                <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} campusName={campusMap.get(userProfile?.campusId || '')} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.entries(stats).map(([k, s]: any) => (
+                        <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+                            <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+                            <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+                        </Card>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+                    <Card className="lg:col-span-4 shadow-md"><CardHeader><CardTitle>Submission Trend</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
+                    <Card className="lg:col-span-3 shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="actions" className="space-y-6">
+                <Card className="shadow-lg"><CardHeader><CardTitle>Verification Roadmap</CardTitle><CardDescription>Real-time status of mandatory evidence logs.</CardDescription></CardHeader>
+                <CardContent className="space-y-8">
+                    {renderChecklist('First', firstCycleMap)}
+                    <Separator />
+                    {renderChecklist('Final', finalCycleMap)}
+                    <Button asChild className="w-full h-12 font-black uppercase tracking-widest shadow-xl shadow-primary/20"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" /> Manage Submissions</Link></Button>
+                </CardContent></Card>
+            </TabsContent>
+
+            <TabsContent value="history" className="animate-in fade-in duration-500">
+                <Card className="shadow-md"><CardHeader><CardTitle>Institutional Archive</CardTitle><CardDescription>Audit trail for AY {selectedYear}.</CardDescription></CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader className="bg-muted/30">
+                            <TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Report Type</TableHead><TableHead className="text-[10px] font-black uppercase">Date</TableHead><TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead></TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {yearSubs.sort((a,b) => b.submissionDate.getTime() - a.submissionDate.getTime()).map(s => (
+                                <TableRow key={s.id} className="hover:bg-muted/20">
+                                    <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle &bull; {s.controlNumber}</p></TableCell>
+                                    <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{format(s.submissionDate, 'MM/dd/yy')}</TableCell>
+                                    <TableCell className="text-center"><Badge variant={statusVariant[s.statusId]} className="text-[8px] font-black uppercase">{s.statusId}</Badge></TableCell>
+                                    <TableCell className="text-right pr-8"><Button variant="ghost" size="sm" asChild className="h-7 text-[9px] font-black uppercase"><Link href={`/submissions/${s.id}`}>View</Link></Button></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent></Card>
+            </TabsContent>
+        </Tabs>
     );
   };
 
   const renderAdminHome = () => (
-    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
-                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
-              </div>
-              <div className="w-full sm:w-[150px] space-y-1">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                  <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                      <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                          <SelectValue placeholder="Select Year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
+              <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Institutional Oversight for AY {selectedYear}</p></div>
+              <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                  <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+              </Select>
           </div>
           <ScrollArea className="w-full">
-            <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
+            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
                 <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
                 <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
                 <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
@@ -1097,205 +494,90 @@ export default function HomePage() {
           </ScrollArea>
       </div>
 
-      <TabsContent value="overview" className="space-y-4">
-        <UnitAuditSchedule 
-            schedules={sortedDashboardSchedules} 
-            isLoading={isLoadingSchedules} 
-            isSupervisor={isSupervisor || isAdmin}
-            plans={allAuditPlans || []}
-            findings={auditFindings || []}
-            isoClauses={isoClauses || []}
-            units={allUnits || []}
-            campuses={campuses || []}
-            signatories={signatories || undefined}
-            campusName="Institutional"
-        />
-
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-          {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-          {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+      <TabsContent value="overview" className="space-y-6">
+        <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={true} campusName="Institutional" />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+          {Object.entries(stats).map(([k, s]: any) => (
+              <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+                  <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+                  <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              </Card>
+          ))}
         </div>
-
-        {renderActionItems()}
-        
-        {!isLoading && (
-            <StrategicSwotAnalysis 
-                submissions={submissions?.filter(s => s.year === selectedYear) || []}
-                risks={risks?.filter(r => r.year === selectedYear) || []}
-                monitoringRecords={monitoringRecords || []}
-                programCompliances={allCompliances?.filter(c => c.academicYear === selectedYear) || []}
-                auditFindings={auditFindings || []} 
-                correctiveActionRequests={correctiveActionRequests || []}
-                mrOutputs={mrOutputs || []}
-                scope="campus"
-                name="University-Wide"
-                selectedYear={selectedYear}
-            />
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-            <div className="lg:col-span-4 space-y-4">
-                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+            <div className="lg:col-span-4 space-y-6">
+                 <Card className="shadow-md"><CardHeader><CardTitle>Submission Volume</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
                  <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
             </div>
-             <div className="lg:col-span-3 space-y-4">
-                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
-                <div className="grid grid-cols-1 gap-4">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
-                </div>
-                <Badge variant="outline" className="h-6 font-black uppercase text-primary border-primary/20 w-fit mx-auto">University Integrity Tracker</Badge>
-                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
-                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
-                 <CardFooter className="bg-muted/5 border-t py-3">
-                    <div className="flex items-start gap-3">
-                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            Institutional audit trail of latest evidence logs. Use this to monitor university-wide documentation frequency.
-                        </p>
-                    </div>
-                </CardFooter></Card>
+             <div className="lg:col-span-3 space-y-6">
+                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
             </div>
         </div>
-        {selectedDetail && (
-            <div className="sticky top-[10rem] z-20">
-                <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
-            </div>
-        )}
       </TabsContent>
-      <TabsContent value="analytics" className="space-y-4">
-        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+      <TabsContent value="analytics" className="space-y-6">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true}/>
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
-        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
-        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
-        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
   );
 
   const renderSupervisorHome = () => (
-    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Home</h2>
-                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview for AY {selectedYear}.</p>
-                </div>
-                <div className="w-full sm:w-[150px] space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
-                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                        <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
-                            <SelectValue placeholder="Select Year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Campus Oversight for AY {selectedYear}</p></div>
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                </Select>
             </div>
             <ScrollArea className="w-full">
-                <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap min-w-max">
-                    <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-                    <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-                    <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
-                    <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+                <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                    <TabsTrigger value="strategic">Strategic</TabsTrigger>
                 </TabsList>
             </ScrollArea>
         </div>
 
-      <TabsContent value="overview" className="space-y-4">
-         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-            <div className="lg:col-span-4 space-y-4">
-                {unitsInCampus.length === 0 && !isLoading && (
-                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')} size="sm">
-                                <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
-                )}
-                
-                <UnitAuditSchedule 
-                    schedules={sortedDashboardSchedules} 
-                    isLoading={isLoadingSchedules} 
-                    isSupervisor={isSupervisor || isAdmin}
-                    plans={allAuditPlans || []}
-                    findings={auditFindings || []}
-                    isoClauses={isoClauses || []}
-                    units={allUnits || []}
-                    campuses={campuses || []}
-                    signatories={signatories || undefined}
-                    campusName={campusMap.get(userProfile?.campusId || '')}
-                />
-
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                    {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-                    {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-                    {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
-                </div>
-
-                {renderActionItems()}
-                
-                {!isLoading && userProfile?.campusId && (
-                    <StrategicSwotAnalysis 
-                        submissions={submissions?.filter(s => s.campusId === userProfile.campusId && s.year === selectedYear) || []}
-                        risks={risks?.filter(r => r.campusId === userProfile.campusId && r.year === selectedYear) || []}
-                        monitoringRecords={monitoringRecords?.filter(r => r.campusId === userProfile.campusId) || []}
-                        programCompliances={allCompliances?.filter(c => c.campusId === userProfile.campusId && c.academicYear === selectedYear) || []}
-                        auditFindings={auditFindings || []} 
-                        correctiveActionRequests={correctiveActionRequests?.filter(car => car.campusId === userProfile.campusId) || []}
-                        mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === userProfile.campusId)) || []}
-                        scope="campus"
-                        name={campusMap.get(userProfile.campusId) || 'Campus'}
-                        selectedYear={selectedYear}
-                    />
-                )}
-
-                <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
-                <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
+      <TabsContent value="overview" className="space-y-6">
+        <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={true} campusName={campusMap.get(userProfile?.campusId || '')} />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+          {Object.entries(stats).map(([k, s]: any) => (
+              <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+                  <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+                  <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              </Card>
+          ))}
+        </div>
+         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+            <div className="lg:col-span-4 space-y-6">
+                <Card className="shadow-md"><CardHeader><CardTitle>Campus Progress</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
+                <ComplianceHeatmap units={allUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
             </div>
-            <div className="lg:col-span-3 space-y-4">
-                <div className="space-y-4">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
-                </div>
-                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
-                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
-                <CardFooter className="bg-muted/5 border-t py-3">
-                    <div className="flex items-start gap-2">
-                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            Real-time campus contribution log. High activity density indicates active document control and unit engagement.
-                        </p>
-                    </div>
-                </CardFooter></Card>
-                {selectedDetail && (
-                    <div className="sticky top-[10rem] z-20">
-                        <UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />
-                    </div>
-                )}
+            <div className="lg:col-span-3 space-y-6">
+                <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+                <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
             </div>
         </div>
       </TabsContent>
-       <TabsContent value="analytics" className="space-y-4">
-        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
-        <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
-        <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
-        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
+      <TabsContent value="analytics" className="space-y-6">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true}/>
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
-       <TabsContent value="users" className="space-y-4">
-        {isCampusSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
-      </TabsContent>
-       <TabsContent value="strategic" className="space-y-6">
+      <TabsContent value="strategic" className="space-y-6">
         <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
-        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
-        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
   );
@@ -1303,51 +585,32 @@ export default function HomePage() {
   const renderAuditorHome = () => (
     <div className="space-y-6">
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
-              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Welcome back, {userProfile?.firstName}! Overview of your assigned audits for AY {selectedYear}.</p>
-            </div>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Active Audit Itinerary for AY {selectedYear}</p>
         </div>
 
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+            {Object.entries(stats).map(([k, s]: any) => (
+                <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+                    <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+                    <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+                </Card>
+            ))}
         </div>
 
         <AuditorOfflineManager />
 
         <UnitAuditSchedule 
-            schedules={sortedMySchedules} 
-            isLoading={isLoading} 
-            isSupervisor={false}
-            plans={allAuditPlans || []}
-            findings={auditFindings || []}
-            isoClauses={isoClauses || []}
-            units={allUnits || []}
-            campuses={campuses || []}
-            signatories={signatories || undefined}
+            schedules={dashboardSchedules} 
+            isLoading={isLoadingSchedules} 
             campusName="My Assignments"
         />
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Quick Access</CardTitle>
-                <CardDescription>Shortcut to your auditing tools.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button asChild variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
-                    <Link href="/audit">
-                        <ClipboardCheck className="h-6 w-6" />
-                        <span className="font-bold uppercase text-xs">Enter Audit Hub</span>
-                    </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
-                    <Link href="/qa-reports?tab=car">
-                        <ShieldAlert className="h-6 w-6" />
-                        <span className="font-bold uppercase text-xs">CAR Registry</span>
-                    </Link>
-                </Button>
+        <Card className="shadow-md overflow-hidden">
+            <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase">Quick Access Tools</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
+                <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/audit"><ClipboardCheck className="h-5 w-5 text-primary" /> Enter Audit Conduct Hub</Link></Button>
+                <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/qa-reports?tab=car"><ShieldAlert className="h-5 w-5 text-rose-600" /> CAR Registry</Link></Button>
             </CardContent>
         </Card>
     </div>
@@ -1360,42 +623,59 @@ export default function HomePage() {
     return renderUnitUserHome();
   };
 
-  const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
+  const isLoading = isUserLoading || isLoadingSubmissions;
+
+  if (isLoading) return <DashboardSkeleton />;
 
   return (
-    <div className="space-y-4">
-       {isLoading ? (
-           <DashboardSkeleton />
-       ) : (
-           <div className="animate-in fade-in duration-700 space-y-6">
-                {showAnnouncements && (
-                  <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare />Communications Board</CardTitle><CardDescription>Important announcements from campus and system administrators.</CardDescription></CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                      {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /> <AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
-                      {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
-                    </CardContent>
-                  </Card>
-                )}
+    <div className="space-y-6">
+        {!isLoading && (campusSetting?.announcement || globalSetting?.announcement) && (
+          <div className="space-y-4">
+            {globalSetting?.announcement && isGlobalAnnouncementVisible && (
+              <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md">
+                <Globe className="h-4 w-4 text-indigo-600" />
+                <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-indigo-700">Global Directive</AlertTitle>
+                <AlertDescription className="text-sm font-medium">{globalSetting.announcement}</AlertDescription>
+                <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
+              </Alert>
+            )}
+            {campusSetting?.announcement && isAnnouncementVisible && (
+              <Alert className="border-primary/20 bg-primary/5 shadow-md">
+                <Megaphone className="h-4 w-4 text-primary" />
+                <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-primary">Campus Announcement</AlertTitle>
+                <AlertDescription className="text-sm font-medium">{campusSetting.announcement}</AlertDescription>
+                <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
+              </Alert>
+            )}
+          </div>
+        )}
 
-                {!isLoading && latestAdvisory && (
-                    <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4 duration-500">
-                        <Megaphone className="h-5 w-5 text-primary" />
-                        <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
-                        <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-                            <span className="text-sm font-bold text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
-                            <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-                                <Link href="/advisories">Open Advisory Vault</Link>
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
-                )}
-              
-              <div className="mt-4">
-                {renderHomeContent()}
-              </div>
-           </div>
-       )}
+        {!isLoading && latestAdvisory && (
+            <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4">
+                <Megaphone className="h-5 w-5 text-primary" />
+                <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
+                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+                    <span className="text-sm font-bold text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
+                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase shadow-lg shadow-primary/20"><Link href="/advisories">Open Advisory Vault</Link></Button>
+                </AlertDescription>
+            </Alert>
+        )}
+      
+      {renderHomeContent()}
+
+      {selectedDetail && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+              <UnitSubmissionDetailCard 
+                unitId={selectedDetail.unitId} 
+                campusId={selectedDetail.campusId} 
+                allUnits={allUnits} 
+                allSubmissions={submissions} 
+                onClose={() => setSelectedDetail(null)} 
+                onViewSubmission={(id) => router.push(`/submissions/${id}`)} 
+                selectedYear={selectedYear} 
+              />
+          </div>
+      )}
     </div>
   );
 }
