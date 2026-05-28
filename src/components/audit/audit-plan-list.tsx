@@ -3,15 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { 
-    Card, 
-    CardContent, 
-    CardDescription, 
-    CardHeader, 
-    CardTitle, 
-    CardFooter 
-} from '@/components/ui/card';
+import { Button, buttonVariants } from '../ui/button';
 import { 
     Edit, 
     CalendarPlus, 
@@ -20,7 +12,6 @@ import {
     Clock, 
     UserCheck, 
     ChevronRight, 
-    Settings2, 
     User as UserIcon, 
     Calendar, 
     ShieldCheck, 
@@ -31,13 +22,8 @@ import {
     Printer, 
     Search, 
     ArrowUpDown, 
-    Users, 
-    FileText, 
-    AlertTriangle, 
-    School, 
     Copy, 
-    CalendarDays, 
-    Info 
+    FileText 
 } from 'lucide-react';
 import {
   Table,
@@ -58,7 +44,7 @@ import { AuditPrintTemplate } from './audit-print-template';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -106,7 +92,7 @@ function PlanItineraryRegistry({
             result = result.filter(s => 
                 s.targetName.toLowerCase().includes(lower) ||
                 (s.auditorName || '').toLowerCase().includes(lower) ||
-                s.procedureDescription.toLowerCase().includes(lower)
+                (s.procedureDescription || '').toLowerCase().includes(lower)
             );
         }
         if (sortConfig) {
@@ -288,23 +274,58 @@ export function AuditPlanList({
             const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
             return (
               <AccordionItem value={plan.id} key={plan.id} className="border-none rounded-2xl shadow-xl overflow-hidden bg-background">
-                <AccordionTrigger className="hover:no-underline px-8 py-6 data-[state=open]:bg-slate-50 border-b transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between w-full pr-6 text-left gap-6">
-                        <div className="space-y-2 min-w-0">
-                            <div className="flex items-center gap-3"><Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">NO: {plan.auditNumber}</Badge><p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p></div>
-                            <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest"><span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-primary" /> {campusMap.get(plan.campusId) || '...'}</span><span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span></div>
+                <div className="flex items-center justify-between border-b data-[state=open]:bg-slate-50 transition-colors pr-10">
+                    <AccordionTrigger className="flex-1 hover:no-underline px-8 py-6 border-none">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-6">
+                            <div className="space-y-2 min-w-0">
+                                <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
+                                        NO: {plan.auditNumber}
+                                    </Badge>
+                                    <p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p>
+                                </div>
+                                <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                    <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-primary" /> {campusMap.get(plan.campusId) || '...'}</span>
+                                    <span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Button size="sm" variant="outline" className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2" onClick={() => handlePrintConsolidated(plan, planSchedules)}><FileText className="h-3.5 w-3.5" /> Consolidate Results</Button>
-                            <Button size="sm" variant="outline" className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2" onClick={() => handlePrintPlan(plan, planSchedules)}><Printer className="h-3.5 w-3.5" /> Print Plan</Button>
-                            <div className="w-px h-6 bg-border mx-1" />
-                            <Button size="sm" onClick={() => onScheduleAudit(plan)} className="h-8 font-black uppercase text-[9px] gap-2"><CalendarPlus className="h-3.5 w-3.5" /> Schedule Audit</Button>
-                            <Button size="sm" variant="secondary" onClick={() => onClonePlan(plan)} className="h-8 font-black uppercase text-[9px] gap-2"><Copy className="h-3.5 w-3.5" /> Clone</Button>
-                            <Button size="sm" variant="ghost" onClick={() => onEditPlan(plan)} className="h-8 w-8 p-0 text-primary"><Edit className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="ghost" onClick={() => onDeletePlan(plan)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                        </div>
+                    </AccordionTrigger>
+                    
+                    <div className="flex flex-wrap items-center gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+                        <Button asChild size="sm" variant="outline" className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2">
+                            <span role="button" tabIndex={0} onClick={() => handlePrintConsolidated(plan, planSchedules)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handlePrintConsolidated(plan, planSchedules)}>
+                                <FileText className="h-3.5 w-3.5" /> Consolidate Results
+                            </span>
+                        </Button>
+                        <Button asChild size="sm" variant="outline" className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2">
+                            <span role="button" tabIndex={0} onClick={() => handlePrintPlan(plan, planSchedules)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handlePrintPlan(plan, planSchedules)}>
+                                <Printer className="h-3.5 w-3.5" /> Print Plan
+                            </span>
+                        </Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button asChild size="sm" className="h-8 font-black uppercase text-[9px] gap-2">
+                            <span role="button" tabIndex={0} onClick={() => onScheduleAudit(plan)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onScheduleAudit(plan)}>
+                                <CalendarPlus className="h-3.5 w-3.5" /> Schedule Audit
+                            </span>
+                        </Button>
+                        <Button asChild size="sm" variant="secondary" className="h-8 font-black uppercase text-[9px] gap-2">
+                            <span role="button" tabIndex={0} onClick={() => onClonePlan(plan)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClonePlan(plan)}>
+                                <Copy className="h-3.5 w-3.5" /> Clone
+                            </span>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary">
+                            <span role="button" tabIndex={0} onClick={() => onEditPlan(plan)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onEditPlan(plan)}>
+                                <Edit className="h-4 w-4" />
+                            </span>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive">
+                            <span role="button" tabIndex={0} onClick={() => onDeletePlan(plan)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onDeletePlan(plan)}>
+                                <Trash2 className="h-4 w-4" />
+                            </span>
+                        </Button>
                     </div>
-                </AccordionTrigger>
+                </div>
                 <AccordionContent className="p-0 bg-white">
                   <div className="p-8 space-y-10">
                     <PlanItineraryRegistry plan={plan} schedules={planSchedules} isoClauses={isoClauses} signatories={signatories || undefined} onEdit={onEditSchedule} onDelete={onDeleteSchedule} campusMap={campusMap} />
