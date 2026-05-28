@@ -30,7 +30,8 @@ import {
   Circle,
   Activity,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert
 } from 'lucide-react';
 import {
   useUser,
