@@ -142,9 +142,12 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-        const cName = unitFilter !== 'all' 
+        // When a specific campus is selected, use its name; for a specific unit, use unit name.
+        // When "all" campuses are selected, use perCampus mode to render a separate section per campus.
+        const isAllCampuses = campusFilter === 'all' && unitFilter === 'all';
+        const cName = unitFilter !== 'all'
             ? (unitMap.get(unitFilter) || 'UNIT')
-            : (campusFilter === 'all' ? 'UNIVERSITY-WIDE' : (campusMap.get(campusFilter) || 'UNIVERSITY-WIDE'));
+            : (campusFilter !== 'all' ? (campusMap.get(campusFilter) || 'UNIVERSITY-WIDE') : 'UNIVERSITY-WIDE');
 
         const reportHtml = renderToStaticMarkup(
             <ConsolidatedAuditReportTemplate 
@@ -155,14 +158,15 @@ export function AuditResultsView({
                 units={units} 
                 campuses={campuses} 
                 signatories={signatories || undefined} 
-                campusName={cName}
+                campusName={isAllCampuses ? undefined : cName}
+                perCampus={isAllCampuses}
             />
         );
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>Audit Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`<html><head><title>Audit Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; } .no-print { display: none !important; } .break-before-page { page-break-before: always; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) { console.error(err); } finally { setIsProcessingReport(false); }
