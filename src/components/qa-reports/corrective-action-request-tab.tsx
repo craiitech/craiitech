@@ -56,6 +56,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AuditorNCManager } from '@/components/audit/auditor-nc-manager';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { CARPrintTemplate } from './car-print-template';
+import { CARControlRegisterTemplate } from './car-control-register-template';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -91,7 +94,7 @@ const carSchema = z.object({
     result: z.string().min(1, 'Effectiveness result is required'),
     verifiedBy: z.string().min(1, 'Required'),
     date: z.string().min(1, 'Required'),
-    action: z.enum(['Effective', 'Not Effective', 'Close the NC', 'Continue Monitoring the NC']),
+    action: z.enum(['Effective', 'Not Effective', 'Close the NC', 'Continue Monitoring the NC', 'Provide More Actions to Address the NC']),
     remarks: z.string().optional().or(z.literal('')),
   })).optional(),
   status: z.enum(['Open', 'In Progress', 'Awaiting Response/Update', 'For Final Verification', 'Closed']),
@@ -121,20 +124,139 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const { data: schedules } = useCollection(schedulesQuery);
 
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
+  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const filteredCars = useMemo(() => {
     if (!rawCars) return [];
+    const isInstitutionalViewer = isAdmin || isAuditor;
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+
     return rawCars.filter(car => {
+        // Authorization filter:
+        if (!isInstitutionalViewer) {
+            if (isCampusSupervisor) {
+                if (car.campusId !== userProfile?.campusId) return false;
+            } else {
+                if (car.unitId !== userProfile?.unitId) return false;
+            }
+        }
+
         const matchesCampus = campusFilter === 'all' || car.campusId === campusFilter;
         const lowerSearch = searchTerm.toLowerCase();
         const matchesSearch = car.carNumber.toLowerCase().includes(lowerSearch) || 
                              unitMap.get(car.unitId)?.toLowerCase().includes(lowerSearch);
         return matchesCampus && matchesSearch;
     });
-  }, [rawCars, campusFilter, searchTerm, unitMap]);
+  }, [rawCars, campusFilter, searchTerm, unitMap, isAdmin, isAuditor, userRole, userProfile]);
+
+  const handlePrint = (car: CorrectiveActionRequest) => {
+    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
+    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <CARPrintTemplate 
+                car={car} 
+                unitName={uName} 
+                campusName={cName} 
+                signatories={signatories || undefined} 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>CAR - ${car.carNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { 
+                                margin: 0 !important; 
+                                padding: 0 !important; 
+                                background: white; 
+                                -webkit-print-color-adjust: exact;
+                            } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", description: "Could not generate the CAR report.", variant: "destructive" });
+    }
+  };
+
+  const handlePrintRegistry = () => {
+    if (!filteredCars.length) return;
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <CARControlRegisterTemplate 
+                cars={filteredCars} 
+                unitMap={unitMap} 
+                campusMap={campusMap}
+                year="all" 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>CAR Control Register</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            @page { size: landscape; margin: 0.5in; }
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Register (Landscape)</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", description: "Could not generate control register.", variant: "destructive" });
+    }
+  };
 
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
@@ -187,11 +309,21 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <h3 className="text-xl font-black uppercase text-slate-900">Corrective Action Framework</h3>
             <p className="text-xs text-muted-foreground">Formalizing and tracking the closure of non-conformities.</p>
         </div>
-        {(isAdmin || isAuditor) && (
-            <Button onClick={() => { setEditingCar(null); form.reset(); setIsDialogOpen(true); }} size="sm" className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
-                <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
+        <div className="flex items-center gap-2">
+            <Button 
+                variant="outline" 
+                onClick={handlePrintRegistry} 
+                disabled={filteredCars.length === 0}
+                className="h-9 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
+            >
+                <Printer className="h-4 w-4" /> Print CAR Registry
             </Button>
-        )}
+            {(isAdmin || isAuditor) && (
+                <Button onClick={() => { setEditingCar(null); form.reset(); setIsDialogOpen(true); }} size="sm" className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
+                </Button>
+            )}
+        </div>
       </div>
 
       <Tabs defaultValue="registry" className="space-y-6">
@@ -199,9 +331,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <ListChecks className="h-4 w-4" /> Full List
               </TabsTrigger>
-              <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management
-              </TabsTrigger>
+              {(isAdmin || isAuditor) && (
+                  <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                      <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management
+                  </TabsTrigger>
+              )}
           </TabsList>
 
           <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
@@ -257,7 +391,26 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
                                 </TableCell>
                                 <TableCell className="text-center"><Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary">{car.status}</Badge></TableCell>
-                                <TableCell className="text-right pr-6"><Button size="sm" variant="ghost" className="h-8 font-black uppercase text-[10px]" onClick={() => handleEdit(car)}>Manage Record</Button></TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-8 text-[10px] font-bold bg-white gap-1.5"
+                                            onClick={(e) => { e.stopPropagation(); handlePrint(car); }}
+                                        >
+                                            <Printer className="h-3 w-3" /> PRINT
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            variant="ghost" 
+                                            className="h-8 font-black uppercase text-[10px]" 
+                                            onClick={() => handleEdit(car)}
+                                        >
+                                            Manage Record
+                                        </Button>
+                                    </div>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
