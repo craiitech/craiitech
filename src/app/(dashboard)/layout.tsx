@@ -182,14 +182,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: carNotifications } = useCollection<CorrectiveActionRequest>(carNotifQuery);
 
   const notificationCount = useMemo(() => {
-    let count = 0;
-    if (subNotifications && userProfile) {
-        // Match the approvals page logic: exclude submissions the current user authored themselves
-        count += subNotifications.filter(s => s.userId !== userProfile.id).length;
+    if (!subNotifications) return 0;
+    // Mirror exactly what the /approvals page shows:
+    // - Admin: all submitted submissions (no self-filter, admins don't submit)
+    // - Non-admin supervisor: exclude their own submissions
+    if (isAdmin) return subNotifications.length;
+    if (isSupervisor && userProfile) {
+      return subNotifications.filter(s => s.userId !== userProfile.id).length;
     }
-    if (carNotifications) count += carNotifications.length;
-    return count;
-  }, [subNotifications, carNotifications, userProfile, isAdmin, isSupervisor]);
+    // Regular users: count their own rejected submissions (from the query)
+    return subNotifications.length;
+  }, [subNotifications, userProfile, isAdmin, isSupervisor]);
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
