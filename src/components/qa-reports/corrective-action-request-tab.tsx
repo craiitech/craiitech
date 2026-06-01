@@ -169,6 +169,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     });
   }, [rawCars, campusFilter, searchTerm, unitMap, isAdmin, isAuditor, userRole, userProfile]);
 
+  const forActionCars = useMemo(() => {
+    return filteredCars.filter(car => car.status !== 'Open' && car.status !== 'Closed' && car.source !== 'Audit Finding');
+  }, [filteredCars]);
+
   const handlePrint = (car: CorrectiveActionRequest) => {
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
@@ -464,6 +468,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <ListChecks className="h-4 w-4" /> Full List
               </TabsTrigger>
+              <TabsTrigger value="for-action" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <Activity className="h-4 w-4 text-amber-600" /> For Action
+              </TabsTrigger>
               {(isAdmin || isAuditor) && (
                   <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                       <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management
@@ -546,6 +553,93 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 </TableCell>
                             </TableRow>
                         ))}
+                    </TableBody>
+                </Table>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="for-action" className="space-y-6 animate-in fade-in duration-500">
+              <Card className="border-primary/10 shadow-sm bg-muted/10">
+                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                      <div className="md:col-span-2 space-y-1.5">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
+                          <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="Search by CAR number or Unit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 text-xs bg-white" />
+                          </div>
+                      </div>
+                      <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
+                          <Select value={campusFilter} onValueChange={setCampusFilter}>
+                              <SelectTrigger className="h-10 text-xs bg-white font-bold"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="all">All Sites</SelectItem>
+                                  {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                      </div>
+                  </CardContent>
+              </Card>
+
+              <Card className="shadow-md border-primary/10 overflow-hidden">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow>
+                            <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
+                            <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                            <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {forActionCars?.map(car => (
+                            <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                                <TableCell className="pl-6 py-4">
+                                    <div className="flex flex-col">
+                                        <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                                        <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2 text-xs font-bold">
+                                        <Building2 className="h-3.5 w-3.5 opacity-30" />
+                                        {unitMap.get(car.unitId)}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                                    {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
+                                </TableCell>
+                                <TableCell className="text-center"><Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary">{car.status}</Badge></TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-8 text-[10px] font-bold bg-white gap-1.5"
+                                            onClick={(e) => { e.stopPropagation(); handlePrint(car); }}
+                                        >
+                                            <Printer className="h-3 w-3" /> PRINT
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            variant="ghost" 
+                                            className="h-8 font-black uppercase text-[10px]" 
+                                            onClick={() => handleEdit(car)}
+                                        >
+                                            Manage Record
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {forActionCars.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground italic text-xs">
+                                    No records found requiring action.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
               </Card>
