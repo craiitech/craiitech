@@ -61,7 +61,8 @@ import type {
     AuditSchedule,
     AuditPlan,
     ISOClause,
-    AuditFinding
+    AuditFinding,
+    Signatories
 } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
@@ -216,6 +217,19 @@ export default function HomePage() {
   }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
+
+  // Audit plans, findings, and ISO clauses needed for the Print Site Plan / Print Site Report buttons
+  const auditPlansQuery = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? collection(firestore, 'auditPlans') : null), [firestore, isAdmin, isCampusLevel]);
+  const { data: dashboardAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
+
+  const auditFindingsQuery = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? collection(firestore, 'auditFindings') : null), [firestore, isAdmin, isCampusLevel]);
+  const { data: dashboardFindings } = useCollection<AuditFinding>(auditFindingsQuery);
+
+  const isoClausesQuery = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? collection(firestore, 'isoClauses') : null), [firestore, isAdmin, isCampusLevel]);
+  const { data: dashboardIsoClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const signatoryRef = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? doc(firestore, 'system', 'signatories') : null), [firestore, isAdmin, isCampusLevel]);
+  const { data: dashboardSignatories } = useDoc<Signatories>(signatoryRef);
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -401,7 +415,18 @@ export default function HomePage() {
       </div>
 
       <TabsContent value="overview" className="space-y-6">
-        <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={true} campusName="Institutional" />
+        <UnitAuditSchedule
+          schedules={dashboardSchedules}
+          isLoading={isLoadingSchedules}
+          isSupervisor={true}
+          campusName="Institutional"
+          plans={dashboardAuditPlans || []}
+          findings={dashboardFindings || []}
+          isoClauses={dashboardIsoClauses || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          signatories={dashboardSignatories || undefined}
+        />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
               <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
@@ -455,7 +480,18 @@ export default function HomePage() {
         </div>
 
       <TabsContent value="overview" className="space-y-6">
-        <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} isSupervisor={true} campusName={campusMap.get(userProfile?.campusId || '')} />
+        <UnitAuditSchedule
+          schedules={dashboardSchedules}
+          isLoading={isLoadingSchedules}
+          isSupervisor={true}
+          campusName={campusMap.get(userProfile?.campusId || '')}
+          plans={dashboardAuditPlans || []}
+          findings={dashboardFindings || []}
+          isoClauses={dashboardIsoClauses || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          signatories={dashboardSignatories || undefined}
+        />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
               <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
