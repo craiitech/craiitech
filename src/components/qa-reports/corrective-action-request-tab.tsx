@@ -170,7 +170,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   }, [rawCars, campusFilter, searchTerm, unitMap, isAdmin, isAuditor, userRole, userProfile]);
 
   const forActionCars = useMemo(() => {
-    return filteredCars.filter(car => car.status !== 'Open' && car.status !== 'Closed' && car.source !== 'Audit Finding');
+    return filteredCars.filter(car => car.status !== 'Open' && car.status !== 'Closed');
   }, [filteredCars]);
 
   const handlePrint = (car: CorrectiveActionRequest) => {
