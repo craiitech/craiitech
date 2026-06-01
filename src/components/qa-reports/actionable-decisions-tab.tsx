@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -313,7 +313,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     <SelectTrigger className="w-[160px] h-9 bg-white font-bold shadow-sm">
                         <SelectValue placeholder="All Sessions" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent modal={false}>
                         <SelectItem value="all">All Sessions</SelectItem>
                         {availableYears.map(y => <SelectItem key={y} value={y}>Review Year {y}</SelectItem>)}
                     </SelectContent>
@@ -369,7 +369,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             <SelectTrigger className="h-10 text-xs bg-white">
                                 <SelectValue placeholder="All Statuses" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 <SelectItem value="all">All Statuses</SelectItem>
                                 <SelectItem value="Open">Open</SelectItem>
                                 <SelectItem value="On-going">On-going</SelectItem>
@@ -748,7 +748,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                     <FormControl>
                                         <SelectTrigger className="bg-primary/5 border-primary/20 font-black h-10"><SelectValue /></SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent modal={false}>
                                         <SelectItem value="Open">Open (No Action Yet)</SelectItem>
                                         <SelectItem value="On-going">On-going (Implementation in progress)</SelectItem>
                                         <SelectItem value="Submit for Closure Verification" className="font-bold text-blue-600">Submit for Closure Verification</SelectItem>

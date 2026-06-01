@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 /**
@@ -248,7 +248,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                                   </TableCell>
                                   <TableCell className="text-right">
                                       <div className="flex flex-col items-end">
-                                          <span className="text-xs font-black text-primary tabular-nums">₱{plan.budget.toLocaleString()}</span>
+                                          <span className="text-xs font-black text-primary tabular-nums">â‚±{plan.budget.toLocaleString()}</span>
                                           <Badge variant="outline" className="h-4 text-[8px] font-black uppercase border-none bg-primary/5 text-primary mt-1">{plan.sourceOfBudget}</Badge>
                                       </div>
                                   </TableCell>
@@ -330,28 +330,28 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2 border-b pb-2"><Landmark className="h-4 w-4" /> Fiscal Provisioning</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="budget" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">GAD Budget Allocation (₱)</FormLabel><FormControl><Input type="number" {...field} className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black text-lg" /></FormControl>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">GAD Budget Allocation (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black text-lg" /></FormControl>
                                         {gadSettings?.institutionalTotalBudget && (
                                             <FormDescription className="text-[9px] font-bold text-emerald-600 uppercase flex items-center gap-2 mt-1">
                                                 <Calculator className="h-3 w-3" />
-                                                Min Target (5%): ₱{((gadSettings.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
+                                                Min Target (5%): â‚±{((gadSettings.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
                                                 {watchBudget >= ((gadSettings.institutionalTotalBudget || 0) * 0.05) ? <Badge className="bg-emerald-600 h-3 text-[7px]">GOAL MET</Badge> : <Badge variant="destructive" className="h-3 text-[7px]">UNDER TARGET</Badge>}
                                             </FormDescription>
                                         )}
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="sourceOfBudget" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Source of Funds</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-11 font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="GAA">GAA (General Appropriations)</SelectItem><SelectItem value="Trust Fund">Trust Fund</SelectItem><SelectItem value="Income">Institutional Income</SelectItem><SelectItem value="Others">Others / External</SelectItem></SelectContent></Select></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Source of Funds</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-11 font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent modal={false}><SelectItem value="GAA">GAA (General Appropriations)</SelectItem><SelectItem value="Trust Fund">Trust Fund</SelectItem><SelectItem value="Income">Institutional Income</SelectItem><SelectItem value="Others">Others / External</SelectItem></SelectContent></Select></FormItem>
                                 )} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Location / Site</FormLabel><Select onValueChange={(val) => { field.onChange(val); form.setValue('responsibleOfficeId', ''); }} value={field.value} disabled={!isAdmin && !!userProfile?.campusId}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Location / Site</FormLabel><Select onValueChange={(val) => { field.onChange(val); form.setValue('responsibleOfficeId', ''); }} value={field.value} disabled={!isAdmin && !!userProfile?.campusId}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl><SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
                             )} />
                             <FormField control={form.control} name="responsibleOfficeId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Responsible Office</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Responsible Office</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent modal={false}>{units.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
                             )} />
                         </div>
                     </form>

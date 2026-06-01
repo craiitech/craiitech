@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -578,7 +578,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
               <FormField control={mrForm.control} name="campusId" render={({ field }) => (
                 <FormItem><FormLabel className="text-xs font-bold uppercase">Review Scope</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
-                    <SelectContent>
+                    <SelectContent modal={false}>
                       <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
                       {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
@@ -661,7 +661,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             <FormField control={outputForm.control} name={`assignments.${index}.campusId`} render={({ field: cField }) => (
                                                 <Select onValueChange={(val) => { cField.onChange(val); outputForm.setValue(`assignments.${index}.unitId`, ''); }} value={cField.value}>
                                                     <FormControl><SelectTrigger className="bg-background h-9 text-xs font-bold"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
+                                                    <SelectContent modal={false}>
                                                         <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
                                                         {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                                     </SelectContent>
@@ -673,7 +673,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             <FormField control={outputForm.control} name={`assignments.${index}.unitId`} render={({ field: uField }) => (
                                                 <Select onValueChange={uField.onChange} value={uField.value} disabled={!currentCampusId}>
                                                     <FormControl><SelectTrigger className="bg-background h-9 text-xs font-bold"><SelectValue placeholder={currentCampusId ? "Select Unit" : "Select Campus First"} /></SelectTrigger></FormControl>
-                                                    <SelectContent>
+                                                    <SelectContent modal={false}>
                                                         <SelectItem value={ALL_UNITS_ID} className="font-bold text-emerald-600 italic">All Relevant Units / Offices</SelectItem>
                                                         <SelectItem value={ALL_ACADEMIC_ID} className="font-bold text-blue-600 italic">All Academic Units</SelectItem>
                                                         <SelectItem value={ALL_ADMIN_ID} className="font-bold text-slate-600 italic">All Administrative Units</SelectItem>
@@ -724,7 +724,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         <FormItem><FormLabel className="text-xs font-black uppercase text-primary">Initial Lifecycle Status</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 <SelectItem value="Open">Open</SelectItem>
                                 <SelectItem value="On-going">On-going</SelectItem>
                                 <SelectItem value="Submit for Closure Verification">Submit for Closure Verification</SelectItem>

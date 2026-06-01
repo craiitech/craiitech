@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -273,7 +273,7 @@ export function CycleManagement() {
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Select a cycle" /></SelectTrigger>
                                         </FormControl>
-                                        <SelectContent>
+                                        <SelectContent modal={false}>
                                             <SelectItem value="first">First Cycle</SelectItem>
                                             <SelectItem value="final">Final Cycle</SelectItem>
                                         </SelectContent>
@@ -292,7 +292,7 @@ export function CycleManagement() {
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Select a year" /></SelectTrigger>
                                         </FormControl>
-                                        <SelectContent>
+                                        <SelectContent modal={false}>
                                             {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
@@ -306,13 +306,13 @@ export function CycleManagement() {
                         <FormLabel>Start Date</FormLabel>
                         <div className="grid grid-cols-3 gap-2 mt-2">
                              <FormField control={form.control} name="startMonth" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent modal={false}>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
                              )}/>
                              <FormField control={form.control} name="startDay" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent modal={false}>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
                              )}/>
                              <FormField control={form.control} name="startYear" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent modal={false}>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
                              )}/>
                         </div>
                     </div>
@@ -321,13 +321,13 @@ export function CycleManagement() {
                         <FormLabel>End Date</FormLabel>
                         <div className="grid grid-cols-3 gap-2 mt-2">
                             <FormField control={form.control} name="endMonth" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent modal={false}>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
                             )}/>
                             <FormField control={form.control} name="endDay" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent modal={false}>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
                             )}/>
                             <FormField control={form.control} name="endYear" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent modal={false}>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
                             )}/>
                         </div>
                         <FormMessage>{form.formState.errors.endDay?.message}</FormMessage>

@@ -160,7 +160,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-bold"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 <SelectItem value="Completed">Completed</SelectItem>
                                 <SelectItem value="In Progress">In Progress</SelectItem>
                                 <SelectItem value="Open">Open (Planned)</SelectItem>

@@ -228,7 +228,7 @@ export function EditUserDialog({
                             <SelectValue placeholder="Select sex" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent modal={false}>
                           <SelectItem value="Male">Male</SelectItem>
                           <SelectItem value="Female">Female</SelectItem>
                           <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
@@ -251,7 +251,7 @@ export function EditUserDialog({
                             <SelectValue placeholder="Select assigned role" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent modal={false}>
                           {roles.map((role) => (
                             <SelectItem key={role.id} value={role.id}>
                               {role.name}
@@ -282,7 +282,7 @@ export function EditUserDialog({
                             <SelectValue placeholder="Select a campus" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent modal={false}>
                           {campuses.map((campus) => (
                             <SelectItem key={campus.id} value={campus.id}>
                               {campus.name}
@@ -307,7 +307,7 @@ export function EditUserDialog({
                                 <SelectValue placeholder={selectedCampusId ? "Select a unit" : "Select a campus first"} />
                             </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                             {unitsForCampus.map((unit) => (
                                 <SelectItem key={unit.id} value={unit.id}>
                                 {unit.name}

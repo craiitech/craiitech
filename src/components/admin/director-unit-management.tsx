@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -431,7 +431,7 @@ export function DirectorUnitManagement() {
                                 <SelectValue placeholder="Select Category" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
                                 <SelectItem value="Administrative">Administrative Office</SelectItem>
                                 <SelectItem value="Research">Research Center</SelectItem>

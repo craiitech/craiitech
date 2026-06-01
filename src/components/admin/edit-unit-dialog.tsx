@@ -190,7 +190,7 @@ export function EditUnitDialog({
                               <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent modal={false}>
                             <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
                             <SelectItem value="Administrative">Administrative Office</SelectItem>
                             <SelectItem value="Research">Research Center</SelectItem>
@@ -284,7 +284,7 @@ export function EditUnitDialog({
                             <SelectValue placeholder="Assign a Vice President" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent modal={false}>
                           <SelectItem value="none">
                             None
                           </SelectItem>

@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -204,8 +204,8 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                   <TableCell>
                     <div className="flex flex-col gap-1 w-32">
                         <div className="flex justify-between text-[10px] font-black tabular-nums">
-                            <span>₱{item.utilizedAmount.toLocaleString()}</span>
-                            <span className="opacity-40">₱{item.budget.toLocaleString()}</span>
+                            <span>â‚±{item.utilizedAmount.toLocaleString()}</span>
+                            <span className="opacity-40">â‚±{item.budget.toLocaleString()}</span>
                         </div>
                         <Progress value={(item.utilizedAmount / (item.budget || 1)) * 100} className="h-1" />
                     </div>
@@ -291,7 +291,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                                 <FormItem><FormLabel className="text-xs font-black uppercase">Campus Site</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} disabled={isGadCoordinator}>
                                         <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                        <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </FormItem>
                             )} />
@@ -299,7 +299,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                                 <FormItem><FormLabel className="text-xs font-black uppercase">Executing Unit</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} disabled={isGadCoordinator}>
                                         <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                                        <SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent modal={false}>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </FormItem>
                             )} />
@@ -311,10 +311,10 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="budget" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Planned Budget (₱)</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 font-mono font-bold" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Planned Budget (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 font-mono font-bold" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="utilizedAmount" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Actual Utilization (₱)</FormLabel><FormControl><Input type="number" {...field} className="bg-emerald-50/50 font-mono font-bold border-emerald-100" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Actual Utilization (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="bg-emerald-50/50 font-mono font-bold border-emerald-100" /></FormControl></FormItem>
                                 )} />
                             </div>
                         </div>
@@ -335,7 +335,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
 
                         <div className="pt-6 border-t">
                             <FormField control={form.control} name="status" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Execution Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-primary/5 border-primary/20 h-11 font-black uppercase text-[10px] tracking-widest"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Planned">Planned</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Cancelled">Cancelled</SelectItem></SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Execution Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-primary/5 border-primary/20 h-11 font-black uppercase text-[10px] tracking-widest"><SelectValue /></SelectTrigger></FormControl><SelectContent modal={false}><SelectItem value="Planned">Planned</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Cancelled">Cancelled</SelectItem></SelectContent></Select></FormItem>
                             )} />
                         </div>
                     </form>

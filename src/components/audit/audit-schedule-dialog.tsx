@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import {
   Dialog,
@@ -380,7 +380,7 @@ export function AuditScheduleDialog({
                                                     </div>
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
+                                            <SelectContent modal={false}>
                                                 {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
@@ -406,7 +406,7 @@ export function AuditScheduleDialog({
                                                     <SelectValue placeholder={watchCampusId ? "Select Unit" : "Select Campus First"} />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
+                                            <SelectContent modal={false}>
                                                 {Object.entries(auditeesByCategory).map(([category, unitList]) => (
                                                     unitList.length > 0 && (
                                                         <SelectGroup key={category}>
@@ -591,7 +591,7 @@ export function AuditScheduleDialog({
                                                 <SelectValue placeholder="Select Auditor for this session" />
                                             </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent>
+                                        <SelectContent modal={false}>
                                             <SelectItem value="unassigned" className="italic text-muted-foreground">None (Available for Claiming)</SelectItem>
                                             {auditors.map(auditor => (
                                                 <SelectItem key={auditor.id} value={auditor.id}>

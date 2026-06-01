@@ -172,7 +172,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-bold"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 <SelectItem value="Teaching">Teaching Faculty</SelectItem>
                                 <SelectItem value="Non-Teaching">Non-Teaching Staff</SelectItem>
                             </SelectContent>

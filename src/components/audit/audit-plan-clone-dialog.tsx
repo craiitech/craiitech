@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -215,7 +215,7 @@ export function AuditPlanCloneDialog({
                                     <FormLabel className="text-[10px] font-bold uppercase">Target Campus Site</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger className="h-11 font-bold"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                        <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                     <FormMessage />
                                 </FormItem>

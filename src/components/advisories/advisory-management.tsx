@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -207,7 +207,7 @@ export function AdvisoryManagement() {
                   <FormLabel className="text-[10px] font-bold uppercase">Target Accessibility Scope</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
+                    <SelectContent modal={false}>
                       <SelectItem value="University-Wide">University-Wide (Institutional)</SelectItem>
                       <SelectItem value="Specific Unit">Specific Unit / Office Only</SelectItem>
                     </SelectContent>
@@ -221,7 +221,7 @@ export function AdvisoryManagement() {
                     <FormLabel className="text-[10px] font-bold uppercase">Target Recipient Unit</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                      <SelectContent>
+                      <SelectContent modal={false}>
                         {units?.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                       </SelectContent>
                     </Select>

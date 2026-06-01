@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import type { 
@@ -208,7 +208,7 @@ export function AuditResultsView({
                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><School className="h-2.5 w-2.5" /> Campus / Site</label>
                     <Select value={campusFilter} onValueChange={(v) => { setCampusFilter(v); setUnitFilter('all'); }}>
                         <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent modal={false}>
                             <SelectItem value="all">Institutional View (All)</SelectItem>
                             {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                         </SelectContent>
@@ -218,7 +218,7 @@ export function AuditResultsView({
                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Unit / Office</label>
                     <Select value={unitFilter} onValueChange={setUnitFilter} disabled={campusFilter === 'all' && !isAdmin}>
                         <SelectTrigger className="h-10 bg-white font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent modal={false}>
                             <SelectItem value="all">All Units in Campus</SelectItem>
                             {units.filter(u => campusFilter === 'all' || u.campusIds?.includes(campusFilter)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                         </SelectContent>

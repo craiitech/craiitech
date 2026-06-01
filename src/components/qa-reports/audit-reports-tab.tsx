@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -300,7 +300,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                           <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Standard</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Standard" /></SelectTrigger></FormControl>
-                              <SelectContent>
+                              <SelectContent modal={false}>
                                   <SelectItem value="ISO 9001:2015">ISO 9001:2015</SelectItem>
                                   <SelectItem value="ISO 21001:2018">ISO 21001:2018</SelectItem>
                               </SelectContent>
@@ -314,7 +314,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                               <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Category</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
-                                  <SelectContent>
+                                  <SelectContent modal={false}>
                                       <SelectItem value="Certification / Re-Certification Audit">Certification / Re-Certification Audit</SelectItem>
                                       <SelectItem value="Surveillance Audit">Surveillance Audit</SelectItem>
                                   </SelectContent>

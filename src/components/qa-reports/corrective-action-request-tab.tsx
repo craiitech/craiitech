@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -492,7 +492,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                           <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
                           <Select value={campusFilter} onValueChange={setCampusFilter}>
                               <SelectTrigger className="h-10 text-xs bg-white font-bold"><SelectValue /></SelectTrigger>
-                              <SelectContent>
+                              <SelectContent modal={false}>
                                   <SelectItem value="all">All Sites</SelectItem>
                                   {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                               </SelectContent>
@@ -572,7 +572,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                           <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
                           <Select value={campusFilter} onValueChange={setCampusFilter}>
                               <SelectTrigger className="h-10 text-xs bg-white font-bold"><SelectValue /></SelectTrigger>
-                              <SelectContent>
+                              <SelectContent modal={false}>
                                   <SelectItem value="all">All Sites</SelectItem>
                                   {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                               </SelectContent>
@@ -712,7 +712,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             <FormLabel className="text-xs font-bold uppercase">Source</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}>
                                                 <FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
+                                                <SelectContent modal={false}>
                                                     <SelectItem value="Audit Finding">Audit Finding</SelectItem>
                                                     <SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem>
                                                     <SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem>
@@ -733,7 +733,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             <FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}>
                                                 <FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
+                                                <SelectContent modal={false}>
                                                     <SelectItem value="NC">NC</SelectItem>
                                                     <SelectItem value="OFI">OFI</SelectItem>
                                                 </SelectContent>
@@ -772,7 +772,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             <FormLabel className="text-xs font-bold uppercase">Campus Site</FormLabel>
                                             <Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value} disabled={isFieldReadOnly('campusId')}>
                                                 <FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                                <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
@@ -782,7 +782,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             <FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('unitId') || !form.watch('campusId')}>
                                                 <FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                                                <SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                                <SelectContent modal={false}>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
@@ -847,7 +847,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                             <FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel>
                                                             <Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly('actionSteps')}>
                                                                 <FormControl><SelectTrigger className="bg-white text-[10px]"><SelectValue /></SelectTrigger></FormControl>
-                                                                <SelectContent>
+                                                                <SelectContent modal={false}>
                                                                     <SelectItem value="Immediate Correction">Immediate Correction</SelectItem>
                                                                     <SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem>
                                                                 </SelectContent>
@@ -996,7 +996,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                             <FormControl>
                                                                 <SelectTrigger className="h-10 font-bold bg-white"><SelectValue /></SelectTrigger>
                                                             </FormControl>
-                                                            <SelectContent>
+                                                            <SelectContent modal={false}>
                                                                 <SelectItem value="Effective">Effective (NC Closed)</SelectItem>
                                                                 <SelectItem value="Not Effective">Not Effective (NC Stays Open)</SelectItem>
                                                                 <SelectItem value="Close the NC">Close the NC</SelectItem>

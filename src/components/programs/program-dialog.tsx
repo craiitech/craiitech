@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import {
@@ -227,7 +227,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
                         <FormLabel className="text-[10px] font-bold uppercase">Education Level</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                             <SelectItem value="Undergraduate">Undergraduate</SelectItem>
                             <SelectItem value="Graduate">Graduate</SelectItem>
                             <SelectItem value="TVET">TVET</SelectItem>
@@ -244,7 +244,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
                         <FormLabel className="text-[10px] font-bold uppercase">Campus Site</FormLabel>
                         <Select onValueChange={(val) => { field.onChange(val); form.setValue('collegeId', ''); }} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                            <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                            <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                         <FormMessage />
                         </FormItem>
@@ -254,7 +254,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
                         <FormLabel className="text-[10px] font-bold uppercase">Academic Unit (Parent)</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCampusId}>
                             <FormControl><SelectTrigger><SelectValue placeholder={selectedCampusId ? "Select Unit" : "Select Campus First"} /></SelectTrigger></FormControl>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 {academicUnitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                 {selectedCampusId && academicUnitsForCampus.length === 0 && (
                                     <div className="p-4 text-[10px] text-muted-foreground italic">No units marked as 'Academic' in this campus.</div>

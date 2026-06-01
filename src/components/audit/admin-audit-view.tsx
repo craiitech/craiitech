@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -194,7 +194,7 @@ export function AdminAuditView() {
                             <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
                                 <SelectValue placeholder="Year" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent modal={false}>
                                 {yearsList.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
                             </SelectContent>
                         </Select>

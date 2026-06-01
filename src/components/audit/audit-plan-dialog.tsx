@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * @fileOverview A dialog component for creating or editing audit plans.
@@ -251,7 +251,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     <FormLabel className="text-[10px] font-bold uppercase">Audit Type</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger className="h-10"><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>
+                                        <SelectContent modal={false}>
                                             <SelectItem value="Regular Audit">Regular Audit</SelectItem>
                                             <SelectItem value="Special Audit">Special Audit</SelectItem>
                                         </SelectContent>
@@ -263,7 +263,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     <FormLabel className="text-[10px] font-bold uppercase">Academic Year</FormLabel>
                                     <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                         <FormControl><SelectTrigger className="h-10 font-bold"><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                                        <SelectContent modal={false}>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </FormItem>
                             )} />
@@ -290,7 +290,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                         <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl><SelectTrigger className="h-10"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl>
-                                            <SelectContent>
+                                            <SelectContent modal={false}>
                                                 <SelectItem value="university-wide" className="font-bold text-primary italic">
                                                     <div className="flex items-center gap-2">
                                                         <Globe className="h-3 w-3" />
@@ -452,7 +452,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                 <FormLabel className="text-[10px] font-bold uppercase text-primary">Lead Auditor (Institutional Lead)</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-11 font-bold bg-primary/5 border-primary/20"><SelectValue placeholder="Designate Lead Auditor" /></SelectTrigger></FormControl>
-                                    <SelectContent>
+                                    <SelectContent modal={false}>
                                         {auditors.map(a => <SelectItem key={a.id} value={a.id}>{a.firstName} {a.lastName}</SelectItem>)}
                                     </SelectContent>
                                 </Select>

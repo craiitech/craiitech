@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -205,7 +205,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                               </div>
                           </TableCell>
                           <TableCell className="text-right font-black text-emerald-600 tabular-nums">
-                              ₱{(a.actualBudgetUsed || 0).toLocaleString()}
+                              â‚±{(a.actualBudgetUsed || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right pr-8">
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -256,7 +256,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Host Site</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin}>
                                             <FormControl><SelectTrigger className="h-11 bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                            <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                            <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
                                 )} />
@@ -264,7 +264,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Implementing Office</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin && !!userProfile?.unitId}>
                                             <FormControl><SelectTrigger className="h-11 bg-slate-50"><SelectValue placeholder="Select Office" /></SelectTrigger></FormControl>
-                                            <SelectContent>{units.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                            <SelectContent modal={false}>{units.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
                                 )} />
@@ -326,7 +326,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Target className="h-4 w-4" /> 4. Outcome & Budget</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="actualBudgetUsed" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Actual Budget Expended (₱)</FormLabel><FormControl><Input type="number" {...field} className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Actual Budget Expended (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="actualOutput" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Actual Output Status</FormLabel><FormControl><Input {...field} placeholder="e.g. Conducted sensitivity workshop" className="h-11 bg-slate-50" /></FormControl></FormItem>

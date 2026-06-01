@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import {
   Dialog,
@@ -464,7 +464,7 @@ export function RiskFormDialog({
                                                 <FormLabel className="font-bold">Monitoring Year</FormLabel>
                                                 <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                                     <FormControl><SelectTrigger className="h-10 bg-slate-50 font-bold"><SelectValue placeholder="Select Year" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
+                                                    <SelectContent modal={false}>
                                                         {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                                                     </SelectContent>
                                                 </Select>
@@ -496,7 +496,7 @@ export function RiskFormDialog({
                                                     <FormLabel className="text-xs font-black uppercase text-primary">Admin Override: Campus</FormLabel>
                                                     <Select onValueChange={(val) => { field.onChange(val); form.setValue('adminUnitId', ''); }} value={field.value || ''}>
                                                         <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                                        <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                        <SelectContent modal={false}>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                                     </Select>
                                                 </FormItem>
                                             )} />
@@ -505,7 +505,7 @@ export function RiskFormDialog({
                                                     <FormLabel className="text-xs font-black uppercase text-primary">Admin Override: Unit</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedAdminCampusId}>
                                                         <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                                                        <SelectContent>{allUnits.filter(u => u.campusIds?.includes(selectedAdminCampusId || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                                        <SelectContent modal={false}>{allUnits.filter(u => u.campusIds?.includes(selectedAdminCampusId || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                                     </Select>
                                                 </FormItem>
                                             )} />
@@ -572,7 +572,7 @@ export function RiskFormDialog({
                                                   <SelectValue />
                                                 </SelectTrigger>
                                               </FormControl>
-                                              <SelectContent>
+                                              <SelectContent modal={false}>
                                                 {ASSESSMENT_CRITERIA.likelihood[riskTypeValue].map(o => (
                                                   <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
                                                 ))}
@@ -589,7 +589,7 @@ export function RiskFormDialog({
                                                   <SelectValue />
                                                 </SelectTrigger>
                                               </FormControl>
-                                              <SelectContent>
+                                              <SelectContent modal={false}>
                                                 {ASSESSMENT_CRITERIA.consequence[riskTypeValue].map(o => (
                                                   <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
                                                 ))}
@@ -657,7 +657,7 @@ export function RiskFormDialog({
                                                           <SelectValue placeholder="Select Accountable Person" />
                                                         </SelectTrigger>
                                                       </FormControl>
-                                                      <SelectContent>
+                                                      <SelectContent modal={false}>
                                                         {filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}
                                                       </SelectContent>
                                                     </Select>
@@ -674,7 +674,7 @@ export function RiskFormDialog({
                                                               <SelectValue placeholder="Mo" />
                                                             </SelectTrigger>
                                                           </FormControl>
-                                                          <SelectContent>
+                                                          <SelectContent modal={false}>
                                                             {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                                                           </SelectContent>
                                                         </Select>
@@ -688,7 +688,7 @@ export function RiskFormDialog({
                                                               <SelectValue placeholder="Da" />
                                                             </SelectTrigger>
                                                           </FormControl>
-                                                          <SelectContent>
+                                                          <SelectContent modal={false}>
                                                             {daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                                           </SelectContent>
                                                         </Select>
@@ -702,7 +702,7 @@ export function RiskFormDialog({
                                                               <SelectValue placeholder="Yr" />
                                                             </SelectTrigger>
                                                           </FormControl>
-                                                          <SelectContent>
+                                                          <SelectContent modal={false}>
                                                             {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                                                           </SelectContent>
                                                         </Select>
@@ -773,7 +773,7 @@ export function RiskFormDialog({
                                                         <FormLabel className="text-[10px] font-bold uppercase">Residual Likelihood (L)</FormLabel>
                                                         <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                                             <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
-                                                            <SelectContent>
+                                                            <SelectContent modal={false}>
                                                                 {ASSESSMENT_CRITERIA.likelihood[riskTypeValue].map(o => (
                                                                     <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
                                                                 ))}
@@ -786,7 +786,7 @@ export function RiskFormDialog({
                                                         <FormLabel className="text-[10px] font-bold uppercase">Residual Consequence (C)</FormLabel>
                                                         <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                                             <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
-                                                            <SelectContent>
+                                                            <SelectContent modal={false}>
                                                                 {ASSESSMENT_CRITERIA.consequence[riskTypeValue].map(o => (
                                                                     <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
                                                                 ))}
@@ -839,7 +839,7 @@ export function RiskFormDialog({
                                                     <FormLabel className="font-bold text-primary">Update Execution Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-11"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent>
+                                                        <SelectContent modal={false}>
                                                             <SelectItem value="Open">Open (Analysis Stage)</SelectItem>
                                                             <SelectItem value="In Progress">In Progress (Execution Stage)</SelectItem>
                                                             <SelectItem value="Closed" className="font-bold text-emerald-600">Closed (Mitigation Complete)</SelectItem>

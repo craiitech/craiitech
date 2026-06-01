@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import React from 'react';
@@ -399,7 +399,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <FormItem>
                                                     <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                                                         <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl>
-                                                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                                                        <SelectContent modal={false}>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                                                     </Select>
                                                 </FormItem>
                                             )} />
@@ -407,7 +407,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <FormItem>
                                                     <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                                                         <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Day" /></SelectTrigger></FormControl>
-                                                        <SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                                                        <SelectContent modal={false}>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                                                     </Select>
                                                 </FormItem>
                                             )} />
@@ -415,7 +415,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <FormItem>
                                                     <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                                                         <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
+                                                        <SelectContent modal={false}>
                                                             {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                                                         </SelectContent>
                                                     </Select>
@@ -430,7 +430,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <FormControl>
                                                     <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Campus" /></SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
@@ -442,7 +442,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <FormControl>
                                                     <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Unit" /></SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent>{unitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                                <SelectContent modal={false}>{unitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
@@ -454,7 +454,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <FormControl>
                                                     <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent>
+                                                <SelectContent modal={false}>
                                                     <SelectItem value="Office">Office Room</SelectItem>
                                                     <SelectItem value="Classroom">Classroom</SelectItem>
                                                 </SelectContent>
@@ -539,7 +539,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                                                 <Circle className={cn("h-2 w-2", statusColors[statusField.value])} />
                                                                                 <SelectValue />
                                                                             </SelectTrigger>
-                                                                            <SelectContent>
+                                                                            <SelectContent modal={false}>
                                                                                 {statusLegend.map(l => (
                                                                                     <SelectItem key={l.status} value={l.status}>{l.status}</SelectItem>
                                                                                 ))}
