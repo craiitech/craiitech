@@ -158,12 +158,12 @@ export function AnnouncementManagement() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingAnnouncement(ann); }}>
+                          <DropdownMenuItem onSelect={() => { setTimeout(() => setEditingAnnouncement(ann), 0); }}>
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
-                            onSelect={(e) => { e.preventDefault(); setDeletingAnnouncement(ann); }}
+                            onSelect={() => { setTimeout(() => setDeletingAnnouncement(ann), 0); }}
                           >
                             Delete
                           </DropdownMenuItem>

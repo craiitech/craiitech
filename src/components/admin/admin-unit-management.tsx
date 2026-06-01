@@ -386,10 +386,10 @@ export function AdminUnitManagement() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel className="text-[10px] font-black uppercase">Unit Controls</DropdownMenuLabel>
-                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUnit(unit); }}>
+                                <DropdownMenuItem onSelect={() => { setTimeout(() => setEditingUnit(unit), 0); }}>
                                     Edit Unit Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive font-bold" onSelect={(e) => { e.preventDefault(); setConfirmDeleteId(unit.id); }}>
+                                <DropdownMenuItem className="text-destructive font-bold" onSelect={() => { setTimeout(() => setConfirmDeleteId(unit.id), 0); }}>
                                     <Trash2 className="mr-2 h-4 w-4" /> Delete Unit
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

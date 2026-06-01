@@ -393,7 +393,7 @@ export function UserManagement() {
                                     <TooltipTrigger asChild>
                                         <div className="w-full">
                                             <DropdownMenuItem
-                                            onSelect={(e) => { e.preventDefault(); handleToggleActivation(user); }}
+                                            onSelect={() => { setTimeout(() => handleToggleActivation(user), 0); }}
                                             disabled={!user.ndaAccepted && !user.verified}
                                             >
                                             {user.verified ? (
@@ -410,12 +410,12 @@ export function UserManagement() {
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
-                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUser(user); }}>
+                                <DropdownMenuItem onSelect={() => { setTimeout(() => setEditingUser(user), 0); }}>
                                     Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                     className="text-destructive font-bold" 
-                                    onSelect={(e) => { e.preventDefault(); setConfirmDeleteId(user.id); }}
+                                    onSelect={() => { setTimeout(() => setConfirmDeleteId(user.id), 0); }}
                                 >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete

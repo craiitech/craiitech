@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -308,12 +308,12 @@ export function DirectorUnitManagement() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel className="text-[10px] font-black uppercase">Campus Controls</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConfirmRemoveId(unit.id); }}>
+                              <DropdownMenuItem onSelect={() => { setTimeout(() => setConfirmRemoveId(unit.id), 0); }}>
                                 <UserX className="mr-2 h-4 w-4" />
                                 Unassign from Campus
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onSelect={(e) => { e.preventDefault(); setConfirmDeleteId(unit.id); }}
+                                onSelect={() => { setTimeout(() => setConfirmDeleteId(unit.id), 0); }}
                                 className="text-destructive font-bold"
                                 disabled={(unit.campusIds?.length ?? 0) > 1}
                               >
