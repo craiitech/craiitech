@@ -231,8 +231,9 @@ export function AuditResultsView({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10">
               <TabsTrigger value="commendable" className="gap-2 text-[10px] font-black uppercase px-6 h-8"><Star className="h-3.5 w-3.5 text-amber-500" /> Commendable (P)</TabsTrigger>
+              <TabsTrigger value="compliance" className="gap-2 text-[10px] font-black uppercase px-6 h-8 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"><ClipboardCheck className="h-3.5 w-3.5" /> Compliance (C)</TabsTrigger>
+              <TabsTrigger value="ofi" className="gap-2 text-[10px] font-black uppercase px-6 h-8 data-[state=active]:bg-amber-600 data-[state=active]:text-white"><TrendingUp className="h-3.5 w-3.5" /> Opportunities for Improvement (OFI)</TabsTrigger>
               <TabsTrigger value="non-conformance" className="gap-2 text-[10px] font-black uppercase px-6 h-8 data-[state=active]:bg-rose-600 data-[state=active]:text-white"><ShieldAlert className="h-3.5 w-3.5" /> Non-Conformance (NC)</TabsTrigger>
-              <TabsTrigger value="compliance-ofi" className="gap-2 text-[10px] font-black uppercase px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"><ClipboardCheck className="h-3.5 w-3.5" /> Compliance & OFI</TabsTrigger>
           </TabsList>
 
           <TabsContent value="non-conformance" className="animate-in fade-in duration-500">
@@ -278,31 +279,22 @@ export function AuditResultsView({
               </Card>
           </TabsContent>
 
-          <TabsContent value="compliance-ofi" className="animate-in fade-in duration-500">
-              <Card className="shadow-lg border-indigo-200 overflow-hidden">
+          <TabsContent value="compliance" className="animate-in fade-in duration-500">
+              <Card className="shadow-lg border-emerald-200 overflow-hidden">
                   <Table>
                       <TableHeader className="bg-muted/30">
                           <TableRow>
                               <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Auditee</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">ISO Clause</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Finding / Description</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Compliance Description</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">Evidence Logged</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {kpis.yearFindings.filter(f => f.type === 'Compliance' || f.type === 'Observation for Improvement').map(finding => (
-                              <TableRow key={finding.id} className="hover:bg-indigo-50/10 transition-colors">
+                          {kpis.yearFindings.filter(f => f.type === 'Compliance').map(finding => (
+                              <TableRow key={finding.id} className="hover:bg-emerald-50/10 transition-colors">
                                   <TableCell className="pl-8 py-5">
                                       <p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <Badge variant="outline" className={cn(
-                                          "text-[9px] font-black uppercase",
-                                          finding.type === 'Compliance' ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"
-                                      )}>
-                                          {finding.type === 'Compliance' ? 'Compliance' : 'OFI'}
-                                      </Badge>
                                   </TableCell>
                                   <TableCell className="py-5">
                                       <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
@@ -315,11 +307,52 @@ export function AuditResultsView({
                                   </TableCell>
                               </TableRow>
                           ))}
-                          {kpis.yearFindings.filter(f => f.type === 'Compliance' || f.type === 'Observation for Improvement').length === 0 && (
+                          {kpis.yearFindings.filter(f => f.type === 'Compliance').length === 0 && (
                               <TableRow>
-                                  <TableCell colSpan={5} className="h-40 text-center opacity-20">
+                                  <TableCell colSpan={4} className="h-40 text-center opacity-20">
                                       <ClipboardCheck className="h-10 w-10 mx-auto" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest mt-2">No verified compliances or OFIs in this scope</p>
+                                      <p className="text-[10px] font-black uppercase tracking-widest mt-2">No verified compliances in this scope</p>
+                                  </TableCell>
+                              </TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="ofi" className="animate-in fade-in duration-500">
+              <Card className="shadow-lg border-amber-200 overflow-hidden">
+                  <Table>
+                      <TableHeader className="bg-muted/30">
+                          <TableRow>
+                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Auditee</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">ISO Clause</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">OFI Description</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Evidence Logged</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {kpis.yearFindings.filter(f => f.type === 'Observation for Improvement').map(finding => (
+                              <TableRow key={finding.id} className="hover:bg-amber-50/10 transition-colors">
+                                  <TableCell className="pl-8 py-5">
+                                      <p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p>
+                                  </TableCell>
+                                  <TableCell className="py-5">
+                                      <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
+                                  </TableCell>
+                                  <TableCell className="py-5">
+                                      <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
+                                  </TableCell>
+                                  <TableCell className="py-5">
+                                      <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                          {kpis.yearFindings.filter(f => f.type === 'Observation for Improvement').length === 0 && (
+                              <TableRow>
+                                  <TableCell colSpan={4} className="h-40 text-center opacity-20">
+                                      <TrendingUp className="h-10 w-10 mx-auto" />
+                                      <p className="text-[10px] font-black uppercase tracking-widest mt-2">No verified OFIs in this scope</p>
                                   </TableCell>
                               </TableRow>
                           )}
