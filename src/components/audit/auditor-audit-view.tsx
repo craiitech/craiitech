@@ -2,9 +2,9 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
-import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest, Signatories } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff, School } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
@@ -77,6 +77,9 @@ export function AuditorAuditView() {
 
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   /**
    * SITE LOCK FILTERING
@@ -236,6 +239,7 @@ export function AuditorAuditView() {
                             units={units || []}
                             isoClauses={isoClauses || []}
                             findings={findings || []}
+                            signatories={signatories || undefined}
                             isClaimView={false}
                             onUnclaimAudit={handleUnclaimAudit}
                         />
@@ -281,6 +285,7 @@ export function AuditorAuditView() {
                             units={units || []}
                             isoClauses={isoClauses || []}
                             findings={findings || []}
+                            signatories={signatories || undefined}
                             isClaimView={true}
                             onClaimAudit={handleClaimAudit}
                         />

@@ -156,6 +156,9 @@ export function AuditorScheduleList({
             <TableHead className="text-[10px] font-black uppercase pl-6">Conduct Schedule</TableHead>
             <TableHead className="text-[10px] font-black uppercase">Auditee Unit & Site Context</TableHead>
             <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+            {!isClaimView && (
+                <TableHead className="text-center text-[10px] font-black uppercase">Print Options</TableHead>
+            )}
             <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
         </TableRow>
       </TableHeader>
@@ -188,31 +191,45 @@ export function AuditorScheduleList({
                         {schedule.status}
                     </Badge>
                 </TableCell>
+                {!isClaimView && (
+                    <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handlePrintTemplate(schedule, false)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary hover:bg-primary/5"
+                                title={isOnline ? "Print Template" : "Restricted: Offline"}
+                            >
+                                {isOnline ? <Printer className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
+                                Print Template
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handlePrintTemplate(schedule, true)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                title={isOnline ? "Print Evidence Log" : "Restricted: Offline"}
+                            >
+                                {isOnline ? <Printer className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
+                                Print Evidence
+                            </Button>
+                        </div>
+                    </TableCell>
+                )}
                 <TableCell className="text-right pr-6 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                         {!isClaimView && (
-                            <>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => onUnclaimAudit?.(schedule.id)}
-                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-rose-200 text-rose-600 hover:bg-rose-50"
-                                    title="Unclaim this unit (Remove from My Audits)"
-                                >
-                                    <UserMinus className="h-3.5 w-3.5 mr-1.5" />
-                                    Remove
-                                </Button>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handlePrintTemplate(schedule, false)}
-                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
-                                    title={isOnline ? "Print Template" : "Restricted: Offline"}
-                                >
-                                    {isOnline ? <Printer className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
-                                    Print Template
-                                </Button>
-                            </>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => onUnclaimAudit?.(schedule.id)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-rose-200 text-rose-600 hover:bg-rose-50"
+                                title="Unclaim this unit (Remove from My Audits)"
+                            >
+                                <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+                                Remove
+                            </Button>
                         )}
                         {isClaimView ? (
                             <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)} className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10">

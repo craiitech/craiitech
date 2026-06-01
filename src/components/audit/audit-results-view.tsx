@@ -37,7 +37,10 @@ import {
     Activity,
     ClipboardCheck,
     Star,
-    Layers
+    Layers,
+    Edit,
+    Trash2,
+    Save
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
