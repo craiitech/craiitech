@@ -275,7 +275,7 @@ export function AuditPlanList({
             return (
               <AccordionItem value={plan.id} key={plan.id} className="border-none rounded-2xl shadow-xl overflow-hidden bg-background">
                 <div className="flex items-center justify-between border-b data-[state=open]:bg-slate-50 transition-colors pr-10">
-                    <AccordionTrigger asChild className="flex-1 hover:no-underline px-8 py-6 border-none">
+                    <AccordionTrigger className="flex-1 hover:no-underline px-8 py-6 border-none [&>svg]:hidden">
                         <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-6">
                             <div className="space-y-2 min-w-0">
                                 <div className="flex items-center gap-3">
