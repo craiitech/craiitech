@@ -183,13 +183,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const notificationCount = useMemo(() => {
     let count = 0;
-    if (subNotifications) {
-        if (isAdmin) count += subNotifications.length;
-        else if (isSupervisor && userProfile) {
-            count += subNotifications.filter(s => s.userId !== userProfile.id).length;
-        } else {
-            count += subNotifications.length;
-        }
+    if (subNotifications && userProfile) {
+        // Match the approvals page logic: exclude submissions the current user authored themselves
+        count += subNotifications.filter(s => s.userId !== userProfile.id).length;
     }
     if (carNotifications) count += carNotifications.length;
     return count;
