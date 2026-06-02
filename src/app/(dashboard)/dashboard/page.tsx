@@ -672,9 +672,29 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-        <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Active Audit Itinerary for AY {selectedYear}</p>
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 institutional-header">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Active Audit Itinerary for AY {selectedYear}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/audit"
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 shadow-sm text-primary"
+            >
+              <ClipboardCheck className="h-4 w-4 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Conduct IQA</span>
+            </Link>
+            <Link
+              href="/qa-reports?tab=car"
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50/30 hover:bg-rose-50/70 hover:border-rose-300 transition-all duration-200 shadow-sm text-rose-600"
+            >
+              <ShieldAlert className="h-4 w-4 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Manage CARs</span>
+            </Link>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
@@ -701,32 +721,7 @@ export default function HomePage() {
         academicPrograms={academicPrograms || []}
       />
 
-      <Card className="shadow-md overflow-hidden bg-white border border-primary/10">
-        <CardHeader className="bg-muted/15 border-b py-4">
-          <CardTitle className="text-sm font-black uppercase text-slate-800 tracking-wider">Auditor Shortcuts & Quick Access</CardTitle>
-          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Direct links to primary audit operations.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
-          <Link href="/audit" className="group flex items-start gap-4 p-5 rounded-2xl border border-primary/10 bg-slate-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all duration-300 shadow-sm">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
-              <ClipboardCheck className="h-6 w-6" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-xs font-black uppercase tracking-tight text-slate-800 group-hover:text-primary transition-colors">Conduct Internal Quality Audit (IQA)</h4>
-              <p className="text-[10px] font-semibold text-muted-foreground leading-normal uppercase">Claim new sessions, log evidence, and finalize audit logs.</p>
-            </div>
-          </Link>
-          <Link href="/qa-reports?tab=car" className="group flex items-start gap-4 p-5 rounded-2xl border border-rose-100 bg-rose-50/10 hover:bg-rose-50/40 hover:border-rose-200 transition-all duration-300 shadow-sm">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-100/50 text-rose-600 group-hover:scale-110 transition-transform duration-300">
-              <ShieldAlert className="h-6 w-6" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-xs font-black uppercase tracking-tight text-slate-800 group-hover:text-rose-600 transition-colors">Management of CARs</h4>
-              <p className="text-[10px] font-semibold text-muted-foreground leading-normal uppercase">Track Corrective Action Requests, verify actions, and log status.</p>
-            </div>
-          </Link>
-        </CardContent>
-      </Card>
+
     </div>
   );
 
