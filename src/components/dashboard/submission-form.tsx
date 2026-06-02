@@ -439,7 +439,7 @@ export function SubmissionForm({
             });
             toast({
                 title: 'Submission Updated!',
-                description: `Revision ${newRevision} ${values.isDraft ? '(Draft)' : '(Final)'} submitted for '${reportType}'.`,
+                description: `Revision ${newRevision} ${values.isDraft ? '(Draft)' : '(Final)'} submitted for '${reportType}'. ${values.isDraft ? 'Complete all cycle requirements to have a chance to receive a Gold, Silver, or Bronze compliance star!' : 'You now have the chance to receive a Gold, Silver, or Bronze compliance star once verified!'}`,
             });
             submissionSuccess = true;
 
@@ -475,7 +475,7 @@ export function SubmissionForm({
             });
             toast({
                 title: 'Submission Successful!',
-                description: `New ${values.isDraft ? 'draft' : 'report'} '${reportType}' submitted under Revision 0.`,
+                description: `New ${values.isDraft ? 'draft' : 'report'} '${reportType}' submitted under Revision 0. ${values.isDraft ? 'Complete all cycle requirements to have a chance to receive a Gold, Silver, or Bronze compliance star!' : 'You now have the chance to receive a Gold, Silver, or Bronze compliance star once verified!'}`,
             });
             submissionSuccess = true;
         }

@@ -301,7 +301,7 @@ export default function SubmissionDetailPage() {
         .then(() => {
             toast({ 
                 title: submission?.isDraft ? 'Draft Cleared' : 'Submission Approved', 
-                description: submission?.isDraft ? 'Draft has been cleared for final PDF submission.' : 'Submission has been institutional verified.' 
+                description: submission?.isDraft ? 'Draft has been cleared for final PDF submission.' : 'Submission has been institutionally verified! Your unit has successfully received star points for this compliance record.' 
             });
             router.back();
         })
