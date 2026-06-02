@@ -831,3 +831,45 @@ export type UnitPersonnelCensus = {
     updatedAt: any;
     updatedBy: string;
 };
+
+// --- QA REPORTS MODULE TYPES ---
+
+export type ManagementReview = {
+  id: string;
+  title: string;
+  startDate: any; // Timestamp
+  endDate: any; // Timestamp
+  minutesLink: string;
+  campusId: string;
+  createdAt: any; // Timestamp
+};
+
+export type MRAssignment = {
+  campusId: string;
+  unitId: string;
+};
+
+export type ManagementReviewOutputStatus = 'Open' | 'On-going' | 'Submit for Closure Verification' | 'Closed';
+
+export type ManagementReviewOutput = {
+  id: string;
+  mrId: string; // Linked to ManagementReview
+  description: string;
+  initiator: string;
+  assignments: MRAssignment[];
+  concernedUnitIds: string[]; // Legacy - kept for backward compatibility if needed
+  campusIds: string[]; // Legacy - kept for backward compatibility if needed
+  actionPlan?: string; 
+  followUpDate: any; // Timestamp
+  followUpRemarks?: string; 
+  status: ManagementReviewOutputStatus;
+  createdAt: any; // Timestamp
+  actionDate?: any; // New - when unit executed action
+  actionTakenBy?: string; // New - who executed action
+  lineNumber?: string; // Line number from MR minutes
+  
+  // Verification Fields (Admin Only)
+  verificationRemarks?: string;
+  verificationDate?: any; // Timestamp
+  verifiedBy?: string;
+};

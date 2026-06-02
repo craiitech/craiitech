@@ -93,6 +93,7 @@ import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
+import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
 import type {
   Submission,
   User as AppUser,
@@ -207,7 +208,7 @@ export default function HomePage() {
 
   const unitMrOutputs = useMemo(() => {
     if (!rawUnitMrOutputs || !userProfile?.unitId) return [];
-    return rawUnitMrOutputs.filter(o => o.assignments?.some(a => a.unitId === userProfile.unitId));
+    return rawUnitMrOutputs.filter(o => o.assignments?.some((a: any) => a.unitId === userProfile.unitId));
   }, [rawUnitMrOutputs, userProfile]);
 
   const compliancesQuery = useMemoFirebase(() => {
@@ -280,12 +281,27 @@ export default function HomePage() {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
     if (isAdmin) return baseRef;
+    if (userRole === 'Auditor') return query(baseRef, where('auditorId', '==', userProfile.id));
     if (isCampusLevel && userProfile.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
     if (userProfile.unitId) return query(baseRef, where('targetId', '==', userProfile.unitId));
     return null;
-  }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading]);
+  }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading, userRole]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
+
+  const sortedMySchedules = useMemo(() => {
+    if (!dashboardSchedules) return [];
+    const mySchedules = dashboardSchedules.filter(s => {
+      if (!s.scheduledDate) return false;
+      const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+      return date.getFullYear() === selectedYear;
+    });
+    return [...mySchedules].sort((a, b) => {
+      const aDate = a.scheduledDate?.toDate ? a.scheduledDate.toDate() : new Date(a.scheduledDate);
+      const bDate = b.scheduledDate?.toDate ? b.scheduledDate.toDate() : new Date(b.scheduledDate);
+      return aDate.getTime() - bDate.getTime();
+    });
+  }, [dashboardSchedules, selectedYear]);
 
   const assignedRecommendations = useMemo(() => {
     if (!allCompliances || !userProfile) return [];
@@ -368,6 +384,18 @@ export default function HomePage() {
         stat2: { title: 'Site Submissions', value: yearSubs.length, icon: <FileText /> },
         stat3: { title: 'Site Users', value: allUsersMap.size, icon: <Users /> },
       };
+    } else if (userRole === 'Auditor') {
+      const mySchedules = dashboardSchedules || [];
+      const yearSchedules = mySchedules.filter(s => {
+        if (!s.scheduledDate) return false;
+        const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+        return date.getFullYear() === selectedYear;
+      });
+      return {
+        stat1: { title: 'My Audits', value: yearSchedules.length, icon: <ClipboardCheck className="h-5 w-5 text-primary" /> },
+        stat2: { title: 'Completed', value: yearSchedules.filter(s => s.status === 'Completed').length, icon: <CheckCircle className="h-5 w-5 text-emerald-600" /> },
+        stat3: { title: 'In Progress', value: yearSchedules.filter(s => s.status === 'In Progress').length, icon: <Clock className="h-5 w-5 text-amber-500" /> },
+      };
     } else {
       const approved = yearSubs.filter(s => s.statusId === 'approved');
       return {
@@ -376,7 +404,7 @@ export default function HomePage() {
         stat3: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
       };
     }
-  }, [submissions, isAdmin, isCampusSupervisor, allUsersMap, selectedYear, userProfile]);
+  }, [submissions, isAdmin, isCampusSupervisor, allUsersMap, selectedYear, userProfile, userRole, dashboardSchedules]);
 
   const renderUnitUserHome = () => {
     const yearSubs = submissions?.filter(s => s.year === selectedYear) || [];
@@ -658,8 +686,10 @@ export default function HomePage() {
         ))}
       </div>
 
+      <AuditorOfflineManager />
+
       <UnitAuditSchedule
-        schedules={dashboardSchedules}
+        schedules={sortedMySchedules}
         isLoading={isLoadingSchedules}
         campusName="My Assignments"
         plans={allAuditPlans || []}
@@ -668,13 +698,33 @@ export default function HomePage() {
         units={allUnits || []}
         campuses={campuses || []}
         signatories={signatories || undefined}
+        academicPrograms={academicPrograms || []}
       />
 
-      <Card className="shadow-md overflow-hidden">
-        <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase">Quick Access Tools</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
-          <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/audit"><ClipboardCheck className="h-5 w-5 text-primary" /> Enter Audit Conduct Hub</Link></Button>
-          <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/qa-reports?tab=car"><ShieldAlert className="h-5 w-5 text-rose-600" /> CAR Registry</Link></Button>
+      <Card className="shadow-md overflow-hidden bg-white border border-primary/10">
+        <CardHeader className="bg-muted/15 border-b py-4">
+          <CardTitle className="text-sm font-black uppercase text-slate-800 tracking-wider">Auditor Shortcuts & Quick Access</CardTitle>
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Direct links to primary audit operations.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
+          <Link href="/audit" className="group flex items-start gap-4 p-5 rounded-2xl border border-primary/10 bg-slate-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all duration-300 shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
+              <ClipboardCheck className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-xs font-black uppercase tracking-tight text-slate-800 group-hover:text-primary transition-colors">Conduct Internal Quality Audit (IQA)</h4>
+              <p className="text-[10px] font-semibold text-muted-foreground leading-normal uppercase">Claim new sessions, log evidence, and finalize audit logs.</p>
+            </div>
+          </Link>
+          <Link href="/qa-reports?tab=car" className="group flex items-start gap-4 p-5 rounded-2xl border border-rose-100 bg-rose-50/10 hover:bg-rose-50/40 hover:border-rose-200 transition-all duration-300 shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-100/50 text-rose-600 group-hover:scale-110 transition-transform duration-300">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-xs font-black uppercase tracking-tight text-slate-800 group-hover:text-rose-600 transition-colors">Management of CARs</h4>
+              <p className="text-[10px] font-semibold text-muted-foreground leading-normal uppercase">Track Corrective Action Requests, verify actions, and log status.</p>
+            </div>
+          </Link>
         </CardContent>
       </Card>
     </div>

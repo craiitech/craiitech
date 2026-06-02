@@ -35,7 +35,7 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,6 +54,39 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { useNetworkStatus } from '@/hooks/use-network-status';
+
+const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, React.ComponentProps<'textarea'>>(
+  ({ className, value, ...props }, ref) => {
+    const localRef = useRef<HTMLTextAreaElement | null>(null);
+    useImperativeHandle(ref, () => localRef.current!);
+
+    const adjustHeight = () => {
+      const textarea = localRef.current;
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      }
+    };
+
+    useEffect(() => {
+      adjustHeight();
+    }, [value]);
+
+    return (
+      <textarea
+        ref={localRef}
+        value={value}
+        className={cn(
+          'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none overflow-hidden',
+          className
+        )}
+        onInput={adjustHeight}
+        {...props}
+      />
+    );
+  }
+);
+AutoResizeTextarea.displayName = 'AutoResizeTextarea';
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -176,6 +209,27 @@ export default function AuditExecutionPage() {
 
   const watchAll = form.watch();
 
+  const sortSummaryLines = (lines: string[]) => {
+    return [...lines].sort((a, b) => {
+      const matchA = a.match(/^\[Clause\s+([^\]]+)\]/i);
+      const matchB = b.match(/^\[Clause\s+([^\]]+)\]/i);
+      if (!matchA && !matchB) return a.localeCompare(b);
+      if (!matchA) return 1;
+      if (!matchB) return -1;
+      
+      const clauseA = matchA[1];
+      const clauseB = matchB[1];
+      
+      return clauseA.localeCompare(clauseB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  };
+
+  const getSortedSummary = (val: string | undefined) => {
+    if (!val) return '';
+    const lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    return sortSummaryLines(lines).join('\n');
+  };
+
   useEffect(() => {
       if (schedule && isInitialLoadRef.current) {
           const startDate = schedule.scheduledDate?.toDate ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
@@ -186,10 +240,10 @@ export default function AuditExecutionPage() {
             actualDate: format(startDate, 'yyyy-MM-dd'),
             actualStartTime: format(startDate, 'HH:mm'),
             actualEndTime: format(endDate, 'HH:mm'),
-            summaryCommendable: schedule.summaryCommendable || '',
-            summaryCompliance: schedule.summaryCompliance || '',
-            summaryOFI: schedule.summaryOFI || '',
-            summaryNC: schedule.summaryNC || '',
+            summaryCommendable: getSortedSummary(schedule.summaryCommendable),
+            summaryCompliance: getSortedSummary(schedule.summaryCompliance),
+            summaryOFI: getSortedSummary(schedule.summaryOFI),
+            summaryNC: getSortedSummary(schedule.summaryNC),
           });
           isInitialLoadRef.current = false;
       }
@@ -342,15 +396,25 @@ export default function AuditExecutionPage() {
    * SYNCHRONIZED SUMMARY UPDATE LOGIC
    * Performs a strict search-and-replace using the Clause ID as a key.
    * This prevents multiple redundant entries for the same clause in the Final Summary.
+   * Keeps clause summaries sorted and cleans up N/A/empty entries.
    */
   const handleFindingSync = (finding: any) => {
     const clauseId = finding.isoClause;
     const type = finding.type;
-    const actualText = type === 'Non-Conformance' ? (finding.ncStatement || finding.description) : finding.description;
     
-    if (!actualText || !actualText.trim()) return;
+    // Choose appropriate source text. Fall back to description or evidence.
+    let actualText = '';
+    if (type === 'Compliance') {
+      actualText = finding.evidence || finding.description || '';
+    } else if (type === 'Observation for Improvement') {
+      actualText = finding.evidence || finding.description || '';
+    } else if (type === 'Non-Conformance') {
+      actualText = finding.ncStatement || finding.evidence || finding.description || '';
+    } else {
+      actualText = finding.description || finding.evidence || '';
+    }
 
-    const formattedEntry = `[Clause ${clauseId}]: ${actualText.trim()}`;
+    const formattedEntry = actualText.trim() ? `[Clause ${clauseId}]: ${actualText.trim()}` : '';
     const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
       'summaryCommendable', 
       'summaryCompliance', 
@@ -363,8 +427,6 @@ export default function AuditExecutionPage() {
     else if (type === 'Observation for Improvement') targetFieldName = 'summaryOFI';
     else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
 
-    if (!targetFieldName) return;
-
     summaryFields.forEach(fName => {
         // Skip metadata fields
         if (['officerInCharge', 'actualDate', 'actualStartTime', 'actualEndTime'].includes(fName)) return;
@@ -372,16 +434,19 @@ export default function AuditExecutionPage() {
         const currentVal = form.getValues(fName) || '';
         const lines = currentVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        // 1. FILTER: Remove any existing entry that matches this Clause ID prefix
+        // 1. FILTER: Remove any existing entry that matches this Clause ID prefix case-insensitively
         const prefix = `[Clause ${clauseId}]:`;
-        const otherLines = lines.filter(l => !l.startsWith(prefix));
+        const otherLines = lines.filter(l => !l.toLowerCase().startsWith(prefix.toLowerCase()));
         
-        // 2. RECONSTRUCT: Add the new formatted entry only to the target field
-        if (fName === targetFieldName) {
+        // 2. RECONSTRUCT: Add the new formatted entry only to the target field and only if we have text
+        if (fName === targetFieldName && formattedEntry) {
             otherLines.push(formattedEntry);
         }
         
-        const finalContent = otherLines.join('\n');
+        // 3. SORT: Sort the lines to maintain sequence by clause
+        const sortedLines = sortSummaryLines(otherLines);
+        
+        const finalContent = sortedLines.join('\n');
         form.setValue(fName, finalContent);
     });
   };
@@ -493,22 +558,22 @@ export default function AuditExecutionPage() {
                                 <FormField control={form.control} name="summaryCommendable" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel>
-                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Highlight positive observations..." /></FormControl>
+                                    <FormControl><AutoResizeTextarea {...field} value={field.value || ''} placeholder="Highlight positive observations..." /></FormControl>
                                 </FormItem>)} />
                                 <FormField control={form.control} name="summaryCompliance" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel>
-                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Summarize standard compliance..." /></FormControl>
+                                    <FormControl><AutoResizeTextarea {...field} value={field.value || ''} placeholder="Summarize standard compliance..." /></FormControl>
                                 </FormItem>)} />
                                 <FormField control={form.control} name="summaryOFI" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel>
-                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Summarize opportunities..."/></FormControl>
+                                    <FormControl><AutoResizeTextarea {...field} value={field.value || ''} placeholder="Summarize opportunities..."/></FormControl>
                                 </FormItem>)} />
                                 <FormField control={form.control} name="summaryNC" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs font-black uppercase text-destructive">Non-Conformance / Non-Compliance (NC)</FormLabel>
-                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Summarize non-conformances..."/></FormControl>
+                                    <FormControl><AutoResizeTextarea {...field} value={field.value || ''} placeholder="Summarize non-conformances..."/></FormControl>
                                 </FormItem>)} />
                             </div>
                         </Form>
