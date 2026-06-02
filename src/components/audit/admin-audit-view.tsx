@@ -120,6 +120,18 @@ export function AdminAuditView() {
     });
   }, [schedules, auditPlans, selectedYear, reportCampusFilter, reportUnitFilter]);
 
+  const overallCompletedCount = useMemo(() => {
+    if (!schedules || !auditPlans) return 0;
+    const planIds = new Set(auditPlans.filter(p => p.year === selectedYear).map(p => p.id));
+    return schedules.filter(s => planIds.has(s.auditPlanId) && s.status === 'Completed').length;
+  }, [schedules, auditPlans, selectedYear]);
+
+  const overallTotalCount = useMemo(() => {
+    if (!schedules || !auditPlans) return 0;
+    const planIds = new Set(auditPlans.filter(p => p.year === selectedYear).map(p => p.id));
+    return schedules.filter(s => planIds.has(s.auditPlanId)).length;
+  }, [schedules, auditPlans, selectedYear]);
+
   const hasEvidence = (scheduleId: string) => {
     const hasFindings = findings?.some(f => f.auditScheduleId === scheduleId) || false;
     const schedule = schedules?.find(s => s.id === scheduleId);
@@ -490,8 +502,11 @@ export function AdminAuditView() {
                 <CardHeader className="bg-primary/5 border-b py-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <CardTitle className="text-lg font-black uppercase text-primary tracking-wide">
-                                University Wide Evidence Log Printing & University Wide Printing of IQA Report
+                            <CardTitle className="text-lg font-black uppercase text-primary tracking-wide flex flex-wrap items-center gap-2">
+                                <span>University Wide Evidence Log Printing & University Wide Printing of IQA Report</span>
+                                <Badge className="bg-primary text-white border-none font-black text-xs uppercase px-2.5 py-0.5 select-none">
+                                    {overallCompletedCount} / {overallTotalCount} Completed
+                                </Badge>
                             </CardTitle>
                             <CardDescription className="text-xs font-bold uppercase tracking-widest text-primary/70 mt-1">
                                 Access and print completed Internal Quality Audit reports and evidence logs institutional-wide.
