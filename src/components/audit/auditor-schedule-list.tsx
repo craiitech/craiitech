@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { Check, Clock, User, Printer, FileText, UserMinus, ShieldAlert, ChevronRight } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPrintTemplate } from './audit-print-template';
+import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -159,6 +160,88 @@ export function AuditorScheduleList({
     }
   };
 
+  const handlePrintReport = (schedule: AuditSchedule) => {
+    if (!isOnline) {
+        handleRestrictedAction("Printing official documents");
+        return;
+    }
+
+    if (!hasEvidence(schedule.id)) {
+        toast({
+            variant: "destructive",
+            title: "No Evidence Logged",
+            description: "Print failed: This unit has not been audited yet. No audit report can be generated.",
+        });
+        return;
+    }
+
+    const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
+    if (!parentPlan) {
+        toast({
+            variant: "destructive",
+            title: "Plan Not Found",
+            description: "Print failed: Parent audit plan for this schedule could not be resolved.",
+        });
+        return;
+    }
+
+    const scheduleFindings = findings.filter(f => f.auditScheduleId === schedule.id);
+    const campusName = campusMap.get(schedule.campusId) || 'Institutional';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={parentPlan}
+                schedules={[schedule]}
+                findings={scheduleFindings}
+                clauses={isoClauses}
+                units={units}
+                campuses={campuses}
+                signatories={signatories}
+                campusName={campusName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Report - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; width: 100% !important; border-collapse: collapse; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print report error:", err);
+    }
+  };
+
   if (schedules.length === 0) {
     return <div className="text-center text-muted-foreground py-10">
         {isClaimView ? 'No audits are available to be claimed.' : 'You have no audits scheduled.'}
@@ -229,6 +312,16 @@ export function AuditorScheduleList({
                             >
                                 {isOnline ? <Printer className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
                                 Print Evidence
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handlePrintReport(schedule)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                title={isOnline ? "Print Audit Report" : "Restricted: Offline"}
+                            >
+                                {isOnline ? <FileText className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
+                                Audit Report
                             </Button>
                         </div>
                     </TableCell>
