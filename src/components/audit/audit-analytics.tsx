@@ -66,6 +66,7 @@ import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-tem
 import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
 import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { AuditReceivingPrintTemplate } from './audit-receiving-print-template';
+import { AuditorRegistryPrintTemplate } from './auditor-registry-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -334,6 +335,24 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             />
         );
         triggerPrint(reportHtml, `IQA_Unit_Schedule_AY${selectedYear}`);
+    } catch (e) { console.error(e); }
+  };
+
+  const handlePrintAuditorsList = () => {
+    if (!analytics?.auditorData.length) {
+        toast({ title: "No Data", description: "There are no active auditors found for this year.", variant: "destructive" });
+        return;
+    }
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditorRegistryPrintTemplate 
+                auditorData={analytics.auditorData as any[]}
+                year={selectedYear}
+                qaoDirector={signatories?.qaoDirector}
+                leadAuditorName={analytics.leadAuditorName}
+            />
+        );
+        triggerPrint(reportHtml, `Auditor_System_Registry_AY${selectedYear}`);
     } catch (e) { console.error(e); }
   };
 
@@ -646,14 +665,21 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         </Card>
 
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
-            <CardHeader className="bg-primary/5 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Productivity & Completion Rate</CardTitle>
+            <CardHeader className="bg-primary/5 border-b py-4 flex flex-row items-center justify-between gap-4">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Productivity & Completion Rate</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs text-muted-foreground mt-1">
+                        Comparative audit volume showing completed versus assigned QMS schedules per auditor for workload tracking.
+                    </CardDescription>
                 </div>
-                <CardDescription className="text-xs text-muted-foreground mt-1">
-                    Comparative audit volume showing completed versus assigned QMS schedules per auditor for workload tracking.
-                </CardDescription>
+                <div>
+                  <Button onClick={handlePrintAuditorsList} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm shrink-0">
+                      <Printer className="h-4 w-4" /> Print Auditor Registry
+                  </Button>
+                </div>
             </CardHeader>
             <CardContent className="pt-8 flex-1">
                 <ChartContainer config={{}} className="h-[300px] w-full">
