@@ -4,8 +4,8 @@
 import { useState, useMemo } from 'react';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +54,16 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
   const [editingRequest, setEditingRequest] = useState<UnitFormRequest | null>(null);
 
-  const canRegister = isAdmin || (userProfile?.unitId === unit.id && (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO'));
+  const myUnitRef = useMemoFirebase(
+    () => (firestore && userProfile?.unitId ? doc(firestore, 'units', userProfile.unitId) : null),
+    [firestore, userProfile?.unitId]
+  );
+  const { data: myUnit } = useDoc<Unit>(myUnitRef);
+
+  const canRegister = isAdmin || 
+    ((userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') && 
+      (userProfile?.unitId === unit.id || (unit.id === 'academic-shared' && myUnit?.category === 'Academic'))
+    );
 
   const formsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'unitForms'), where('unitId', '==', unit.id)) : null),

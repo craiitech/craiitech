@@ -54,6 +54,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
@@ -176,12 +177,16 @@ export default function UnitFormsPage() {
   }, [allUnits, userProfile, isAdmin, userRole, isUserLoading, searchTerm]);
 
   useEffect(() => {
-    if (userProfile && !selectedUnitId && !isUserLoading && !isAdmin) {
-        const iUnit = allUnits?.find(u => u.id === userProfile.unitId);
-        if (iUnit?.category === 'Academic') {
-            setSelectedUnitId(SHARED_ACADEMIC_ID);
-        } else {
-            setSelectedUnitId(userProfile.unitId || null);
+    if (userProfile && !isUserLoading && !isAdmin && allUnits && allUnits.length > 0) {
+        const iUnit = allUnits.find(u => u.id === userProfile.unitId);
+        if (iUnit) {
+            if (!selectedUnitId || selectedUnitId === userProfile.unitId) {
+                if (iUnit.category === 'Academic') {
+                    setSelectedUnitId(SHARED_ACADEMIC_ID);
+                } else {
+                    setSelectedUnitId(userProfile.unitId);
+                }
+            }
         }
     }
   }, [userProfile, allUnits, selectedUnitId, isUserLoading, isAdmin]);
@@ -192,6 +197,20 @@ export default function UnitFormsPage() {
       }
       return allUnits?.find(u => u.id === selectedUnitId);
   }, [allUnits, selectedUnitId]);
+
+  const canRegister = useMemo(() => {
+    if (!userProfile) return false;
+    if (isAdmin) return true;
+    if (userRole !== 'Unit Coordinator' && userRole !== 'Unit ODIMO') return false;
+    if (!selectedUnit) return false;
+    
+    if (selectedUnitId === userProfile.unitId) return true;
+    if (selectedUnitId === SHARED_ACADEMIC_ID) {
+        const myUnitObj = allUnits?.find(u => u.id === userProfile.unitId);
+        return myUnitObj?.category === 'Academic';
+    }
+    return false;
+  }, [userProfile, isAdmin, userRole, selectedUnit, selectedUnitId, allUnits]);
 
   const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
   const { data: sharedSettings } = useDoc<CampusSetting>(academicSharedRef);
@@ -293,7 +312,7 @@ export default function UnitFormsPage() {
                     <TabsTrigger value="roster" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <ListChecks className="h-3.5 w-3.5" /> Unit Forms
                     </TabsTrigger>
-                    <TabsTrigger value="register" className="gap-2 text-[10px) font-black uppercase tracking-widest px-6 h-8">
+                    <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
                     </TabsTrigger>
                 </TabsList>
@@ -498,39 +517,66 @@ export default function UnitFormsPage() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             <div className="space-y-6">
-                                                <div className="flex items-center gap-2 border-b pb-2">
-                                                    <ListChecks className="h-4 w-4 text-primary" />
-                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">4-Step Registration Protocol</h4>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    {[
-                                                        { step: '1', title: 'Procurement', desc: 'Download the official DRF (Document Registration Form) template from the primary repository.', icon: <Download className="h-4 w-4" /> },
-                                                        { step: '2', title: 'Authorization', desc: 'Secure necessary signatures. For Final registration, Unit Head approval is mandatory.', icon: <FileSignature className="h-4 w-4" /> },
-                                                        { step: '3', title: 'Digital Hosting', desc: 'Upload the signed DRF and new forms to Google Drive. Set sharing to "Anyone with the link can view".', icon: <Cloud className="h-4 w-4" /> },
-                                                        { step: '4', title: 'Execution', desc: 'Launch the wizard below and paste the links. Your request will enter the QA Review queue.', icon: <Send className="h-4 w-4" /> }
-                                                    ].map((s, idx) => (
-                                                        <div key={idx} className="flex gap-4 group">
-                                                            <div className="flex flex-col items-center">
-                                                                <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>
-                                                                {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
-                                                            </div>
-                                                            <div className="space-y-1 pb-4">
-                                                                <p className="text-sm font-black uppercase tracking-tight text-slate-800">{s.title}</p>
-                                                                <p className="text-xs text-muted-foreground leading-relaxed italic">{s.desc}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                                                    <Button type="button" variant="default" className="flex-1 h-11 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20" asChild>
-                                                        <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">
-                                                            <Download className="mr-2 h-4 w-4" /> Access DRF Template
-                                                        </a>
-                                                    </Button>
-                                                    <Button size="lg" variant="outline" className="flex-1 h-11 bg-white font-black text-[10px] uppercase border-primary/20 text-primary shadow-sm hover:bg-primary/5" onClick={() => setIsRegOpen(true)}>
-                                                        <Send className="mr-2 h-4 w-4" /> Launch Wizard
-                                                    </Button>
-                                                </div>
+                                                 {!canRegister && (
+                                                     <Alert className="bg-amber-50 border-amber-200 text-amber-950">
+                                                         <Info className="h-4 w-4 text-amber-600" />
+                                                         <AlertTitle className="text-xs font-black uppercase">Oversight Mode Only</AlertTitle>
+                                                         <AlertDescription className="text-[11px] leading-relaxed font-medium text-amber-700">
+                                                             You are viewing this registry in read-only mode. Only authorized Unit Coordinators or ODIMOs of <strong>{selectedUnit?.name || 'this unit'}</strong> can submit registration requests.
+                                                         </AlertDescription>
+                                                     </Alert>
+                                                 )}
+                                                 <div className="flex items-center gap-2 border-b pb-2">
+                                                     <ListChecks className="h-4 w-4 text-primary" />
+                                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">4-Step Registration Protocol</h4>
+                                                 </div>
+                                                 <div className="space-y-4">
+                                                     {[
+                                                         { step: '1', title: 'Procurement', desc: 'Download the official DRF (Document Registration Form) template from the primary repository.', icon: <Download className="h-4 w-4" /> },
+                                                         { step: '2', title: 'Authorization', desc: 'Secure necessary signatures. For Final registration, Unit Head approval is mandatory.', icon: <FileSignature className="h-4 w-4" /> },
+                                                         { step: '3', title: 'Digital Hosting', desc: 'Upload the signed DRF and new forms to Google Drive. Set sharing to "Anyone with the link can view".', icon: <Cloud className="h-4 w-4" /> },
+                                                         { step: '4', title: 'Execution', desc: 'Launch the wizard below and paste the links. Your request will enter the QA Review queue.', icon: <Send className="h-4 w-4" /> }
+                                                     ].map((s, idx) => (
+                                                         <div key={idx} className="flex gap-4 group">
+                                                             <div className="flex flex-col items-center">
+                                                                 <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs group-hover:bg-primary group-hover:text-white transition-colors">{s.step}</div>
+                                                                 {idx < 3 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                                             </div>
+                                                             <div className="space-y-1 pb-4">
+                                                                 <p className="text-sm font-black uppercase tracking-tight text-slate-800">{s.title}</p>
+                                                                 <p className="text-xs text-muted-foreground leading-relaxed italic">{s.desc}</p>
+                                                             </div>
+                                                         </div>
+                                                     ))}
+                                                 </div>
+                                                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                                     <Button type="button" variant="default" className="flex-1 h-11 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20" asChild>
+                                                         <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+                                                             <Download className="mr-2 h-4 w-4" /> Access DRF Template
+                                                         </a>
+                                                     </Button>
+                                                     <Button 
+                                                         size="lg" 
+                                                         variant="outline" 
+                                                         className={cn(
+                                                             "flex-1 h-11 bg-white font-black text-[10px] uppercase border-primary/20 text-primary shadow-sm",
+                                                             canRegister ? "hover:bg-primary/5 cursor-pointer" : "opacity-50 cursor-not-allowed grayscale"
+                                                         )} 
+                                                         onClick={() => {
+                                                             if (canRegister) {
+                                                                 setIsRegOpen(true);
+                                                             } else {
+                                                                 toast({
+                                                                     title: 'Permission Denied',
+                                                                     description: 'Only authorized coordinators or ODIMOs of this unit can register new forms.',
+                                                                     variant: 'destructive'
+                                                                 });
+                                                             }
+                                                         }}
+                                                     >
+                                                         <Send className="mr-2 h-4 w-4" /> Launch Wizard
+                                                     </Button>
+                                                 </div>
                                             </div>
 
                                             <div className="space-y-6">
