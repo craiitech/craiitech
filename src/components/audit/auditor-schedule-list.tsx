@@ -296,16 +296,6 @@ export function AuditorScheduleList({
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handlePrintTemplate(schedule, false)}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary hover:bg-primary/5"
-                                title={isOnline ? "Print Template" : "Restricted: Offline"}
-                            >
-                                {isOnline ? <Printer className="h-3.5 w-3.5 mr-1.5" /> : <ShieldAlert className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/30" />}
-                                Print Template
-                            </Button>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
                                 onClick={() => handlePrintTemplate(schedule, true)}
                                 className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                                 title={isOnline ? "Print Evidence Log" : "Restricted: Offline"}

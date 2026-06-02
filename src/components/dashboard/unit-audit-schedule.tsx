@@ -702,28 +702,30 @@ export function UnitAuditSchedule({
                                 </Badge>
                                 
                                 <div className="flex items-center gap-1">
-                                    {!isAdmin && (
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            onClick={() => handlePrintIndividualTemplate(schedule, false)}
-                                            className="h-7 text-[8px] px-2 font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1"
-                                            title="Print Template"
-                                        >
-                                            <Printer className="h-2.5 w-2.5" />
-                                            Template
-                                        </Button>
+                                    {isAdmin && (
+                                        <>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => handlePrintIndividualTemplate(schedule, false)}
+                                                className="h-7 text-[8px] px-2 font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1"
+                                                title="Print Template"
+                                            >
+                                                <Printer className="h-2.5 w-2.5" />
+                                                Template
+                                            </Button>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => handlePrintIndividualTemplate(schedule, true)}
+                                                className="h-7 text-[8px] px-2 font-black uppercase bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 gap-1"
+                                                title="Print Evidence Log"
+                                            >
+                                                <Printer className="h-2.5 w-2.5" />
+                                                Evidence
+                                            </Button>
+                                        </>
                                     )}
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handlePrintIndividualTemplate(schedule, true)}
-                                        className="h-7 text-[8px] px-2 font-black uppercase bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 gap-1"
-                                        title="Print Evidence Log"
-                                    >
-                                        <Printer className="h-2.5 w-2.5" />
-                                        Evidence
-                                    </Button>
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
