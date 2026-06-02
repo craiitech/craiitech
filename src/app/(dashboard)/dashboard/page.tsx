@@ -202,11 +202,21 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-  const unitCarsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || isAdmin) return null;
-    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', userProfile.unitId));
-  }, [firestore, userProfile, isAdmin]);
-  const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
+  const carsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || isUserLoading) return null;
+    const baseRef = collection(firestore, 'correctiveActionRequests');
+    if (isAdmin) return baseRef;
+    if (isCampusSupervisor && userProfile.campusId) {
+      return query(baseRef, where('campusId', '==', userProfile.campusId));
+    }
+    if (userProfile.unitId) {
+      return query(baseRef, where('unitId', '==', userProfile.unitId));
+    }
+    return null;
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
+  const { data: dashboardCars } = useCollection<CorrectiveActionRequest>(carsQuery);
+  const allCars = dashboardCars;
+  const unitCars = dashboardCars;
 
   const unitMrOutputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || isAdmin) return null;
@@ -271,6 +281,30 @@ export default function HomePage() {
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+
+  const filteredAcademicPrograms = useMemo(() => {
+    if (!academicPrograms) return [];
+    if (isAdmin) return academicPrograms;
+    if (isCampusSupervisor && userProfile?.campusId) {
+      return academicPrograms.filter(p => p.campusId === userProfile.campusId);
+    }
+    if (userProfile?.unitId) {
+      return academicPrograms.filter(p => p.id === userProfile.unitId);
+    }
+    return [];
+  }, [academicPrograms, isAdmin, isCampusSupervisor, userProfile]);
+
+  const filteredCompliances = useMemo(() => {
+    if (!allCompliances) return [];
+    if (isAdmin) return allCompliances;
+    if (isCampusSupervisor && userProfile?.campusId) {
+      return allCompliances.filter(c => c.campusId === userProfile.campusId);
+    }
+    if (userProfile?.unitId) {
+      return allCompliances.filter(c => c.programId === userProfile.unitId || c.unitId === userProfile.unitId);
+    }
+    return [];
+  }, [allCompliances, isAdmin, isCampusSupervisor, userProfile]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -359,9 +393,7 @@ export default function HomePage() {
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  // Admin-level: all corrective action requests for executive dashboard tabs
-  const allCarsQuery = useMemoFirebase(() => (firestore && isAdmin ? collection(firestore, 'correctiveActionRequests') : null), [firestore, isAdmin]);
-  const { data: allCars } = useCollection<CorrectiveActionRequest>(allCarsQuery);
+  // Admin-level CARs are loaded dynamically in the unified carsQuery above
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -494,6 +526,27 @@ export default function HomePage() {
              unitName={allUnits?.find(u => u.id === userProfile?.unitId)?.name || 'Department'}
           />
 
+          <UnitAuditSchedule
+            schedules={dashboardSchedules}
+            isLoading={isLoadingSchedules || isLoadingSubmissions}
+            isSupervisor={false}
+            campusName={campusMap.get(userProfile?.campusId || '')}
+            plans={allAuditPlans || []}
+            findings={allAuditFindings || []}
+            isoClauses={allIsoClauses || []}
+            units={allUnits || []}
+            campuses={campuses || []}
+            signatories={signatories || undefined}
+            recommendations={assignedRecommendations}
+            selectedYear={selectedYear}
+            academicPrograms={filteredAcademicPrograms}
+            risks={risks || []}
+            cars={allCars || []}
+            allCompliances={filteredCompliances}
+            submissions={submissions || []}
+            showDecisionSupport={true}
+          />
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(stats).map(([k, s]: any) => (
               <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
@@ -573,7 +626,7 @@ export default function HomePage() {
       <TabsContent value="overview" className="space-y-6">
         <UnitAuditSchedule
           schedules={dashboardSchedules}
-          isLoading={isLoadingSchedules}
+          isLoading={isLoadingSchedules || isLoadingSubmissions}
           isSupervisor={true}
           campusName="Institutional"
           plans={allAuditPlans || []}
@@ -584,7 +637,12 @@ export default function HomePage() {
           signatories={signatories || undefined}
           recommendations={assignedRecommendations}
           selectedYear={selectedYear}
-          academicPrograms={academicPrograms || []}
+          academicPrograms={filteredAcademicPrograms}
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={filteredCompliances}
+          submissions={submissions || []}
+          showDecisionSupport={true}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
@@ -682,7 +740,7 @@ export default function HomePage() {
       <TabsContent value="overview" className="space-y-6">
         <UnitAuditSchedule
           schedules={dashboardSchedules}
-          isLoading={isLoadingSchedules}
+          isLoading={isLoadingSchedules || isLoadingSubmissions}
           isSupervisor={true}
           campusName={campusMap.get(userProfile?.campusId || '')}
           plans={allAuditPlans || []}
@@ -693,7 +751,12 @@ export default function HomePage() {
           signatories={signatories || undefined}
           recommendations={assignedRecommendations}
           selectedYear={selectedYear}
-          academicPrograms={academicPrograms || []}
+          academicPrograms={filteredAcademicPrograms}
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={filteredCompliances}
+          submissions={submissions || []}
+          showDecisionSupport={true}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (

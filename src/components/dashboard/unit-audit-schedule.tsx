@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Calendar, Clock, ClipboardList, Info, Printer, Loader2, FileText, Award } from 'lucide-react';
+import { Calendar, Clock, ClipboardList, Info, Printer, Loader2, FileText, Award, GraduationCap, TriangleAlert, ListChecks, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { AuditSchedule, AuditPlan, Signatories, AuditGroup, AuditFinding, ISOClause, Unit, Campus, AcademicProgram } from '@/lib/types';
+import type { AuditSchedule, AuditPlan, Signatories, AuditGroup, AuditFinding, ISOClause, Unit, Campus, AcademicProgram, Risk, CorrectiveActionRequest, ProgramComplianceRecord, Submission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +18,11 @@ import { AccreditationRecommendationReport } from '@/components/programs/recomme
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+import { ChedProgramsTab } from '@/components/dashboard/executive/ched-programs-tab';
+import { RiskOpportunityTab } from '@/components/dashboard/executive/risk-opportunity-tab';
+import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
+import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
 
 interface UnitAuditScheduleProps {
   schedules: AuditSchedule[] | null;
@@ -33,6 +38,11 @@ interface UnitAuditScheduleProps {
   recommendations?: any[];
   selectedYear?: number;
   academicPrograms?: AcademicProgram[];
+  risks?: Risk[] | null;
+  cars?: CorrectiveActionRequest[] | null;
+  allCompliances?: ProgramComplianceRecord[] | null;
+  submissions?: Submission[] | null;
+  showDecisionSupport?: boolean;
 }
 
 /**
@@ -53,7 +63,12 @@ export function UnitAuditSchedule({
     isSupervisor = false,
     recommendations,
     selectedYear,
-    academicPrograms = []
+    academicPrograms = [],
+    risks = [],
+    cars = [],
+    allCompliances = [],
+    submissions = [],
+    showDecisionSupport = false
 }: UnitAuditScheduleProps) {
   const { toast } = useToast();
   const [isPrintingPlan, setIsPrintingPlan] = useState(false);
@@ -338,23 +353,57 @@ export function UnitAuditSchedule({
     }
   };
 
-  const hasTabs = !!recommendations;
+  const showAccreditation = !!recommendations;
+  const showChed = showDecisionSupport;
+  const showRisk = showDecisionSupport;
+  const showCar = showDecisionSupport;
+  const showDecision = showDecisionSupport;
+
+  const hasTabs = showAccreditation || showChed || showRisk || showCar || showDecision;
 
   const renderHeader = () => (
     <CardHeader className="pb-3 bg-primary/10 border-b">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {hasTabs ? (
-              <TabsList className="bg-white/50 border border-primary/10 shadow-sm h-9 animate-tab-highlight rounded-md p-1">
-                  <TabsTrigger value="itinerary" className="text-[10px] font-black uppercase tracking-wider">
-                      IQA Itinerary
-                  </TabsTrigger>
-                  <TabsTrigger value="accreditation" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                      Accreditation Gaps
-                      <Badge className="bg-primary text-white h-4 min-w-4 px-1 rounded-full text-[8px] flex items-center justify-center border-none font-bold">
-                          {recommendations.length}
-                      </Badge>
-                  </TabsTrigger>
-              </TabsList>
+              <ScrollArea className="w-full">
+                  <TabsList className="bg-white/50 border border-primary/10 shadow-sm h-10 animate-tab-highlight rounded-md p-1 w-max min-w-max">
+                      <TabsTrigger value="itinerary" className="text-[10px] font-black uppercase tracking-wider h-8">
+                          IQA Itinerary
+                      </TabsTrigger>
+                      {showAccreditation && (
+                          <TabsTrigger value="accreditation" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 h-8">
+                              Accreditation Gaps
+                              <Badge className="bg-primary text-white h-4 min-w-4 px-1 rounded-full text-[8px] flex items-center justify-center border-none font-bold">
+                                  {recommendations?.length || 0}
+                              </Badge>
+                          </TabsTrigger>
+                      )}
+                      {showChed && (
+                          <TabsTrigger value="ched" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 h-8">
+                              <GraduationCap className="h-3.5 w-3.5 text-indigo-600" />
+                              CHED Programs
+                          </TabsTrigger>
+                      )}
+                      {showRisk && (
+                          <TabsTrigger value="risk" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 h-8">
+                              <TriangleAlert className="h-3.5 w-3.5 text-amber-600" />
+                              Risk & Opportunity
+                          </TabsTrigger>
+                      )}
+                      {showCar && (
+                          <TabsTrigger value="car" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 h-8">
+                              <ListChecks className="h-3.5 w-3.5 text-rose-600" />
+                              Corrective Actions
+                          </TabsTrigger>
+                      )}
+                      {showDecision && (
+                          <TabsTrigger value="decision" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 h-8">
+                              <Zap className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
+                              Actionable Decisions
+                          </TabsTrigger>
+                      )}
+                  </TabsList>
+              </ScrollArea>
           ) : (
               <div className="space-y-1">
                   <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
@@ -391,7 +440,7 @@ export function UnitAuditSchedule({
                           Print {isSupervisor ? 'Site' : 'Unit'} Plan
                       </Button>
                   </>
-              ) : (
+              ) : activeTab === 'accreditation' ? (
                   <Button 
                       variant="outline" 
                       size="sm" 
@@ -402,7 +451,7 @@ export function UnitAuditSchedule({
                       {isPrintingRecos ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
                       Print Gaps Log
                   </Button>
-              )}
+              ) : null}
           </div>
       </div>
     </CardHeader>
@@ -639,11 +688,58 @@ export function UnitAuditSchedule({
             <TabsContent value="itinerary" className="p-0 mt-0">
               {renderItineraryList()}
             </TabsContent>
-            <TabsContent value="accreditation" className="p-0 mt-0">
-              {renderAccreditationList()}
-            </TabsContent>
+            {showAccreditation && (
+              <TabsContent value="accreditation" className="p-0 mt-0">
+                {renderAccreditationList()}
+              </TabsContent>
+            )}
+            {showChed && (
+              <TabsContent value="ched" className="p-6 mt-0 bg-white/40">
+                <ChedProgramsTab
+                  academicPrograms={academicPrograms || []}
+                  allCompliances={allCompliances || []}
+                  campuses={campuses || []}
+                  selectedYear={selectedYear || new Date().getFullYear()}
+                />
+              </TabsContent>
+            )}
+            {showRisk && (
+              <TabsContent value="risk" className="p-6 mt-0 bg-white/40">
+                <RiskOpportunityTab
+                  risks={risks || []}
+                  allUnits={units || []}
+                  campuses={campuses || []}
+                  selectedYear={selectedYear || new Date().getFullYear()}
+                />
+              </TabsContent>
+            )}
+            {showCar && (
+              <TabsContent value="car" className="p-6 mt-0 bg-white/40">
+                <CorrectiveActionsTab
+                  cars={cars || []}
+                  allUnits={units || []}
+                  campuses={campuses || []}
+                  selectedYear={selectedYear || new Date().getFullYear()}
+                />
+              </TabsContent>
+            )}
+            {showDecision && (
+              <TabsContent value="decision" className="p-6 mt-0 bg-white/40">
+                <ActionableDecisionsTab
+                  risks={risks || []}
+                  cars={cars || []}
+                  allCompliances={allCompliances || []}
+                  academicPrograms={academicPrograms || []}
+                  auditSchedules={schedules || []}
+                  submissions={submissions || []}
+                  campuses={campuses || []}
+                  allUnits={units || []}
+                  selectedYear={selectedYear || new Date().getFullYear()}
+                />
+              </TabsContent>
+            )}
           </CardContent>
-          {activeTab === 'itinerary' ? (
+          {activeTab === 'itinerary' && (
             <CardFooter className="bg-muted/5 border-t py-3 px-6">
                 <div className="flex items-start gap-3">
                     <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
@@ -652,7 +748,8 @@ export function UnitAuditSchedule({
                     </p>
                 </div>
             </CardFooter>
-          ) : (
+          )}
+          {activeTab === 'accreditation' && (
             <CardFooter className="bg-muted/5 border-t py-3 px-6">
                 <div className="flex items-start gap-3">
                     <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
