@@ -465,7 +465,7 @@ export default function ProfilePage() {
                                             max={3}
                                             step={1}
                                             value={[currentFontSizeIndex]}
-                                            onValueChange={(vals) => form.setValue('accessibility.fontSize', fontSizeMap[vals[0]])}
+                                            onValueChange={(vals) => form.setValue('accessibility.fontSize', fontSizeMap[vals[0]], { shouldDirty: true })}
                                             disabled={!canEdit}
                                         />
                                         <div className="flex justify-between mt-2 text-[9px] font-black uppercase text-muted-foreground tracking-tighter">
