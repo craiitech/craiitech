@@ -503,7 +503,7 @@ export default function UnitFormsPage() {
                             </TabsContent>
 
                             <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
-                                <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
+                                <ScrollArea className="h-full rounded-xl border bg-background shadow-sm">
                                     <div className="p-6">
                                         {!canRegister ? (
                                             <div className="max-w-md mx-auto space-y-6 pt-12">
