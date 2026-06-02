@@ -589,18 +589,89 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 </div>
                             </section>
 
-                            <section className="space-y-6 pt-6 border-t border-dashed">
-                                <div className="flex items-center gap-2 border-b pb-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-800">4. Effectiveness Audit & Verification</h4></div>
-                                {followUpFields.map((field, index) => (
-                                    <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 space-y-4">
-                                        <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Outcome</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
+                            <section className="space-y-8 pt-8 border-t border-dashed">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                            <Gavel className="h-6 w-6" />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Oversight & Verification</h4>
+                                        </div>
                                     </div>
-                                ))}
-                                {effectivenessFields.map((field, idx) => (
-                                    <div key={field.id} className="p-6 rounded-2xl border bg-emerald-50/20 space-y-4">
-                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-emerald-900">Final Verification Result</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white border-emerald-100 text-sm" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
-                                    </div>
-                                ))}
+                                    {isInstitutionalViewer && (
+                                        <div className="flex gap-2">
+                                            <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}>
+                                                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up
+                                            </Button>
+                                            <Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Effective', remarks: '' })}>
+                                                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Final Entry
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-6">
+                                    <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">I. Follow-up Result</h5>
+                                    {followUpFields.map((field, index) => (
+                                        <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
+                                            <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: iF }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Official Auditor Observation</FormLabel><FormControl><Textarea {...iF} rows={4} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>)} />
+                                                <FormField control={form.control} name={`followUpLogs.${index}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>)} />
+                                            </div>
+                                            {isInstitutionalViewer && (
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFollowUp(index)}>
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {followUpFields.length === 0 && (
+                                        <div className="py-6 text-center border border-dashed rounded-lg bg-muted/10">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No Follow-up Logs Recorded</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-6">
+                                    <h5 className="text-[10px] font-black uppercase text-emerald-700 tracking-widest border-b pb-1">II. Final Verification</h5>
+                                    {effectivenessFields.map((field, idx) => (
+                                        <div key={field.id} className="p-6 rounded-2xl border bg-emerald-50/20 space-y-6 group relative">
+                                            <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-emerald-900">Audit Verification Outcome</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white border-emerald-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[9px] font-black uppercase text-emerald-600">Decision</FormLabel>
+                                                        <Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="h-10 font-bold bg-white">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent modal={false}>
+                                                                <SelectItem value="Effective">Effective (NC Closed)</SelectItem>
+                                                                <SelectItem value="Not Effective">Not Effective</SelectItem>
+                                                                <SelectItem value="Close the NC">Close the NC</SelectItem>
+                                                                <SelectItem value="Continue Monitoring the NC">Continue Monitoring</SelectItem>
+                                                                <SelectItem value="Provide More Actions to Address the NC">Provide More Actions</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-600">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-10 font-bold bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>)} />
+                                            </div>
+                                            {isInstitutionalViewer && (
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEffectiveness(idx)}>
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {effectivenessFields.length === 0 && (
+                                        <div className="py-6 text-center border border-dashed rounded-lg bg-muted/10">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No Final Verification Records</p>
+                                        </div>
+                                    )}
+                                </div>
                             </section>
                         </form>
                     </ScrollArea>
