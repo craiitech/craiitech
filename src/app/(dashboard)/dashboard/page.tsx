@@ -63,10 +63,6 @@ import type {
   Risk,
   QaAdvisory,
   AuditSchedule,
-  AuditPlan,
-  ISOClause,
-  AuditFinding,
-  Signatories,
   CorrectiveActionRequest,
   ManagementReviewOutput,
   ProgramComplianceRecord
