@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -32,7 +33,7 @@ interface UnitAuditScheduleProps {
 /**
  * UNIT AUDIT SCHEDULE COMPONENT
  * Displays upcoming IQA sessions for the user's unit or campus.
- * Added: Print Audit Report (Results) and Audit Plan (Itinerary) for supervisors.
+ * Added: "Print Audit Report" for Unit Coordinators/ODIMOs.
  */
 export function UnitAuditSchedule({ 
     schedules, 
@@ -53,7 +54,7 @@ export function UnitAuditSchedule({
   if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
   if (!schedules || schedules.length === 0) return null;
 
-  const handlePrintCampusPlan = () => {
+  const handlePrintPlan = () => {
     if (!plans.length || !schedules.length) return;
 
     setIsPrintingPlan(true);
@@ -95,7 +96,7 @@ export function UnitAuditSchedule({
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Site Audit Plan - ${campusName}</title>
+                    <title>Audit Plan - ${campusName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
@@ -109,7 +110,7 @@ export function UnitAuditSchedule({
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Print Site Itinerary</button>
+                        <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Print Itinerary</button>
                     </div>
                     <div id="print-content">${reportsHtml}</div>
                 </body>
@@ -119,13 +120,12 @@ export function UnitAuditSchedule({
         }
     } catch (err) {
         console.error("Print error:", err);
-        toast({ title: "Print error", variant: "destructive" });
     } finally {
         setIsPrintingPlan(false);
     }
   };
 
-  const handlePrintSiteAuditReport = () => {
+  const handlePrintAuditReport = () => {
     if (!plans.length || !schedules.length || !isoClauses.length) return;
 
     setIsPrintingReport(true);
@@ -160,7 +160,7 @@ export function UnitAuditSchedule({
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Site Audit Report - ${campusName}</title>
+                    <title>Audit Report - ${campusName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @page { size: 8.5in 13in !important; margin: 0.5in !important; }
@@ -173,9 +173,9 @@ export function UnitAuditSchedule({
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Site Audit Report</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Audit Report</button>
                     </div>
-                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
+                    <div id="print-content">${reportHtml}</div>
                 </body>
                 </html>
             `);
@@ -202,30 +202,28 @@ export function UnitAuditSchedule({
                 Official internal quality audit sessions for your scope.
                 </CardDescription>
             </div>
-            {isSupervisor && (
-                <div className="flex flex-wrap gap-2">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handlePrintSiteAuditReport} 
-                        disabled={isPrintingReport}
-                        className="h-8 bg-white border-primary/20 text-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
-                    >
-                        {isPrintingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                        Print Site Report
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handlePrintCampusPlan} 
-                        disabled={isPrintingPlan}
-                        className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
-                    >
-                        {isPrintingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
-                        Print Site Plan
-                    </Button>
-                </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handlePrintAuditReport} 
+                    disabled={isPrintingReport}
+                    className="h-8 bg-white border-primary/20 text-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
+                >
+                    {isPrintingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                    Print {isSupervisor ? 'Site' : 'Unit'} Report
+                </Button>
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handlePrintPlan} 
+                    disabled={isPrintingPlan}
+                    className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
+                >
+                    {isPrintingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                    Print {isSupervisor ? 'Site' : 'Unit'} Plan
+                </Button>
+            </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">

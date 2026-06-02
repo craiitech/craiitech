@@ -66,7 +66,11 @@ import type {
   AuditSchedule,
   CorrectiveActionRequest,
   ManagementReviewOutput,
-  ProgramComplianceRecord
+  ProgramComplianceRecord,
+  AuditPlan,
+  AuditFinding,
+  ISOClause,
+  Signatories
 } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
@@ -260,6 +264,21 @@ export default function HomePage() {
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
+  /**
+   * ADDITIONAL AUDIT DATA FOR REPORTS
+   */
+  const auditPlansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
+  const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
+
+  const auditFindingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
+  const { data: allAuditFindings } = useCollection<AuditFinding>(auditFindingsQuery);
+
+  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
+  const { data: allIsoClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     const yrSet = new Set<number>();
@@ -369,6 +388,12 @@ export default function HomePage() {
              unitMrOutputs={unitMrOutputs}
              unitRecommendations={unitRecommendations}
              dashboardSchedules={dashboardSchedules}
+             plans={allAuditPlans || []}
+             findings={allAuditFindings || []}
+             isoClauses={allIsoClauses || []}
+             campuses={campuses || []}
+             units={allUnits || []}
+             signatories={signatories || undefined}
              isLoading={isLoadingRisks || isLoadingSchedules}
              unitName={allUnits?.find(u => u.id === userProfile?.unitId)?.name || 'Department'}
           />
@@ -447,12 +472,12 @@ export default function HomePage() {
           isLoading={isLoadingSchedules}
           isSupervisor={true}
           campusName="Institutional"
-          plans={[]}
-          findings={[]}
-          isoClauses={[]}
+          plans={allAuditPlans || []}
+          findings={allAuditFindings || []}
+          isoClauses={allIsoClauses || []}
           units={allUnits || []}
           campuses={campuses || []}
-          signatories={undefined}
+          signatories={signatories || undefined}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
@@ -512,12 +537,12 @@ export default function HomePage() {
           isLoading={isLoadingSchedules}
           isSupervisor={true}
           campusName={campusMap.get(userProfile?.campusId || '')}
-          plans={[]}
-          findings={[]}
-          isoClauses={[]}
+          plans={allAuditPlans || []}
+          findings={allAuditFindings || []}
+          isoClauses={allIsoClauses || []}
           units={allUnits || []}
           campuses={campuses || []}
-          signatories={undefined}
+          signatories={signatories || undefined}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
@@ -571,6 +596,12 @@ export default function HomePage() {
         schedules={dashboardSchedules}
         isLoading={isLoadingSchedules}
         campusName="My Assignments"
+        plans={allAuditPlans || []}
+        findings={allAuditFindings || []}
+        isoClauses={allIsoClauses || []}
+        units={allUnits || []}
+        campuses={campuses || []}
+        signatories={signatories || undefined}
       />
 
       <Card className="shadow-md overflow-hidden">

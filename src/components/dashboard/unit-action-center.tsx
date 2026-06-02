@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Risk, CorrectiveActionRequest, ManagementReviewOutput, AuditSchedule } from '@/lib/types';
+import type { Risk, CorrectiveActionRequest, ManagementReviewOutput, AuditSchedule, AuditPlan, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     ShieldAlert, 
@@ -19,7 +19,10 @@ import {
     CheckCircle2,
     Building2,
     Target,
-    Activity
+    Activity,
+    Printer,
+    FileText,
+    Loader2
 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isBefore } from 'date-fns';
@@ -28,6 +31,9 @@ import Link from 'next/link';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { ConsolidatedAuditReportTemplate } from '@/components/audit/consolidated-audit-report-template';
+import { useToast } from '@/hooks/use-toast';
 
 interface UnitActionCenterProps {
   risks: Risk[] | null;
@@ -35,25 +41,38 @@ interface UnitActionCenterProps {
   unitMrOutputs: ManagementReviewOutput[] | null;
   unitRecommendations: any[];
   dashboardSchedules: AuditSchedule[] | null;
+  plans: AuditPlan[];
+  findings: AuditFinding[];
+  isoClauses: ISOClause[];
+  campuses: Campus[];
+  units: Unit[];
+  signatories?: Signatories;
   isLoading: boolean;
   unitName: string;
 }
 
 /**
- * UNIT ACTION CENTER v1.0
- * Fuses all priority action items into a single high-visibility dashboard component.
- * Integrates Overdue Risks, CARs, MR Decisions, Accreditation Gaps, and IQA Evidence.
+ * UNIT ACTION CENTER v1.5
+ * Now includes "Print IQA Audit Report" capability for units and campuses.
  */
 export function UnitActionCenter({ 
     risks, 
     unitCars, 
     unitMrOutputs, 
     unitRecommendations, 
-    dashboardSchedules, 
+    dashboardSchedules,
+    plans,
+    findings,
+    isoClauses,
+    campuses,
+    units,
+    signatories,
     isLoading,
     unitName 
 }: UnitActionCenterProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isPrintingReport, setIsPrintingReport] = useState(false);
+  const { toast } = useToast();
 
   const overdueRisksCount = useMemo(() => {
     if (!risks || isLoading) return 0;
@@ -65,6 +84,70 @@ export function UnitActionCenter({
     }).length;
   }, [risks, isLoading]);
 
+  const handlePrintAuditReport = () => {
+    if (!dashboardSchedules?.length || !plans.length || !isoClauses.length) {
+        toast({ title: "No Audit Data", description: "Your unit does not have any active audit records for the current year.", variant: "destructive" });
+        return;
+    }
+
+    setIsPrintingReport(true);
+    try {
+        const firstSchedule = dashboardSchedules[0];
+        const plan = plans.find(p => p.id === firstSchedule.auditPlanId);
+
+        if (!plan) throw new Error("Plan not found");
+
+        const scheduleIds = new Set(dashboardSchedules.map(s => s.id));
+        const filteredFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
+
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={plan}
+                schedules={dashboardSchedules}
+                findings={filteredFindings}
+                clauses={isoClauses}
+                units={units}
+                campuses={campuses}
+                signatories={signatories}
+                campusName={unitName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Audit Report - ${unitName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; } 
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Audit Report</button>
+                    </div>
+                    <div id="print-content">${reportHtml}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        console.error(e);
+        toast({ title: "Print error", description: "An error occurred generating the report.", variant: "destructive" });
+    } finally {
+        setIsPrintingReport(false);
+    }
+  };
+
   if (isLoading) {
     return (
         <Card className="border-primary/10 shadow-md">
@@ -74,7 +157,7 @@ export function UnitActionCenter({
     );
   }
 
-  const ActionPod = ({ icon, title, count, label, link, colorClass }: { icon: any, title: string, count: number, label: string, link: string, colorClass: string }) => (
+  const ActionPod = ({ icon, title, count, label, link, colorClass, customAction }: { icon: any, title: string, count: number, label: string, link: string, colorClass: string, customAction?: React.ReactNode }) => (
     <div className={cn("p-4 rounded-2xl border transition-all hover:shadow-md flex flex-col justify-between group", colorClass)}>
         <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -88,9 +171,12 @@ export function UnitActionCenter({
                 <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 opacity-70">{label}</p>
             </div>
         </div>
-        <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase mt-4 justify-start group-hover:gap-2 transition-all">
-            <Link href={link} className="flex items-center gap-1">Manage <ArrowRight className="h-3 w-3" /></Link>
-        </Button>
+        <div className="flex items-center gap-2 mt-4">
+            {customAction}
+            <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase justify-start group-hover:gap-2 transition-all">
+                <Link href={link} className="flex items-center gap-1">Manage <ArrowRight className="h-3 w-3" /></Link>
+            </Button>
+        </div>
     </div>
   );
 
@@ -193,6 +279,18 @@ export function UnitActionCenter({
                 label="Audit Itinerary"
                 link="/audit"
                 colorClass="bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-50"
+                customAction={
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handlePrintAuditReport} 
+                        disabled={isPrintingReport}
+                        className="h-6 px-2 text-[8px] font-black uppercase border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50"
+                    >
+                        {isPrintingReport ? <Loader2 className="h-2 w-2 animate-spin" /> : <Printer className="h-2 w-2" />}
+                        Report
+                    </Button>
+                }
               />
           </div>
       </CardContent>
