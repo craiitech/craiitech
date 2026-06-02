@@ -104,6 +104,9 @@ export function AuditorAuditView() {
   const mySchedulesFiltered = useMemo(() => filterSchedules(mySchedulesRaw), [mySchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock]);
   const availableSchedulesFiltered = useMemo(() => filterSchedules(availableSchedulesRaw), [availableSchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock]);
 
+  const upcomingMySchedules = useMemo(() => mySchedulesFiltered.filter(s => s.status !== 'Completed'), [mySchedulesFiltered]);
+  const completedMySchedules = useMemo(() => mySchedulesFiltered.filter(s => s.status === 'Completed'), [mySchedulesFiltered]);
+
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
     const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
@@ -232,17 +235,42 @@ export function AuditorAuditView() {
                                 </div>
                             </CardContent>
                         </Card>
-                        <AuditorScheduleList 
-                            schedules={mySchedulesFiltered}
-                            plans={plans || []}
-                            campuses={campuses || []}
-                            units={units || []}
-                            isoClauses={isoClauses || []}
-                            findings={findings || []}
-                            signatories={signatories || undefined}
-                            isClaimView={false}
-                            onUnclaimAudit={handleUnclaimAudit}
-                        />
+                        <Tabs defaultValue="upcoming" className="space-y-4">
+                            <TabsList className="bg-muted p-0.5 border shadow-xs w-max min-w-max h-9 rounded-md flex">
+                                <TabsTrigger value="upcoming" className="text-[10px] font-black uppercase tracking-wider h-8 px-4">
+                                    Next Scheduled ({upcomingMySchedules.length})
+                                </TabsTrigger>
+                                <TabsTrigger value="completed" className="text-[10px] font-black uppercase tracking-wider h-8 px-4">
+                                    Completed Audits ({completedMySchedules.length})
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="upcoming" className="m-0 mt-0 pt-2">
+                                <AuditorScheduleList 
+                                    schedules={upcomingMySchedules}
+                                    plans={plans || []}
+                                    campuses={campuses || []}
+                                    units={units || []}
+                                    isoClauses={isoClauses || []}
+                                    findings={findings || []}
+                                    signatories={signatories || undefined}
+                                    isClaimView={false}
+                                    onUnclaimAudit={handleUnclaimAudit}
+                                />
+                            </TabsContent>
+                            <TabsContent value="completed" className="m-0 mt-0 pt-2">
+                                <AuditorScheduleList 
+                                    schedules={completedMySchedules}
+                                    plans={plans || []}
+                                    campuses={campuses || []}
+                                    units={units || []}
+                                    isoClauses={isoClauses || []}
+                                    findings={findings || []}
+                                    signatories={signatories || undefined}
+                                    isClaimView={false}
+                                    onUnclaimAudit={handleUnclaimAudit}
+                                />
+                            </TabsContent>
+                        </Tabs>
                     </TabsContent>
 
                     <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300 m-0 space-y-6">

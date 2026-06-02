@@ -77,9 +77,25 @@ export function AuditorScheduleList({
       });
   };
 
+  const hasEvidence = (scheduleId: string) => {
+    const hasFindings = findings.some(f => f.auditScheduleId === scheduleId);
+    const schedule = schedules.find(s => s.id === scheduleId);
+    const hasSummary = schedule ? !!(schedule.summaryCommendable || schedule.summaryCompliance || schedule.summaryOFI || schedule.summaryNC) : false;
+    return hasFindings || hasSummary;
+  };
+
   const handlePrintTemplate = (schedule: AuditSchedule, withData: boolean = false) => {
     if (!isOnline) {
         handleRestrictedAction("Printing official documents");
+        return;
+    }
+
+    if (withData && !hasEvidence(schedule.id)) {
+        toast({
+            variant: "destructive",
+            title: "No Evidence Logged",
+            description: "Print failed: This unit has not been audited yet. No evidence logs are available to print.",
+        });
         return;
     }
 
@@ -219,7 +235,7 @@ export function AuditorScheduleList({
                 )}
                 <TableCell className="text-right pr-6 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
-                        {!isClaimView && (
+                        {!isClaimView && !hasEvidence(schedule.id) && (
                             <Button 
                                 variant="outline" 
                                 size="sm" 
