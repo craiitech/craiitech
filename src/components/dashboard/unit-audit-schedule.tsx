@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from '@/components/audit/audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from '@/components/audit/consolidated-audit-report-template';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
+import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -353,6 +354,160 @@ export function UnitAuditSchedule({
     }
   };
 
+  const hasEvidence = (scheduleId: string) => {
+    const hasFindings = findings.some(f => f.auditScheduleId === scheduleId);
+    const schedule = schedules?.find(s => s.id === scheduleId);
+    const hasSummary = schedule ? !!(schedule.summaryCommendable || schedule.summaryCompliance || schedule.summaryOFI || schedule.summaryNC) : false;
+    return hasFindings || hasSummary;
+  };
+
+  const handlePrintIndividualTemplate = (schedule: AuditSchedule, withData: boolean = false) => {
+    if (withData && !hasEvidence(schedule.id)) {
+        toast({
+            variant: "destructive",
+            title: "No Evidence Logged",
+            description: "Print failed: This unit has not been audited yet. No evidence logs are available to print.",
+        });
+        return;
+    }
+
+    const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+    const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
+    const campusName = campuses.find(c => c.id === schedule.campusId)?.name || 'Institutional';
+    
+    const scheduleFindings = withData 
+        ? findings.filter(f => f.auditScheduleId === schedule.id)
+        : [];
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditPrintTemplate 
+                schedule={schedule}
+                findings={scheduleFindings}
+                clauses={clausesInScope}
+                signatories={signatories}
+                leadAuditorName={parentPlan?.leadAuditorName}
+                campusName={campusName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Evidence Log - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; width: 100% !important; border-collapse: collapse; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print ${withData ? 'Evidence Log' : 'Blank Template'}</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+    }
+  };
+
+  const handlePrintIndividualReport = (schedule: AuditSchedule) => {
+    if (!hasEvidence(schedule.id)) {
+        toast({
+            variant: "destructive",
+            title: "No Evidence Logged",
+            description: "Print failed: This unit has not been audited yet. No audit report can be generated.",
+        });
+        return;
+    }
+
+    const parentPlan = plans.find(p => p.id === schedule.auditPlanId);
+    if (!parentPlan) {
+        toast({
+            variant: "destructive",
+            title: "Plan Not Found",
+            description: "Print failed: Parent audit plan for this schedule could not be resolved.",
+        });
+        return;
+    }
+
+    const scheduleFindings = findings.filter(f => f.auditScheduleId === schedule.id);
+    const campusName = campuses.find(c => c.id === schedule.campusId)?.name || 'Institutional';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={parentPlan}
+                schedules={[schedule]}
+                findings={scheduleFindings}
+                clauses={isoClauses}
+                units={units}
+                campuses={campuses}
+                signatories={signatories}
+                campusName={campusName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Report - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; width: 100% !important; border-collapse: collapse; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print report error:", err);
+    }
+  };
+
   const showAccreditation = !!recommendations;
   const showChed = showDecisionSupport;
   const showRisk = showDecisionSupport;
@@ -535,7 +690,7 @@ export function UnitAuditSchedule({
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 shrink-0">
+                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
                                 <Badge className={cn(
                                     "h-5 text-[9px] font-black uppercase border-none px-3 shadow-sm",
                                     schedule.status === 'In Progress' ? "bg-blue-600 text-white animate-pulse" : 
@@ -543,6 +698,39 @@ export function UnitAuditSchedule({
                                 )}>
                                     {schedule.status}
                                 </Badge>
+                                
+                                <div className="flex items-center gap-1">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handlePrintIndividualTemplate(schedule, false)}
+                                        className="h-7 text-[8px] px-2 font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1"
+                                        title="Print Template"
+                                    >
+                                        <Printer className="h-2.5 w-2.5" />
+                                        Template
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handlePrintIndividualTemplate(schedule, true)}
+                                        className="h-7 text-[8px] px-2 font-black uppercase bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 gap-1"
+                                        title="Print Evidence Log"
+                                    >
+                                        <Printer className="h-2.5 w-2.5" />
+                                        Evidence
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handlePrintIndividualReport(schedule)}
+                                        className="h-7 text-[8px] px-2 font-black uppercase bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1"
+                                        title="Print Audit Report"
+                                    >
+                                        <FileText className="h-2.5 w-2.5" />
+                                        Report
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     );
