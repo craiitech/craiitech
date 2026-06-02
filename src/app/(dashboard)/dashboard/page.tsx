@@ -58,6 +58,7 @@ import {
   Timestamp,
   orderBy,
   limit,
+  updateDoc,
 } from 'firebase/firestore';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
@@ -310,14 +311,53 @@ const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: {
   scopedRating: EomsScoreResult | null; 
   scopedRatingType?: string; 
 }) => {
+  const getTextColor = (grade: string) => {
+    if (grade.startsWith('A')) return 'text-emerald-600 dark:text-emerald-400';
+    if (grade.startsWith('B+')) return 'text-teal-600 dark:text-teal-400';
+    if (grade.startsWith('B')) return 'text-blue-600 dark:text-blue-400';
+    if (grade.startsWith('B-') || grade.startsWith('C')) return 'text-amber-600 dark:text-amber-500';
+    return 'text-rose-600 dark:text-rose-500';
+  };
+
+  const getBorderColorClass = (grade: string) => {
+    if (grade.startsWith('A')) return 'border-emerald-200 hover:border-emerald-300';
+    if (grade.startsWith('B+')) return 'border-teal-200 hover:border-teal-300';
+    if (grade.startsWith('B')) return 'border-blue-200 hover:border-blue-300';
+    return 'border-amber-200 hover:border-amber-300';
+  };
+
+  const getScopedIconColor = (grade: string) => {
+    if (grade.startsWith('A')) return 'text-indigo-600 dark:text-indigo-400';
+    if (grade.startsWith('B+')) return 'text-purple-600 dark:text-purple-400';
+    if (grade.startsWith('B')) return 'text-blue-600 dark:text-blue-400';
+    return 'text-amber-600 dark:text-amber-500';
+  };
+
+  const getScopedBorderColorClass = (grade: string) => {
+    if (grade.startsWith('A')) return 'border-indigo-200 hover:border-indigo-300';
+    if (grade.startsWith('B+')) return 'border-purple-200 hover:border-purple-300';
+    if (grade.startsWith('B')) return 'border-blue-200 hover:border-blue-300';
+    return 'border-amber-200 hover:border-amber-300';
+  };
+
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-0">
+      <div className="flex items-center gap-3">
+        {/* University Rating */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest cursor-help shadow-xs transition-all hover:brightness-95", universityRating.color)}>
-              <Award className="h-3 w-3 shrink-0" />
-              University Rating: {universityRating.grade} ({universityRating.score}%)
+            <div className={cn(
+              "flex flex-col items-end px-3 py-1.5 rounded-xl border cursor-help shadow-xs transition-all hover:scale-105 duration-200 bg-white",
+              getBorderColorClass(universityRating.grade)
+            )}>
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground leading-none">University Rating</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <Award className={cn("h-4 w-4 shrink-0", getTextColor(universityRating.grade))} />
+                <span className={cn("text-base font-black tracking-tight leading-none", getTextColor(universityRating.grade))}>
+                  {universityRating.grade}
+                </span>
+                <span className="text-[10px] font-bold text-slate-500">({universityRating.score}%)</span>
+              </div>
             </div>
           </TooltipTrigger>
           <TooltipContent className="bg-slate-900 border-slate-950 text-white p-4 rounded-xl shadow-xl w-72 z-50">
@@ -338,12 +378,22 @@ const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: {
           </TooltipContent>
         </Tooltip>
 
+        {/* Scoped Rating (Unit or Site) */}
         {scopedRating && scopedRatingType && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest cursor-help shadow-xs transition-all hover:brightness-95", scopedRating.color)}>
-                <Award className="h-3 w-3 shrink-0" />
-                {scopedRatingType} Rating: {scopedRating.grade} ({scopedRating.score}%)
+              <div className={cn(
+                "flex flex-col items-end px-3 py-1.5 rounded-xl border cursor-help shadow-xs transition-all hover:scale-105 duration-200 bg-white",
+                getScopedBorderColorClass(scopedRating.grade)
+              )}>
+                <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground leading-none">{scopedRatingType} Rating</span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <TrendingUp className={cn("h-4 w-4 shrink-0", getScopedIconColor(scopedRating.grade))} />
+                  <span className={cn("text-base font-black tracking-tight leading-none", getScopedIconColor(scopedRating.grade))}>
+                    {scopedRating.grade}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500">({scopedRating.score}%)</span>
+                </div>
               </div>
             </TooltipTrigger>
             <TooltipContent className="bg-slate-900 border-slate-950 text-white p-4 rounded-xl shadow-xl w-72 z-50">
@@ -674,6 +724,30 @@ export default function HomePage() {
     return calculateEomsScore('unit', userProfile.unitId, eomsData);
   }, [isAdmin, isCampusSupervisor, userProfile?.unitId, eomsData]);
 
+  // Synchronize the computed university rating to public settings if admin
+  useEffect(() => {
+    if (isAdmin && firestore && universityRating) {
+      const docRef = doc(firestore, 'campusSettings', 'global');
+      // Update university rating in public settings so non-admin users can access the global rating
+      updateDoc(docRef, {
+        universityRating: {
+          score: universityRating.score,
+          grade: universityRating.grade,
+          label: universityRating.label,
+          color: universityRating.color,
+          breakdown: universityRating.breakdown,
+        }
+      }).catch(err => console.error("Error writing university rating to Firestore:", err));
+    }
+  }, [isAdmin, firestore, universityRating]);
+
+  const activeUniversityRating = useMemo(() => {
+    if (!isAdmin && (globalSetting as any)?.universityRating) {
+      return (globalSetting as any).universityRating as EomsScoreResult;
+    }
+    return universityRating;
+  }, [isAdmin, globalSetting, universityRating]);
+
   const stats = useMemo(() => {
     if (!submissions || !userProfile) return { stat1: { value: '0' }, stat2: { value: '0' }, stat3: { value: '0' } };
     const yearSubs = submissions.filter((s) => s.year === selectedYear);
@@ -755,16 +829,16 @@ export default function HomePage() {
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2>
-                <HeaderRatings universityRating={universityRating} scopedRating={unitRating} scopedRatingType="Unit" />
-              </div>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2>
               <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">AY {selectedYear} Quality Performance Overview</p>
             </div>
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <HeaderRatings universityRating={activeUniversityRating} scopedRating={unitRating} scopedRatingType="Unit" />
+              <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
+                <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
           <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
@@ -873,16 +947,16 @@ export default function HomePage() {
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2>
-              <HeaderRatings universityRating={universityRating} scopedRating={null} />
-            </div>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Institutional Oversight for AY {selectedYear}</p>
           </div>
-          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-            <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <HeaderRatings universityRating={activeUniversityRating} scopedRating={null} />
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
+              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
         </div>
         <ScrollArea className="w-full">
           <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
@@ -1025,16 +1099,16 @@ export default function HomePage() {
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2>
-              <HeaderRatings universityRating={universityRating} scopedRating={supervisorRating} scopedRatingType="Site" />
-            </div>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Campus Oversight for AY {selectedYear}</p>
           </div>
-          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-            <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <HeaderRatings universityRating={activeUniversityRating} scopedRating={supervisorRating} scopedRatingType="Site" />
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
+              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
         </div>
         <ScrollArea className="w-full">
           <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
