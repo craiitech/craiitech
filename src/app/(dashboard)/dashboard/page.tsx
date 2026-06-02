@@ -95,6 +95,7 @@ import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
+import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
@@ -624,26 +625,55 @@ export default function HomePage() {
       </div>
 
       <TabsContent value="overview" className="space-y-6">
-        <UnitAuditSchedule
+        <ExecutiveOverview
+          submissions={submissions}
+          risks={risks}
+          cars={allCars}
+          allCompliances={allCompliances}
+          academicPrograms={academicPrograms}
           schedules={dashboardSchedules}
-          isLoading={isLoadingSchedules || isLoadingSubmissions}
-          isSupervisor={true}
-          campusName="Institutional"
-          plans={allAuditPlans || []}
-          findings={allAuditFindings || []}
-          isoClauses={allIsoClauses || []}
-          units={allUnits || []}
-          campuses={campuses || []}
-          signatories={signatories || undefined}
-          recommendations={assignedRecommendations}
+          units={allUnits}
+          campuses={campuses}
           selectedYear={selectedYear}
-          academicPrograms={filteredAcademicPrograms}
-          risks={risks || []}
-          cars={allCars || []}
-          allCompliances={filteredCompliances}
-          submissions={submissions || []}
-          showDecisionSupport={true}
         />
+
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+          <div className="lg:col-span-4">
+            <UnitAuditSchedule
+              schedules={dashboardSchedules}
+              isLoading={isLoadingSchedules || isLoadingSubmissions}
+              isSupervisor={true}
+              campusName="Institutional"
+              plans={allAuditPlans || []}
+              findings={allAuditFindings || []}
+              isoClauses={allIsoClauses || []}
+              units={allUnits || []}
+              campuses={campuses || []}
+              signatories={signatories || undefined}
+              recommendations={assignedRecommendations}
+              selectedYear={selectedYear}
+              academicPrograms={filteredAcademicPrograms}
+              risks={risks || []}
+              cars={allCars || []}
+              allCompliances={filteredCompliances}
+              submissions={submissions || []}
+              showDecisionSupport={false}
+            />
+          </div>
+          <div className="lg:col-span-3">
+            <Card className="shadow-md h-full overflow-hidden flex flex-col">
+              <CardHeader className="bg-primary/5 pb-4 border-b">
+                <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900">Recent System Activity</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">Real-time audit log stream</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 flex-1">
+                <RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabsContent>
+      <TabsContent value="analytics" className="space-y-6">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
@@ -652,24 +682,23 @@ export default function HomePage() {
             </Card>
           ))}
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
           <div className="lg:col-span-4 space-y-6">
             <Card className="shadow-md"><CardHeader><CardTitle>Submission Volume</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
-            <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
+            <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
           </div>
           <div className="lg:col-span-3 space-y-6">
             <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
             <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
-            <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
           </div>
         </div>
-      </TabsContent>
-      <TabsContent value="analytics" className="space-y-6">
-        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
+
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
+        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
