@@ -987,6 +987,7 @@ export default function HomePage() {
             <UnitAuditSchedule
               schedules={dashboardSchedules}
               isLoading={isLoadingSchedules || isLoadingSubmissions}
+              isAdmin={true}
               isSupervisor={true}
               campusName="Institutional"
               plans={allAuditPlans || []}
