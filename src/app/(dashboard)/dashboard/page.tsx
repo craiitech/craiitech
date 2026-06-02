@@ -37,7 +37,11 @@ import {
   AlertTriangle,
   Gavel,
   Target,
-  Award
+  Award,
+  GraduationCap,
+  ListChecks,
+  Zap,
+  TriangleAlert
 } from 'lucide-react';
 import {
   useUser,
@@ -94,6 +98,10 @@ import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
+import { ChedProgramsTab } from '@/components/dashboard/executive/ched-programs-tab';
+import { RiskOpportunityTab } from '@/components/dashboard/executive/risk-opportunity-tab';
+import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
+import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
 import type {
   Submission,
   User as AppUser,
@@ -351,6 +359,10 @@ export default function HomePage() {
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  // Admin-level: all corrective action requests for executive dashboard tabs
+  const allCarsQuery = useMemoFirebase(() => (firestore && isAdmin ? collection(firestore, 'correctiveActionRequests') : null), [firestore, isAdmin]);
+  const { data: allCars } = useCollection<CorrectiveActionRequest>(allCarsQuery);
+
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     const yrSet = new Set<number>();
@@ -550,6 +562,10 @@ export default function HomePage() {
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
+            <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
+            <TabsTrigger value="corrective-actions"><ListChecks className="mr-2 h-4 w-4" />Corrective Actions</TabsTrigger>
+            <TabsTrigger value="actionable-decisions"><Zap className="mr-2 h-4 w-4" />Actionable Decisions</TabsTrigger>
           </TabsList>
         </ScrollArea>
       </div>
@@ -599,6 +615,47 @@ export default function HomePage() {
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+      </TabsContent>
+
+      <TabsContent value="ched-programs" className="space-y-6">
+        <ChedProgramsTab
+          academicPrograms={academicPrograms || []}
+          allCompliances={allCompliances || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="risk-opportunity" className="space-y-6">
+        <RiskOpportunityTab
+          risks={risks || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="corrective-actions" className="space-y-6">
+        <CorrectiveActionsTab
+          cars={allCars || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="actionable-decisions" className="space-y-6">
+        <ActionableDecisionsTab
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={allCompliances || []}
+          academicPrograms={academicPrograms || []}
+          auditSchedules={dashboardSchedules || []}
+          submissions={submissions || []}
+          campuses={campuses || []}
+          allUnits={allUnits || []}
+          selectedYear={selectedYear}
+        />
       </TabsContent>
     </Tabs>
   );
