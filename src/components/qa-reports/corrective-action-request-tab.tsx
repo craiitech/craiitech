@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, AuditFinding, AuditSchedule } from '@/lib/types';
@@ -16,7 +16,6 @@ import {
     Trash2, 
     ListChecks, 
     History, 
-    Info, 
     User, 
     ShieldCheck, 
     Hash, 
@@ -64,7 +63,6 @@ import { AuditorNCManager } from '@/components/audit/auditor-nc-manager';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
-import { Avatar, AvatarFallback } from '../ui/avatar';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -502,10 +500,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </div>
           </DialogHeader>
           
-          <div className="flex-1 flex overflow-hidden bg-white">
-            <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
-                <ScrollArea className="flex-1">
-                    <Form {...form}>
+          <Form {...form}>
+            <div className="flex-1 flex overflow-hidden bg-white">
+                <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
+                    <ScrollArea className="flex-1">
                         <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
                             <section className="space-y-6">
                                 <div className="flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Administrative Context</h4></div>
@@ -559,62 +557,63 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 ))}
                             </section>
                         </form>
-                    </Form>
-                </ScrollArea>
-                
-                <div className="h-32 border-t bg-slate-50 p-4 shrink-0">
-                    <ScrollArea className="h-full">
-                        <div className="space-y-2">
-                            <h5 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><ListChecks className="h-3.5 w-3.5" /> Corrective Action Protocol</h5>
-                            <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal pl-4 font-medium italic">
-                                <li><strong>Root Cause Analysis:</strong> Units must identify the actual systemic reason why the NC occurred.</li>
-                                <li><strong>Correction:</strong> Immediate action taken to contain the issue (Fix the error).</li>
-                                <li><strong>Corrective Action:</strong> Long-term changes implemented to prevent recurrence (Change the process).</li>
-                                <li><strong>Verification:</strong> QA Office will audit the evidence to ensure the actions were effective before closing the record.</li>
-                            </ol>
+                    </ScrollArea>
+                    
+                    {/* SCROLLABLE INSTRUCTIONS AT BOTTOM */}
+                    <div className="h-32 border-t bg-slate-50 p-4 shrink-0">
+                        <ScrollArea className="h-full">
+                            <div className="space-y-2">
+                                <h5 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><ListChecks className="h-3.5 w-3.5" /> Corrective Action Protocol</h5>
+                                <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal pl-4 font-medium italic">
+                                    <li><strong>Root Cause Analysis:</strong> Units must identify the actual systemic reason why the NC occurred.</li>
+                                    <li><strong>Correction:</strong> Immediate action taken to contain the issue (Fix the error).</li>
+                                    <li><strong>Corrective Action:</strong> Long-term changes implemented to prevent recurrence (Change the process).</li>
+                                    <li><strong>Verification:</strong> QA Office will audit the evidence to ensure the actions were effective before closing the record.</li>
+                                </ol>
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+
+                <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
+                    <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-primary flex items-center gap-2 bg-white">
+                        <MessageCircle className="h-4 w-4" /> Conversation History
+                    </div>
+                    <ScrollArea className="flex-1 p-6">
+                        <div className="space-y-6">
+                            {liveCar?.comments && liveCar.comments.length > 0 ? (
+                                liveCar.comments.map((comment, index) => (
+                                    <div key={index} className="space-y-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{comment.authorName}</span>
+                                            <span className="text-[8px] font-mono text-muted-foreground">{format(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as any).toDate(), 'MMM dd, p')}</span>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700">
+                                            "{comment.text}"
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                                    <History className="h-12 w-12" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest">No history logged</p>
+                                </div>
+                            )}
                         </div>
                     </ScrollArea>
+                    {isInstitutionalViewer && (
+                        <div className="p-6 border-t bg-white space-y-4">
+                            <FormField control={form.control} name="adminFeedback" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase text-primary">Post Feedback / Directive</FormLabel>
+                                    <FormControl><Textarea {...field} placeholder="Add a review note..." className="text-xs italic bg-slate-50 min-h-[80px]" /></FormControl>
+                                </FormItem>
+                            )} />
+                        </div>
+                    )}
                 </div>
             </div>
-
-            <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
-                <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-primary flex items-center gap-2 bg-white">
-                    <MessageCircle className="h-4 w-4" /> Conversation History
-                </div>
-                <ScrollArea className="flex-1 p-6">
-                    <div className="space-y-6">
-                        {liveCar?.comments && liveCar.comments.length > 0 ? (
-                            liveCar.comments.map((comment, index) => (
-                                <div key={index} className="space-y-2">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{comment.authorName}</span>
-                                        <span className="text-[8px] font-mono text-muted-foreground">{format(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as any).toDate(), 'MMM dd, p')}</span>
-                                    </div>
-                                    <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700">
-                                        "{comment.text}"
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
-                                <History className="h-12 w-12" />
-                                <p className="text-[10px] font-black uppercase tracking-widest">No history logged</p>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-                {isInstitutionalViewer && (
-                    <div className="p-6 border-t bg-white space-y-4">
-                        <FormField control={form.control} name="adminFeedback" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase text-primary">Post Feedback / Directive</FormLabel>
-                                <FormControl><Textarea {...field} placeholder="Add a review note..." className="text-xs italic bg-slate-50 min-h-[80px]" /></FormControl>
-                            </FormItem>
-                        )} />
-                    </div>
-                )}
-            </div>
-          </div>
+          </Form>
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
             <div className="flex w-full items-center justify-between">
