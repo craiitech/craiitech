@@ -55,23 +55,6 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type {
-  Submission,
-  User as AppUser,
-  Unit,
-  Campus,
-  Cycle,
-  Risk,
-  QaAdvisory,
-  AuditSchedule,
-  CorrectiveActionRequest,
-  ManagementReviewOutput,
-  ProgramComplianceRecord,
-  AuditPlan,
-  AuditFinding,
-  ISOClause,
-  Signatories
-} from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -110,6 +93,23 @@ import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
+import type {
+  Submission,
+  User as AppUser,
+  Unit,
+  Campus,
+  Cycle,
+  Risk,
+  QaAdvisory,
+  AuditSchedule,
+  CorrectiveActionRequest,
+  ManagementReviewOutput,
+  ProgramComplianceRecord,
+  AuditPlan,
+  AuditFinding,
+  ISOClause,
+  Signatories
+} from '@/lib/types';
 
 const statusVariant: Record<
   string,
@@ -121,6 +121,20 @@ const statusVariant: Record<
   submitted: 'outline',
   'awaiting approval': 'outline',
 };
+
+const FullScreenLoader = () => (
+    <div className="flex h-screen w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
+        <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-700">
+            <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+            <div className="space-y-1">
+                <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
+            </div>
+        </div>
+    </div>
+);
 
 export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor } = useUser();
@@ -264,9 +278,6 @@ export default function HomePage() {
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
-  /**
-   * ADDITIONAL AUDIT DATA FOR REPORTS
-   */
   const auditPlansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
 
@@ -414,17 +425,20 @@ export default function HomePage() {
         </TabsContent>
 
         <TabsContent value="actions" className="space-y-6">
-          <Card className="shadow-lg"><CardHeader><CardTitle>Verification Roadmap</CardTitle><CardDescription>Real-time status of mandatory evidence logs.</CardDescription></CardHeader>
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle>Verification Roadmap</CardTitle><CardDescription>Real-time status of mandatory evidence logs.</CardDescription></CardHeader>
             <CardContent className="space-y-8">
               {renderChecklist('First', firstCycleMap)}
               <Separator />
               {renderChecklist('Final', finalCycleMap)}
               <Button asChild className="w-full h-12 font-black uppercase tracking-widest shadow-xl shadow-primary/20"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" /> Manage Submissions</Link></Button>
-            </CardContent></Card>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="history" className="animate-in fade-in duration-500">
-          <Card className="shadow-md"><CardHeader><CardTitle>Institutional Archive</CardTitle><CardDescription>Audit trail for AY {selectedYear}.</CardDescription></CardHeader>
+          <Card className="shadow-md">
+            <CardHeader><CardTitle>Institutional Archive</CardTitle><CardDescription>Audit trail for AY {selectedYear}.</CardDescription></CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader className="bg-muted/30">
@@ -441,7 +455,8 @@ export default function HomePage() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent></Card>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     );
@@ -622,19 +637,7 @@ export default function HomePage() {
   };
 
   if (isUserLoading || isLoadingSubmissions) {
-    return (
-      <div className="flex h-screen items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader />;
   }
 
   return (
