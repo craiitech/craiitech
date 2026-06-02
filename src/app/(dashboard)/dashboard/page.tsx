@@ -96,6 +96,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
 import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
@@ -131,6 +132,241 @@ const statusVariant: Record<
   rejected: 'destructive',
   submitted: 'outline',
   'awaiting approval': 'outline',
+};
+
+interface EomsScoreResult {
+  score: number;
+  grade: string;
+  label: string;
+  color: string;
+  breakdown: {
+    submissions: number;
+    audits: number;
+    cars: number;
+    risks: number;
+    ched: number;
+    accreditation: number;
+  };
+}
+
+function calculateEomsScore(
+  scope: 'university' | 'campus' | 'unit',
+  scopeId: string | undefined,
+  data: {
+    submissions: Submission[] | null;
+    risks: Risk[] | null;
+    cars: CorrectiveActionRequest[] | null;
+    allCompliances: ProgramComplianceRecord[] | null;
+    academicPrograms: AcademicProgram[] | null;
+    schedules: AuditSchedule[] | null;
+    units: Unit[] | null;
+    campuses: Campus[] | null;
+    selectedYear: number;
+  }
+): EomsScoreResult {
+  const { submissions = [], risks = [], cars = [], allCompliances = [], academicPrograms = [], schedules = [], units = [], campuses = [], selectedYear } = data;
+
+  // Filter collections by scope
+  let scopedSubmissions = submissions || [];
+  let scopedRisks = risks || [];
+  let scopedCars = cars || [];
+  let scopedCompliances = allCompliances || [];
+  let scopedPrograms = academicPrograms || [];
+  let scopedSchedules = schedules || [];
+  let scopedUnits = units || [];
+
+  if (scope === 'campus' && scopeId) {
+    scopedSubmissions = scopedSubmissions.filter(s => s.campusId === scopeId);
+    scopedRisks = scopedRisks.filter(r => r.campusId === scopeId);
+    scopedCars = scopedCars.filter(c => c.campusId === scopeId);
+    scopedCompliances = scopedCompliances.filter(c => c.campusId === scopeId);
+    scopedPrograms = scopedPrograms.filter(p => p.campusId === scopeId);
+    scopedSchedules = scopedSchedules.filter(s => s.campusId === scopeId);
+    scopedUnits = scopedUnits.filter(u => u.campusIds?.includes(scopeId));
+  } else if (scope === 'unit' && scopeId) {
+    scopedSubmissions = scopedSubmissions.filter(s => s.unitId === scopeId);
+    scopedRisks = scopedRisks.filter(r => r.unitId === scopeId);
+    scopedCars = scopedCars.filter(c => c.unitId === scopeId);
+    scopedCompliances = scopedCompliances.filter(c => c.unitId === scopeId || c.programId === scopeId);
+    scopedPrograms = scopedPrograms.filter(p => p.id === scopeId);
+    scopedSchedules = scopedSchedules.filter(s => s.targetId === scopeId);
+    scopedUnits = scopedUnits.filter(u => u.id === scopeId);
+  }
+
+  // 1. SUBMISSION COMPLIANCE RATE
+  const approvedSubs = scopedSubmissions.filter(s => s.year === selectedYear && s.statusId === 'approved');
+  const expectedSubs = scope === 'unit' ? 2 : (scopedUnits.length || 1) * 2;
+  const submissionRate = expectedSubs > 0 ? Math.round((approvedSubs.length / expectedSubs) * 100) : 0;
+
+  // 2. IQA PROGRESS RATE
+  const yearSchedules = scopedSchedules.filter(s => {
+    if (!s.scheduledDate) return false;
+    const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+    return date.getFullYear() === selectedYear;
+  });
+  const completedAudits = yearSchedules.filter(s => s.status === 'Completed');
+  const iqaProgressRate = yearSchedules.length > 0 ? Math.round((completedAudits.length / yearSchedules.length) * 100) : 0;
+
+  // 3. CORRECTIVE ACTION REQUEST (CAR) CLOSURE RATE
+  const yearCars = scopedCars.filter(c => {
+    if (!c.createdAt) return true;
+    const date = c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+    return date.getFullYear() === selectedYear;
+  });
+  const closedCars = yearCars.filter(c => c.status === 'Closed');
+  const carResolutionRate = yearCars.length > 0 ? Math.round((closedCars.length / yearCars.length) * 100) : 0;
+
+  // 4. ACCREDITATION GAPS RESOLUTION RATE
+  const recs = scopedCompliances.reduce((acc: any[], c) => {
+    c.accreditationRecords?.forEach(ar => {
+      ar.recommendations?.forEach(rec => {
+        acc.push(rec);
+      });
+    });
+    return acc;
+  }, []);
+  const closedRecs = recs.filter(r => r.status === 'Closed');
+  const accreditationRate = recs.length > 0 ? Math.round((closedRecs.length / recs.length) * 100) : 0;
+
+  // 5. CHED COPC RATE
+  const copcCompliant = scopedCompliances.filter(c => c.ched?.copcStatus === 'With COPC');
+  const totalPrograms = scopedPrograms.length;
+  const chedRate = totalPrograms > 0 ? Math.round((copcCompliant.length / totalPrograms) * 100) : 0;
+
+  // 6. RISK MITIGATION RATE
+  const yearRisks = scopedRisks.filter(r => r.year === selectedYear);
+  const mitigatedRisks = yearRisks.filter(r => r.status === 'Closed' || r.preTreatment?.rating === 'low' || r.postTreatment?.rating === 'low');
+  const riskRate = yearRisks.length > 0 ? Math.round((mitigatedRisks.length / yearRisks.length) * 100) : 0;
+
+  // Weighted average
+  const metrics = [
+    { value: submissionRate, weight: 0.25, active: true },
+    { value: iqaProgressRate, weight: 0.20, active: yearSchedules.length > 0 },
+    { value: carResolutionRate, weight: 0.20, active: yearCars.length > 0 },
+    { value: riskRate, weight: 0.15, active: yearRisks.length > 0 },
+    { value: chedRate, weight: 0.10, active: totalPrograms > 0 },
+    { value: accreditationRate, weight: 0.10, active: recs.length > 0 },
+  ];
+
+  const activeMetrics = metrics.filter(m => m.active);
+  const totalWeight = activeMetrics.reduce((sum, m) => sum + m.weight, 0);
+  const score = totalWeight > 0 
+    ? Math.round(activeMetrics.reduce((sum, m) => sum + (m.value * m.weight), 0) / totalWeight) 
+    : 0;
+
+  // Letter Grade & Status Details
+  let grade = 'F';
+  let label = 'Critical Non-compliance';
+  let color = 'bg-rose-600 border-rose-700 text-white';
+
+  if (score >= 95) {
+    grade = 'A+';
+    label = 'Outstanding Institutional Excellence';
+    color = 'bg-emerald-600 border-emerald-700 text-white';
+  } else if (score >= 88) {
+    grade = 'A';
+    label = 'Mature EOMS Alignment';
+    color = 'bg-emerald-500 border-emerald-600 text-white';
+  } else if (score >= 80) {
+    grade = 'A-';
+    label = 'Highly Compliant QMS';
+    color = 'bg-teal-600 border-teal-700 text-white';
+  } else if (score >= 70) {
+    grade = 'B+';
+    label = 'Good Standing';
+    color = 'bg-blue-600 border-blue-700 text-white';
+  } else if (score >= 60) {
+    grade = 'B';
+    label = 'Satisfactory Compliance';
+    color = 'bg-blue-500 border-blue-600 text-white';
+  } else if (score >= 50) {
+    grade = 'B-';
+    label = 'Passable Standing';
+    color = 'bg-amber-600 border-amber-700 text-white';
+  } else if (score >= 40) {
+    grade = 'C';
+    label = 'Needs Immediate Review';
+    color = 'bg-amber-500 border-amber-600 text-white';
+  }
+
+  return {
+    score,
+    grade,
+    label,
+    color,
+    breakdown: {
+      submissions: submissionRate,
+      audits: iqaProgressRate,
+      cars: carResolutionRate,
+      risks: riskRate,
+      ched: chedRate,
+      accreditation: accreditationRate
+    }
+  };
+}
+
+const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: { 
+  universityRating: EomsScoreResult; 
+  scopedRating: EomsScoreResult | null; 
+  scopedRatingType?: string; 
+}) => {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-0">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest cursor-help shadow-xs transition-all hover:brightness-95", universityRating.color)}>
+              <Award className="h-3 w-3 shrink-0" />
+              University Rating: {universityRating.grade} ({universityRating.score}%)
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="bg-slate-900 border-slate-950 text-white p-4 rounded-xl shadow-xl w-72 z-50">
+            <div className="space-y-2">
+              <div className="border-b border-white/10 pb-1.5">
+                <h5 className="font-black text-[10px] uppercase text-emerald-400">University Quality Rating</h5>
+                <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">{universityRating.label}</p>
+              </div>
+              <div className="space-y-1.5 text-[9px] font-bold uppercase tracking-wider">
+                <div className="flex justify-between"><span>Submissions:</span><span className="font-black text-emerald-400">{universityRating.breakdown.submissions}%</span></div>
+                <div className="flex justify-between"><span>IQA Audits:</span><span className="font-black text-emerald-400">{universityRating.breakdown.audits}%</span></div>
+                <div className="flex justify-between"><span>CAR Resolution:</span><span className="font-black text-emerald-400">{universityRating.breakdown.cars}%</span></div>
+                <div className="flex justify-between"><span>Risk Treatment:</span><span className="font-black text-emerald-400">{universityRating.breakdown.risks}%</span></div>
+                <div className="flex justify-between"><span>CHED Programs:</span><span className="font-black text-emerald-400">{universityRating.breakdown.ched}%</span></div>
+                <div className="flex justify-between"><span>Accreditation Gaps:</span><span className="font-black text-emerald-400">{universityRating.breakdown.accreditation}%</span></div>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
+        {scopedRating && scopedRatingType && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest cursor-help shadow-xs transition-all hover:brightness-95", scopedRating.color)}>
+                <Award className="h-3 w-3 shrink-0" />
+                {scopedRatingType} Rating: {scopedRating.grade} ({scopedRating.score}%)
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="bg-slate-900 border-slate-950 text-white p-4 rounded-xl shadow-xl w-72 z-50">
+              <div className="space-y-2">
+                <div className="border-b border-white/10 pb-1.5">
+                  <h5 className="font-black text-[10px] uppercase text-indigo-400">{scopedRatingType} EOMS Rating</h5>
+                  <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">{scopedRating.label}</p>
+                </div>
+                <div className="space-y-1.5 text-[9px] font-bold uppercase tracking-wider">
+                  <div className="flex justify-between"><span>Submissions:</span><span className="font-black text-indigo-400">{scopedRating.breakdown.submissions}%</span></div>
+                  {scopedRating.breakdown.audits > 0 && <div className="flex justify-between"><span>IQA Audits:</span><span className="font-black text-indigo-400">{scopedRating.breakdown.audits}%</span></div>}
+                  {scopedRating.breakdown.cars > 0 && <div className="flex justify-between"><span>CAR Resolution:</span><span className="font-black text-indigo-400">{scopedRating.breakdown.cars}%</span></div>}
+                  {scopedRating.breakdown.risks > 0 && <div className="flex justify-between"><span>Risk Treatment:</span><span className="font-black text-indigo-400">{scopedRating.breakdown.risks}%</span></div>}
+                  {scopedRating.breakdown.ched > 0 && <div className="flex justify-between"><span>CHED Programs:</span><span className="font-black text-indigo-400">{scopedRating.breakdown.ched}%</span></div>}
+                  {scopedRating.breakdown.accreditation > 0 && <div className="flex justify-between"><span>Accreditation Gaps:</span><span className="font-black text-indigo-400">{scopedRating.breakdown.accreditation}%</span></div>}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </TooltipProvider>
+  );
 };
 
 const FullScreenLoader = () => (
@@ -413,6 +649,31 @@ export default function HomePage() {
   const globalSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'global') : null), [firestore]);
   const { data: globalSetting } = useDoc(globalSettingsRef);
 
+  // EOMS Quality Score Calculations
+  const eomsData = useMemo(() => ({
+    submissions,
+    risks,
+    cars: allCars,
+    allCompliances,
+    academicPrograms,
+    schedules: dashboardSchedules,
+    units: allUnits,
+    campuses,
+    selectedYear
+  }), [submissions, risks, allCars, allCompliances, academicPrograms, dashboardSchedules, allUnits, campuses, selectedYear]);
+
+  const universityRating = useMemo(() => calculateEomsScore('university', undefined, eomsData), [eomsData]);
+
+  const supervisorRating = useMemo(() => {
+    if (!isCampusSupervisor || !userProfile?.campusId) return null;
+    return calculateEomsScore('campus', userProfile.campusId, eomsData);
+  }, [isCampusSupervisor, userProfile?.campusId, eomsData]);
+
+  const unitRating = useMemo(() => {
+    if (isAdmin || isCampusSupervisor || !userProfile?.unitId) return null;
+    return calculateEomsScore('unit', userProfile.unitId, eomsData);
+  }, [isAdmin, isCampusSupervisor, userProfile?.unitId, eomsData]);
+
   const stats = useMemo(() => {
     if (!submissions || !userProfile) return { stat1: { value: '0' }, stat2: { value: '0' }, stat3: { value: '0' } };
     const yearSubs = submissions.filter((s) => s.year === selectedYear);
@@ -492,8 +753,14 @@ export default function HomePage() {
     return (
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">AY {selectedYear} Quality Performance Overview</p></div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2>
+                <HeaderRatings universityRating={universityRating} scopedRating={unitRating} scopedRatingType="Unit" />
+              </div>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">AY {selectedYear} Quality Performance Overview</p>
+            </div>
             <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
               <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
               <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
@@ -604,8 +871,14 @@ export default function HomePage() {
   const renderAdminHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Institutional Oversight for AY {selectedYear}</p></div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2>
+              <HeaderRatings universityRating={universityRating} scopedRating={null} />
+            </div>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Institutional Oversight for AY {selectedYear}</p>
+          </div>
           <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
             <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
@@ -750,8 +1023,14 @@ export default function HomePage() {
   const renderSupervisorHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Campus Oversight for AY {selectedYear}</p></div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2>
+              <HeaderRatings universityRating={universityRating} scopedRating={supervisorRating} scopedRatingType="Site" />
+            </div>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Campus Oversight for AY {selectedYear}</p>
+          </div>
           <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
             <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
