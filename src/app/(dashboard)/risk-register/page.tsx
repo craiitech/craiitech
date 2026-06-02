@@ -571,8 +571,8 @@ export default function RiskRegisterPage() {
         onOpenChange={(open) => !open && setDeletingRisk(null)}
       >
         <AlertDialogContent 
-            onPointerDownOutside={(e) => e.preventDefault()}
-            onInteractOutside={(e) => e.preventDefault()}
+            onPointerDownOutside={(e: any) => e.preventDefault()}
+            onInteractOutside={(e: any) => e.preventDefault()}
         >
             <AlertDialogHeader>
                 <div className="flex items-center gap-2 text-destructive mb-2">

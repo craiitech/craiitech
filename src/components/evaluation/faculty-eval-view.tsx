@@ -5,6 +5,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebas
 import { collection, query, where } from 'firebase/firestore';
 import type { ComputedResult, EvaluationCycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, TrendingUp, Star, Award, ShieldCheck, Activity, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';

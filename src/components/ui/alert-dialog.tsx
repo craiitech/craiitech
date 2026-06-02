@@ -29,7 +29,10 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & {
+    onPointerDownOutside?: (event: any) => void;
+    onInteractOutside?: (event: any) => void;
+  }
 >(({ className, ...props }, ref) => (
   <AlertDialogPortal>
     <AlertDialogOverlay />

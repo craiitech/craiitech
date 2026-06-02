@@ -62,7 +62,8 @@ import {
     XAxis,
     YAxis,
     CartesianGrid,
-    Legend
+    Legend,
+    LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -101,6 +102,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function ProgramPerformanceView({ program, record, selectedYear, onResolveDeficiency }: ProgramPerformanceViewProps) {
   const firestore = useFirestore();
+  const unitDataQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const { data: allUnits } = useCollection<any>(unitDataQuery);
+  const unitMap = useMemo(() => new Map((allUnits || []).map((u: any) => [u.id, u.name])), [allUnits]);
+
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
 
   const analyticsData = useMemo(() => {

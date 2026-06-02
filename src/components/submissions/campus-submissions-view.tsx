@@ -472,7 +472,7 @@ export function CampusSubmissionsView({
                         className="h-8 pl-8 text-[10px] bg-white border-primary/10"
                       />
                   </div>
-                  <Select value={sidebarCampusFilter} onValueChange={sidebarCampusFilter}>
+                  <Select value={sidebarCampusFilter} onValueChange={setSidebarCampusFilter}>
                       <SelectTrigger className="h-8 text-[10px] font-black uppercase bg-white border-primary/10">
                           <div className="flex items-center gap-1.5"><Filter className="h-3 w-3 opacity-50" /><SelectValue placeholder="All Sites" /></div>
                       </SelectTrigger>

@@ -140,7 +140,7 @@ export function ErrorReportManagement() {
                                 <div className="flex items-center gap-2">
                                   <ClipboardCopy className="h-4 w-4 text-muted-foreground"/>
                                   <span>Digest: {report.errorDigest}</span>
-                                   <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => copyToClipboard(report.errorDigest, 'Error Digest')}>
+                                   <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => copyToClipboard(report.errorDigest || '', 'Error Digest')}>
                                       <Copy className="h-3 w-3" />
                                    </Button>
                                 </div>

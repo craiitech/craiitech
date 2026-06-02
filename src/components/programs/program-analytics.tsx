@@ -241,7 +241,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const enrollmentRecords = record?.enrollmentRecords || [];
             enrollmentRecords.forEach(rec => {
                 const term = rec.firstSemester;
-                if (term) ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach(lvl => {
+                if (term) (['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const).forEach(lvl => {
                     totalMaleEnrolled += Number(term[lvl]?.male || 0);
                     totalFemaleEnrolled += Number(term[lvl]?.female || 0);
                 });
@@ -426,7 +426,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (!item.programName.toLowerCase().includes(lowerSearch) && !item.recommendation.text.toLowerCase().includes(lowerSearch)) return false;
         }
 
-        const hasAcademicAssignment = item.recommendation.assignedUnitIds?.some(uid => academicUnitIds.has(uid));
+        const hasAcademicAssignment = item.recommendation.assignedUnitIds?.some((uid: string) => academicUnitIds.has(uid));
         if (!hasAcademicAssignment && (item.recommendation.assignedUnitIds?.length || 0) > 0) return false;
 
         return true;
@@ -434,7 +434,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         ...item,
         recommendation: {
             ...item.recommendation,
-            assignedUnitIds: (item.recommendation.assignedUnitIds || []).filter(uid => academicUnitIds.has(uid))
+            assignedUnitIds: (item.recommendation.assignedUnitIds || []).filter((uid: string) => academicUnitIds.has(uid))
         }
     }));
   }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter, units]);
@@ -600,7 +600,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <Table><TableHeader className="bg-muted/30 sticky top-0 z-10"><TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead><TableHead className="text-[10px] font-black uppercase">Type</TableHead><TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead><TableHead className="text-[10px] font-black uppercase">Accountable Academic Units</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                           {filteredRecommendations.map((item, idx) => (
-                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors"><TableCell className="pl-8 py-5"><div className="flex flex-col"><span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span><Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge></div></TableCell><TableCell><Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">{item.recommendation.type}</Badge></TableCell><TableCell className="py-5 max-w-md"><p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>{item.recommendation.additionalInfo && (<div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase"><Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}</div>)}</TableCell><TableCell><div className="flex flex-wrap gap-1">{(item.recommendation.assignedUnitIds || []).map(uid => (<Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">{unitMap.get(uid) || uid}</Badge>))}{!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}</div></TableCell><TableCell className="text-right pr-8"><Badge className={cn("h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm", item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : "bg-emerald-600 text-white")}>{item.recommendation.status}</Badge></TableCell></TableRow>
+                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors"><TableCell className="pl-8 py-5"><div className="flex flex-col"><span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span><Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge></div></TableCell><TableCell><Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">{item.recommendation.type}</Badge></TableCell><TableCell className="py-5 max-w-md"><p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>{item.recommendation.additionalInfo && (<div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase"><Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}</div>)}</TableCell><TableCell><div className="flex flex-wrap gap-1">{(item.recommendation.assignedUnitIds || []).map((uid: string) => (<Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">{unitMap.get(uid) || uid}</Badge>))}{!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}</div></TableCell><TableCell className="text-right pr-8"><Badge className={cn("h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm", item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : "bg-emerald-600 text-white")}>{item.recommendation.status}</Badge></TableCell></TableRow>
                           ))}
                       </TableBody>
                   </Table>

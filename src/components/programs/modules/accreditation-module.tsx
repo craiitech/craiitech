@@ -338,7 +338,7 @@ function AccreditationRecordCard({
                     <CardContent className="pt-6">
                         <div className="space-y-6">
                             {recoFields.map((reco, recoIdx) => {
-                                const type = recoFields[recoIdx].type;
+                                const type = (reco as any).type;
                                 return (
                                     <div key={reco.id} className={cn(
                                         "p-5 rounded-2xl border transition-all relative group",

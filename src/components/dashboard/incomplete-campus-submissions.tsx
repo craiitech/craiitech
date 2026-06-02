@@ -93,7 +93,7 @@ export function IncompleteCampusSubmissions({
       }
       
       return null;
-    }).filter(Boolean as any);
+    }).filter((c): c is NonNullable<typeof c> => c !== null);
 
     return campusResults;
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);

@@ -214,7 +214,7 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
       <FormRegistrationDialog 
         isOpen={isRegOpen} 
         onOpenChange={setIsRegOpen} 
-        unit={unit} 
+        unit={{ ...unit, category: unit.category || 'Support' }} 
       />
 
       {reviewRequestId && (

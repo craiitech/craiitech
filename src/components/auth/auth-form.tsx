@@ -123,7 +123,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           };
           await setDoc(userDocRef, userData, { merge: true });
           
-          const method = result.credential?.providerId || (user.email ? 'password' : 'unknown');
+          const method = (result as any).credential?.providerId || (user.email ? 'password' : 'unknown');
           await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', { method });
           
           toast({

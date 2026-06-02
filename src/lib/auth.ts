@@ -13,7 +13,7 @@ const AUTH_COOKIE_NAME = 'rsu-eoms-auth';
  * This function provides a mock user based on a cookie and is not connected to Firebase.
  */
 export async function getCurrentUser(): Promise<User | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const userId = cookieStore.get(AUTH_COOKIE_NAME)?.value;
 
   if (!userId) {

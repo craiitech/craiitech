@@ -201,7 +201,7 @@ export default function ReportsPage() {
       }).sort((a,b) => a.unitName.localeCompare(b.unitName));
 
       return { campusId: cId, campusName: campus.name, units: unitStatuses };
-    }).filter(Boolean as any).sort((a:any, b:any) => a.campusName.localeCompare(b.campusName));
+    }).filter((x): x is NonNullable<typeof x> => x !== null).sort((a, b) => a.campusName.localeCompare(b.campusName));
   }, [submissions, allCampuses, allUnits, selectedYear, isSupervisor, isAdmin, userProfile, isUserLoading]);
 
   const visualAnalytics = useMemo(() => {

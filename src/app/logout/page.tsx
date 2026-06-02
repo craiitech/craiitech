@@ -191,7 +191,7 @@ export default function LogoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 pb-8">
-                    <Button className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20" onClick={handleFinalLogout} disabled={rating === 0}><Send className="mr-2 h-5 w-5" /> Submit & Logout</Button>
+                    <Button className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20" onClick={() => handleFinalLogout()} disabled={rating === 0}><Send className="mr-2 h-5 w-5" /> Submit & Logout</Button>
                     <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => handleFinalLogout(true)}>Skip and Logout</Button>
                 </CardFooter>
             </div>

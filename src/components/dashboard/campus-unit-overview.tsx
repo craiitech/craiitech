@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Unit, Submission, User as AppUser } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, Info } from 'lucide-react';

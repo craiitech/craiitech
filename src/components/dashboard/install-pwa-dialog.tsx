@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Smartphone, Monitor, Download, ShieldCheck, CheckCircle2, LayoutTemplate, ExternalLink } from 'lucide-react';
+import { Smartphone, Monitor, Download, ShieldCheck, CheckCircle2, LayoutTemplate, ExternalLink, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 export function InstallPwaDialog() {

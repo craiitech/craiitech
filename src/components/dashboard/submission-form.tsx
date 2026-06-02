@@ -816,7 +816,7 @@ export function SubmissionForm({
             </CardHeader>
             <CardContent>
                  <RadioGroup
-                    onValueChange={(value: RiskRating) => setRiskRating(value)}
+                    onValueChange={(value: string) => setRiskRating(value as RiskRating)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
                     disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}

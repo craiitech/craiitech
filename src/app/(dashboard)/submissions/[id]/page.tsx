@@ -38,6 +38,7 @@ import {
     CheckCircle, 
     AlertCircle, 
     Activity,
+    Info,
     ShieldAlert,
     LayoutList,
     ExternalLink,

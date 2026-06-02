@@ -112,3 +112,87 @@ export async function getOfficialServerTime(): Promise<{ iso: string; year: numb
         dateString: phTime.toISOString().split('T')[0]
     };
 }
+
+/**
+ * Public server action to fetch compliance matrix data.
+ * Queries Firestore using admin SDK.
+ */
+export async function getPublicSubmissionMatrixData(selectedYear: number) {
+  try {
+    const firestore = getAdminFirestore();
+    if (!firestore) return { error: 'Database service unavailable.' };
+
+    const campusesSnap = await firestore.collection('campuses').get();
+    const unitsSnap = await firestore.collection('units').get();
+    const submissionsSnap = await firestore.collection('submissions')
+      .where('year', '==', selectedYear)
+      .get();
+    const cyclesSnap = await firestore.collection('cycles').get();
+
+    const campuses = campusesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    const units = unitsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    const submissions = submissionsSnap.docs.map(d => d.data());
+
+    const availableYears = Array.from(
+      new Set([
+        new Date().getFullYear(),
+        ...cyclesSnap.docs.map(d => Number(d.data().year)).filter(Boolean)
+      ])
+    ).sort((a, b) => b - a);
+
+    const submissionMap = new Map<string, any>();
+    submissions.forEach(s => {
+      const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
+      submissionMap.set(key, s);
+    });
+
+    const matrix = campuses.map(campus => {
+      const cId = String(campus.id).trim();
+      const campusUnits = units.filter((unit: any) => 
+        unit.campusIds?.some((id: string) => String(id).trim() === cId)
+      );
+      if (campusUnits.length === 0) return null;
+
+      const unitStatuses = campusUnits.map((unit: any) => {
+        const uId = String(unit.id).trim();
+        const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
+        const cycles = ['first', 'final'] as const;
+
+        cycles.forEach(cycleId => {
+          const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`.toLowerCase();
+          const rorSubmission = submissionMap.get(rorKey);
+          const isActionPlanNA = String(rorSubmission?.riskRating || '').toLowerCase() === 'low';
+
+          const submissionTypesLocal = [
+            'SWOT Analysis',
+            'Needs and Expectation of Interested Parties',
+            'Operational Plan',
+            'Quality Objectives Monitoring',
+            'Risk and Opportunity Registry',
+            'Risk and Opportunity Action Plan',
+          ];
+
+          submissionTypesLocal.forEach(reportType => {
+            const submissionKey = `${cId}-${uId}-${reportType.toLowerCase()}-${cycleId}`.toLowerCase();
+            if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
+              statuses[submissionKey] = 'not-applicable';
+            } else if (submissionMap.has(submissionKey)) {
+              statuses[submissionKey] = 'submitted';
+            } else {
+              statuses[submissionKey] = 'missing';
+            }
+          });
+        });
+
+        return { unitId: uId, unitName: unit.name, statuses };
+      }).sort((a, b) => a.unitName.localeCompare(b.unitName));
+
+      return { campusId: cId, campusName: campus.name, units: unitStatuses };
+    }).filter(Boolean).sort((a: any, b: any) => a.campusName.localeCompare(b.campusName));
+
+    return { matrix, availableYears };
+  } catch (error) {
+    console.error('Failed to fetch public submission matrix:', error);
+    return { error: 'Failed to retrieve compliance matrix data.' };
+  }
+}

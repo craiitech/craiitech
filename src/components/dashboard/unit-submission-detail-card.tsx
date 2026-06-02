@@ -11,7 +11,7 @@ import type {
     CorrectiveActionRequest, 
     ManagementReviewOutput 
 } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle, Circle, AlertCircle, Eye, Info, Building2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
@@ -221,8 +221,8 @@ export function UnitSubmissionDetailCard({
                     selectedYear={selectedYear}
                 />
                 
-                {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA)}
-                {renderSubmissionList('Final', unitSubmissions.finalCycle, unitSubmissions.isFinalActionPlanNA)}
+                {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA ?? false)}
+                {renderSubmissionList('Final', unitSubmissions.finalCycle, unitSubmissions.isFinalActionPlanNA ?? false)}
             </div>
         </ScrollArea>
       </CardContent>

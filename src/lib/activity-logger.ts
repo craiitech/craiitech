@@ -27,6 +27,10 @@ export async function logUserActivity(
 
   try {
     const firestore = getAdminFirestore();
+    if (!firestore) {
+      console.error('logUserActivity: Firestore admin is not initialized.');
+      return;
+    }
     const logCollection = firestore.collection('activityLogs');
     await logCollection.add({
       userId,

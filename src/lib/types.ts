@@ -642,6 +642,7 @@ export type ProgramComplianceRecord = {
   id: string;
   programId: string;
   campusId: string;
+  unitId?: string;
   academicYear: number;
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
@@ -872,4 +873,33 @@ export type ManagementReviewOutput = {
   verificationRemarks?: string;
   verificationDate?: any; // Timestamp
   verifiedBy?: string;
+};
+
+export type EvaluationCycle = {
+  id: string;
+  academicYear: string;
+  semester: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  studentWeight: number;
+  supervisorWeight: number;
+  status: 'Active' | 'Completed' | 'Draft' | string;
+};
+
+export type ComputedResult = {
+  id: string;
+  facultyId: string;
+  finalScore: number;
+  interpretation: string;
+  studentMean: number;
+  supervisorMean: number;
+};
+
+export type Subject = {
+  id: string;
+  code: string;
+  name: string;
+  facultyId: string;
+  enrolledStudentIds?: string[];
 };

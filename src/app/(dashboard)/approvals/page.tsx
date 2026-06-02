@@ -36,7 +36,7 @@ const getYearRowColor = (year: number) => {
   return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50';
 };
 
-export function ApprovalsPage() {
+export default function ApprovalsPage() {
   const { userProfile, isUserLoading, isAdmin, userRole, isSupervisor } = useUser();
   const firestore = useFirestore();
   const router = useRouter();

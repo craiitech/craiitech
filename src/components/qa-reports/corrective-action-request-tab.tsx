@@ -356,7 +356,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 cars={filteredCars}
                 unitMap={unitMap}
                 campusMap={campusMap}
-                year={selectedYear}
+                year="all"
             />
           );
           const printWindow = window.open('', '_blank');

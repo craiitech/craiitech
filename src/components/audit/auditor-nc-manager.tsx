@@ -85,7 +85,7 @@ export function AuditorNCManager({
             linkedCar,
             isIssued: !!linkedCar
         };
-    }).filter(Boolean as any).sort((a: any, b: any) => {
+    }).filter((item): item is NonNullable<typeof item> => item !== null).sort((a, b) => {
         const dateA = a.finding.createdAt?.toMillis?.() || new Date(a.finding.createdAt).getTime();
         const dateB = b.finding.createdAt?.toMillis?.() || new Date(b.finding.createdAt).getTime();
         return dateB - dateA;
@@ -232,7 +232,7 @@ export function AuditorNCManager({
                                                     variant="outline" 
                                                     size="sm" 
                                                     className="h-8 text-[9px] font-black bg-white gap-1.5"
-                                                    onClick={() => handlePrintCar(item.linkedCar)}
+                                                    onClick={() => handlePrintCar(item.linkedCar!)}
                                                   >
                                                       <Printer className="h-3 w-3" /> PRINT
                                                   </Button>
@@ -240,7 +240,7 @@ export function AuditorNCManager({
                                                     variant="secondary" 
                                                     size="sm" 
                                                     className="h-8 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 gap-1.5"
-                                                    onClick={() => router.push(`/qa-reports?tab=car&id=${item.linkedCar.id}`)}
+                                                    onClick={() => router.push(`/qa-reports?tab=car&id=${item.linkedCar!.id}`)}
                                                   >
                                                       <Target className="h-3 w-3" /> MANAGE
                                                   </Button>

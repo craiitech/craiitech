@@ -68,7 +68,7 @@ export default function AcademicProgramsPage() {
   const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
-  const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator');
+  const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator'));
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
