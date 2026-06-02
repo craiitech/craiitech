@@ -97,19 +97,28 @@ self.addEventListener('fetch', (event) => {
   }
 
   // ─── Strategy 2: NETWORK-FIRST with cache fallback for pages & RSC ───
+  const isRscRequest = requestUrl.searchParams.has('_rsc') || event.request.headers.has('RSC');
+  const cacheKey = isRscRequest
+    ? (() => {
+        const u = new URL(event.request.url);
+        u.searchParams.set('_rsc', '1');
+        return u.toString();
+      })()
+    : event.request;
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(cacheKey, responseToCache);
           });
         }
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
+        return caches.match(cacheKey).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
 
           // For page navigations, fallback to /dashboard (which is pre-cached)
