@@ -44,7 +44,6 @@ import { AuditPrintTemplate } from './audit-print-template';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -289,30 +288,75 @@ export function AuditPlanList({
                                     <span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span>
                                 </div>
                             </div>
-
-                            <div className="flex flex-wrap items-center gap-2 z-10" onClick={(e) => e.stopPropagation()}>
-                                <Button size="sm" variant="outline" onClick={() => handlePrintConsolidated(plan, planSchedules)} className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2">
-                                    <FileText className="h-3.5 w-3.5" /> Consolidate Results
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => handlePrintPlan(plan, planSchedules)} className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2">
-                                    <Printer className="h-3.5 w-3.5" /> Print Plan
-                                </Button>
-                                <div className="w-px h-6 bg-border mx-1" />
-                                <Button size="sm" onClick={() => onScheduleAudit(plan)} className="h-8 font-black uppercase text-[9px] gap-2">
-                                    <CalendarPlus className="h-3.5 w-3.5" /> Schedule Audit
-                                </Button>
-                                <Button size="sm" variant="secondary" onClick={() => onClonePlan(plan)} className="h-8 font-black uppercase text-[9px] gap-2">
-                                    <Copy className="h-3.5 w-3.5" /> Clone
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => onEditPlan(plan)} className="h-8 w-8 p-0 text-primary">
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => onDeletePlan(plan)} className="h-8 w-8 p-0 text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
                         </div>
                     </AccordionTrigger>
+                    
+                    <div className="flex flex-wrap items-center gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                            asChild 
+                            variant="outline" 
+                            className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2 cursor-pointer shadow-sm hover:bg-primary/5"
+                            onClick={() => handlePrintConsolidated(plan, planSchedules)}
+                        >
+                            <span role="button">
+                                <FileText className="h-3.5 w-3.5" /> 
+                                Consolidate Results
+                            </span>
+                        </Button>
+                        <Button 
+                            asChild 
+                            variant="outline" 
+                            className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2 cursor-pointer shadow-sm hover:bg-primary/5"
+                            onClick={() => handlePrintPlan(plan, planSchedules)}
+                        >
+                            <span role="button">
+                                <Printer className="h-3.5 w-3.5" /> 
+                                Print Plan
+                            </span>
+                        </Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button 
+                            asChild 
+                            className="h-8 font-black uppercase text-[9px] gap-2 cursor-pointer shadow-md"
+                            onClick={() => onScheduleAudit(plan)}
+                        >
+                            <span role="button">
+                                <CalendarPlus className="h-3.5 w-3.5" /> 
+                                Schedule Audit
+                            </span>
+                        </Button>
+                        <Button 
+                            asChild 
+                            variant="secondary" 
+                            className="h-8 font-black uppercase text-[9px] gap-2 cursor-pointer shadow-sm"
+                            onClick={() => onClonePlan(plan)}
+                        >
+                            <span role="button">
+                                <Copy className="h-3.5 w-3.5" /> 
+                                Clone
+                            </span>
+                        </Button>
+                        <Button 
+                            asChild 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 text-primary cursor-pointer hover:bg-primary/5"
+                            onClick={() => onEditPlan(plan)}
+                        >
+                            <span role="button">
+                                <Edit className="h-4 w-4" />
+                            </span>
+                        </Button>
+                        <Button 
+                            asChild 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 text-destructive cursor-pointer hover:bg-destructive/5"
+                            onClick={() => onDeletePlan(plan)}
+                        >
+                            <span role="button">
+                                <Trash2 className="h-4 w-4" />
+                            </span>
+                        </Button>
+                    </div>
                 </div>
                 <AccordionContent className="p-0 bg-white">
                   <div className="p-8 space-y-10">

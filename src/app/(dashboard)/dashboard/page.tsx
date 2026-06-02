@@ -32,7 +32,11 @@ import {
   Activity,
   ArrowRight,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  AlertTriangle,
+  Gavel,
+  Target,
+  Award
 } from 'lucide-react';
 import {
   useUser,
@@ -62,7 +66,10 @@ import type {
   AuditPlan,
   ISOClause,
   AuditFinding,
-  Signatories
+  Signatories,
+  CorrectiveActionRequest,
+  ManagementReviewOutput,
+  ProgramComplianceRecord
 } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
@@ -170,6 +177,44 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
+  const unitCarsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || isAdmin) return null;
+    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', userProfile.unitId));
+  }, [firestore, userProfile, isAdmin]);
+  const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
+
+  const unitMrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || isAdmin) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, userProfile, isAdmin]);
+  const { data: rawUnitMrOutputs } = useCollection<ManagementReviewOutput>(unitMrOutputsQuery);
+
+  const unitMrOutputs = useMemo(() => {
+    if (!rawUnitMrOutputs || !userProfile?.unitId) return [];
+    return rawUnitMrOutputs.filter(o => o.assignments?.some(a => a.unitId === userProfile.unitId));
+  }, [rawUnitMrOutputs, userProfile]);
+
+  const compliancesQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || isAdmin) return null;
+    return query(collection(firestore, 'programCompliances'), where('unitId', '==', userProfile.unitId), where('academicYear', '==', selectedYear));
+  }, [firestore, userProfile, isAdmin, selectedYear]);
+  const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  const unitRecommendations = useMemo(() => {
+    if (!unitCompliances || !userProfile?.unitId) return [];
+    const recs: any[] = [];
+    unitCompliances.forEach(c => {
+        c.accreditationRecords?.forEach(m => {
+            m.recommendations?.forEach(reco => {
+                if (reco.assignedUnitIds?.includes(userProfile.unitId)) {
+                    recs.push({ ...reco, milestoneLevel: m.level, programId: c.programId });
+                }
+            });
+        });
+    });
+    return recs;
+  }, [unitCompliances, userProfile]);
+
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
     const baseRef = collection(firestore, 'users');
@@ -218,19 +263,6 @@ export default function HomePage() {
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
-  // Audit plans, findings, and ISO clauses needed for the Print Site Plan / Print Site Report buttons
-  const auditPlansQuery = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? collection(firestore, 'auditPlans') : null), [firestore, isAdmin, isCampusLevel]);
-  const { data: dashboardAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
-
-  const auditFindingsQuery = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? collection(firestore, 'auditFindings') : null), [firestore, isAdmin, isCampusLevel]);
-  const { data: dashboardFindings } = useCollection<AuditFinding>(auditFindingsQuery);
-
-  const isoClausesQuery = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? collection(firestore, 'isoClauses') : null), [firestore, isAdmin, isCampusLevel]);
-  const { data: dashboardIsoClauses } = useCollection<ISOClause>(isoClausesQuery);
-
-  const signatoryRef = useMemoFirebase(() => ((isAdmin || isCampusLevel) && firestore ? doc(firestore, 'system', 'signatories') : null), [firestore, isAdmin, isCampusLevel]);
-  const { data: dashboardSignatories } = useDoc<Signatories>(signatoryRef);
-
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     const yrSet = new Set<number>();
@@ -247,16 +279,6 @@ export default function HomePage() {
 
   const globalSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'global') : null), [firestore]);
   const { data: globalSetting } = useDoc(globalSettingsRef);
-
-  useEffect(() => {
-    if (campusSetting?.announcement || globalSetting?.announcement) {
-      const timer = setTimeout(() => {
-        setIsAnnouncementVisible(false);
-        setIsGlobalAnnouncementVisible(false);
-      }, 60000);
-      return () => clearTimeout(timer);
-    }
-  }, [campusSetting, globalSetting]);
 
   const stats = useMemo(() => {
     if (!submissions || !userProfile) return { stat1: { value: '0' }, stat2: { value: '0' }, stat3: { value: '0' } };
@@ -340,16 +362,6 @@ export default function HomePage() {
             </TabsList>
           </ScrollArea>
         </div>
-        {/* Important Accreditation & Audit Information Card */}
-        <Card className="shadow-md border-primary/10">
-          <CardHeader className="bg-muted/10 border-b">
-            <CardTitle className="text-sm font-black uppercase">Important Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs font-medium">Accreditation status, upcoming audit schedules, and key reminders are displayed here.</p>
-            {/* Future dynamic content can be added here */}
-          </CardContent>
-        </Card>
 
         <TabsContent value="overview" className="space-y-6">
           <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
@@ -363,6 +375,77 @@ export default function HomePage() {
                 <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
               </Card>
             ))}
+          </div>
+
+          {/* UNIT SPECIFIC ACTION CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="border-rose-200 bg-rose-50/10 shadow-sm flex flex-col">
+                  <CardHeader className="pb-3 border-b bg-rose-50">
+                      <CardTitle className="text-xs font-black uppercase text-rose-700 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" /> CAR Registry
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 flex-1">
+                      <div className="text-2xl font-black text-rose-600">{unitCars?.filter(c => c.status !== 'Closed').length || 0} Open</div>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Non-Conformances to Address</p>
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-rose-700">
+                          <Link href="/qa-reports?tab=car">Manage CARs <ChevronRight className="h-3 w-3 ml-1" /></Link>
+                      </Button>
+                  </CardFooter>
+              </Card>
+
+              <Card className="border-amber-200 bg-amber-50/10 shadow-sm flex flex-col">
+                  <CardHeader className="pb-3 border-b bg-amber-50">
+                      <CardTitle className="text-xs font-black uppercase text-amber-700 flex items-center gap-2">
+                        <Gavel className="h-4 w-4" /> Actionable Decisions
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 flex-1">
+                      <div className="text-2xl font-black text-amber-600">{unitMrOutputs.filter(o => o.status !== 'Closed').length} Pending</div>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Management Review Assignments</p>
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-amber-700">
+                          <Link href="/qa-reports?tab=decisions">View Actions <ChevronRight className="h-3 w-3 ml-1" /></Link>
+                      </Button>
+                  </CardFooter>
+              </Card>
+
+              <Card className="border-indigo-200 bg-indigo-50/10 shadow-sm flex flex-col">
+                  <CardHeader className="pb-3 border-b bg-indigo-50">
+                      <CardTitle className="text-xs font-black uppercase text-indigo-700 flex items-center gap-2">
+                        <Award className="h-4 w-4" /> Accreditation Gaps
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 flex-1">
+                      <div className="text-2xl font-black text-indigo-600">{unitRecommendations.filter(r => r.status !== 'Closed').length} Open</div>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Survey Recommendations</p>
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-indigo-700">
+                          <Link href="/academic-programs">View Quality Gaps <ChevronRight className="h-3 w-3 ml-1" /></Link>
+                      </Button>
+                  </CardFooter>
+              </Card>
+
+              <Card className="border-primary/20 bg-primary/5 shadow-sm flex flex-col">
+                  <CardHeader className="pb-3 border-b bg-primary/10">
+                      <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" /> IQA Evidence
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 flex-1">
+                      <div className="text-2xl font-black text-primary">{dashboardSchedules?.length || 0} Sessions</div>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Scheduled Internal Audits</p>
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-primary">
+                          <Link href="/audit">Itinerary Details <ChevronRight className="h-3 w-3 ml-1" /></Link>
+                      </Button>
+                  </CardFooter>
+              </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
@@ -430,12 +513,12 @@ export default function HomePage() {
           isLoading={isLoadingSchedules}
           isSupervisor={true}
           campusName="Institutional"
-          plans={dashboardAuditPlans || []}
-          findings={dashboardFindings || []}
-          isoClauses={dashboardIsoClauses || []}
+          plans={[]}
+          findings={[]}
+          isoClauses={[]}
           units={allUnits || []}
           campuses={campuses || []}
-          signatories={dashboardSignatories || undefined}
+          signatories={undefined}
         />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
@@ -495,12 +578,12 @@ export default function HomePage() {
           isLoading={isLoadingSchedules}
           isSupervisor={true}
           campusName={campusMap.get(userProfile?.campusId || '')}
-          plans={dashboardAuditPlans || []}
-          findings={dashboardFindings || []}
-          isoClauses={dashboardIsoClauses || []}
+          plans={[]}
+          findings={[]}
+          isoClauses={[]}
           units={allUnits || []}
           campuses={campuses || []}
-          signatories={dashboardSignatories || undefined}
+          signatories={undefined}
         />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
