@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -102,7 +103,7 @@ import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-h
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
-import { RiskOverdueWarning } from '@/components/dashboard/risk-overdue-warning';
+import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 
@@ -361,8 +362,16 @@ export default function HomePage() {
 
         <TabsContent value="overview" className="space-y-6">
           <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
-          <RiskOverdueWarning risks={risks} isLoading={isLoadingRisks} />
-          <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} campusName={campusMap.get(userProfile?.campusId || '')} />
+          
+          <UnitActionCenter 
+             risks={risks}
+             unitCars={unitCars}
+             unitMrOutputs={unitMrOutputs}
+             unitRecommendations={unitRecommendations}
+             dashboardSchedules={dashboardSchedules}
+             isLoading={isLoadingRisks || isLoadingSchedules}
+             unitName={allUnits?.find(u => u.id === userProfile?.unitId)?.name || 'Department'}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(stats).map(([k, s]: any) => (
@@ -371,77 +380,6 @@ export default function HomePage() {
                 <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
               </Card>
             ))}
-          </div>
-
-          {/* UNIT SPECIFIC ACTION CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-rose-200 bg-rose-50/10 shadow-sm flex flex-col">
-                  <CardHeader className="pb-3 border-b bg-rose-50">
-                      <CardTitle className="text-xs font-black uppercase text-rose-700 flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4" /> CAR Registry
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 flex-1">
-                      <div className="text-2xl font-black text-rose-600">{unitCars?.filter(c => c.status !== 'Closed').length || 0} Open</div>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Non-Conformances to Address</p>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-rose-700">
-                          <Link href="/qa-reports?tab=car">Manage CARs <ChevronRight className="h-3 w-3 ml-1" /></Link>
-                      </Button>
-                  </CardFooter>
-              </Card>
-
-              <Card className="border-amber-200 bg-amber-50/10 shadow-sm flex flex-col">
-                  <CardHeader className="pb-3 border-b bg-amber-50">
-                      <CardTitle className="text-xs font-black uppercase text-amber-700 flex items-center gap-2">
-                        <Gavel className="h-4 w-4" /> Actionable Decisions
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 flex-1">
-                      <div className="text-2xl font-black text-amber-600">{unitMrOutputs.filter(o => o.status !== 'Closed').length} Pending</div>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Management Review Assignments</p>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-amber-700">
-                          <Link href="/qa-reports?tab=decisions">View Actions <ChevronRight className="h-3 w-3 ml-1" /></Link>
-                      </Button>
-                  </CardFooter>
-              </Card>
-
-              <Card className="border-indigo-200 bg-indigo-50/10 shadow-sm flex flex-col">
-                  <CardHeader className="pb-3 border-b bg-indigo-50">
-                      <CardTitle className="text-xs font-black uppercase text-indigo-700 flex items-center gap-2">
-                        <Award className="h-4 w-4" /> Accreditation Gaps
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 flex-1">
-                      <div className="text-2xl font-black text-indigo-600">{unitRecommendations.filter(r => r.status !== 'Closed').length} Open</div>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Survey Recommendations</p>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-indigo-700">
-                          <Link href="/academic-programs">View Quality Gaps <ChevronRight className="h-3 w-3 ml-1" /></Link>
-                      </Button>
-                  </CardFooter>
-              </Card>
-
-              <Card className="border-primary/20 bg-primary/5 shadow-sm flex flex-col">
-                  <CardHeader className="pb-3 border-b bg-primary/10">
-                      <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4" /> IQA Evidence
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 flex-1">
-                      <div className="text-2xl font-black text-primary">{dashboardSchedules?.length || 0} Sessions</div>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Scheduled Internal Audits</p>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                      <Button variant="link" asChild className="p-0 h-auto text-[10px] font-black uppercase text-primary">
-                          <Link href="/audit">Itinerary Details <ChevronRight className="h-3 w-3 ml-1" /></Link>
-                      </Button>
-                  </CardFooter>
-              </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
@@ -516,7 +454,7 @@ export default function HomePage() {
           campuses={campuses || []}
           signatories={undefined}
         />
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
               <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
@@ -581,7 +519,7 @@ export default function HomePage() {
           campuses={campuses || []}
           signatories={undefined}
         />
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
               <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
