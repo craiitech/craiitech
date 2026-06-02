@@ -199,7 +199,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         else if (user?.sex === 'Others (LGBTQI++)') auditorSexCounts.Others++;
     });
 
-    const unitResults: Record<string, { total: number, nc: number, score: number }> = {};
+    const unitResults: Record<string, { total: number, nc: number, score: number, campusId?: string }> = {};
     
     yearSchedules.forEach(s => {
         const unitFindings = yearFindings.filter(f => f.auditScheduleId === s.id && f.type !== 'Not Applicable');
@@ -210,7 +210,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         const nc = unitFindings.filter(f => f.type === 'Non-Conformance').length;
         
         if (!unitResults[s.targetId]) {
-            unitResults[s.targetId] = { total: 0, nc: 0, score: 0 };
+            unitResults[s.targetId] = { total: 0, nc: 0, score: 0, campusId: s.campusId };
         }
         unitResults[s.targetId].total += total;
         unitResults[s.targetId].nc += nc;
@@ -231,7 +231,8 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         .filter(([_, data]) => data.nc > 0)
         .map(([id, data]) => ({
             name: unitMap.get(id) || 'Unknown Unit',
-            nc: data.nc
+            nc: data.nc,
+            campusName: campusMap.get(data.campusId || '') || 'Institutional'
         }))
         .sort((a, b) => b.nc - a.nc);
 
@@ -527,6 +528,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                       <TableHeader className="bg-muted/30">
                           <TableRow>
                               <TableHead className="pl-6 text-[10px] font-black uppercase">Unit / Office</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Campus / Site</TableHead>
                               <TableHead className="text-center text-[10px] font-black uppercase">Open NCs</TableHead>
                           </TableRow>
                       </TableHeader>
@@ -534,6 +536,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                           {analytics.hotspots.map((h, i) => (
                               <TableRow key={i}>
                                   <TableCell className="pl-6 font-bold text-xs uppercase">{h.name}</TableCell>
+                                  <TableCell className="text-xs font-semibold text-slate-600 uppercase">{h.campusName}</TableCell>
                                   <TableCell className="text-center"><Badge variant="destructive" className="h-5 font-black">{h.nc} NC</Badge></TableCell>
                               </TableRow>
                           ))}
