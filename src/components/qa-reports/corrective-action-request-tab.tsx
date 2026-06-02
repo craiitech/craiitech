@@ -560,6 +560,29 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 <div className="md:col-span-6"><FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: iF }) => (<FormItem><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
                                                 <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: iF }) => (<FormItem><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
                                             </div>
+                                            <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: iF }) => (
+                                                <FormItem className="mt-2">
+                                                    <FormLabel className="text-[9px] uppercase font-bold flex items-center gap-1">
+                                                        <LinkIcon className="h-2.5 w-2.5 text-primary" /> Evidence Link (Google Drive)
+                                                    </FormLabel>
+                                                    <div className="flex gap-2">
+                                                        <FormControl>
+                                                            <Input {...iF} value={iF.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white flex-1" disabled={isFieldReadOnly('actionSteps')} />
+                                                        </FormControl>
+                                                        {iF.value && iF.value.startsWith('http') && (
+                                                            <Button type="button" variant="outline" size="icon" className="h-8 w-8 text-primary shrink-0" onClick={() => window.open(iF.value, '_blank')}>
+                                                                <ExternalLink className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            {!isFieldReadOnly('actionSteps') && (
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}>
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2"><PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step</Button>}
