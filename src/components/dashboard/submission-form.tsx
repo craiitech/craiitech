@@ -163,6 +163,28 @@ export function SubmissionForm({
     return digitalRisks.some(r => !r.postTreatment?.likelihood || !r.postTreatment?.consequence || !r.postTreatment?.evidence);
   }, [isRorForm, cycleId, digitalRisks]);
 
+  const previousRisksQuery = useMemoFirebase(() => {
+    const tUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
+    const tCampusId = isAdmin ? watchAdminCampus : userProfile?.campusId;
+    
+    if (!firestore || !tUnitId || !tCampusId || !year || !isRorForm) return null;
+    return query(
+      collection(firestore, 'risks'),
+      where('unitId', '==', tUnitId),
+      where('campusId', '==', tCampusId),
+      where('year', '==', year - 1)
+    );
+  }, [firestore, watchAdminUnit, watchAdminCampus, userProfile, year, isRorForm, isAdmin]);
+
+  const { data: previousRisks, isLoading: isLoadingPreviousRisks } = useCollection<Risk>(previousRisksQuery);
+
+  const unclosedPreviousRisks = useMemo(() => {
+    if (!isRorForm || !previousRisks) return [];
+    return previousRisks.filter(r => r.status !== 'Closed');
+  }, [isRorForm, previousRisks]);
+
+  const hasUnclosedPreviousRisks = useMemo(() => unclosedPreviousRisks.length > 0, [unclosedPreviousRisks]);
+
   const isDraftValue = form.watch('isDraft');
 
   const checklistItems = useMemo(() => {
@@ -633,6 +655,46 @@ export function SubmissionForm({
             </Alert>
         )}
 
+        {isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks && (
+            <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-in slide-in-from-top-2 duration-500 shadow-lg overflow-hidden">
+                <ShieldAlert className="h-5 w-5 text-destructive animate-emergency-flash" />
+                <AlertTitle className="font-black uppercase tracking-tight text-destructive animate-emergency-flash">Unclosed Previous Cycle Risks</AlertTitle>
+                <AlertDescription className="space-y-4 pt-1">
+                    <p className="text-xs font-bold leading-relaxed">
+                        Institutional quality standards require all Risks and Opportunities from the previous academic year (**AY {year - 1}**) to be marked as **Closed** before you can submit a new registry for **AY {year}**.
+                    </p>
+                    <div className="p-3 bg-white/95 rounded-lg border border-destructive/20 max-w-xl">
+                        <p className="text-[10px] font-black uppercase text-slate-800 tracking-wider mb-2 flex items-center gap-1">
+                            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                            Unclosed Register Entries ({unclosedPreviousRisks.length}):
+                        </p>
+                        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-2">
+                            {unclosedPreviousRisks.map((r) => (
+                                <div key={r.id} className="text-[11px] font-bold text-slate-700 bg-destructive/5 p-2 rounded border border-destructive/10 flex items-start justify-between gap-4">
+                                    <div className="min-w-0 flex-1">
+                                        <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase bg-white py-0 h-4 border-destructive/30 text-destructive mb-1">
+                                            {r.type}
+                                        </Badge>
+                                        <p className="line-clamp-2 text-slate-800 font-medium italic mt-0.5">"{r.description}"</p>
+                                    </div>
+                                    <Badge className="h-4 text-[9px] font-black shrink-0 bg-amber-500 hover:bg-amber-600 border-none text-white">
+                                        {r.status}
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button size="sm" variant="destructive" asChild className="h-9 px-4 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-destructive/20">
+                            <Link href={`/risk-register?year=${year - 1}`}>
+                                Manage AY {year - 1} Risks
+                            </Link>
+                        </Button>
+                    </div>
+                </AlertDescription>
+            </Alert>
+        )}
+
         {isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && isPostTreatmentIncomplete && (
             <Alert variant="destructive" className="border-rose-300 bg-rose-50 animate-in zoom-in duration-500 shadow-md">
                 <ShieldAlert className="h-5 w-5 text-rose-600" />
@@ -689,7 +751,7 @@ export function SubmissionForm({
                                 onValueChange={(v) => field.onChange(v === 'true')}
                                 value={field.value ? 'true' : 'false'}
                                 className="flex flex-col sm:flex-row gap-4"
-                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
                             >
                                 <div className={cn("flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200 shadow-sm")}>
                                     <RadioGroupItem value="true" id="is-draft" />
@@ -733,7 +795,7 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
@@ -798,7 +860,7 @@ export function SubmissionForm({
                 <Textarea
                   placeholder="Add any relevant comments for the approvers"
                   {...field}
-                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}
+                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
                 />
               </FormControl>
               <FormMessage />
@@ -819,7 +881,7 @@ export function SubmissionForm({
                     onValueChange={(value: string) => setRiskRating(value as RiskRating)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
                 >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="low" /></FormControl>
@@ -849,7 +911,7 @@ export function SubmissionForm({
                             id={`${reportType}-${item.id}`}
                             checked={checkedState[item.id] || false}
                             onCheckedChange={() => handleCheckboxChange(item.id)}
-                            disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete)}
+                            disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
                         />
                         <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-tight cursor-pointer">
                             {item.label}
@@ -882,7 +944,8 @@ export function SubmissionForm({
             !isChecklistComplete ||
             !canUpdateExisting ||
             (isRorForm && !isLoadingDigitalRisks && !isDigitalComplete) ||
-            (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete)
+            (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) ||
+            (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)
           }
         >
           {isSubmitting ? (

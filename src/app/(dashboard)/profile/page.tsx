@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,8 +28,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette, Users, Lock, KeyRound, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react';
-import type { Campus, Unit, User, Role } from '@/lib/types';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette, Users, Lock, KeyRound, Trash2, AlertTriangle, ShieldAlert, Trophy, Star, Award, CheckCircle2, Clock, XCircle, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import type { Campus, Unit, User, Role, Cycle, Submission } from '@/lib/types';
+import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -102,6 +104,200 @@ export default function ProfilePage() {
     const { logSessionActivity } = useSessionActivity();
 
     const canEdit = !isSubmitting && !isUpdatingPassword && !isDeletingAccount && !isGlobalSaving;
+
+    const [selectedPointsYear, setSelectedPointsYear] = useState<number>(new Date().getFullYear());
+    const [isFirstCycleExpanded, setIsFirstCycleExpanded] = useState(false);
+    const [isFinalCycleExpanded, setIsFinalCycleExpanded] = useState(false);
+
+    const submissionsQuery = useMemoFirebase(() => {
+        if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return null;
+        return query(
+            collection(firestore, 'submissions'),
+            where('unitId', '==', userProfile.unitId),
+            where('campusId', '==', userProfile.campusId)
+        );
+    }, [firestore, userProfile]);
+    const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+    const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+    const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
+
+    const pointsYears = useMemo(() => {
+        if (!cycles) return [new Date().getFullYear()];
+        const uniqueYears = [...new Set(cycles.map(c => Number(c.year)))];
+        if (uniqueYears.length === 0) return [new Date().getFullYear()];
+        return uniqueYears.sort((a, b) => b - a);
+    }, [cycles]);
+
+    const submissionTypes = [
+      'SWOT Analysis',
+      'Needs and Expectation of Interested Parties',
+      'Operational Plan',
+      'Quality Objectives Monitoring',
+      'Risk and Opportunity Registry',
+      'Risk and Opportunity Action Plan'
+    ];
+
+    const computedPointsData = useMemo(() => {
+        if (!submissions || !cycles) {
+            return {
+                totalPoints: 0,
+                tier: 'Unranked',
+                breakdown: { first: [], final: [] }
+            };
+        }
+
+        const yearSubmissions = submissions.filter(s => s.year === selectedPointsYear && s.isDraft !== true);
+
+        const firstRorSub = yearSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        const finalRorSub = yearSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+
+        const isFirstActionPlanExempt = firstRorSub?.riskRating === 'low';
+        const isFinalActionPlanExempt = finalRorSub?.riskRating === 'low';
+
+        const calculateCycleBreakdown = (cycleId: 'first' | 'final', isActionPlanExempt: boolean) => {
+            const cycleDeadline = cycles.find(c => c.name === cycleId && Number(c.year) === selectedPointsYear);
+            
+            return submissionTypes.map(type => {
+                const sub = yearSubmissions.find(s => s.cycleId === cycleId && s.reportType === type);
+                const isExempt = type === 'Risk and Opportunity Action Plan' && isActionPlanExempt;
+                
+                let points = 0;
+                let status: 'on-time' | 'late' | 'exempt' | 'missing' = 'missing';
+                
+                if (isExempt) {
+                    points = 1.0;
+                    status = 'exempt';
+                } else if (sub) {
+                    if (cycleDeadline && cycleDeadline.endDate) {
+                        const getMs = (val: any) => {
+                            if (val?.toDate) return val.toDate().getTime();
+                            if (val instanceof Date) return val.getTime();
+                            if (val?.seconds) return val.seconds * 1000;
+                            return new Date(val).getTime();
+                        };
+                        const subTime = getMs(sub.submissionDate);
+                        const deadlineTime = getMs(cycleDeadline.endDate);
+                        
+                        if (subTime <= deadlineTime) {
+                            points = 1.0;
+                            status = 'on-time';
+                        } else {
+                            points = 0.5;
+                            status = 'late';
+                        }
+                    } else {
+                        points = 1.0;
+                        status = 'on-time';
+                    }
+                }
+                
+                return {
+                    type,
+                    points,
+                    status,
+                    submissionDate: sub ? ((sub.submissionDate as any)?.toDate ? (sub.submissionDate as any).toDate() : sub.submissionDate) : null,
+                    deadlineDate: cycleDeadline ? (cycleDeadline.endDate?.toDate ? cycleDeadline.endDate.toDate() : cycleDeadline.endDate) : null
+                };
+            });
+        };
+
+        const firstBreakdown = calculateCycleBreakdown('first', isFirstActionPlanExempt);
+        const finalBreakdown = calculateCycleBreakdown('final', isFinalActionPlanExempt);
+
+        const firstPoints = firstBreakdown.reduce((sum, item) => sum + item.points, 0);
+        const finalPoints = finalBreakdown.reduce((sum, item) => sum + item.points, 0);
+        const totalPoints = firstPoints + finalPoints;
+
+        let tier: 'Gold' | 'Silver' | 'Bronze' | 'Unranked' = 'Unranked';
+        if (totalPoints >= 11) {
+            tier = 'Gold';
+        } else if (totalPoints >= 8) {
+            tier = 'Silver';
+        } else if (totalPoints >= 1) {
+            tier = 'Bronze';
+        }
+
+        return {
+            totalPoints,
+            tier,
+            breakdown: {
+                first: firstBreakdown,
+                final: finalBreakdown
+            }
+        };
+    }, [submissions, cycles, selectedPointsYear]);
+
+    const formatDate = (dateVal: any) => {
+        if (!dateVal) return 'N/A';
+        try {
+            const d = dateVal instanceof Date ? dateVal : dateVal?.toDate ? dateVal.toDate() : new Date(dateVal);
+            return format(d, 'PPP');
+        } catch (e) {
+            return 'Invalid Date';
+        }
+    };
+
+    const renderStars = (points: number) => {
+        const stars = [];
+        const fullStars = Math.floor(points);
+        const hasHalfStar = points % 1 !== 0;
+        
+        for (let i = 0; i < 12; i++) {
+            if (i < fullStars) {
+                stars.push(
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-yellow-400 drop-shadow-sm transition-transform hover:scale-110 duration-200" />
+                );
+            } else if (i === fullStars && hasHalfStar) {
+                stars.push(
+                    <div key={i} className="relative inline-block transition-transform hover:scale-110 duration-200">
+                        <Star className="h-5 w-5 text-slate-200 fill-slate-200" />
+                        <div className="absolute top-0 left-0 w-1/2 overflow-hidden">
+                            <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                        </div>
+                    </div>
+                );
+            } else {
+                stars.push(
+                    <Star key={i} className="h-5 w-5 text-slate-200 fill-slate-200" />
+                );
+            }
+        }
+        return <div className="flex gap-1.5 items-center justify-center py-4 bg-slate-50 border rounded-2xl shadow-inner">{stars}</div>;
+    };
+
+    const getTierBadge = (tier: string) => {
+        switch (tier) {
+            case 'Gold':
+                return (
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 text-amber-950 font-black text-[10px] uppercase tracking-widest shadow-md shadow-yellow-500/20 border border-yellow-200/50">
+                        <Trophy className="h-4 w-4" />
+                        Gold Compliance
+                    </div>
+                );
+            case 'Silver':
+                return (
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-br from-slate-200 via-zinc-300 to-slate-400 text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-md shadow-zinc-400/25 border border-zinc-200/50">
+                        <Award className="h-4 w-4" />
+                        Silver Compliance
+                    </div>
+                );
+            case 'Bronze':
+                return (
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-br from-amber-700 via-orange-600 to-amber-900 text-orange-50 font-black text-[10px] uppercase tracking-widest shadow-md shadow-amber-800/30 border border-amber-800/40">
+                        <Award className="h-4 w-4" />
+                        Bronze Compliance
+                    </div>
+                );
+            default:
+                return (
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest border border-slate-200">
+                        <Info className="h-4 w-4" />
+                        Unranked
+                    </div>
+                );
+        }
+    };
 
     // Global save handler – sequentially submit each dirty form
     const handleGlobalSave = async () => {
@@ -583,6 +779,166 @@ export default function ProfilePage() {
                 </Form>
 
                 <div className="space-y-6">
+                    {/* EOMS Points System Card */}
+                    <Card className="shadow-lg border-primary/10 overflow-hidden bg-primary/[0.01]">
+                        <CardHeader className="bg-primary/5 border-b py-4 flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Trophy className="h-5 w-5 text-yellow-500" />
+                                <div>
+                                    <CardTitle className="text-sm font-black uppercase tracking-tight">EOMS Points System</CardTitle>
+                                    <CardDescription className="text-[10px] font-bold uppercase text-muted-foreground">Compliance stars performance registry</CardDescription>
+                                </div>
+                            </div>
+                            <div className="w-[110px]">
+                                <Select value={String(selectedPointsYear)} onValueChange={(v) => setSelectedPointsYear(Number(v))}>
+                                    <SelectTrigger className="h-8 text-xs bg-white font-bold">
+                                        <SelectValue placeholder="Year" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {pointsYears.map(y => <SelectItem key={y} value={String(y)} className="font-bold">AY {y}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-6 space-y-6">
+                            {isLoadingSubmissions || isLoadingCycles ? (
+                                <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground">Calculating points...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-primary/10 shadow-inner">
+                                        <div className="text-center sm:text-left space-y-1">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">AY {selectedPointsYear} Score Card</p>
+                                            <div className="flex items-baseline justify-center sm:justify-start gap-1">
+                                                <span className="text-4xl font-black tracking-tight text-primary">{computedPointsData.totalPoints.toFixed(1)}</span>
+                                                <span className="text-sm text-slate-400 font-bold">/ 12.0 Stars</span>
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 flex items-center justify-center">
+                                            {getTierBadge(computedPointsData.tier)}
+                                        </div>
+                                    </div>
+
+                                    {renderStars(computedPointsData.totalPoints)}
+
+                                    <div className="space-y-4">
+                                        {/* First Cycle */}
+                                        <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsFirstCycleExpanded(!isFirstCycleExpanded)}
+                                                className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">First Submission Cycle</span>
+                                                    <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/10 text-primary border-none">
+                                                        {computedPointsData.breakdown.first.reduce((sum: number, item: any) => sum + item.points, 0).toFixed(1)} / 6.0 Stars
+                                                    </Badge>
+                                                </div>
+                                                {isFirstCycleExpanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
+                                            </button>
+                                            
+                                            {isFirstCycleExpanded && (
+                                                <div className="border-t divide-y bg-slate-50/[0.3] p-2 space-y-1">
+                                                    {computedPointsData.breakdown.first.map((item: any, idx: number) => (
+                                                        <div key={idx} className="p-3 bg-white rounded-lg border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all hover:border-slate-300">
+                                                            <div className="space-y-1 flex-1 min-w-0">
+                                                                <p className="text-xs font-bold text-slate-800 truncate">{item.type}</p>
+                                                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                                                                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Submitted: {formatDate(item.submissionDate)}</span>
+                                                                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Deadline: {formatDate(item.deadlineDate)}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="shrink-0 flex items-center self-start md:self-center">
+                                                                {item.status === 'on-time' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border-none flex items-center gap-1">
+                                                                        <CheckCircle2 className="h-3 w-3" /> On-Time (+1.0)
+                                                                    </Badge>
+                                                                )}
+                                                                {item.status === 'exempt' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-blue-500 hover:bg-blue-600 text-white border-none flex items-center gap-1">
+                                                                        <ShieldCheck className="h-3 w-3" /> Exempt (+1.0)
+                                                                    </Badge>
+                                                                )}
+                                                                {item.status === 'late' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-amber-500 hover:bg-amber-600 text-white border-none flex items-center gap-1">
+                                                                        <Clock className="h-3 w-3" /> Late (+0.5)
+                                                                    </Badge>
+                                                                )}
+                                                                {item.status === 'missing' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-slate-200 text-slate-500 border-none flex items-center gap-1">
+                                                                        <XCircle className="h-3 w-3" /> Pending (0.0)
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Final Cycle */}
+                                        <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsFinalCycleExpanded(!isFinalCycleExpanded)}
+                                                className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">Final Submission Cycle</span>
+                                                    <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/10 text-primary border-none">
+                                                        {computedPointsData.breakdown.final.reduce((sum: number, item: any) => sum + item.points, 0).toFixed(1)} / 6.0 Stars
+                                                    </Badge>
+                                                </div>
+                                                {isFinalCycleExpanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
+                                            </button>
+                                            
+                                            {isFinalCycleExpanded && (
+                                                <div className="border-t divide-y bg-slate-50/[0.3] p-2 space-y-1">
+                                                    {computedPointsData.breakdown.final.map((item: any, idx: number) => (
+                                                        <div key={idx} className="p-3 bg-white rounded-lg border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all hover:border-slate-300">
+                                                            <div className="space-y-1 flex-1 min-w-0">
+                                                                <p className="text-xs font-bold text-slate-800 truncate">{item.type}</p>
+                                                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                                                                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Submitted: {formatDate(item.submissionDate)}</span>
+                                                                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Deadline: {formatDate(item.deadlineDate)}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="shrink-0 flex items-center self-start md:self-center">
+                                                                {item.status === 'on-time' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border-none flex items-center gap-1">
+                                                                        <CheckCircle2 className="h-3 w-3" /> On-Time (+1.0)
+                                                                    </Badge>
+                                                                )}
+                                                                {item.status === 'exempt' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-blue-500 hover:bg-blue-600 text-white border-none flex items-center gap-1">
+                                                                        <ShieldCheck className="h-3 w-3" /> Exempt (+1.0)
+                                                                    </Badge>
+                                                                )}
+                                                                {item.status === 'late' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-amber-500 hover:bg-amber-600 text-white border-none flex items-center gap-1">
+                                                                        <Clock className="h-3 w-3" /> Late (+0.5)
+                                                                    </Badge>
+                                                                )}
+                                                                {item.status === 'missing' && (
+                                                                    <Badge className="h-5 text-[9px] font-black uppercase bg-slate-200 text-slate-500 border-none flex items-center gap-1">
+                                                                        <XCircle className="h-3 w-3" /> Pending (0.0)
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     <Card className="shadow-md border-primary/10 h-fit">
                         <CardHeader className="bg-primary/5 border-b">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
