@@ -313,7 +313,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onToggleGuidance={handleToggleGuidance}
             />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
-                <div className="flex-1 min-0 overflow-y-auto h-full pr-2">
+                <div className="flex-1 min-w-0 overflow-auto h-full pr-2">
                     {children}
                 </div>
                 

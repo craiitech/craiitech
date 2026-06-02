@@ -141,7 +141,7 @@ function PlanItineraryRegistry({
     return (
         <div className="space-y-4">
             <div className="relative w-full max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search itinerary..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-9 text-xs bg-white shadow-sm border-primary/10" /></div>
-            <div className="rounded-2xl border bg-white shadow-lg overflow-hidden">
+            <div className="rounded-2xl border bg-white shadow-lg overflow-x-auto">
                 {processedSchedules.length > 0 ? (
                 <Table>
                     <TableHeader className="bg-slate-50">

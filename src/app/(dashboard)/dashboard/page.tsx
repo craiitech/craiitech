@@ -7,6 +7,7 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import {
@@ -49,20 +50,19 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type { 
-    Submission, 
-    User as AppUser, 
-    Unit, 
-    Campus, 
-    Cycle, 
-    Risk, 
-    ManagementReviewOutput, 
-    QaAdvisory, 
-    AuditSchedule,
-    AuditPlan,
-    ISOClause,
-    AuditFinding,
-    Signatories
+import type {
+  Submission,
+  User as AppUser,
+  Unit,
+  Campus,
+  Cycle,
+  Risk,
+  QaAdvisory,
+  AuditSchedule,
+  AuditPlan,
+  ISOClause,
+  AuditFinding,
+  Signatories
 } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
@@ -159,7 +159,7 @@ export default function HomePage() {
       }
     });
   }, [rawSubmissions]);
-  
+
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'risks');
@@ -191,7 +191,7 @@ export default function HomePage() {
 
   const campusesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'campuses') : null, [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
-  
+
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
@@ -275,12 +275,12 @@ export default function HomePage() {
         stat3: { title: 'Site Users', value: allUsersMap.size, icon: <Users /> },
       };
     } else {
-        const approved = yearSubs.filter(s => s.statusId === 'approved');
-        return {
-            stat1: { title: 'Verified Compliance', value: `${approved.length} / ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`, icon: <ShieldCheck /> },
-            stat2: { title: 'Quality Pulse', value: `${Math.round((approved.length / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100)}%`, icon: <TrendingUp /> },
-            stat3: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
-        };
+      const approved = yearSubs.filter(s => s.statusId === 'approved');
+      return {
+        stat1: { title: 'Verified Compliance', value: `${approved.length} / ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`, icon: <ShieldCheck /> },
+        stat2: { title: 'Quality Pulse', value: `${Math.round((approved.length / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100)}%`, icon: <TrendingUp /> },
+        stat3: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
+      };
     }
   }, [submissions, isAdmin, isCampusSupervisor, allUsersMap, selectedYear, userProfile]);
 
@@ -290,128 +290,128 @@ export default function HomePage() {
     const finalCycleMap = new Map(yearSubs.filter(s => s.cycleId === 'final').map(s => [s.reportType, s]));
 
     const renderChecklist = (cycle: string, statusMap: Map<string, Submission>) => {
-        const registry = statusMap.get('Risk and Opportunity Registry');
-        const isActionPlanNA = registry?.riskRating === 'low';
-        const required = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
-        const approved = Array.from(statusMap.values()).filter(s => s.statusId === 'approved' && required.includes(s.reportType)).length;
-        const progress = (approved / required.length) * 100;
+      const registry = statusMap.get('Risk and Opportunity Registry');
+      const isActionPlanNA = registry?.riskRating === 'low';
+      const required = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
+      const approved = Array.from(statusMap.values()).filter(s => s.statusId === 'approved' && required.includes(s.reportType)).length;
+      const progress = (approved / required.length) * 100;
 
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-between text-[10px] font-black uppercase text-primary">
-                    <span>{cycle} Cycle Verification</span>
-                    <span>{Math.round(progress)}%</span>
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between text-[10px] font-black uppercase text-primary">
+            <span>{cycle} Cycle Verification</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-1.5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {submissionTypes.map(type => {
+              const sub = statusMap.get(type);
+              const isNA = type === 'Risk and Opportunity Action Plan' && isActionPlanNA;
+              return (
+                <div key={type} className={cn("flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm", isNA && "opacity-40 grayscale")}>
+                  <div className="flex items-center gap-3">
+                    {isNA ? <CheckCircle className="h-4 w-4 text-slate-300" /> : sub?.statusId === 'approved' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : sub?.statusId === 'submitted' ? <Clock className="h-4 w-4 text-amber-500" /> : <Circle className="h-4 w-4 text-slate-200" />}
+                    <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight truncate max-w-[150px]">{type}</span>
+                  </div>
+                  {isNA ? <Badge variant="secondary" className="h-4 text-[7px]">N/A</Badge> : sub && <Badge variant={statusVariant[sub.statusId]} className="h-4 text-[7px] font-black uppercase">{sub.statusId}</Badge>}
                 </div>
-                <Progress value={progress} className="h-1.5" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {submissionTypes.map(type => {
-                        const sub = statusMap.get(type);
-                        const isNA = type === 'Risk and Opportunity Action Plan' && isActionPlanNA;
-                        return (
-                            <div key={type} className={cn("flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm", isNA && "opacity-40 grayscale")}>
-                                <div className="flex items-center gap-3">
-                                    {isNA ? <CheckCircle className="h-4 w-4 text-slate-300" /> : sub?.statusId === 'approved' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : sub?.statusId === 'submitted' ? <Clock className="h-4 w-4 text-amber-500" /> : <Circle className="h-4 w-4 text-slate-200" />}
-                                    <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight truncate max-w-[150px]">{type}</span>
-                                </div>
-                                {isNA ? <Badge variant="secondary" className="h-4 text-[7px]">N/A</Badge> : sub && <Badge variant={statusVariant[sub.statusId]} className="h-4 text-[7px] font-black uppercase">{sub.statusId}</Badge>}
-                            </div>
-                        )
-                    })}
-                </div>
-            </div>
-        );
+              )
+            })}
+          </div>
+        </div>
+      );
     };
 
     return (
-        <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-            <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                    <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">AY {selectedYear} Quality Performance Overview</p></div>
-                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                        <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                    </Select>
-                </div>
-                <ScrollArea className="w-full">
-                    <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="actions">Maturity Checklist</TabsTrigger>
-                        <TabsTrigger value="history">History</TabsTrigger>
-                    </TabsList>
-                </ScrollArea>
-            </div>
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">AY {selectedYear} Quality Performance Overview</p></div>
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
+              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="actions">Maturity Checklist</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
+          </ScrollArea>
+        </div>
 
-            <TabsContent value="overview" className="space-y-6">
-                <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
-                <RiskOverdueWarning risks={risks} isLoading={isLoadingRisks} />
-                <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} campusName={campusMap.get(userProfile?.campusId || '')} />
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(stats).map(([k, s]: any) => (
-                        <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
-                            <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-                            <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
-                        </Card>
-                    ))}
-                </div>
+        <TabsContent value="overview" className="space-y-6">
+          <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
+          <RiskOverdueWarning risks={risks} isLoading={isLoadingRisks} />
+          <UnitAuditSchedule schedules={dashboardSchedules} isLoading={isLoadingSchedules} campusName={campusMap.get(userProfile?.campusId || '')} />
 
-                <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-                    <Card className="lg:col-span-4 shadow-md"><CardHeader><CardTitle>Submission Trend</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
-                    <Card className="lg:col-span-3 shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
-                </div>
-            </TabsContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.entries(stats).map(([k, s]: any) => (
+              <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+                <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+                <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              </Card>
+            ))}
+          </div>
 
-            <TabsContent value="actions" className="space-y-6">
-                <Card className="shadow-lg"><CardHeader><CardTitle>Verification Roadmap</CardTitle><CardDescription>Real-time status of mandatory evidence logs.</CardDescription></CardHeader>
-                <CardContent className="space-y-8">
-                    {renderChecklist('First', firstCycleMap)}
-                    <Separator />
-                    {renderChecklist('Final', finalCycleMap)}
-                    <Button asChild className="w-full h-12 font-black uppercase tracking-widest shadow-xl shadow-primary/20"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" /> Manage Submissions</Link></Button>
-                </CardContent></Card>
-            </TabsContent>
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+            <Card className="lg:col-span-4 shadow-md"><CardHeader><CardTitle>Submission Trend</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
+            <Card className="lg:col-span-3 shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+          </div>
+        </TabsContent>
 
-            <TabsContent value="history" className="animate-in fade-in duration-500">
-                <Card className="shadow-md"><CardHeader><CardTitle>Institutional Archive</CardTitle><CardDescription>Audit trail for AY {selectedYear}.</CardDescription></CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader className="bg-muted/30">
-                            <TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Report Type</TableHead><TableHead className="text-[10px] font-black uppercase">Date</TableHead><TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead></TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {yearSubs.sort((a,b) => (b.submissionDate?.getTime?.() || 0) - (a.submissionDate?.getTime?.() || 0)).map(s => (
-                                <TableRow key={s.id} className="hover:bg-muted/20">
-                                    <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle & bull; {s.controlNumber}</p></TableCell>
-                                    <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{s.submissionDate ? format(s.submissionDate, 'MM/dd/yy') : '--'}</TableCell>
-                                    <TableCell className="text-center"><Badge variant={statusVariant[s.statusId]} className="text-[8px] font-black uppercase">{s.statusId}</Badge></TableCell>
-                                    <TableCell className="text-right pr-8"><Button variant="ghost" size="sm" asChild className="h-7 text-[9px] font-black uppercase"><Link href={`/submissions/${s.id}`}>View</Link></Button></TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent></Card>
-            </TabsContent>
-        </Tabs>
+        <TabsContent value="actions" className="space-y-6">
+          <Card className="shadow-lg"><CardHeader><CardTitle>Verification Roadmap</CardTitle><CardDescription>Real-time status of mandatory evidence logs.</CardDescription></CardHeader>
+            <CardContent className="space-y-8">
+              {renderChecklist('First', firstCycleMap)}
+              <Separator />
+              {renderChecklist('Final', finalCycleMap)}
+              <Button asChild className="w-full h-12 font-black uppercase tracking-widest shadow-xl shadow-primary/20"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" /> Manage Submissions</Link></Button>
+            </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="animate-in fade-in duration-500">
+          <Card className="shadow-md"><CardHeader><CardTitle>Institutional Archive</CardTitle><CardDescription>Audit trail for AY {selectedYear}.</CardDescription></CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Report Type</TableHead><TableHead className="text-[10px] font-black uppercase">Date</TableHead><TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {yearSubs.sort((a, b) => (b.submissionDate?.getTime?.() || 0) - (a.submissionDate?.getTime?.() || 0)).map(s => (
+                    <TableRow key={s.id} className="hover:bg-muted/20">
+                      <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle & bull; {s.controlNumber}</p></TableCell>
+                      <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{s.submissionDate ? format(s.submissionDate, 'MM/dd/yy') : '--'}</TableCell>
+                      <TableCell className="text-center"><Badge variant={statusVariant[s.statusId]} className="text-[8px] font-black uppercase">{s.statusId}</Badge></TableCell>
+                      <TableCell className="text-right pr-8"><Button variant="ghost" size="sm" asChild className="h-7 text-[9px] font-black uppercase"><Link href={`/submissions/${s.id}`}>View</Link></Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent></Card>
+        </TabsContent>
+      </Tabs>
     );
   };
 
   const renderAdminHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Institutional Oversight for AY {selectedYear}</p></div>
-              <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                  <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-                  <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-              </Select>
-          </div>
-          <ScrollArea className="w-full">
-            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
-            </TabsList>
-          </ScrollArea>
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Institutional Oversight for AY {selectedYear}</p></div>
+          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
+            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <ScrollArea className="w-full">
+          <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+          </TabsList>
+        </ScrollArea>
       </div>
 
       <TabsContent value="overview" className="space-y-6">
@@ -429,27 +429,27 @@ export default function HomePage() {
         />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
-              <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
-                  <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-                  <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
-              </Card>
+            <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+              <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+            </Card>
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-            <div className="lg:col-span-4 space-y-6">
-                 <Card className="shadow-md"><CardHeader><CardTitle>Submission Volume</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
-                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
-            </div>
-             <div className="lg:col-span-3 space-y-6">
-                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
-                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
-                <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
-            </div>
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="shadow-md"><CardHeader><CardTitle>Submission Volume</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
+            <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
+          </div>
+          <div className="lg:col-span-3 space-y-6">
+            <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+            <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+            <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+          </div>
         </div>
       </TabsContent>
       <TabsContent value="analytics" className="space-y-6">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
@@ -462,22 +462,22 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Campus Oversight for AY {selectedYear}</p></div>
-                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-                    <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                </Select>
-            </div>
-            <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                    <TabsTrigger value="strategic">Strategic</TabsTrigger>
-                </TabsList>
-            </ScrollArea>
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Campus Oversight for AY {selectedYear}</p></div>
+          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
+            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
         </div>
+        <ScrollArea className="w-full">
+          <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="strategic">Strategic</TabsTrigger>
+          </TabsList>
+        </ScrollArea>
+      </div>
 
       <TabsContent value="overview" className="space-y-6">
         <UnitAuditSchedule
@@ -494,27 +494,27 @@ export default function HomePage() {
         />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
-              <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
-                  <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-                  <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
-              </Card>
+            <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+              <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+            </Card>
           ))}
         </div>
-         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-            <div className="lg:col-span-4 space-y-6">
-                <Card className="shadow-md"><CardHeader><CardTitle>Campus Progress</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
-                <ComplianceHeatmap units={allUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
-            </div>
-            <div className="lg:col-span-3 space-y-6">
-                <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
-                <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
-                <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="shadow-md"><CardHeader><CardTitle>Campus Progress</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
+            <ComplianceHeatmap units={allUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
+          </div>
+          <div className="lg:col-span-3 space-y-6">
+            <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+            <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+            <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+          </div>
         </div>
       </TabsContent>
       <TabsContent value="analytics" className="space-y-6">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
@@ -526,33 +526,33 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
-            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Active Audit Itinerary for AY {selectedYear}</p>
-        </div>
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+        <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Active Audit Itinerary for AY {selectedYear}</p>
+      </div>
 
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-            {Object.entries(stats).map(([k, s]: any) => (
-                <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
-                    <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-                    <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
-                </Card>
-            ))}
-        </div>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        {Object.entries(stats).map(([k, s]: any) => (
+          <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+            <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+            <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+          </Card>
+        ))}
+      </div>
 
-        <UnitAuditSchedule 
-            schedules={dashboardSchedules} 
-            isLoading={isLoadingSchedules} 
-            campusName="My Assignments"
-        />
+      <UnitAuditSchedule
+        schedules={dashboardSchedules}
+        isLoading={isLoadingSchedules}
+        campusName="My Assignments"
+      />
 
-        <Card className="shadow-md overflow-hidden">
-            <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase">Quick Access Tools</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
-                <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/audit"><ClipboardCheck className="h-5 w-5 text-primary" /> Enter Audit Conduct Hub</Link></Button>
-                <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/qa-reports?tab=car"><ShieldAlert className="h-5 w-5 text-rose-600" /> CAR Registry</Link></Button>
-            </CardContent>
-        </Card>
+      <Card className="shadow-md overflow-hidden">
+        <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase">Quick Access Tools</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
+          <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/audit"><ClipboardCheck className="h-5 w-5 text-primary" /> Enter Audit Conduct Hub</Link></Button>
+          <Button asChild variant="outline" className="h-16 font-black uppercase text-[10px] tracking-widest gap-2"><Link href="/qa-reports?tab=car"><ShieldAlert className="h-5 w-5 text-rose-600" /> CAR Registry</Link></Button>
+        </CardContent>
+      </Card>
     </div>
   );
 
@@ -564,69 +564,69 @@ export default function HomePage() {
   };
 
   if (isUserLoading || isLoadingSubmissions) {
-      return (
-          <div className="flex h-screen items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
-              <div className="flex flex-col items-center gap-4 text-center">
-                  <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
-                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                  </div>
-                  <div className="space-y-1">
-                      <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
-                  </div>
-              </div>
+    return (
+      <div className="flex h-screen items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
-      );
+          <div className="space-y-1">
+            <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-        {(campusSetting?.announcement || globalSetting?.announcement) && (
-          <div className="space-y-4">
-            {globalSetting?.announcement && isGlobalAnnouncementVisible && (
-              <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md">
-                <Globe className="h-4 w-4 text-indigo-600" />
-                <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-indigo-700">Global Directive</AlertTitle>
-                <AlertDescription className="text-sm font-medium">{globalSetting.announcement}</AlertDescription>
-                <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
-              </Alert>
-            )}
-            {campusSetting?.announcement && isAnnouncementVisible && (
-              <Alert className="border-primary/20 bg-primary/5 shadow-md">
-                <Megaphone className="h-4 w-4 text-primary" />
-                <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-primary">Campus Announcement</AlertTitle>
-                <AlertDescription className="text-sm font-medium">{campusSetting.announcement}</AlertDescription>
-                <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
-              </Alert>
-            )}
-          </div>
-        )}
-
-        {latestAdvisory && (
-            <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4">
-                <Megaphone className="h-5 w-5 text-primary" />
-                <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
-                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-                    <span className="text-sm font-bold text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
-                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase shadow-lg shadow-primary/20"><Link href="/advisories">Open Advisory Vault</Link></Button>
-                </AlertDescription>
+      {(campusSetting?.announcement || globalSetting?.announcement) && (
+        <div className="space-y-4">
+          {globalSetting?.announcement && isGlobalAnnouncementVisible && (
+            <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md">
+              <Globe className="h-4 w-4 text-indigo-600" />
+              <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-indigo-700">Global Directive</AlertTitle>
+              <AlertDescription className="text-sm font-medium">{globalSetting.announcement}</AlertDescription>
+              <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
             </Alert>
-        )}
-      
+          )}
+          {campusSetting?.announcement && isAnnouncementVisible && (
+            <Alert className="border-primary/20 bg-primary/5 shadow-md">
+              <Megaphone className="h-4 w-4 text-primary" />
+              <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-primary">Campus Announcement</AlertTitle>
+              <AlertDescription className="text-sm font-medium">{campusSetting.announcement}</AlertDescription>
+              <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
+            </Alert>
+          )}
+        </div>
+      )}
+
+      {latestAdvisory && (
+        <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4">
+          <Megaphone className="h-5 w-5 text-primary" />
+          <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
+          <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+            <span className="text-sm font-bold text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
+            <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase shadow-lg shadow-primary/20"><Link href="/advisories">Open Advisory Vault</Link></Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {renderHomeContent()}
 
       {selectedDetail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
-              <UnitSubmissionDetailCard 
-                unitId={selectedDetail.unitId} 
-                campusId={selectedDetail.campusId} 
-                allUnits={allUnits} 
-                allSubmissions={submissions} 
-                onClose={() => setSelectedDetail(null)} 
-                onViewSubmission={(id) => router.push(`/submissions/${id}`)} 
-                selectedYear={selectedYear} 
-              />
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+          <UnitSubmissionDetailCard
+            unitId={selectedDetail.unitId}
+            campusId={selectedDetail.campusId}
+            allUnits={allUnits}
+            allSubmissions={submissions}
+            onClose={() => setSelectedDetail(null)}
+            onViewSubmission={(id) => router.push(`/submissions/${id}`)}
+            selectedYear={selectedYear}
+          />
+        </div>
       )}
     </div>
   );
