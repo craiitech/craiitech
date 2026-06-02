@@ -41,7 +41,9 @@ import {
     CheckCircle2,
     Send,
     X,
-    FileWarning
+    FileWarning,
+    ArrowUpRight,
+    MessageCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -62,6 +64,7 @@ import { AuditorNCManager } from '@/components/audit/auditor-nc-manager';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -121,7 +124,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filters for CAR registry
+  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState('all');
 
@@ -149,11 +152,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
   const filteredCars = useMemo(() => {
     if (!rawCars) return [];
-    const isInstitutionalViewer = isAdmin || isAuditor;
-    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-
     return rawCars.filter(car => {
         if (!isInstitutionalViewer) {
+            const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
             if (isCampusSupervisor) {
                 if (car.campusId !== userProfile?.campusId) return false;
             } else {
@@ -167,23 +168,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                              unitMap.get(car.unitId)?.toLowerCase().includes(lowerSearch);
         return matchesCampus && matchesSearch;
     });
-  }, [rawCars, campusFilter, searchTerm, unitMap, isAdmin, isAuditor, userRole, userProfile]);
+  }, [rawCars, campusFilter, searchTerm, unitMap, isInstitutionalViewer, userRole, userProfile]);
 
-  // "FOR ACTION" Logic: All that is NOT 'Open' or 'Closed'
   const carsForAction = useMemo(() => {
     return filteredCars.filter(car => car.status !== 'Open' && car.status !== 'Closed');
   }, [filteredCars]);
 
-  // "ON GOING FOR MANAGEMENT" Logic (NC Findings bridge)
   const ncGapsCount = useMemo(() => {
     if (!findings || !schedules) return 0;
-    
     return findings.filter(f => {
         if (f.type !== 'Non-Conformance') return false;
         const schedule = schedules.find(s => s.id === f.auditScheduleId);
         if (!schedule) return false;
-        
-        const isInstitutionalViewer = isAdmin || isAuditor;
         if (!isInstitutionalViewer) {
             if (userRole?.includes('Director') || userRole?.includes('ODIMO')) {
                 if (schedule.campusId !== userProfile?.campusId) return false;
@@ -191,9 +187,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 if (schedule.targetId !== userProfile?.unitId) return false;
             }
         }
-        
         if (campusFilter !== 'all' && schedule.campusId !== campusFilter) return false;
-
         const lowerSearch = searchTerm.toLowerCase();
         if (searchTerm) {
             const matches = schedule.targetName.toLowerCase().includes(lowerSearch) ||
@@ -201,66 +195,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                           f.isoClause.toLowerCase().includes(lowerSearch);
             if (!matches) return false;
         }
-
         return true;
     }).length;
-  }, [findings, schedules, isAdmin, isAuditor, userRole, userProfile, campusFilter, searchTerm]);
-
-  const handlePrint = (car: CorrectiveActionRequest) => {
-    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
-    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
-
-    try {
-        const reportHtml = renderToStaticMarkup(
-            <CARPrintTemplate 
-                car={car} 
-                unitName={uName} 
-                campusName={cName} 
-                signatories={signatories || undefined} 
-            />
-        );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>CAR - ${car.carNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @page { 
-                            size: 8.5in 13in !important; 
-                            margin: 0.5in !important; 
-                        }
-                        @media print { 
-                            body { 
-                                margin: 0 !important; 
-                                padding: 0 !important; 
-                                background: white; 
-                                -webkit-print-color-adjust: exact;
-                            } 
-                            .no-print { display: none !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button>
-                    </div>
-                    <div id="print-content" style="padding: 0.1in;">
-                        ${reportHtml}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
-    } catch (err) {
-        console.error("Print error:", err);
-    }
-  };
+  }, [findings, schedules, isInstitutionalViewer, userRole, userProfile, campusFilter, searchTerm]);
 
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
@@ -399,6 +336,20 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     }
   };
 
+  const handlePrint = (car: CorrectiveActionRequest) => {
+    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
+    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
+    try {
+        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />);
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print CAR</button></div><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
+            printWindow.document.close();
+        }
+    } catch (err) { console.error(err); }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="registry" className="space-y-6">
@@ -407,9 +358,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                   <ListChecks className="h-4 w-4" /> Full List ({filteredCars.length})
               </TabsTrigger>
               <TabsTrigger value="for-action" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <FileWarning className="h-4 w-4 text-rose-600" /> For Action ({carsForAction.length})
+                  <FileWarning className="h-4 w-4 text-rose-600" /> For Action
               </TabsTrigger>
-              {(isAdmin || isAuditor) && (
+              {isInstitutionalViewer && (
                   <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                       <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management ({ncGapsCount})
                   </TabsTrigger>
@@ -429,7 +380,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                       <div className="space-y-1.5">
                           <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
                           <Select value={campusFilter} onValueChange={setCampusFilter}>
-                              <SelectTrigger className="h-10 text-xs bg-white font-bold"><SelectValue /></SelectTrigger>
+                              <SelectTrigger className="h-10 bg-white text-xs font-bold"><SelectValue placeholder="All Sites" /></SelectTrigger>
                               <SelectContent modal={false}>
                                   <SelectItem value="all">All Sites</SelectItem>
                                   {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -452,7 +403,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredCars?.map(car => (
+                            {filteredCars.map(car => (
                                 <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col">
@@ -472,7 +423,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <TableCell className="text-center"><Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary">{car.status}</Badge></TableCell>
                                     <TableCell className="text-right pr-6">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold bg-white gap-1.5" onClick={(e) => { e.stopPropagation(); handlePrint(car); }}><Printer className="h-3 w-3" /> PRINT</Button>
+                                            <Button variant="outline" size="sm" className="h-8 text-[9px] font-bold bg-white gap-1.5" onClick={(e) => { e.stopPropagation(); handlePrint(car); }}><Printer className="h-3 w-3" /> PRINT</Button>
                                             <Button size="sm" variant="ghost" className="h-8 font-black uppercase text-[10px]" onClick={() => handleEdit(car)}>Manage Record</Button>
                                         </div>
                                     </TableCell>
@@ -502,7 +453,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {carsForAction?.map(car => (
+                            {carsForAction.map(car => (
                                 <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col">
@@ -525,14 +476,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {carsForAction.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-40 text-center opacity-20">
-                                        <CheckCircle2 className="h-10 w-10 mx-auto mb-2" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">No outstanding items for action</p>
-                                    </TableCell>
-                                </TableRow>
-                            )}
                         </TableBody>
                     </Table>
                 </div>
@@ -563,7 +506,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
                 <ScrollArea className="flex-1">
                     <Form {...form}>
-                        <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10 pb-20">
+                        <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
                             <section className="space-y-6">
                                 <div className="flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Administrative Context</h4></div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -579,10 +522,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 <FormField control={form.control} name="concerningClause" render={({ field }) => (<FormItem><FormLabel className="text-xs font-bold uppercase">Concerning ISO Clause</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-bold" disabled={isFieldReadOnly('concerningClause')} /></FormControl></FormItem>)} />
                                 <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (<FormItem><FormLabel className="text-xs font-bold uppercase text-rose-600">Reply Deadline</FormLabel><FormControl><Input type="date" {...field} className="bg-rose-50/30 border-rose-100 font-bold h-10" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl></FormItem>)} />
                             </section>
+
                             <section className="space-y-6 pt-6 border-t border-dashed">
                                 <div className="flex items-center gap-2 border-b pb-2"><AlertTriangle className="h-4 w-4 text-rose-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-rose-800">2. Statement of Non-Conformance</h4></div>
                                 <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (<FormItem><FormControl><Textarea {...field} rows={6} className="bg-rose-50/10 border-rose-100 italic text-sm leading-relaxed" placeholder="Clearly describe the gap identified against the ISO standard..." disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl></FormItem>)} />
                             </section>
+
                             <section className="space-y-6 pt-6 border-t border-dashed">
                                 <div className="flex items-center gap-2 border-b pb-2"><ShieldAlert className="h-5 w-5 text-primary" /><h4 className="text-[10px] font-black uppercase tracking-widest text-primary">3. Root Cause Analysis & Plan</h4></div>
                                 <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (<FormItem><FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify systematic cause..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl></FormItem>)} />
@@ -594,41 +539,91 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 <div className="md:col-span-6"><FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: iF }) => (<FormItem><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
                                                 <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: iF }) => (<FormItem><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
                                             </div>
-                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2"><PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step</Button>}
                                 </div>
                             </section>
 
-                            <section className="space-y-8 pt-8 border-t border-dashed">
-                                <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Gavel className="h-6 w-6" /></div><div className="space-y-0.5"><h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Oversight & Verification</h4></div></div>{isInstitutionalViewer && (<div className="flex gap-2"><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase" onClick={() => appendFollowUp({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Follow-up</Button><Button type="button" variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50" onClick={() => appendEffectiveness({ result: '', verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '', date: format(new Date(), 'yyyy-MM-dd'), action: 'Effective', remarks: '' })}><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Final Entry</Button></div>)}</div>
-                                <div className="space-y-6">
-                                    <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">I. Follow-up Result</h5>
-                                    {followUpFields.map((field, index) => (
-                                        <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
-                                            <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: iF }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Official Auditor Observation</FormLabel><FormControl><Textarea {...iF} rows={4} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
-                                            <div className="grid grid-cols-2 gap-4"><FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>)} /><FormField control={form.control} name={`followUpLogs.${index}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>)} /></div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="space-y-6">
-                                    <h5 className="text-[10px] font-black uppercase text-emerald-700 tracking-widest border-b pb-1">II. Final Verification</h5>
-                                    {effectivenessFields.map((field, idx) => (
-                                        <div key={field.id} className="p-6 rounded-2xl border bg-emerald-50/20 space-y-6 group relative">
-                                            <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-emerald-900">Audit Verification Outcome</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white border-emerald-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
-                                            <div className="grid grid-cols-2 gap-6"><FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-600">Decision</FormLabel><Select onValueChange={iF.onChange} value={iF.value} disabled={isFieldReadOnly(`effectivenessAudits.${idx}.action`)}><FormControl><SelectTrigger className="h-10 font-bold bg-white"><SelectValue /></SelectTrigger></FormControl><SelectContent modal={false}><SelectItem value="Effective">Effective (NC Closed)</SelectItem><SelectItem value="Not Effective">Not Effective</SelectItem><SelectItem value="Close the NC">Close the NC</SelectItem></SelectContent></Select></FormItem>)} /><FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-600">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-10 font-bold bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>)} /></div>
-                                        </div>
-                                    ))}
-                                </div>
+                            <section className="space-y-6 pt-6 border-t border-dashed">
+                                <div className="flex items-center gap-2 border-b pb-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-800">4. Effectiveness Audit & Verification</h4></div>
+                                {followUpFields.map((field, index) => (
+                                    <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 space-y-4">
+                                        <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Follow-up Outcome</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
+                                    </div>
+                                ))}
+                                {effectivenessFields.map((field, idx) => (
+                                    <div key={field.id} className="p-6 rounded-2xl border bg-emerald-50/20 space-y-4">
+                                        <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-emerald-900">Final Verification Result</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white border-emerald-100 text-sm" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
+                                    </div>
+                                ))}
                             </section>
                         </form>
                     </Form>
                 </ScrollArea>
+                
+                <div className="h-32 border-t bg-slate-50 p-4 shrink-0">
+                    <ScrollArea className="h-full">
+                        <div className="space-y-2">
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><ListChecks className="h-3.5 w-3.5" /> Corrective Action Protocol</h5>
+                            <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal pl-4 font-medium italic">
+                                <li><strong>Root Cause Analysis:</strong> Units must identify the actual systemic reason why the NC occurred.</li>
+                                <li><strong>Correction:</strong> Immediate action taken to contain the issue (Fix the error).</li>
+                                <li><strong>Corrective Action:</strong> Long-term changes implemented to prevent recurrence (Change the process).</li>
+                                <li><strong>Verification:</strong> QA Office will audit the evidence to ensure the actions were effective before closing the record.</li>
+                            </ol>
+                        </div>
+                    </ScrollArea>
+                </div>
+            </div>
+
+            <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
+                <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-primary flex items-center gap-2 bg-white">
+                    <MessageCircle className="h-4 w-4" /> Conversation History
+                </div>
+                <ScrollArea className="flex-1 p-6">
+                    <div className="space-y-6">
+                        {liveCar?.comments && liveCar.comments.length > 0 ? (
+                            liveCar.comments.map((comment, index) => (
+                                <div key={index} className="space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{comment.authorName}</span>
+                                        <span className="text-[8px] font-mono text-muted-foreground">{format(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as any).toDate(), 'MMM dd, p')}</span>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700">
+                                        "{comment.text}"
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                                <History className="h-12 w-12" />
+                                <p className="text-[10px] font-black uppercase tracking-widest">No history logged</p>
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
+                {isInstitutionalViewer && (
+                    <div className="p-6 border-t bg-white space-y-4">
+                        <FormField control={form.control} name="adminFeedback" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase text-primary">Post Feedback / Directive</FormLabel>
+                                <FormControl><Textarea {...field} placeholder="Add a review note..." className="text-xs italic bg-slate-50 min-h-[80px]" /></FormControl>
+                            </FormItem>
+                        )} />
+                    </div>
+                )}
             </div>
           </div>
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
-            <div className="flex w-full items-center justify-between"><Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-[10px] font-black uppercase">Cancel</Button><Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8 tracking-widest">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />} Commit Update</Button></div>
+
+          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+            <div className="flex w-full items-center justify-between">
+                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-[10px] font-black uppercase">Cancel</Button>
+                <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8">
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />} 
+                    Commit Update
+                </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
