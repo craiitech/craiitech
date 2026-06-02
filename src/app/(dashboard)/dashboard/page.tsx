@@ -210,10 +210,15 @@ export default function HomePage() {
   }, [rawUnitMrOutputs, userProfile]);
 
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || isAdmin) return null;
-    return query(collection(firestore, 'programCompliances'), where('unitId', '==', userProfile.unitId), where('academicYear', '==', selectedYear));
-  }, [firestore, userProfile, isAdmin, selectedYear]);
-  const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+    if (!firestore || !selectedYear) return null;
+    return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
+  }, [firestore, selectedYear]);
+  const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  const unitCompliances = useMemo(() => {
+    if (!allCompliances || !userProfile?.unitId) return [];
+    return allCompliances.filter(c => (c as any).unitId === userProfile.unitId || c.programId === userProfile.unitId);
+  }, [allCompliances, userProfile]);
 
   const unitRecommendations = useMemo(() => {
     if (!unitCompliances || !userProfile?.unitId) return [];
@@ -277,6 +282,42 @@ export default function HomePage() {
   }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
+
+  const assignedRecommendations = useMemo(() => {
+    if (!allCompliances || !userProfile) return [];
+    
+    const results: any[] = [];
+    allCompliances.forEach(record => {
+        record.accreditationRecords?.forEach(milestone => {
+            milestone.recommendations?.forEach(reco => {
+                if (reco.status === 'Closed') return;
+
+                let isRelevant = false;
+                if (isAdmin) {
+                    isRelevant = true;
+                } else if (isCampusSupervisor) {
+                    isRelevant = reco.assignedUnitIds?.some(uid => {
+                        const unit = allUnits?.find(u => u.id === uid);
+                        return unit?.campusIds?.includes(userProfile.campusId);
+                    });
+                } else {
+                    isRelevant = reco.assignedUnitIds?.includes(userProfile.unitId);
+                }
+
+                if (isRelevant) {
+                    results.push({
+                        programId: record.programId,
+                        programName: allUnits?.find(u => u.id === record.programId)?.name || 'Academic Program',
+                        campusId: record.campusId,
+                        level: milestone.level,
+                        recommendation: reco
+                    });
+                }
+            });
+        });
+    });
+    return results;
+  }, [allCompliances, userProfile, allUnits, isAdmin, isCampusSupervisor]);
 
   const auditPlansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
@@ -493,6 +534,8 @@ export default function HomePage() {
           units={allUnits || []}
           campuses={campuses || []}
           signatories={signatories || undefined}
+          recommendations={assignedRecommendations}
+          selectedYear={selectedYear}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
@@ -558,6 +601,8 @@ export default function HomePage() {
           units={allUnits || []}
           campuses={campuses || []}
           signatories={signatories || undefined}
+          recommendations={assignedRecommendations}
+          selectedYear={selectedYear}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
