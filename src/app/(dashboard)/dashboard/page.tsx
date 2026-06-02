@@ -340,6 +340,16 @@ export default function HomePage() {
             </TabsList>
           </ScrollArea>
         </div>
+        {/* Important Accreditation & Audit Information Card */}
+        <Card className="shadow-md border-primary/10">
+          <CardHeader className="bg-muted/10 border-b">
+            <CardTitle className="text-sm font-black uppercase">Important Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-xs font-medium">Accreditation status, upcoming audit schedules, and key reminders are displayed here.</p>
+            {/* Future dynamic content can be added here */}
+          </CardContent>
+        </Card>
 
         <TabsContent value="overview" className="space-y-6">
           <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
