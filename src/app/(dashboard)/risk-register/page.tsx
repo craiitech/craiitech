@@ -292,7 +292,7 @@ export default function RiskRegisterPage() {
   return (
     <div className="space-y-4">
       <Tabs defaultValue="visual-insights" className="space-y-4">
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Risk & Opportunity Registry</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Centralized module for institutional risk management.</p></div>
                 <div className="flex flex-wrap items-center gap-2 md:justify-end">

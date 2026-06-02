@@ -277,7 +277,7 @@ export function ActionableDecisionsTab({
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-5">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {quadrants.map(q => {
               const qFlags = flags.filter(f => f.quadrant === q.id);
               return (

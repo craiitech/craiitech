@@ -51,7 +51,7 @@ export default function QaReportsPage() {
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         {/* Sticky Header and Tabs */}
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">

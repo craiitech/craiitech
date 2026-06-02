@@ -62,7 +62,7 @@ export default function SettingsPage() {
     return (
       <div className="space-y-4">
         <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
-          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-4">
+          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
                 <p className="text-muted-foreground">
@@ -145,7 +145,7 @@ export default function SettingsPage() {
   if (userRole === 'Campus Director') {
       return (
          <div className="space-y-6">
-            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
+            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
               <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
               <p className="text-muted-foreground">
                 Manage settings and resources specific to your campus.
@@ -168,7 +168,7 @@ export default function SettingsPage() {
 
   return (
      <div className="space-y-4">
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
           <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
           <p className="text-muted-foreground">
             You do not have permission to modify system settings.

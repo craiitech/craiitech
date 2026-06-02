@@ -824,7 +824,7 @@ export default function HomePage() {
 
     return (
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2>
@@ -942,7 +942,7 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2>
@@ -1095,7 +1095,7 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2>
@@ -1173,7 +1173,7 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 institutional-header">
+      <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 institutional-header">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>

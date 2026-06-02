@@ -306,7 +306,7 @@ export default function SubmissionsPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <Tabs defaultValue="visual-insights" className="space-y-4">
-            <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header">
+            <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">EOMS SUBMISSION HUB</h2>

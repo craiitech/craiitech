@@ -343,7 +343,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <Tabs defaultValue="visuals" className="space-y-6">
         {/* Sticky Header Enforced */}
-        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 space-y-4 institutional-header print:hidden">
+        <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header print:hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">Institutional Reports</h2>

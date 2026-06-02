@@ -94,7 +94,7 @@ export default function ApprovalsPage() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
           <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Institutional Approvals</h2>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
             Review and act on submissions awaiting your verification.
