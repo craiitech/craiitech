@@ -168,6 +168,69 @@ export function AuditorOfflineManager() {
             } catch (e) {}
         }
 
+        // ─── CRITICAL FIX: Pre-cache all Next.js JS chunks via build manifest ───
+        // This prevents "loading chunk failed" errors when navigating offline.
+        setDownloadProgress('Locking application code modules into offline storage...');
+        try {
+            const chunkUrlsToCache: string[] = [];
+
+            // Try to fetch the main build manifest JSON to discover all chunk files
+            const buildManifestRes = await fetch('/_next/build-manifest.json', { cache: 'no-store' });
+            
+            if (buildManifestRes.ok) {
+                const buildManifest = await buildManifestRes.json();
+                // Collect all JS files referenced in the build manifest
+                const allFiles: string[] = [];
+                if (buildManifest.pages) {
+                    Object.values(buildManifest.pages).forEach((files: any) => {
+                        if (Array.isArray(files)) allFiles.push(...files);
+                    });
+                }
+                if (buildManifest.polyfillFiles) allFiles.push(...buildManifest.polyfillFiles);
+                if (buildManifest.devFiles) allFiles.push(...buildManifest.devFiles);
+                if (buildManifest.lowPriorityFiles) allFiles.push(...buildManifest.lowPriorityFiles);
+
+                const uniqueFiles = [...new Set(allFiles)].filter(f => typeof f === 'string' && (f.endsWith('.js') || f.endsWith('.css')));
+                uniqueFiles.forEach(f => {
+                    const url = f.startsWith('/') ? f : `/_next/${f}`;
+                    chunkUrlsToCache.push(url);
+                });
+            }
+
+            // Also fetch the flight manifest for RSC chunks
+            try {
+                const flightManifestRes = await fetch('/_next/server/app/page.js', { cache: 'no-store' });
+            } catch (e) {}
+
+            // Fetch key chunk files individually as a guaranteed fallback
+            const keyChunks = [
+                '/_next/static/chunks/main.js',
+                '/_next/static/chunks/webpack.js',
+                '/_next/static/chunks/pages/_app.js',
+                '/_next/static/chunks/pages/_error.js',
+            ];
+            for (const chunk of keyChunks) {
+                try {
+                    const r = await fetch(chunk, { cache: 'force-cache' });
+                    if (r.ok) chunkUrlsToCache.push(chunk);
+                } catch (e) {}
+            }
+
+            // Send all discovered chunk URLs to the service worker for caching
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller && chunkUrlsToCache.length > 0) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'CACHE_URLS',
+                    urls: chunkUrlsToCache,
+                });
+                setDownloadProgress(`Locking ${chunkUrlsToCache.length} application modules...`);
+                // Give SW time to process and cache them
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+        } catch (manifestErr) {
+            console.warn('Chunk pre-caching partial (manifest unavailable):', manifestErr);
+            // Non-fatal: SW will still cache chunks on-demand when visited while online
+        }
+
         const now = new Date();
         setLastDownload(now);
         setMirrorStatus('found');
