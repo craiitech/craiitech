@@ -42,7 +42,8 @@ import {
     X,
     FileWarning,
     ArrowUpRight,
-    MessageCircle
+    MessageCircle,
+    Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -146,7 +147,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
-  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+  const { data: currentSignatories } = useDoc<Signatories>(signatoryRef);
 
   const filteredCars = useMemo(() => {
     if (!rawCars) return [];
@@ -216,7 +217,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         rootCauseAnalysis: '',
         adminFeedback: '',
         preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
-        approvedBy: signatories?.qaoDirector || '',
+        approvedBy: currentSignatories?.qaoDirector || '',
         status: 'Open',
         requestDate: format(new Date(), 'yyyy-MM-dd'),
         actionSteps: [],
@@ -338,7 +339,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
     try {
-        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />);
+        const reportHtml = renderToStaticMarkup(<CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={currentSignatories || undefined} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
@@ -347,6 +348,25 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         }
     } catch (err) { console.error(err); }
   };
+
+  const handlePrintRegistry = () => {
+      try {
+          const reportHtml = renderToStaticMarkup(
+            <CARControlRegisterTemplate 
+                cars={filteredCars}
+                unitMap={unitMap}
+                campusMap={campusMap}
+                year={selectedYear}
+            />
+          );
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+              printWindow.document.open();
+              printWindow.document.write(`<html><head><title>CAR Control Register</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 13in 8.5in; margin: 0.5in; } @media print { body { background: white; } .no-print { display: none !important; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Control Register</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+              printWindow.document.close();
+          }
+      } catch (e) {}
+  }
 
   return (
     <div className="space-y-6">
@@ -367,7 +387,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
           <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
               <Card className="border-primary/10 shadow-sm bg-muted/10">
-                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                       <div className="md:col-span-2 space-y-1.5">
                           <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
                           <div className="relative">
@@ -385,6 +405,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                               </SelectContent>
                           </Select>
                       </div>
+                      <Button variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-2" onClick={handlePrintRegistry}>
+                          <Printer className="h-4 w-4" /> Print Control Register
+                      </Button>
                   </CardContent>
               </Card>
 
@@ -481,7 +504,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
           </TabsContent>
 
           <TabsContent value="bridge" className="animate-in fade-in duration-500">
-              <AuditorNCManager findings={findings || []} schedules={schedules || []} cars={rawCars || []} campuses={campuses} units={units} signatories={signatories || undefined} campusFilter={campusFilter} searchTerm={searchTerm} />
+              <AuditorNCManager findings={findings || []} schedules={schedules || []} cars={rawCars || []} campuses={campuses} units={units} signatories={currentSignatories || undefined} campusFilter={campusFilter} searchTerm={searchTerm} />
           </TabsContent>
       </Tabs>
 
@@ -577,20 +600,21 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
                 <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
                     <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-primary flex items-center gap-2 bg-white">
-                        <MessageCircle className="h-4 w-4" /> Conversation History
+                        <MessageSquare className="h-4 w-4" /> Conversation History
                     </div>
                     <ScrollArea className="flex-1 p-6">
                         <div className="space-y-6">
                             {liveCar?.comments && liveCar.comments.length > 0 ? (
                                 liveCar.comments.map((comment, index) => (
                                     <div key={index} className="space-y-2">
-                                        <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
                                             <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{comment.authorName}</span>
                                             <span className="text-[8px] font-mono text-muted-foreground">{format(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as any).toDate(), 'MMM dd, p')}</span>
                                         </div>
                                         <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700">
                                             "{comment.text}"
                                         </div>
+                                        <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{comment.authorRole}</p>
                                     </div>
                                 ))
                             ) : (
