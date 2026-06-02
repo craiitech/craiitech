@@ -108,7 +108,8 @@ import type {
   AuditPlan,
   AuditFinding,
   ISOClause,
-  Signatories
+  Signatories,
+  AcademicProgram
 } from '@/lib/types';
 
 const statusVariant: Record<
@@ -253,6 +254,9 @@ export default function HomePage() {
 
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
+
+  const academicProgramsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'academicPrograms') : null), [firestore]);
+  const { data: academicPrograms } = useCollection<AcademicProgram>(academicProgramsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'campuses') : null, [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -536,6 +540,7 @@ export default function HomePage() {
           signatories={signatories || undefined}
           recommendations={assignedRecommendations}
           selectedYear={selectedYear}
+          academicPrograms={academicPrograms || []}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (
@@ -603,6 +608,7 @@ export default function HomePage() {
           signatories={signatories || undefined}
           recommendations={assignedRecommendations}
           selectedYear={selectedYear}
+          academicPrograms={academicPrograms || []}
         />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           {Object.entries(stats).map(([k, s]: any) => (

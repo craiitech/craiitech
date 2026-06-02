@@ -7,7 +7,7 @@ import { Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { AuditSchedule, AuditPlan, Signatories, AuditGroup, AuditFinding, ISOClause, Unit, Campus } from '@/lib/types';
+import type { AuditSchedule, AuditPlan, Signatories, AuditGroup, AuditFinding, ISOClause, Unit, Campus, AcademicProgram } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,12 +32,13 @@ interface UnitAuditScheduleProps {
   isSupervisor?: boolean;
   recommendations?: any[];
   selectedYear?: number;
+  academicPrograms?: AcademicProgram[];
 }
 
 /**
  * UNIT AUDIT SCHEDULE COMPONENT
  * Displays upcoming IQA sessions for the user's unit or campus.
- * Restored: Accreditation recommendations displayed as tab with separate printing and dropdown filters.
+ * Restored: Accreditation recommendations displayed as tab with separate printing, dropdown filters, and IQA Itinerary printing filters.
  */
 export function UnitAuditSchedule({ 
     schedules, 
@@ -51,7 +52,8 @@ export function UnitAuditSchedule({
     campusName = 'Campus Site',
     isSupervisor = false,
     recommendations,
-    selectedYear
+    selectedYear,
+    academicPrograms = []
 }: UnitAuditScheduleProps) {
   const { toast } = useToast();
   const [isPrintingPlan, setIsPrintingPlan] = useState(false);
@@ -62,12 +64,17 @@ export function UnitAuditSchedule({
   const [selectedCampus, setSelectedCampus] = useState<string>('all');
   const [selectedProgram, setSelectedProgram] = useState<string>('all');
 
+  const [selectedItineraryCampus, setSelectedItineraryCampus] = useState<string>('all');
+  const [selectedItineraryUnit, setSelectedItineraryUnit] = useState<string>('all');
+
   const unitMap = useMemo(() => {
     const map = new Map<string, string>();
     units?.forEach(u => map.set(u.id, u.name));
+    academicPrograms?.forEach(p => map.set(p.id, p.name));
     return map;
-  }, [units]);
+  }, [units, academicPrograms]);
 
+  // Accreditation dynamic dropdown options & filtered items
   const campusesWithLogs = useMemo(() => {
     if (!recommendations || !campuses) return [];
     const ids = new Set(recommendations.map(r => r.campusId).filter(Boolean));
@@ -75,13 +82,13 @@ export function UnitAuditSchedule({
   }, [recommendations, campuses]);
 
   const programsWithLogs = useMemo(() => {
-    if (!recommendations || !units) return [];
+    if (!recommendations || !academicPrograms) return [];
     const relevantRecos = selectedCampus === 'all' 
       ? recommendations 
       : recommendations.filter(r => r.campusId === selectedCampus);
     const ids = new Set(relevantRecos.map(r => r.programId).filter(Boolean));
-    return units.filter(u => ids.has(u.id));
-  }, [recommendations, units, selectedCampus]);
+    return academicPrograms.filter(p => ids.has(p.id));
+  }, [recommendations, academicPrograms, selectedCampus]);
 
   const filteredRecos = useMemo(() => {
     if (!recommendations) return [];
@@ -92,14 +99,39 @@ export function UnitAuditSchedule({
     });
   }, [recommendations, selectedCampus, selectedProgram]);
 
+  // IQA Itinerary dynamic dropdown options & filtered items
+  const itineraryCampuses = useMemo(() => {
+    if (!schedules || !campuses) return [];
+    const ids = new Set(schedules.map(s => s.campusId).filter(Boolean));
+    return campuses.filter(c => ids.has(c.id));
+  }, [schedules, campuses]);
+
+  const itineraryUnits = useMemo(() => {
+    if (!schedules || !units) return [];
+    const relevantSchedules = selectedItineraryCampus === 'all'
+      ? schedules
+      : schedules.filter(s => s.campusId === selectedItineraryCampus);
+    const ids = new Set(relevantSchedules.map(s => s.targetId).filter(Boolean));
+    return units.filter(u => ids.has(u.id));
+  }, [schedules, units, selectedItineraryCampus]);
+
+  const filteredSchedules = useMemo(() => {
+    if (!schedules) return [];
+    return schedules.filter(s => {
+      const matchCampus = selectedItineraryCampus === 'all' || s.campusId === selectedItineraryCampus;
+      const matchUnit = selectedItineraryUnit === 'all' || s.targetId === selectedItineraryUnit;
+      return matchCampus && matchUnit;
+    });
+  }, [schedules, selectedItineraryCampus, selectedItineraryUnit]);
+
   if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
 
   const handlePrintPlan = () => {
-    if (!plans.length || !schedules || schedules.length === 0) return;
+    if (!plans.length || !filteredSchedules || filteredSchedules.length === 0) return;
 
     setIsPrintingPlan(true);
     try {
-        const firstSchedule = schedules[0];
+        const firstSchedule = filteredSchedules[0];
         const plan = plans.find(p => p.id === firstSchedule.auditPlanId);
 
         if (!plan) {
@@ -108,20 +140,24 @@ export function UnitAuditSchedule({
         }
 
         const sectionsToPrint = Array.from(new Set(
-            schedules.map(s => s.processCategory).filter(Boolean) as AuditGroup[]
+            filteredSchedules.map(s => s.processCategory).filter(Boolean) as AuditGroup[]
         ));
 
         const order = { 'Management Processes': 1, 'Operation Processes': 2, 'Support Processes': 3 };
         sectionsToPrint.sort((a, b) => (order[a as keyof typeof order] || 99) - (order[b as keyof typeof order] || 99));
 
+        const printCampusName = selectedItineraryCampus === 'all' 
+          ? campusName 
+          : campuses?.find(c => c.id === selectedItineraryCampus)?.name || campusName;
+
         const reportsHtml = sectionsToPrint.map(section => {
-            const sectionSchedules = schedules.filter(s => s.processCategory === section && s.auditPlanId === plan.id);
+            const sectionSchedules = filteredSchedules.filter(s => s.processCategory === section && s.auditPlanId === plan.id);
             return renderToStaticMarkup(
                 <div key={section} className="print-page-break mb-12">
                     <AuditPlanPrintTemplate 
                         plan={plan} 
                         schedules={sectionSchedules} 
-                        campusName={campusName} 
+                        campusName={printCampusName} 
                         signatories={signatories} 
                         section={section as AuditGroup}
                     />
@@ -136,7 +172,7 @@ export function UnitAuditSchedule({
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Audit Plan - ${campusName}</title>
+                    <title>Audit Plan - ${printCampusName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
@@ -166,11 +202,11 @@ export function UnitAuditSchedule({
   };
 
   const handlePrintAuditReport = () => {
-    if (!plans.length || !schedules || schedules.length === 0 || !isoClauses.length) return;
+    if (!plans.length || !filteredSchedules || filteredSchedules.length === 0 || !isoClauses.length) return;
 
     setIsPrintingReport(true);
     try {
-        const firstSchedule = schedules[0];
+        const firstSchedule = filteredSchedules[0];
         const plan = plans.find(p => p.id === firstSchedule.auditPlanId);
 
         if (!plan) {
@@ -178,19 +214,23 @@ export function UnitAuditSchedule({
             return;
         }
 
-        const scheduleIds = new Set(schedules.map(s => s.id));
+        const scheduleIds = new Set(filteredSchedules.map(s => s.id));
         const filteredFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
+
+        const printCampusName = selectedItineraryCampus === 'all' 
+          ? campusName 
+          : campuses?.find(c => c.id === selectedItineraryCampus)?.name || campusName;
 
         const reportHtml = renderToStaticMarkup(
             <ConsolidatedAuditReportTemplate 
                 plan={plan}
-                schedules={schedules}
+                schedules={filteredSchedules}
                 findings={filteredFindings}
                 clauses={isoClauses}
                 units={units}
                 campuses={campuses}
                 signatories={signatories}
-                campusName={campusName}
+                campusName={printCampusName}
             />
         );
 
@@ -200,7 +240,7 @@ export function UnitAuditSchedule({
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Audit Report - ${campusName}</title>
+                    <title>Audit Report - ${printCampusName}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @page { size: 8.5in 13in !important; margin: 0.5in !important; }
@@ -334,7 +374,7 @@ export function UnitAuditSchedule({
                           variant="outline" 
                           size="sm" 
                           onClick={handlePrintAuditReport} 
-                          disabled={isPrintingReport}
+                          disabled={isPrintingReport || filteredSchedules.length === 0}
                           className="h-8 bg-white border-primary/20 text-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
                       >
                           {isPrintingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
@@ -344,7 +384,7 @@ export function UnitAuditSchedule({
                           variant="outline" 
                           size="sm" 
                           onClick={handlePrintPlan} 
-                          disabled={isPrintingPlan}
+                          disabled={isPrintingPlan || filteredSchedules.length === 0}
                           className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
                       >
                           {isPrintingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
@@ -369,54 +409,104 @@ export function UnitAuditSchedule({
   );
 
   const renderItineraryList = () => {
-    if (!schedules || schedules.length === 0) {
-      return (
-        <div className="py-20 text-center opacity-30 flex flex-col items-center gap-2">
-          <Calendar className="h-10 w-10 text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest">No active quality audits scheduled</p>
-        </div>
-      );
-    }
     return (
-      <ScrollArea className="h-[450px]">
-          <div className="divide-y divide-primary/10 bg-white/50">
-              {schedules.map(schedule => {
-                  const date = schedule.scheduledDate instanceof Timestamp ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
-                  return (
-                      <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white transition-colors gap-4">
-                          <div className="flex items-center gap-4">
-                              <div className="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-white border border-primary/10 text-primary shrink-0 shadow-sm">
-                                  <span className="text-[9px] font-black uppercase leading-none mb-0.5">{format(date, 'MMM')}</span>
-                                  <span className="text-lg font-black leading-none">{format(date, 'dd')}</span>
-                              </div>
-                              <div className="min-w-0">
-                                  <p className="text-xs font-black text-slate-900 uppercase truncate" title={schedule.targetName}>{schedule.targetName}</p>
-                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                                          <Clock className="h-3 w-3 text-primary/60" />
-                                          {format(date, 'hh:mm a')}
-                                      </div>
-                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium italic truncate max-w-[250px]">
-                                          <ClipboardList className="h-3 w-3 text-primary/40" />
-                                          {schedule.procedureDescription}
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                              <Badge className={cn(
-                                  "h-5 text-[9px] font-black uppercase border-none px-3 shadow-sm",
-                                  schedule.status === 'In Progress' ? "bg-blue-600 text-white animate-pulse" : 
-                                  schedule.status === 'Completed' ? "bg-emerald-600 text-white" : "bg-amber-50 text-amber-950"
-                              )}>
-                                  {schedule.status}
-                              </Badge>
-                          </div>
-                      </div>
-                  );
-              })}
+      <div className="flex flex-col">
+        {/* IQA Filters bar */}
+        <div className="flex flex-col sm:flex-row gap-4 p-4 bg-primary/5 border-b border-primary/10 items-center justify-between">
+          <div className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            IQA Itinerary Filters
           </div>
-      </ScrollArea>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Site dropdown */}
+            <div className="w-full sm:w-[200px]">
+              <Select value={selectedItineraryCampus} onValueChange={(val) => {
+                setSelectedItineraryCampus(val);
+                setSelectedItineraryUnit('all'); // Reset unit selection on campus change
+              }}>
+                <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-wider bg-white border-primary/20 text-primary shadow-xs">
+                  <SelectValue placeholder="Institutional (All Sites)" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-primary/20">
+                  <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Institutional (All Sites)
+                  </SelectItem>
+                  {itineraryCampuses.map(c => (
+                    <SelectItem key={c.id} value={c.id} className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Unit dropdown */}
+            <div className="w-full sm:w-[250px]">
+              <Select value={selectedItineraryUnit} onValueChange={setSelectedItineraryUnit}>
+                <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-wider bg-white border-primary/20 text-primary shadow-xs">
+                  <SelectValue placeholder="All Units" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-primary/20">
+                  <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    All Units
+                  </SelectItem>
+                  {itineraryUnits.map(u => (
+                    <SelectItem key={u.id} value={u.id} className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll area for IQA list */}
+        <ScrollArea className="h-[450px]">
+            <div className="divide-y divide-primary/10 bg-white/50">
+                {filteredSchedules.map(schedule => {
+                    const date = schedule.scheduledDate instanceof Timestamp ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
+                    return (
+                        <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white transition-colors gap-4 animate-in fade-in duration-300">
+                            <div className="flex items-center gap-4">
+                                <div className="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-white border border-primary/10 text-primary shrink-0 shadow-sm">
+                                    <span className="text-[9px] font-black uppercase leading-none mb-0.5">{format(date, 'MMM')}</span>
+                                    <span className="text-lg font-black leading-none">{format(date, 'dd')}</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-black text-slate-900 uppercase truncate" title={schedule.targetName}>{schedule.targetName}</p>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                                            <Clock className="h-3 w-3 text-primary/60" />
+                                            {format(date, 'hh:mm a')}
+                                        </div>
+                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium italic truncate max-w-[250px]">
+                                            <ClipboardList className="h-3 w-3 text-primary/40" />
+                                            {schedule.procedureDescription}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <Badge className={cn(
+                                    "h-5 text-[9px] font-black uppercase border-none px-3 shadow-sm",
+                                    schedule.status === 'In Progress' ? "bg-blue-600 text-white animate-pulse" : 
+                                    schedule.status === 'Completed' ? "bg-emerald-600 text-white" : "bg-amber-50 text-amber-950"
+                                )}>
+                                    {schedule.status}
+                                </Badge>
+                            </div>
+                        </div>
+                    );
+                })}
+                {filteredSchedules.length === 0 && (
+                    <div className="py-20 text-center opacity-30 flex flex-col items-center gap-2 bg-white/50">
+                      <Calendar className="h-10 w-10 text-primary" />
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">No active quality audits match the filters</p>
+                    </div>
+                )}
+            </div>
+        </ScrollArea>
+      </div>
     );
   };
 
@@ -435,7 +525,7 @@ export function UnitAuditSchedule({
         <div className="flex flex-col sm:flex-row gap-4 p-4 bg-amber-500/5 border-b border-amber-200/50 items-center justify-between">
           <div className="text-[10px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-2">
             <Award className="h-4 w-4 text-amber-600" />
-            Accreditation Filters
+            Accreditation Gaps Filters
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {/* Campus dropdown */}
