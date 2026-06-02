@@ -1,4 +1,4 @@
-﻿
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,17 +6,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck, Printer } from 'lucide-react';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding, CorrectiveActionRequest } from '@/lib/types';
+import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding, CorrectiveActionRequest, Signatories } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
 import { AuditPlanCloneDialog } from './audit-plan-clone-dialog';
 import { AuditPlanList } from './audit-plan-list';
 import { AuditAnalytics } from './audit-analytics';
 import { AuditResultsView } from './audit-results-view';
+import { AuditPrintTemplate } from './audit-print-template';
+import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
+import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { seedIsoClausesClient } from '@/lib/iso-seeder';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -88,6 +99,180 @@ export function AdminAuditView() {
 
   const carsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'correctiveActionRequests') : null), [firestore]);
   const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carsQuery);
+  
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const [reportCampusFilter, setReportCampusFilter] = useState<string>('all');
+  const [reportUnitFilter, setReportUnitFilter] = useState<string>('all');
+
+  const completedSchedules = useMemo(() => {
+    if (!schedules || !auditPlans) return [];
+    return schedules.filter(s => {
+      if (s.status !== 'Completed') return false;
+      
+      const parentPlan = auditPlans.find(p => p.id === s.auditPlanId);
+      if (!parentPlan || parentPlan.year !== selectedYear) return false;
+
+      const matchCampus = reportCampusFilter === 'all' || s.campusId === reportCampusFilter;
+      const matchUnit = reportUnitFilter === 'all' || s.targetId === reportUnitFilter;
+      return matchCampus && matchUnit;
+    });
+  }, [schedules, auditPlans, selectedYear, reportCampusFilter, reportUnitFilter]);
+
+  const hasEvidence = (scheduleId: string) => {
+    const hasFindings = findings?.some(f => f.auditScheduleId === scheduleId) || false;
+    const schedule = schedules?.find(s => s.id === scheduleId);
+    const hasSummary = schedule ? !!(schedule.summaryCommendable || schedule.summaryCompliance || schedule.summaryOFI || schedule.summaryNC) : false;
+    return hasFindings || hasSummary;
+  };
+
+  const handlePrintIndividualTemplate = (schedule: AuditSchedule, withData: boolean = false) => {
+    if (withData && !hasEvidence(schedule.id)) {
+        toast({
+            variant: "destructive",
+            title: "No Evidence Logged",
+            description: "Print failed: This unit has not been audited yet. No evidence logs are available to print.",
+        });
+        return;
+    }
+
+    const clausesInScope = isoClauses?.filter(c => schedule.isoClausesToAudit?.includes(c.id)) || [];
+    const parentPlan = auditPlans?.find(p => p.id === schedule.auditPlanId);
+    const campusName = campuses?.find(c => c.id === schedule.campusId)?.name || 'Institutional';
+    
+    const scheduleFindings = withData 
+        ? findings?.filter(f => f.auditScheduleId === schedule.id) || []
+        : [];
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditPrintTemplate 
+                schedule={schedule}
+                findings={scheduleFindings}
+                clauses={clausesInScope}
+                signatories={signatories || undefined}
+                leadAuditorName={parentPlan?.leadAuditorName}
+                campusName={campusName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Evidence Log - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; width: 100% !important; border-collapse: collapse; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print ${withData ? 'Evidence Log' : 'Blank Template'}</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+    }
+  };
+
+  const handlePrintIndividualReport = (schedule: AuditSchedule) => {
+    if (!hasEvidence(schedule.id)) {
+        toast({
+            variant: "destructive",
+            title: "No Evidence Logged",
+            description: "Print failed: This unit has not been audited yet. No audit report can be generated.",
+        });
+        return;
+    }
+
+    const parentPlan = auditPlans?.find(p => p.id === schedule.auditPlanId);
+    if (!parentPlan) {
+        toast({
+            variant: "destructive",
+            title: "Plan Not Found",
+            description: "Print failed: Parent audit plan for this schedule could not be resolved.",
+        });
+        return;
+    }
+
+    const scheduleFindings = findings?.filter(f => f.auditScheduleId === schedule.id) || [];
+    const campusName = campuses?.find(c => c.id === schedule.campusId)?.name || 'Institutional';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={parentPlan}
+                schedules={[schedule]}
+                findings={scheduleFindings}
+                clauses={isoClauses || []}
+                units={units || []}
+                campuses={campuses || []}
+                signatories={signatories || undefined}
+                campusName={campusName}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Report - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { 
+                            size: 8.5in 13in !important; 
+                            margin: 0.5in !important; 
+                        }
+                        @media print { 
+                            body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; width: 100% !important; border-collapse: collapse; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print report error:", err);
+    }
+  };
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -217,6 +402,9 @@ export function AdminAuditView() {
                     <TabsTrigger value="results" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
                         <ClipboardCheck className="h-3.5 w-3.5" /> Audit Results & CAR Bridge
                     </TabsTrigger>
+                    <TabsTrigger value="reporting" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                        <Printer className="h-3.5 w-3.5" /> Audit Reporting
+                    </TabsTrigger>
                 </TabsList>
             </ScrollArea>
         </div>
@@ -295,6 +483,137 @@ export function AdminAuditView() {
                 cars={cars || []}
                 isLoading={isLoading}
             />
+        </TabsContent>
+
+        <TabsContent value="reporting" className="animate-in fade-in duration-500">
+            <Card className="shadow-md border-primary/10 overflow-hidden">
+                <CardHeader className="bg-primary/5 border-b py-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <CardTitle className="text-lg font-black uppercase text-primary tracking-wide">
+                                University Wide Evidence Log & IQA Report Printing Portal
+                            </CardTitle>
+                            <CardDescription className="text-xs font-bold uppercase tracking-widest text-primary/70 mt-1">
+                                Access and print completed Internal Quality Audit reports and evidence logs institutional-wide.
+                            </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="h-5 text-[10px] font-black bg-white uppercase">AY {selectedYear} Archive</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    {/* Filters Bar */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-primary/5 rounded-xl border border-primary/10 items-center justify-between">
+                        <div className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-primary" />
+                            Filter Completed Audits
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            {/* Campus Filter */}
+                            <div className="w-full sm:w-[200px]">
+                                <Select value={reportCampusFilter} onValueChange={(val) => {
+                                    setReportCampusFilter(val);
+                                    setReportUnitFilter('all'); // Reset unit filter on campus change
+                                }}>
+                                    <SelectTrigger className="h-9 text-[10px] font-black uppercase tracking-wider bg-white border-primary/20 text-primary shadow-xs">
+                                        <SelectValue placeholder="All Campuses" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white border-primary/20">
+                                        <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-wider text-primary">All Campuses</SelectItem>
+                                        {campuses?.map(c => (
+                                            <SelectItem key={c.id} value={c.id} className="text-[10px] font-bold uppercase tracking-wider text-primary">{c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {/* Unit Filter */}
+                            <div className="w-full sm:w-[250px]">
+                                <Select value={reportUnitFilter} onValueChange={setReportUnitFilter}>
+                                    <SelectTrigger className="h-9 text-[10px] font-black uppercase tracking-wider bg-white border-primary/20 text-primary shadow-xs">
+                                        <SelectValue placeholder="All Units" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white border-primary/20">
+                                        <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-wider text-primary">All Units</SelectItem>
+                                        {units?.filter(u => reportCampusFilter === 'all' || u.campusIds?.includes(reportCampusFilter)).map(u => (
+                                            <SelectItem key={u.id} value={u.id} className="text-[10px] font-bold uppercase tracking-wider text-primary">{u.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Completed Audits Table */}
+                    {isLoading ? (
+                        <div className="flex flex-col justify-center items-center h-64 gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Loading Reports...</p>
+                        </div>
+                    ) : completedSchedules.length === 0 ? (
+                        <div className="py-20 text-center opacity-30 flex flex-col items-center gap-2 bg-white/50 border rounded-xl">
+                            <ClipboardCheck className="h-10 w-10 text-primary" />
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">No completed IQAs match the filters for AY {selectedYear}</p>
+                        </div>
+                    ) : (
+                        <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
+                            <Table>
+                                <TableHeader className="bg-muted/40">
+                                    <TableRow>
+                                        <TableHead className="text-[10px] font-black uppercase pl-6 py-4">Unit Name</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Campus/Site</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Auditor</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Auditee</TableHead>
+                                        <TableHead className="text-center text-[10px] font-black uppercase pr-6">Printing Options</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {completedSchedules.map(schedule => {
+                                        const auditorUser = users?.find(u => u.id === schedule.auditorId);
+                                        const auditorName = auditorUser ? `${auditorUser.firstName} ${auditorUser.lastName}` : schedule.auditorName || 'Assigned Auditor';
+                                        const auditeeName = schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head';
+                                        const campusName = campuses?.find(c => c.id === schedule.campusId)?.name || 'Institutional';
+
+                                        return (
+                                            <TableRow key={schedule.id} className="hover:bg-muted/10 transition-colors">
+                                                <TableCell className="pl-6 py-4">
+                                                    <span className="font-bold text-xs text-slate-800 uppercase">{schedule.targetName}</span>
+                                                    <p className="text-[9px] font-mono text-muted-foreground uppercase mt-0.5">ID: {schedule.id}</p>
+                                                </TableCell>
+                                                <TableCell className="text-xs font-semibold text-slate-600 uppercase">{campusName}</TableCell>
+                                                <TableCell className="text-xs font-semibold text-slate-600 uppercase">{auditorName}</TableCell>
+                                                <TableCell className="text-xs font-semibold text-slate-600 uppercase">{auditeeName}</TableCell>
+                                                <TableCell className="text-center pr-6">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={() => handlePrintIndividualTemplate(schedule, true)}
+                                                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 gap-1.5 shadow-xs"
+                                                            title="University Wide Evidence Log Printing"
+                                                        >
+                                                            <Printer className="h-3.5 w-3.5" />
+                                                            Evidence Log
+                                                        </Button>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={() => handlePrintIndividualReport(schedule)}
+                                                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5 shadow-xs"
+                                                            title="University Wide IQA Report Printing"
+                                                        >
+                                                            <FileText className="h-3.5 w-3.5" />
+                                                            IQA Report
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </TabsContent>
       </Tabs>
 
