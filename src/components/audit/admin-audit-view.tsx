@@ -491,7 +491,7 @@ export function AdminAuditView() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <CardTitle className="text-lg font-black uppercase text-primary tracking-wide">
-                                University Wide Evidence Log & IQA Report Printing Portal
+                                University Wide Evidence Log Printing & University Wide Printing of IQA Report
                             </CardTitle>
                             <CardDescription className="text-xs font-bold uppercase tracking-widest text-primary/70 mt-1">
                                 Access and print completed Internal Quality Audit reports and evidence logs institutional-wide.

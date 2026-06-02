@@ -144,7 +144,15 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         }
     });
     const clauseData = Object.entries(clauseStats)
-        .map(([id, count]) => ({ id, count }))
+        .map(([id, count]) => {
+            const match = isoClauses.find(c => c.id === id || c.title === id);
+            return {
+                id,
+                count,
+                title: match ? match.title : `Clause ${id}`,
+                description: match ? match.description : ''
+            };
+        })
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
@@ -365,11 +373,15 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     }
   };
 
-  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">
+        {value > 0 ? `${value} (${(percent * 100).toFixed(0)}%)` : ''}
+      </text>
+    );
   };
 
   if (isLoading) {
@@ -383,28 +395,189 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
 
   if (!analytics) return null;
 
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        const pct = analytics.totalFindings ? Math.round((data.value / analytics.totalFindings) * 100) : 0;
+        return (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs">
+                <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.fill }} />
+                    <span className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">{data.name}</span>
+                </div>
+                <div className="space-y-1 font-semibold text-slate-600 dark:text-slate-400">
+                    <p className="text-[10px] uppercase">Findings: <span className="text-slate-900 dark:text-white font-black">{data.value}</span></p>
+                    <p className="text-[10px] uppercase">Proportion: <span className="text-slate-900 dark:text-white font-black">{pct}%</span></p>
+                </div>
+            </div>
+        );
+    }
+    return null;
+  };
+
+  const CustomMaturityTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs space-y-2">
+                <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 border-b pb-1">{label} Processes</p>
+                <div className="space-y-1">
+                    {payload.map((p: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || p.fill }} />
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase">{p.name || p.dataKey}</span>
+                            </div>
+                            <span className="font-black text-slate-900 dark:text-white">{p.value}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+  };
+
+  const CustomAuditorTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        const compRate = Math.round((data.completed / (data.count || 1)) * 100);
+        return (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs space-y-2">
+                <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 border-b pb-1">{label}</p>
+                <div className="space-y-1 font-semibold text-slate-600 dark:text-slate-400">
+                    <div className="flex justify-between gap-4">
+                        <span className="text-[10px] uppercase">Assigned Audits:</span>
+                        <span className="font-black text-slate-900 dark:text-white">{data.count}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                        <span className="text-[10px] uppercase">Completed Audits:</span>
+                        <span className="font-black text-emerald-600">{data.completed}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                        <span className="text-[10px] uppercase">Completion Rate:</span>
+                        <span className="font-black text-indigo-600">{compRate}%</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    return null;
+  };
+
+  const CustomClauseTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md max-w-[280px] text-xs">
+                <p className="font-black text-destructive uppercase tracking-wide border-b pb-1 mb-1">ISO Clause {data.id}</p>
+                <p className="font-bold text-slate-800 dark:text-slate-100 mt-1 leading-normal">{data.title}</p>
+                {data.description && <p className="text-[10px] text-muted-foreground mt-1 leading-normal italic font-medium line-clamp-3">{data.description}</p>}
+                <div className="border-t border-slate-100 dark:border-slate-800 mt-2 pt-1.5 flex justify-between items-center font-bold">
+                    <span className="text-[9px] uppercase text-muted-foreground">Audit Findings:</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{data.count}</span>
+                </div>
+            </div>
+        );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col min-h-[110px]">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Itinerary Density</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-primary tabular-nums">{analytics.totalSchedules}</div><p className="text-[9px] font-bold text-muted-foreground uppercase">Scheduled Sessions</p></CardContent>
+        {/* Itinerary Density */}
+        <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+            <CardHeader className="pb-1 pt-4 px-5">
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Itinerary Density</CardTitle>
+                <CardDescription className="text-[9px] font-medium leading-tight text-muted-foreground/80 mt-0.5">
+                    Scope of scheduled audit engagements for the academic year.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 pt-1 flex items-baseline justify-between">
+                <div>
+                    <div className="text-3xl font-black text-primary tabular-nums">{analytics.totalSchedules}</div>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Scheduled Sessions</p>
+                </div>
+                <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase bg-white border-primary/20 text-primary">
+                    AY {selectedYear} Plan
+                </Badge>
+            </CardContent>
         </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm flex flex-col min-h-[110px]">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-emerald-700">Audit Completion</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.completedSchedules}</div><p className="text-[9px] font-bold text-emerald-600/70 uppercase">Finalized Logs</p></CardContent>
+
+        {/* Audit Completion */}
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+            <CardHeader className="pb-1 pt-4 px-5">
+                <CardTitle className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">Audit Completion</CardTitle>
+                <CardDescription className="text-[9px] font-medium leading-tight text-emerald-800/70 mt-0.5">
+                    Execution rate of audit sessions against the scheduled plan.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 pt-1 flex items-baseline justify-between">
+                <div>
+                    <div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.completedSchedules}</div>
+                    <p className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-wider">Finalized Logs</p>
+                </div>
+                <Badge className="text-[8px] font-black tracking-widest uppercase bg-emerald-600 text-white border-none">
+                    {Math.round((analytics.completedSchedules / (analytics.totalSchedules || 1)) * 100)}% Comp.
+                </Badge>
+            </CardContent>
         </Card>
-        <Card className="bg-blue-50 border-blue-100 shadow-sm flex flex-col min-h-[110px]">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-blue-700">Audit Engagement</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-blue-600 tabular-nums">{analytics.auditorData.length}</div><p className="text-[9px] font-bold text-blue-600/70 uppercase">Active Auditors</p></CardContent>
+
+        {/* Audit Engagement */}
+        <Card className="bg-blue-50 border-blue-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+            <CardHeader className="pb-1 pt-4 px-5">
+                <CardTitle className="text-[10px] font-black uppercase text-blue-800 tracking-widest">Audit Engagement</CardTitle>
+                <CardDescription className="text-[9px] font-medium leading-tight text-blue-800/70 mt-0.5">
+                    Active internal auditor pool mobilized for the active cycle.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 pt-1 flex items-baseline justify-between">
+                <div>
+                    <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics.auditorData.length}</div>
+                    <p className="text-[9px] font-bold text-blue-600/70 uppercase tracking-wider">Active Auditors</p>
+                </div>
+                <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase bg-white border-blue-200 text-blue-700">
+                    avg: {(analytics.totalSchedules / (analytics.auditorData.length || 1)).toFixed(1)}/aud
+                </Badge>
+            </CardContent>
         </Card>
-        <Card className="bg-purple-50 border-purple-100 shadow-sm flex flex-col min-h-[110px]">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-purple-700">Auditor Sex Balance</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-purple-600 tabular-nums">{analytics.auditorSexCounts.Male}M / {analytics.auditorSexCounts.Female}F</div><p className="text-[9px] font-bold text-purple-600/70 uppercase">Team Pool</p></CardContent>
+
+        {/* Auditor Sex Balance */}
+        <Card className="bg-purple-50 border-purple-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+            <CardHeader className="pb-1 pt-4 px-5">
+                <CardTitle className="text-[10px] font-black uppercase text-purple-800 tracking-widest">Auditor Sex Balance</CardTitle>
+                <CardDescription className="text-[9px] font-medium leading-tight text-purple-800/70 mt-0.5">
+                    Gender distribution in the auditor pool for team diversity.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 pt-1 flex items-baseline justify-between">
+                <div>
+                    <div className="text-3xl font-black text-purple-600 tabular-nums">{analytics.auditorSexCounts.Male}M / {analytics.auditorSexCounts.Female}F</div>
+                    <p className="text-[9px] font-bold text-purple-600/70 uppercase tracking-wider">Team Pool</p>
+                </div>
+                <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase bg-white border-purple-200 text-purple-700">
+                    {Math.round((analytics.auditorSexCounts.Female / ((analytics.auditorSexCounts.Male + analytics.auditorSexCounts.Female) || 1)) * 100)}% Female
+                </Badge>
+            </CardContent>
         </Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm flex flex-col min-h-[110px]">
-            <CardHeader className="pb-2 pt-5 px-6"><CardTitle className="text-[10px] font-black uppercase text-rose-700">Critical Gaps</CardTitle></CardHeader>
-            <CardContent className="px-6 pb-5"><div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.counts.NC}</div><p className="text-[9px] font-bold text-rose-600/70 uppercase">Open NC Findings</p></CardContent>
+
+        {/* Critical Gaps */}
+        <Card className="bg-rose-50 border-rose-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+            <CardHeader className="pb-1 pt-4 px-5">
+                <CardTitle className="text-[10px] font-black uppercase text-rose-800 tracking-widest">Critical Gaps</CardTitle>
+                <CardDescription className="text-[9px] font-medium leading-tight text-rose-800/70 mt-0.5">
+                    Active Non-Conformance deviations needing immediate CAR.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 pt-1 flex items-baseline justify-between">
+                <div>
+                    <div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.counts.NC}</div>
+                    <p className="text-[9px] font-bold text-rose-600/70 uppercase tracking-wider">Open NC Findings</p>
+                </div>
+                <Badge className="text-[8px] font-black tracking-widest uppercase bg-rose-600 text-white border-none">
+                    {analytics.totalFindings > 0 ? Math.round((analytics.counts.NC / analytics.totalFindings) * 100) : 0}% Ratio
+                </Badge>
+            </CardContent>
         </Card>
       </div>
 
@@ -415,6 +588,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                   <PieIcon className="h-5 w-5 text-primary" />
                   <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Finding Lifecycle</CardTitle>
               </div>
+              <CardDescription className="text-xs text-muted-foreground mt-1">
+                  Proportionate distribution of QMS audit outcomes (Compliance, OFI, Non-Conformance, N/A) for institutional parity tracking.
+              </CardDescription>
           </CardHeader>
           <CardContent className="pt-8 flex-1 flex flex-col items-center justify-center">
               <ChartContainer config={{}} className="h-[280px] w-full">
@@ -423,7 +599,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                           <Pie data={analytics.findingsData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
                               {analytics.findingsData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
                           </Pie>
-                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                          <RechartsTooltip content={<CustomPieTooltip />} />
                           <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                       </PieChart>
                   </ResponsiveContainer>
@@ -437,7 +613,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     <Target className="h-5 w-5 text-primary" />
                     <CardTitle className="text-sm font-black uppercase tracking-tight">Process Maturity Findings Profile</CardTitle>
                 </div>
-                <CardDescription className="text-xs">Distribution of gaps across Management, Operations, and Support.</CardDescription>
+                <CardDescription className="text-xs text-muted-foreground mt-1">
+                    Process audit profiles across Management, Operations, and Support frameworks to isolate systemic department bottlenecks.
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-10 flex-1">
                 <ChartContainer config={{
@@ -450,11 +628,17 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                             <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'black' }} axisLine={false} tickLine={false} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<CustomMaturityTooltip />} />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
-                            <Bar dataKey="NC" stackId="a" fill={COLORS.NC} />
-                            <Bar dataKey="OFI" stackId="a" fill={COLORS.OFI} />
-                            <Bar dataKey="Compliance" stackId="a" fill={COLORS.Compliance} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="NC" stackId="a" fill={COLORS.NC}>
+                                <LabelList dataKey="NC" position="center" style={{ fontSize: '9px', fontWeight: '900', fill: 'white' }} formatter={(val: number) => val > 0 ? val : ''} />
+                            </Bar>
+                            <Bar dataKey="OFI" stackId="a" fill={COLORS.OFI}>
+                                <LabelList dataKey="OFI" position="center" style={{ fontSize: '9px', fontWeight: '900', fill: 'black' }} formatter={(val: number) => val > 0 ? val : ''} />
+                            </Bar>
+                            <Bar dataKey="Compliance" stackId="a" fill={COLORS.Compliance} radius={[4, 4, 0, 0]}>
+                                <LabelList dataKey="Compliance" position="center" style={{ fontSize: '9px', fontWeight: '900', fill: 'white' }} formatter={(val: number) => val > 0 ? val : ''} />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -467,6 +651,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     <TrendingUp className="h-5 w-5 text-primary" />
                     <CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Productivity & Completion Rate</CardTitle>
                 </div>
+                <CardDescription className="text-xs text-muted-foreground mt-1">
+                    Comparative audit volume showing completed versus assigned QMS schedules per auditor for workload tracking.
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-8 flex-1">
                 <ChartContainer config={{}} className="h-[300px] w-full">
@@ -475,11 +662,13 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                             <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<CustomAuditorTooltip />} />
                             <Bar dataKey="completed" name="Completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={30}>
-                                <LabelList dataKey="completed" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#1B6535' }} />
+                                <LabelList dataKey="completed" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#1B6535' }} formatter={(val: number) => val > 0 ? val : ''} />
                             </Bar>
-                            <Bar dataKey="count" name="Assigned" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} barSize={30} />
+                            <Bar dataKey="count" name="Assigned" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} barSize={30}>
+                                <LabelList dataKey="count" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--muted-foreground))' }} formatter={(val: number) => val > 0 ? val : ''} />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -495,6 +684,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
               <ShieldAlert className="h-5 w-5 text-destructive" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">Top Finding Gaps by ISO Clause</CardTitle>
             </div>
+            <CardDescription className="text-xs text-muted-foreground mt-1">
+                Standard clause exposure ranking, isolating ISO 21001:2018 clauses with high frequency of non-conformances.
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-8 flex-1">
             <ChartContainer config={{}} className="h-[350px] w-full">
@@ -503,7 +695,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                     <XAxis type="number" hide />
                     <YAxis dataKey="id" type="category" tick={{ fontSize: 10, fontWeight: 900 }} width={40} axisLine={false} tickLine={false} />
-                    <RechartsTooltip content={<ChartTooltipContent />} />
+                    <RechartsTooltip content={<CustomClauseTooltip />} />
                     <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={14}>
                         <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--destructive))' }} />
                     </Bar>
@@ -521,7 +713,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     <ShieldAlert className="h-5 w-5 text-destructive" />
                     <CardTitle className="text-sm font-black uppercase tracking-tight text-destructive">Unit Finding Hotspots</CardTitle>
                 </div>
-                <CardDescription className="text-xs">Offices with open non-conformances requiring attention.</CardDescription>
+                <CardDescription className="text-xs text-destructive/70">
+                    Prioritized department directory with open non-conformances needing immediate Corrective Action Request (CAR) resolution.
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                   <Table>
@@ -549,7 +743,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
               <CardHeader className="bg-muted/10 border-b py-4 flex flex-row items-center justify-between">
                   <div className="space-y-1">
                       <div className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Assignment Registry</CardTitle></div>
-                      <CardDescription className="text-xs">Timeline per auditor for AY {selectedYear}.</CardDescription>
+                      <CardDescription className="text-xs text-muted-foreground mt-1">
+                          Workload ledger detailing scope and completion status per assigned auditor for the active cycle.
+                      </CardDescription>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">
                     <Button onClick={handlePrintUnitSchedule} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">

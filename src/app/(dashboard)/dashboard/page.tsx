@@ -347,16 +347,15 @@ const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: {
         <Tooltip>
           <TooltipTrigger asChild>
             <div className={cn(
-              "flex flex-col items-end px-3 py-1.5 rounded-xl border cursor-help shadow-xs transition-all hover:scale-105 duration-200 bg-white",
+              "flex flex-col items-end px-4 py-2 rounded-xl border cursor-help shadow-sm transition-all hover:scale-105 duration-200 bg-white",
               getBorderColorClass(universityRating.grade)
             )}>
-              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground leading-none">University Rating</span>
-              <div className="flex items-center gap-1.5 mt-1">
-                <Award className={cn("h-4 w-4 shrink-0", getTextColor(universityRating.grade))} />
-                <span className={cn("text-base font-black tracking-tight leading-none", getTextColor(universityRating.grade))}>
-                  {universityRating.grade}
+              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground leading-none">University Rating</span>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Award className={cn("h-5 w-5 shrink-0", getTextColor(universityRating.grade))} />
+                <span className={cn("text-2xl font-black tracking-tight leading-none tabular-nums", getTextColor(universityRating.grade))}>
+                  {universityRating.score}%
                 </span>
-                <span className="text-[10px] font-bold text-slate-500">({universityRating.score}%)</span>
               </div>
             </div>
           </TooltipTrigger>
@@ -383,16 +382,15 @@ const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className={cn(
-                "flex flex-col items-end px-3 py-1.5 rounded-xl border cursor-help shadow-xs transition-all hover:scale-105 duration-200 bg-white",
+                "flex flex-col items-end px-4 py-2 rounded-xl border cursor-help shadow-sm transition-all hover:scale-105 duration-200 bg-white",
                 getScopedBorderColorClass(scopedRating.grade)
               )}>
-                <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground leading-none">{scopedRatingType} Rating</span>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <TrendingUp className={cn("h-4 w-4 shrink-0", getScopedIconColor(scopedRating.grade))} />
-                  <span className={cn("text-base font-black tracking-tight leading-none", getScopedIconColor(scopedRating.grade))}>
-                    {scopedRating.grade}
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground leading-none">{scopedRatingType} Rating</span>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <TrendingUp className={cn("h-5 w-5 shrink-0", getScopedIconColor(scopedRating.grade))} />
+                  <span className={cn("text-2xl font-black tracking-tight leading-none tabular-nums", getScopedIconColor(scopedRating.grade))}>
+                    {scopedRating.score}%
                   </span>
-                  <span className="text-[10px] font-bold text-slate-500">({scopedRating.score}%)</span>
                 </div>
               </div>
             </TooltipTrigger>
