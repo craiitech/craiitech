@@ -91,6 +91,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsGuidanceVisible(storedVisibility === 'true');
     }
     setHasHydrated(true);
+
+    // Register Service Worker for offline capability
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Service Worker registered with scope:', reg.scope))
+        .catch((err) => console.error('Service Worker registration failed:', err));
+    }
   }, []);
 
   const handleToggleGuidance = useCallback(() => {
