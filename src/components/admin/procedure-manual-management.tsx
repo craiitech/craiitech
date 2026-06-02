@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import type { Unit, ProcedureManual } from '@/lib/types';
 import {
@@ -34,7 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, Edit, Trash2, FileText, Calendar, Layers } from 'lucide-react';
+import { Loader2, Edit, Trash2, FileText, Calendar, Layers, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
@@ -55,6 +55,49 @@ export function ProcedureManualManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<VirtualUnit | null>(null);
+
+  const [newPart, setNewPart] = useState('');
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  const configRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'procedureRevisionConfig') : null),
+    [firestore]
+  );
+  const { data: revisionConfig, isLoading: isLoadingConfig } = useDoc<{ parts: string[] }>(configRef);
+
+  const handleAddPart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPart.trim() || !firestore || !configRef) return;
+    const currentParts = revisionConfig?.parts || [];
+    if (currentParts.includes(newPart.trim())) {
+      toast({ title: 'Already Exists', description: 'This process part is already in the list.', variant: 'destructive' });
+      return;
+    }
+    try {
+      setIsSavingConfig(true);
+      await setDoc(configRef, { parts: [...currentParts, newPart.trim()] }, { merge: true });
+      setNewPart('');
+      toast({ title: 'Success', description: 'Process part added successfully.' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to add process part.', variant: 'destructive' });
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  const handleDeletePart = async (partToDelete: string) => {
+    if (!firestore || !configRef || !window.confirm(`Delete part "${partToDelete}"?`)) return;
+    const currentParts = revisionConfig?.parts || [];
+    try {
+      setIsSavingConfig(true);
+      await setDoc(configRef, { parts: currentParts.filter(p => p !== partToDelete) }, { merge: true });
+      toast({ title: 'Success', description: 'Process part removed.' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to remove process part.', variant: 'destructive' });
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
@@ -219,6 +262,74 @@ export function ProcedureManualManagement() {
               </TableBody>
             </Table>
           </ScrollArea>
+        )}
+      </CardContent>
+    </Card>
+
+    <Card className="mt-6 shadow-md border-primary/10">
+      <CardHeader className="bg-primary/5 border-b py-4">
+        <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+          <Layers className="h-4 w-4 text-primary" />
+          Procedure Revision Dropdown Options
+        </CardTitle>
+        <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+          Manage the list of procedure parts that units can select when requesting a revision.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6 pt-6">
+        <form onSubmit={handleAddPart} className="flex gap-2">
+          <Input 
+            placeholder="e.g., Section 1.0: Objectives" 
+            value={newPart} 
+            onChange={(e) => setNewPart(e.target.value)} 
+            disabled={isSavingConfig}
+            className="max-w-md text-xs h-9 bg-white"
+          />
+          <Button type="submit" disabled={isSavingConfig || !newPart.trim()} size="sm" className="h-9 font-black uppercase text-[10px]">
+            {isSavingConfig ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <PlusCircle className="h-3.5 w-3.5 mr-1" />}
+            Add Part
+          </Button>
+        </form>
+
+        {isLoadingConfig ? (
+          <div className="flex py-4 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" /></div>
+        ) : (
+          <div className="border rounded-xl overflow-hidden max-w-2xl bg-white shadow-inner">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="text-[10px] font-black uppercase py-2 pl-4">Procedure Part / Section Title</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase py-2 pr-4 w-[100px]">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {revisionConfig?.parts && revisionConfig.parts.length > 0 ? (
+                  revisionConfig.parts.map((part, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="text-xs font-bold text-slate-700 py-3 pl-4">{part}</TableCell>
+                      <TableCell className="text-right py-3 pr-4">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-destructive hover:bg-destructive/5 hover:text-destructive animate-all"
+                          onClick={() => handleDeletePart(part)}
+                          disabled={isSavingConfig}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-20 text-center text-xs text-muted-foreground italic">
+                      No custom dropdown parts configured yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

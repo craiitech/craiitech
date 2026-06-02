@@ -903,3 +903,42 @@ export type Subject = {
   facultyId: string;
   enrolledStudentIds?: string[];
 };
+
+export type ProcedureRevisionRequestStatus = 
+  | 'Submitted' 
+  | 'Returned for Revision' 
+  | 'Rejected' 
+  | 'Awaiting Presidential Approval' 
+  | 'Approved & Registered';
+
+export type ProcedureRevisionRequestComment = {
+    text: string;
+    authorId: string;
+    authorName: string;
+    authorRole: string;
+    createdAt: any;
+};
+
+export type RevisedPart = {
+    part: string;
+    itemNumber: string;
+    itemContents: string;
+};
+
+export type ProcedureRevisionRequest = {
+    id: string;
+    unitId: string;
+    campusId: string;
+    unitName: string;
+    submitterId: string;
+    submitterName: string;
+    scannedDRRFLink: string;
+    revisedManualDocxLink: string;
+    approvedDRRFLink?: string;
+    controlNumber?: string;
+    revisedParts: RevisedPart[];
+    status: ProcedureRevisionRequestStatus;
+    comments: ProcedureRevisionRequestComment[];
+    createdAt: any;
+    updatedAt: any;
+};
