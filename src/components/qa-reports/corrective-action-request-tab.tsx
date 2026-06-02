@@ -40,7 +40,8 @@ import {
     AlertTriangle,
     CheckCircle2,
     Send,
-    X
+    X,
+    FileWarning
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -167,6 +168,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         return matchesCampus && matchesSearch;
     });
   }, [rawCars, campusFilter, searchTerm, unitMap, isAdmin, isAuditor, userRole, userProfile]);
+
+  const carsForAction = useMemo(() => {
+    return filteredCars.filter(car => {
+        if (isInstitutionalViewer) {
+            return car.status === 'For Final Verification';
+        }
+        return car.status === 'Open' || car.status === 'Awaiting Response/Update';
+    });
+  }, [filteredCars, isInstitutionalViewer]);
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
@@ -409,6 +419,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <ListChecks className="h-4 w-4" /> Full List
               </TabsTrigger>
+              <TabsTrigger value="for-action" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <FileWarning className="h-4 w-4 text-rose-600" /> For Action
+                  {carsForAction.length > 0 && (
+                      <Badge variant="destructive" className="ml-1 h-4 px-1 text-[8px] font-black">{carsForAction.length}</Badge>
+                  )}
+              </TabsTrigger>
               {(isAdmin || isAuditor) && (
                   <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                       <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management
@@ -440,45 +456,102 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               </Card>
 
               <Card className="shadow-md border-primary/10 overflow-hidden">
-                <Table>
-                    <TableHeader className="bg-muted/50">
-                        <TableRow>
-                            <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
-                            <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
-                            <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredCars?.map(car => (
-                            <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                                <TableCell className="pl-6 py-4">
-                                    <div className="flex flex-col">
-                                        <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                                        <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2 text-xs font-bold">
-                                        <Building2 className="h-3.5 w-3.5 opacity-30" />
-                                        {unitMap.get(car.unitId)}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
-                                    {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
-                                </TableCell>
-                                <TableCell className="text-center"><Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary">{car.status}</Badge></TableCell>
-                                <TableCell className="text-right pr-6">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold bg-white gap-1.5" onClick={(e) => { e.stopPropagation(); handlePrint(car); }}><Printer className="h-3 w-3" /> PRINT</Button>
-                                        <Button size="sm" variant="ghost" className="h-8 font-black uppercase text-[10px]" onClick={() => handleEdit(car)}>Manage Record</Button>
-                                    </div>
-                                </TableCell>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredCars?.map(car => (
+                                <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                                    <TableCell className="pl-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2 text-xs font-bold">
+                                            <Building2 className="h-3.5 w-3.5 opacity-30" />
+                                            {unitMap.get(car.unitId)}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
+                                    </TableCell>
+                                    <TableCell className="text-center"><Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary">{car.status}</Badge></TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold bg-white gap-1.5" onClick={(e) => { e.stopPropagation(); handlePrint(car); }}><Printer className="h-3 w-3" /> PRINT</Button>
+                                            <Button size="sm" variant="ghost" className="h-8 font-black uppercase text-[10px]" onClick={() => handleEdit(car)}>Manage Record</Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="for-action" className="space-y-6 animate-in fade-in duration-500">
+             <Card className="shadow-md border-primary/10 overflow-hidden">
+                <div className="p-4 bg-muted/10 border-b flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-rose-600" />
+                    <p className="text-xs font-black uppercase text-slate-800">Items Requiring Immediate Response or Verification</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {carsForAction?.map(car => (
+                                <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                                    <TableCell className="pl-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2 text-xs font-bold">
+                                            <Building2 className="h-3.5 w-3.5 opacity-30" />
+                                            {unitMap.get(car.unitId)}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
+                                    </TableCell>
+                                    <TableCell className="text-center"><Badge className="text-[9px] font-black uppercase bg-rose-100 text-rose-700 border-none px-2 h-5">{car.status}</Badge></TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <Button size="sm" className="h-8 font-black uppercase text-[10px] shadow-sm bg-indigo-600" onClick={() => handleEdit(car)}>Take Action</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {carsForAction.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-40 text-center opacity-20">
+                                        <CheckCircle2 className="h-10 w-10 mx-auto mb-2" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">No outstanding items for action</p>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
               </Card>
           </TabsContent>
 
