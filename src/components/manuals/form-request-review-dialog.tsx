@@ -39,7 +39,8 @@ import {
     AlertTriangle,
     Link as LinkIcon,
     Eye,
-    Clock
+    Clock,
+    Edit
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +67,7 @@ interface FormRequestReviewDialogProps {
   requestId: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onEditClick?: (request: UnitFormRequest) => void;
 }
 
 const commentSchema = z.object({
@@ -109,7 +111,7 @@ function GDrivePreview({ url, title }: { url?: string; title: string }) {
   );
 }
 
-export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: FormRequestReviewDialogProps) {
+export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEditClick }: FormRequestReviewDialogProps) {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -418,13 +420,35 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                                 </div>
                                                 <p className="text-[10px] text-blue-700 leading-relaxed font-medium">Verify form content, layout, and coding accuracy. Strict compliance checklists and presidential approvals are bypassed for preliminary draft review.</p>
                                             </div>
-                                        ) : (
-                                            <div className="py-20 text-center opacity-40">
-                                                <Clock className="h-10 w-10 mx-auto mb-3" />
-                                                <p className="text-xs font-bold uppercase tracking-widest">Oversight Pending</p>
-                                                <p className="text-[10px] mt-2 italic px-6">The Quality Assurance Office is currently evaluating this application.</p>
-                                            </div>
-                                        )}
+                                         ) : !isAdmin && request?.status === 'Returned for Correction' ? (
+                                             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                                                 <Alert className="bg-rose-50 border-rose-200 shadow-sm">
+                                                     <AlertTriangle className="h-4 w-4 text-rose-600 animate-bounce" />
+                                                     <AlertTitle className="text-xs font-black uppercase tracking-tight text-rose-800">Corrections Required</AlertTitle>
+                                                     <AlertDescription className="text-[11px] leading-relaxed font-medium text-rose-700">
+                                                         This application has been returned for correction. Please review the official comments and findings under the discussion tab to see what changes are needed, then use the resubmission wizard below.
+                                                     </AlertDescription>
+                                                 </Alert>
+                                                 {onEditClick && (
+                                                     <Button 
+                                                         type="button" 
+                                                         className="w-full h-11 font-black text-[10px] uppercase bg-rose-600 hover:bg-rose-700 text-white gap-2 shadow-xl shadow-rose-200" 
+                                                         onClick={() => {
+                                                             onEditClick(request);
+                                                             onOpenChange(false);
+                                                         }}
+                                                     >
+                                                         <Edit className="h-4 w-4" /> Edit & Resubmit Wizard
+                                                     </Button>
+                                                 )}
+                                             </div>
+                                         ) : (
+                                             <div className="py-20 text-center opacity-40">
+                                                 <Clock className="h-10 w-10 mx-auto mb-3" />
+                                                 <p className="text-xs font-bold uppercase tracking-widest">Oversight Pending</p>
+                                                 <p className="text-[10px] mt-2 italic px-6">The Quality Assurance Office is currently evaluating this application.</p>
+                                             </div>
+                                         )}
 
                                         {isAdmin && !isAwaitingPresident && (
                                             <div className="space-y-4 pt-4 border-t">

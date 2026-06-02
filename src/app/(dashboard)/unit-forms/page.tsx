@@ -347,11 +347,28 @@ export default function UnitFormsPage() {
                                     <div className="divide-y divide-primary/5">
                                         {sortedUnitRequests.map(req => (
                                             <div key={req.id} className="p-3 hover:bg-white transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
-                                                <div className="flex justify-between items-start gap-2 mb-1.5">
-                                                    <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
-                                                    <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
-                                                </div>
-                                                <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
+                                                 <div className="flex justify-between items-center gap-2 mb-1.5">
+                                                     <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
+                                                     <div className="flex items-center gap-1.5">
+                                                         {req.status === 'Returned for Correction' && (
+                                                             <Button 
+                                                                 size="icon" 
+                                                                 variant="ghost" 
+                                                                 className="h-5 w-5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     setEditingRequest(req);
+                                                                     setIsRegOpen(true);
+                                                                 }}
+                                                                 title="Edit & Resubmit"
+                                                             >
+                                                                 <Edit className="h-3 w-3" />
+                                                             </Button>
+                                                         )}
+                                                         <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
+                                                     </div>
+                                                 </div>
+                                                 <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
                                             </div>
                                         ))}
                                     </div>
@@ -625,7 +642,17 @@ export default function UnitFormsPage() {
       {selectedUnit && <FormRegistrationDialog isOpen={isRegOpen} onOpenChange={(open) => { setIsRegOpen(open); if (!open) setEditingRequest(null); }} unit={selectedUnit as any} request={editingRequest} />}
       {downloadingForm && <FormDownloadDialog form={downloadingForm} unitId={selectedUnitId!} isOpen={!!downloadingForm} onOpenChange={(open) => !open && setDownloadingForm(null)} />}
       {isRosterLogOpen && selectedUnitId && activeRosterData.link && <FormDownloadDialog form={{ id: 'roster-folder', formName: 'Official Roster & Forms Folder', formCode: 'MASTER-ROSTER', googleDriveLink: activeRosterData.link, unitId: selectedUnitId, campusId: userProfile?.campusId || '', revision: activeRosterData.rev, requestId: 'system', createdAt: new Date() } as any} unitId={selectedUnitId} isOpen={isRosterLogOpen} onOpenChange={setIsRosterLogOpen} />}
-      {reviewRequestId && <FormRequestReviewDialog requestId={reviewRequestId} isOpen={!!reviewRequestId} onOpenChange={(open) => !open && setReviewRequestId(null)} />}
+       {reviewRequestId && (
+         <FormRequestReviewDialog 
+           requestId={reviewRequestId} 
+           isOpen={!!reviewRequestId} 
+           onOpenChange={(open) => !open && setReviewRequestId(null)} 
+           onEditClick={(req) => {
+             setEditingRequest(req);
+             setIsRegOpen(true);
+           }}
+         />
+       )}
     </div>
   );
 }

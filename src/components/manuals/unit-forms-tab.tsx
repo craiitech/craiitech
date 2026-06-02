@@ -26,7 +26,8 @@ import {
     Building,
     Activity,
     ChevronRight,
-    Target
+    Target,
+    Edit
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from './form-registration-dialog';
@@ -51,6 +52,7 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
   const firestore = useFirestore();
   const [isRegOpen, setIsRegOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
+  const [editingRequest, setEditingRequest] = useState<UnitFormRequest | null>(null);
 
   const canRegister = isAdmin || (userProfile?.unitId === unit.id && (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO'));
 
@@ -175,7 +177,24 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
                                                 <Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none shadow-none", statusColors[req.status])}>
                                                     {req.status}
                                                 </Badge>
-                                                <span className="text-[10px] font-mono text-muted-foreground">{format(req.createdAt?.toDate ? req.createdAt.toDate() : new Date(), 'MMM dd, yy')}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    {req.status === 'Returned for Correction' && (
+                                                        <Button 
+                                                            size="icon" 
+                                                            variant="ghost" 
+                                                            className="h-5 w-5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingRequest(req);
+                                                                setIsRegOpen(true);
+                                                            }}
+                                                            title="Edit & Resubmit"
+                                                        >
+                                                            <Edit className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                    <span className="text-[10px] font-mono text-muted-foreground">{format(req.createdAt?.toDate ? req.createdAt.toDate() : new Date(), 'MMM dd, yy')}</span>
+                                                </div>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">Registration Request</p>
@@ -213,8 +232,12 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
 
       <FormRegistrationDialog 
         isOpen={isRegOpen} 
-        onOpenChange={setIsRegOpen} 
+        onOpenChange={(open) => {
+          setIsRegOpen(open);
+          if (!open) setEditingRequest(null);
+        }} 
         unit={{ ...unit, category: unit.category || 'Support' }} 
+        request={editingRequest}
       />
 
       {reviewRequestId && (
@@ -222,6 +245,10 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
             requestId={reviewRequestId}
             isOpen={!!reviewRequestId}
             onOpenChange={(open) => !open && setReviewRequestId(null)}
+            onEditClick={(req) => {
+              setEditingRequest(req);
+              setIsRegOpen(true);
+            }}
           />
       )}
     </div>
