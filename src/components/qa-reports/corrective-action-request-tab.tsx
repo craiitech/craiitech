@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from 'firebase/firestore';
-import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment } from '@/lib/types';
+import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, AuditFinding, AuditSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -130,16 +130,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const carQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null), [firestore]);
   const { data: rawCars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
+  const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
+  const { data: findings } = useCollection<AuditFinding>(findingsQuery);
+
+  const schedulesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditSchedules') : null), [firestore]);
+  const { data: schedules } = useCollection<AuditSchedule>(schedulesQuery);
+
   const liveCar = useMemo(() => {
     if (!editingCar || !rawCars) return editingCar;
     return rawCars.find(c => c.id === editingCar.id) || editingCar;
   }, [editingCar, rawCars]);
-
-  const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
-  const { data: findings } = useCollection(findingsQuery);
-
-  const schedulesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditSchedules') : null), [firestore]);
-  const { data: schedules } = useCollection(schedulesQuery);
 
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
@@ -169,14 +169,42 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     });
   }, [rawCars, campusFilter, searchTerm, unitMap, isAdmin, isAuditor, userRole, userProfile]);
 
+  // "FOR ACTION" Logic: All that is NOT 'Open' or 'Closed'
   const carsForAction = useMemo(() => {
-    return filteredCars.filter(car => {
-        if (isInstitutionalViewer) {
-            return car.status === 'For Final Verification';
+    return filteredCars.filter(car => car.status !== 'Open' && car.status !== 'Closed');
+  }, [filteredCars]);
+
+  // "ON GOING FOR MANAGEMENT" Logic (NC Findings bridge)
+  const ncGapsCount = useMemo(() => {
+    if (!findings || !schedules) return 0;
+    
+    return findings.filter(f => {
+        if (f.type !== 'Non-Conformance') return false;
+        const schedule = schedules.find(s => s.id === f.auditScheduleId);
+        if (!schedule) return false;
+        
+        const isInstitutionalViewer = isAdmin || isAuditor;
+        if (!isInstitutionalViewer) {
+            if (userRole?.includes('Director') || userRole?.includes('ODIMO')) {
+                if (schedule.campusId !== userProfile?.campusId) return false;
+            } else {
+                if (schedule.targetId !== userProfile?.unitId) return false;
+            }
         }
-        return car.status === 'Open' || car.status === 'Awaiting Response/Update';
-    });
-  }, [filteredCars, isInstitutionalViewer]);
+        
+        if (campusFilter !== 'all' && schedule.campusId !== campusFilter) return false;
+
+        const lowerSearch = searchTerm.toLowerCase();
+        if (searchTerm) {
+            const matches = schedule.targetName.toLowerCase().includes(lowerSearch) ||
+                          (schedule.auditorName || '').toLowerCase().includes(lowerSearch) ||
+                          f.isoClause.toLowerCase().includes(lowerSearch);
+            if (!matches) return false;
+        }
+
+        return true;
+    }).length;
+  }, [findings, schedules, isAdmin, isAuditor, userRole, userProfile, campusFilter, searchTerm]);
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const cName = campusMap.get(car.campusId) || 'Unknown Campus';
@@ -232,47 +260,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     } catch (err) {
         console.error("Print error:", err);
     }
-  };
-
-  const handlePrintRegistry = () => {
-    if (!filteredCars.length) return;
-    try {
-        const reportHtml = renderToStaticMarkup(
-            <CARControlRegisterTemplate 
-                cars={filteredCars} 
-                unitMap={unitMap} 
-                campusMap={campusMap}
-                year="all" 
-            />
-        );
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>CAR Control Register</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @media print { 
-                            @page { size: landscape; margin: 0.5in; }
-                            body { margin: 0; padding: 0; background: white; } 
-                            .no-print { display: none !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Register (Landscape)</button>
-                    </div>
-                    <div id="print-content">${reportHtml}</div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
-    } catch (err) { console.error(err); }
   };
 
   const form = useForm<z.infer<typeof carSchema>>({
@@ -417,17 +404,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       <Tabs defaultValue="registry" className="space-y-6">
           <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
               <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <ListChecks className="h-4 w-4" /> Full List
+                  <ListChecks className="h-4 w-4" /> Full List ({filteredCars.length})
               </TabsTrigger>
               <TabsTrigger value="for-action" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <FileWarning className="h-4 w-4 text-rose-600" /> For Action
-                  {carsForAction.length > 0 && (
-                      <Badge variant="destructive" className="ml-1 h-4 px-1 text-[8px] font-black">{carsForAction.length}</Badge>
-                  )}
+                  <FileWarning className="h-4 w-4 text-rose-600" /> For Action ({carsForAction.length})
               </TabsTrigger>
               {(isAdmin || isAuditor) && (
                   <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                      <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management
+                      <ShieldAlert className="h-4 w-4 text-rose-600" /> On Going for Management ({ncGapsCount})
                   </TabsTrigger>
               )}
           </TabsList>
@@ -504,7 +488,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
              <Card className="shadow-md border-primary/10 overflow-hidden">
                 <div className="p-4 bg-muted/10 border-b flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-rose-600" />
-                    <p className="text-xs font-black uppercase text-slate-800">Items Requiring Immediate Response or Verification</p>
+                    <p className="text-xs font-black uppercase text-slate-800">Items Requiring Active Update or Closure Verification</p>
                 </div>
                 <div className="overflow-x-auto">
                     <Table>
@@ -535,7 +519,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
                                         {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
                                     </TableCell>
-                                    <TableCell className="text-center"><Badge className="text-[9px] font-black uppercase bg-rose-100 text-rose-700 border-none px-2 h-5">{car.status}</Badge></TableCell>
+                                    <TableCell className="text-center"><Badge className="text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border-none px-2 h-5">{car.status}</Badge></TableCell>
                                     <TableCell className="text-right pr-6">
                                         <Button size="sm" className="h-8 font-black uppercase text-[10px] shadow-sm bg-indigo-600" onClick={() => handleEdit(car)}>Take Action</Button>
                                     </TableCell>
@@ -596,8 +580,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (<FormItem><FormLabel className="text-xs font-bold uppercase text-rose-600">Reply Deadline</FormLabel><FormControl><Input type="date" {...field} className="bg-rose-50/30 border-rose-100 font-bold h-10" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl></FormItem>)} />
                             </section>
                             <section className="space-y-6 pt-6 border-t border-dashed">
-                                <div className="flex items-center gap-2 border-b pb-2"><AlertTriangle className="h-4 w-4 text-rose-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-rose-800">2. Non-Conformance Finding</h4></div>
-                                <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (<FormItem><FormControl><Textarea {...field} rows={6} className="bg-rose-50/10 border-rose-100 italic text-sm leading-relaxed" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl></FormItem>)} />
+                                <div className="flex items-center gap-2 border-b pb-2"><AlertTriangle className="h-4 w-4 text-rose-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-rose-800">2. Statement of Non-Conformance</h4></div>
+                                <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (<FormItem><FormControl><Textarea {...field} rows={6} className="bg-rose-50/10 border-rose-100 italic text-sm leading-relaxed" placeholder="Clearly describe the gap identified against the ISO standard..." disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl></FormItem>)} />
                             </section>
                             <section className="space-y-6 pt-6 border-t border-dashed">
                                 <div className="flex items-center gap-2 border-b pb-2"><ShieldAlert className="h-5 w-5 text-primary" /><h4 className="text-[10px] font-black uppercase tracking-widest text-primary">3. Root Cause Analysis & Plan</h4></div>
@@ -610,7 +594,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 <div className="md:col-span-6"><FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: iF }) => (<FormItem><FormControl><Input {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
                                                 <div className="md:col-span-3"><FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: iF }) => (<FormItem><FormControl><Input type="date" {...iF} className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>)} /></div>
                                             </div>
-                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
+                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={() => removeAction(index)} disabled={actionFields.length === 1}><Trash2 className="h-4 w-4" /></Button>}
                                         </div>
                                     ))}
                                     {!isFieldReadOnly('actionSteps') && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2"><PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step</Button>}
