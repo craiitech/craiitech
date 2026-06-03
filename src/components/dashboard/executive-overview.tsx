@@ -100,14 +100,17 @@ export function ExecutiveOverview({
   const riskControlRate = useMemo(() => yearRisks.length > 0 ? Math.min(100, Math.round((mitigatedRisks.length / yearRisks.length) * 100)) : 0, [mitigatedRisks, yearRisks]);
 
   // COMPOSITE EOMS QUALITY SCORE
-  const activeMetrics = useMemo(() => [
-    { name: 'Submission compliance', value: submissionRate, weight: 0.25, color: 'bg-emerald-500' },
-    { name: 'IQA Audit Progress', value: iqaProgressRate, weight: 0.20, color: 'bg-indigo-500' },
-    { name: 'CAR Resolution Rate', value: carResolutionRate, weight: 0.20, color: 'bg-rose-500' },
-    { name: 'Risk Control Index', value: riskControlRate, weight: 0.15, color: 'bg-amber-500' },
-    { name: 'CHED Program COPC', value: copcComplianceRate, weight: 0.10, color: 'bg-blue-500' },
-    { name: 'Accreditation Gaps Closed', value: accreditationResolutionRate, weight: 0.10, color: 'bg-teal-500' },
-  ], [submissionRate, iqaProgressRate, carResolutionRate, riskControlRate, copcComplianceRate, accreditationResolutionRate]);
+  const activeMetrics = useMemo(() => {
+    const metrics = [
+      { name: 'Submission compliance', value: submissionRate, weight: 0.25, color: 'bg-emerald-500', active: true },
+      { name: 'IQA Audit Progress', value: iqaProgressRate, weight: 0.20, color: 'bg-indigo-500', active: yearSchedules.length > 0 },
+      { name: 'CAR Resolution Rate', value: carResolutionRate, weight: 0.20, color: 'bg-rose-500', active: yearCars.length > 0 },
+      { name: 'Risk Control Index', value: riskControlRate, weight: 0.15, color: 'bg-amber-500', active: yearRisks.length > 0 },
+      { name: 'CHED Program COPC', value: copcComplianceRate, weight: 0.10, color: 'bg-blue-500', active: totalProgramsCount > 0 },
+      { name: 'Accreditation Gaps Closed', value: accreditationResolutionRate, weight: 0.10, color: 'bg-teal-500', active: recommendationsList.length > 0 },
+    ];
+    return metrics.filter(m => m.active);
+  }, [submissionRate, iqaProgressRate, carResolutionRate, riskControlRate, copcComplianceRate, accreditationResolutionRate, yearSchedules, yearCars, yearRisks, totalProgramsCount, recommendationsList]);
 
   const eomsQualityScore = useMemo(() => {
     const totalWeight = activeMetrics.reduce((sum, m) => sum + m.weight, 0);
