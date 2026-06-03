@@ -19,7 +19,8 @@ import {
   Calendar,
   AlertTriangle,
   ArrowUpRight,
-  TrendingDown
+  TrendingDown,
+  ShieldAlert
 } from 'lucide-react';
 import type { Submission, Risk, CorrectiveActionRequest, ProgramComplianceRecord, AcademicProgram, AuditSchedule, Unit, Campus } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -422,6 +423,196 @@ export function ExecutiveOverview({
     return alerts.slice(0, 4); // Limit to top 4 alerts
   }, [yearCars, yearRisks, inProgressAudits, recommendationsList, scopedPrograms, scopedCompliances]);
 
+  // SWOT / Strengths & Weaknesses derivation
+  const swotAnalysis = useMemo(() => {
+    const strengthsList: { title: string; desc: string; tag: string; icon: any }[] = [];
+    const weaknessesList: { title: string; desc: string; tag: string; icon: any; priority?: 'High' | 'Medium' }[] = [];
+
+    // 1. Submission Rate
+    if (submissionRate >= 80) {
+      strengthsList.push({
+        title: 'Strong Submission Compliance',
+        desc: `The overall EOMS evidence submission rate is high at ${submissionRate}%, showing consistent documentation performance.`,
+        tag: '[ISO 7.5.3]',
+        icon: ShieldCheck,
+      });
+    } else {
+      weaknessesList.push({
+        title: 'Evidence Submission Gaps',
+        desc: `Evidence log compliance is low at ${submissionRate}%, which means critical EOMS process documents are missing or unapproved.`,
+        tag: '[EOMS Gap]',
+        icon: ShieldAlert,
+        priority: submissionRate < 50 ? 'High' : 'Medium',
+      });
+    }
+
+    // 2. IQA Progress Rate
+    if (yearSchedules.length > 0) {
+      if (iqaProgressRate >= 80) {
+        strengthsList.push({
+          title: 'Optimal Audit Pacing',
+          desc: `Internal quality audit (IQA) execution is on track at ${iqaProgressRate}% completion for the academic year.`,
+          tag: '[IQA Active]',
+          icon: CheckCircle2,
+        });
+      } else {
+        weaknessesList.push({
+          title: 'Audit Schedule Lag',
+          desc: `Scheduled IQAs are lagging at ${iqaProgressRate}% completion, indicating delays in conducting on-site audits.`,
+          tag: '[Audit Backlog]',
+          icon: Clock,
+          priority: iqaProgressRate < 50 ? 'High' : 'Medium',
+        });
+      }
+    }
+
+    // 3. CAR Resolution Rate
+    if (yearCars.length > 0) {
+      if (carResolutionRate >= 75) {
+        strengthsList.push({
+          title: 'High Corrective Action Closure',
+          desc: `Excellent responsiveness in resolving non-conformities, with ${carResolutionRate}% of CARs successfully closed.`,
+          tag: '[ISO 10.1]',
+          icon: ShieldCheck,
+        });
+      } else {
+        weaknessesList.push({
+          title: 'CAR Resolution Bottleneck',
+          desc: `Corrective actions resolution rate is slow at ${carResolutionRate}%, leaving unresolved findings in the pipeline.`,
+          tag: '[CAR Backlog]',
+          icon: AlertTriangle,
+          priority: carResolutionRate < 50 ? 'High' : 'Medium',
+        });
+      }
+    }
+
+    // 4. Risk Mitigation Rate
+    if (yearRisks.length > 0) {
+      if (riskControlRate >= 75) {
+        strengthsList.push({
+          title: 'Proactive Risk Control',
+          desc: `Risks are actively managed with a ${riskControlRate}% mitigation rate. Treatment plans are verified and logged.`,
+          tag: '[Risk Control]',
+          icon: ShieldCheck,
+        });
+      } else {
+        weaknessesList.push({
+          title: 'Untreated Risk Backlog',
+          desc: `Risk mitigation rate is low at ${riskControlRate}%. Several critical and high risk items lack logged treatment plans.`,
+          tag: '[Risk Exposure]',
+          icon: AlertTriangle,
+          priority: riskControlRate < 50 ? 'High' : 'Medium',
+        });
+      }
+    }
+
+    // 5. CHED COPC Rate
+    if (totalProgramsCount > 0) {
+      if (copcComplianceRate === 100) {
+        strengthsList.push({
+          title: 'Academic Program Authorization',
+          desc: '100% of academic programs hold active CHED Certificates of Program Compliance (COPC).',
+          tag: '[CHED COPC]',
+          icon: Award,
+        });
+      } else if (copcComplianceRate >= 80) {
+        strengthsList.push({
+          title: 'Satisfactory Program Compliance',
+          desc: `Strong regulatory alignment with ${copcComplianceRate}% of academic programs holding verified COPCs.`,
+          tag: '[Regulatory]',
+          icon: Award,
+        });
+      } else {
+        weaknessesList.push({
+          title: 'Academic COPC Gaps',
+          desc: `Only ${copcComplianceRate}% of programs possess COPCs. Unverified programs pose an institutional operations risk.`,
+          tag: '[CHED Flag]',
+          icon: ShieldAlert,
+          priority: 'High',
+        });
+      }
+    }
+
+    // 6. Accreditation Resolution Rate
+    if (recommendationsList.length > 0) {
+      if (accreditationResolutionRate >= 75) {
+        strengthsList.push({
+          title: 'Accreditation Gap Closure',
+          desc: `High efficiency in resolving survey recommendation gaps (${accreditationResolutionRate}% resolved).`,
+          tag: '[Accreditation]',
+          icon: Award,
+        });
+      } else {
+        weaknessesList.push({
+          title: 'Accreditation Gaps Backlog',
+          desc: `Accreditation survey recommendations are only ${accreditationResolutionRate}% resolved, requiring urgent focus.`,
+          tag: '[Accreditation Gap]',
+          icon: AlertTriangle,
+          priority: accreditationResolutionRate < 50 ? 'High' : 'Medium',
+        });
+      }
+    }
+
+    // 7. Site-Specific Standings
+    if (complianceStandings && complianceStandings.length > 0) {
+      const topSites = complianceStandings.filter(s => s.rate === 100);
+      if (topSites.length > 0) {
+        strengthsList.push({
+          title: 'Exceptional Unit Performance',
+          desc: `${topSites.map(s => s.name.replace('Campus', '').trim()).slice(0, 3).join(', ')} achieved 100% EOMS submission compliance.`,
+          tag: '[Site Excellence]',
+          icon: ShieldCheck,
+        });
+      }
+      const lowSites = complianceStandings.filter(s => s.rate < 40);
+      if (lowSites.length > 0) {
+        weaknessesList.push({
+          title: 'Substandard Compliance Sites',
+          desc: `${lowSites.map(s => s.name.replace('Campus', '').trim()).slice(0, 3).join(', ')} have submission rates below 40% and need support.`,
+          tag: '[Site Underperformance]',
+          icon: ShieldAlert,
+          priority: 'High',
+        });
+      }
+    }
+
+    // Fallbacks to ensure the cards look full
+    if (strengthsList.length === 0) {
+      strengthsList.push({
+        title: 'Institutional QMS Continuity',
+        desc: 'The university has established QMS structures across campuses to facilitate quality reporting.',
+        tag: '[QMS Baseline]',
+        icon: ShieldCheck,
+      });
+    }
+    if (weaknessesList.length === 0) {
+      weaknessesList.push({
+        title: 'Continuous Optimization',
+        desc: 'Maintain current momentum and regularly verify the implementation of all action plans.',
+        tag: '[QMS Optimization]',
+        icon: ShieldCheck,
+      });
+    }
+
+    return {
+      strengths: strengthsList.slice(0, 4),
+      weaknesses: weaknessesList.slice(0, 4),
+    };
+  }, [
+    submissionRate,
+    iqaProgressRate,
+    carResolutionRate,
+    riskControlRate,
+    copcComplianceRate,
+    accreditationResolutionRate,
+    yearSchedules,
+    yearCars,
+    yearRisks,
+    totalProgramsCount,
+    recommendationsList,
+    complianceStandings,
+  ]);
+
   return (
     <div className="space-y-6">
       {/* SECTION 1: Health Index Gauge & Campus/Department comparison */}
@@ -573,6 +764,88 @@ export function ExecutiveOverview({
         )}
 
       </div>
+
+      {/* SECTION 1.5: Strengths & Weaknesses / Areas for Improvement Card */}
+      <Card className="shadow-lg border-primary/10 overflow-hidden bg-background">
+        <CardHeader className="bg-muted/30 border-b py-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Strengths & Weaknesses / For Improvement
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                Dynamic institutional quality posture based on current academic year compliance metrics
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="h-6 px-3 bg-white font-black text-[10px] uppercase">
+              {scope === 'university' ? 'UNIVERSITY-WIDE EVALUATION' : scope === 'campus' ? 'CAMPUS-WIDE EVALUATION' : 'UNIT EVALUATION'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border-b">
+            {/* STRENGTHS */}
+            <div className="flex flex-col">
+              <div className="bg-emerald-50/50 px-6 py-3 border-b flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 animate-pulse" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Institutional Strengths</span>
+              </div>
+              <div className="p-6 space-y-4 flex-1">
+                {swotAnalysis.strengths.map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={idx} className="space-y-1 group">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">
+                            {item.title}
+                          </span>
+                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-semibold italic">"{item.desc}"</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* WEAKNESSES / AREAS FOR IMPROVEMENT */}
+            <div className="flex flex-col">
+              <div className="bg-rose-50/50 px-6 py-3 border-b flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-rose-600 animate-pulse" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-rose-700">Weaknesses / Areas for Improvement</span>
+              </div>
+              <div className="p-6 space-y-4 flex-1">
+                {swotAnalysis.weaknesses.map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={idx} className="space-y-1 group">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+                          <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">
+                            {item.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {item.priority === 'High' && (
+                            <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase">Critical</Badge>
+                          )}
+                          <Badge className="bg-rose-100 text-rose-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-semibold italic">"{item.desc}"</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* SECTION 2: 5 EOMS Pillars cards grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
