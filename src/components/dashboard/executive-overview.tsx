@@ -52,7 +52,7 @@ export function ExecutiveOverview({
   const approvedSubs = useMemo(() => submissions?.filter(s => s.year === selectedYear && s.statusId === 'approved') || [], [submissions, selectedYear]);
   const pendingSubs = useMemo(() => submissions?.filter(s => s.year === selectedYear && s.statusId === 'submitted') || [], [submissions, selectedYear]);
   const expectedSubs = useMemo(() => (units?.length || 0) * 2, [units]); // 2 cycles per unit
-  const submissionRate = useMemo(() => expectedSubs > 0 ? Math.round((approvedSubs.length / expectedSubs) * 100) : 0, [approvedSubs, expectedSubs]);
+  const submissionRate = useMemo(() => expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0, [approvedSubs, expectedSubs]);
 
   // 2. IQA PROGRESS RATE
   const yearSchedules = useMemo(() => schedules?.filter(s => {
@@ -62,7 +62,7 @@ export function ExecutiveOverview({
   }) || [], [schedules, selectedYear]);
   const completedAudits = useMemo(() => yearSchedules.filter(s => s.status === 'Completed'), [yearSchedules]);
   const inProgressAudits = useMemo(() => yearSchedules.filter(s => s.status === 'In Progress'), [yearSchedules]);
-  const iqaProgressRate = useMemo(() => yearSchedules.length > 0 ? Math.round((completedAudits.length / yearSchedules.length) * 100) : 0, [completedAudits, yearSchedules]);
+  const iqaProgressRate = useMemo(() => yearSchedules.length > 0 ? Math.min(100, Math.round((completedAudits.length / yearSchedules.length) * 100)) : 0, [completedAudits, yearSchedules]);
 
   // 3. CORRECTIVE ACTION REQUEST (CAR) CLOSURE RATE
   const yearCars = useMemo(() => cars?.filter(c => {
@@ -71,7 +71,7 @@ export function ExecutiveOverview({
     return date.getFullYear() === selectedYear;
   }) || cars || [], [cars, selectedYear]);
   const closedCars = useMemo(() => yearCars.filter(c => c.status === 'Closed'), [yearCars]);
-  const carResolutionRate = useMemo(() => yearCars.length > 0 ? Math.round((closedCars.length / yearCars.length) * 100) : 0, [closedCars, yearCars]);
+  const carResolutionRate = useMemo(() => yearCars.length > 0 ? Math.min(100, Math.round((closedCars.length / yearCars.length) * 100)) : 0, [closedCars, yearCars]);
 
   // 4. ACCREDITATION GAPS RESOLUTION RATE
   const recommendationsList = useMemo(() => allCompliances?.reduce((acc: any[], c) => {
@@ -87,17 +87,17 @@ export function ExecutiveOverview({
     return acc;
   }, []) || [], [allCompliances, units]);
   const closedRecs = useMemo(() => recommendationsList.filter(r => r.status === 'Closed'), [recommendationsList]);
-  const accreditationResolutionRate = useMemo(() => recommendationsList.length > 0 ? Math.round((closedRecs.length / recommendationsList.length) * 100) : 0, [closedRecs, recommendationsList]);
+  const accreditationResolutionRate = useMemo(() => recommendationsList.length > 0 ? Math.min(100, Math.round((closedRecs.length / recommendationsList.length) * 100)) : 0, [closedRecs, recommendationsList]);
 
   // 5. CHED COPC RATE
   const copcCompliant = useMemo(() => allCompliances?.filter(c => c.ched?.copcStatus === 'With COPC') || [], [allCompliances]);
   const totalProgramsCount = useMemo(() => academicPrograms?.length || 0, [academicPrograms]);
-  const copcComplianceRate = useMemo(() => totalProgramsCount > 0 ? Math.round((copcCompliant.length / totalProgramsCount) * 100) : 0, [copcCompliant, totalProgramsCount]);
+  const copcComplianceRate = useMemo(() => totalProgramsCount > 0 ? Math.min(100, Math.round((copcCompliant.length / totalProgramsCount) * 100)) : 0, [copcCompliant, totalProgramsCount]);
 
   // 6. RISK MITIGATION RATE
   const yearRisks = useMemo(() => risks?.filter(r => r.year === selectedYear) || [], [risks, selectedYear]);
   const mitigatedRisks = useMemo(() => yearRisks.filter(r => r.status === 'Closed' || r.preTreatment?.rating === 'low' || r.postTreatment?.rating === 'low'), [yearRisks]);
-  const riskControlRate = useMemo(() => yearRisks.length > 0 ? Math.round((mitigatedRisks.length / yearRisks.length) * 100) : 0, [mitigatedRisks, yearRisks]);
+  const riskControlRate = useMemo(() => yearRisks.length > 0 ? Math.min(100, Math.round((mitigatedRisks.length / yearRisks.length) * 100)) : 0, [mitigatedRisks, yearRisks]);
 
   // COMPOSITE EOMS QUALITY SCORE
   const activeMetrics = useMemo(() => [
@@ -131,7 +131,7 @@ export function ExecutiveOverview({
       const campusApproved = submissions?.filter(s => s.campusId === campus.id && s.year === selectedYear && s.statusId === 'approved').length || 0;
       const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id)).length || 0;
       const campusExpected = campusUnitsCount * 2;
-      const rate = campusExpected > 0 ? Math.round((campusApproved / campusExpected) * 100) : 0;
+      const rate = campusExpected > 0 ? Math.min(100, Math.round((campusApproved / campusExpected) * 100)) : 0;
       return {
         name: campus.name,
         approved: campusApproved,
