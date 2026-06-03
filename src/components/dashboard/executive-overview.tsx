@@ -49,8 +49,8 @@ export function ExecutiveOverview({
 }: ExecutiveOverviewProps) {
 
   // 1. SUBMISSION COMPLIANCE RATE
-  const approvedSubs = useMemo(() => submissions?.filter(s => s.year === selectedYear && s.statusId === 'approved') || [], [submissions, selectedYear]);
-  const pendingSubs = useMemo(() => submissions?.filter(s => s.year === selectedYear && s.statusId === 'submitted') || [], [submissions, selectedYear]);
+  const approvedSubs = useMemo(() => submissions?.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved') || [], [submissions, selectedYear]);
+  const pendingSubs = useMemo(() => submissions?.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'submitted') || [], [submissions, selectedYear]);
   const expectedSubs = useMemo(() => (units?.length || 0) * 2, [units]); // 2 cycles per unit
   const submissionRate = useMemo(() => expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0, [approvedSubs, expectedSubs]);
 
@@ -128,7 +128,7 @@ export function ExecutiveOverview({
   const campusSubmissionRates = useMemo(() => {
     if (!campuses?.length) return [];
     return campuses.map(campus => {
-      const campusApproved = submissions?.filter(s => s.campusId === campus.id && s.year === selectedYear && s.statusId === 'approved').length || 0;
+      const campusApproved = submissions?.filter(s => s.campusId === campus.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
       const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id)).length || 0;
       const campusExpected = campusUnitsCount * 2;
       const rate = campusExpected > 0 ? Math.min(100, Math.round((campusApproved / campusExpected) * 100)) : 0;

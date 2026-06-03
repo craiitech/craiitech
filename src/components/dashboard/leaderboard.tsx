@@ -74,7 +74,7 @@ export function Leaderboard({
 
         unitsInCampus.forEach(unit => {
             const campusUnitSubmissions = allSubmissions.filter(s => 
-                s.year === selectedYear &&
+                Number(s.year) === Number(selectedYear) &&
                 s.unitId === unit.id &&
                 s.campusId === campus.id
             );

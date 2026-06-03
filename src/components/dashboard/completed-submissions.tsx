@@ -51,11 +51,10 @@ export function CompletedSubmissions({
     if (isCampusSupervisor && userProfile?.campusId) {
         relevantCampuses = allCampuses.filter(c => c.id === userProfile.campusId);
     }
-
     return relevantCampuses.map(campus => {
         const campusUnits = unitsByCampus[campus.id] || [];
         const completedUnits = campusUnits.map(unit => {
-            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
+            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && Number(s.year) === Number(selectedYear));
             
             const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';

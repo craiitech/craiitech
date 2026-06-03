@@ -195,7 +195,7 @@ function calculateEomsScore(
   }
 
   // 1. SUBMISSION COMPLIANCE RATE
-  const approvedSubs = scopedSubmissions.filter(s => s.year === selectedYear && s.statusId === 'approved');
+  const approvedSubs = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
   const expectedSubs = scope === 'unit' ? 2 : (scopedUnits.length || 1) * 2;
   const submissionRate = expectedSubs > 0 ? Math.round((approvedSubs.length / expectedSubs) * 100) : 0;
 
@@ -471,6 +471,7 @@ export default function HomePage() {
       const date = s.submissionDate;
       return {
         ...s,
+        year: Number(s.year),
         reportType: normalizeReportType(s.reportType),
         submissionDate: date instanceof Timestamp ? date.toDate() : new Date(date)
       }

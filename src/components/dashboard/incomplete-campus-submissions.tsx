@@ -44,9 +44,8 @@ export function IncompleteCampusSubmissions({
       if (unitsInThisCampus.length === 0) {
         return null;
       }
-      
       const incompleteUnits = unitsInThisCampus.map(unit => {
-        const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
+        const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && Number(s.year) === Number(selectedYear));
 
         // --- FIRST CYCLE ---
         const firstCycleApproved = submissionsForUnitAndYear.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
