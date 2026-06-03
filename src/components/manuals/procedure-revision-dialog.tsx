@@ -337,16 +337,17 @@ export function ProcedureRevisionDialog({
       <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
         {fields.map((field, index) => (
           <Card key={field.id} className="relative group border-primary/10 hover:border-primary/30 transition-all bg-muted/5">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon" 
-              className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10" 
-              onClick={() => remove(index)} 
-              disabled={fields.length === 1}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {fields.length > 1 && (
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-2 right-2 text-destructive h-7 w-7 hover:bg-destructive/10 hover:text-destructive z-10" 
+                onClick={() => remove(index)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
             <CardContent className="p-4 pt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
               <div className="md:col-span-5">
                 <FormField control={form.control} name={`revisedParts.${index}.part`} render={({ field: inputField }) => (
