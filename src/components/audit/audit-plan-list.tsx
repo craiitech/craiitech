@@ -267,6 +267,32 @@ export function AuditPlanList({
     } catch (err) { console.error(err); }
   };
   
+  const handlePrintAuditTemplate = (plan: AuditPlan, schedules: AuditSchedule[]) => {
+      if (!schedules.length) {
+          toast({ title: "Itinerary Empty", description: "Please provision audit sessions before printing the template.", variant: "destructive" });
+          return;
+      }
+      try {
+          const cName = campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE';
+          const reportsHtml = schedules.map(schedule => {
+              const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+              const campusName = campusMap.get(schedule.campusId) || cName;
+              return renderToStaticMarkup(
+                  <div key={schedule.id} className="print-page-break mb-12">
+                      <AuditPrintTemplate schedule={schedule} findings={[]} clauses={clausesInScope} signatories={signatories || undefined} leadAuditorName={plan.leadAuditorName} campusName={campusName} />
+                  </div>
+              );
+          }).join('');
+
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+              printWindow.document.open();
+              printWindow.document.write(`<html><head><title>Audit Evidence Templates - ${plan.auditNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; width: 100% !important; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } .print-page-break { page-break-after: always; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Blank Evidence Logs</button></div><div id="print-content" style="padding: 0.1in;">${reportsHtml}</div></body></html>`);
+              printWindow.document.close();
+          }
+      } catch (err) { console.error(err); }
+  };
+  
   return (
     <div className="space-y-6">
         <Accordion type="multiple" className="w-full space-y-6">
@@ -313,6 +339,17 @@ export function AuditPlanList({
                             <span role="button">
                                 <Printer className="h-3.5 w-3.5" /> 
                                 Print Plan
+                            </span>
+                        </Button>
+                        <Button 
+                            asChild 
+                            variant="outline" 
+                            className="bg-white border-primary/20 text-primary font-black uppercase text-[9px] h-8 gap-2 cursor-pointer shadow-sm hover:bg-primary/5"
+                            onClick={() => handlePrintAuditTemplate(plan, planSchedules)}
+                        >
+                            <span role="button">
+                                <Printer className="h-3.5 w-3.5" /> 
+                                Print Audit Template
                             </span>
                         </Button>
                         <div className="w-px h-6 bg-border mx-1" />
