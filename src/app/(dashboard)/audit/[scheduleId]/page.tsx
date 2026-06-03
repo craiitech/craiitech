@@ -402,14 +402,14 @@ export default function AuditExecutionPage() {
     const clauseId = finding.isoClause;
     const type = finding.type;
     
-    // Choose appropriate source text. Fall back to description or evidence.
+    // Choose appropriate source text. Prioritize Detailed Description of Findings.
     let actualText = '';
     if (type === 'Compliance') {
-      actualText = finding.evidence || finding.description || '';
+      actualText = finding.description || finding.evidence || '';
     } else if (type === 'Observation for Improvement') {
-      actualText = finding.evidence || finding.description || '';
+      actualText = finding.description || finding.evidence || '';
     } else if (type === 'Non-Conformance') {
-      actualText = finding.ncStatement || finding.evidence || finding.description || '';
+      actualText = finding.ncStatement || finding.description || finding.evidence || '';
     } else {
       actualText = finding.description || finding.evidence || '';
     }
