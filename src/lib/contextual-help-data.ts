@@ -31,15 +31,16 @@ export const helpContent: Record<string, PageHelp> = {
   },
   '/dashboard?tab=overview': {
     title: 'Dashboard: Overview',
-    description: 'Real-time performance metrics and communication updates.',
+    description: 'Real-time EOMS Executive Health Index, Campus Standings, and Quality Insights.',
     steps: [
-      { title: 'Monitor KPIs', desc: 'Check Pending Approvals and Maturity scores for the selected year.' },
-      { title: 'Read Announcements', desc: 'Review the Communications Board for institutional alerts.' },
-      { title: 'Check Quality Gaps', desc: 'Address any highlighted Action Items (CARs, MR Decisions, or Accreditation Gaps).' }
+      { title: 'EOMS Health Index', desc: 'Monitor the composite quality score and its dynamic quality insights/bottlenecks.' },
+      { title: 'Campus/Dept Standings', desc: 'Compare verified EOMS submission compliance across physical sites or departments.' },
+      { title: 'Strategic SWOT', desc: 'Analyze derived institutional Strengths and Weaknesses right below the scores.' },
+      { title: 'Pillars & Bottlenecks', desc: 'Review individual QMS pillar scores and address high-priority alert cards.' }
     ],
     buttons: [
-      { label: 'View Year', labelShort: 'Year', action: 'Switches the analytical context of the dashboard.' },
-      { label: 'Print Log', labelShort: 'Print', action: 'Generates a report of assigned quality actions.' }
+      { label: 'View Year', labelShort: 'Year', action: 'Filters all dashboard metrics and trends to the selected year.' },
+      { label: 'Conduct IQA', labelShort: 'IQA', action: 'Direct shortcut link to the Internal Quality Audit hub.' }
     ]
   },
   '/dashboard?tab=analytics': {
@@ -56,7 +57,7 @@ export const helpContent: Record<string, PageHelp> = {
   },
   '/dashboard?tab=strategic': {
     title: 'Dashboard: Strategic Outlook',
-    description: 'Long-term trends and institutional maturity profiling.',
+    description: 'Long-term trends and institutional quality maturity profiling.',
     steps: [
       { title: 'Radar Profile', desc: 'Analyze balance across the 5 core EOMS quality pillars.' },
       { title: 'Trend Velocity', desc: 'Monitor Compliance Over Time to track institutional adoption.' },
@@ -64,6 +65,54 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [
       { label: 'Maturity Radar', labelShort: 'Radar', action: 'Visual map of quality assurance balance.' }
+    ]
+  },
+  '/dashboard?tab=ched-programs': {
+    title: 'Dashboard: CHED Programs',
+    description: 'Academic program compliance tracking and Certificate of Program Compliance (COPC) metrics.',
+    steps: [
+      { title: 'COPC Audit Rate', desc: 'Monitor the percentage of degree programs holding valid CHED COPCs.' },
+      { title: 'Faculty Alignment', desc: 'Verify faculty member qualifications against official CMO standards.' },
+      { title: 'AACCUP Status', desc: 'Track accreditation progress and survey cycles for all registered programs.' }
+    ],
+    buttons: [
+      { label: 'Filter Year', labelShort: 'Year', action: 'Narrows compliance data to the selected academic period.' }
+    ]
+  },
+  '/dashboard?tab=risk-opportunity': {
+    title: 'Dashboard: Risks & Opportunities',
+    description: 'Visualization of identified quality threats, opportunities, and mitigation velocity.',
+    steps: [
+      { title: 'Risk Control Index', desc: 'Track the ratio of mitigated and closed risk registers for the current year.' },
+      { title: 'Pre/Post Treatment', desc: 'Verify that residual risk rankings have successfully decreased to low levels.' },
+      { title: 'Strategic Register', desc: 'Review the master table of active threats to prioritize mitigation efforts.' }
+    ],
+    buttons: [
+      { label: 'Log Risk', labelShort: 'New', action: 'Shortcut to log a new risk entry into the digital register.' }
+    ]
+  },
+  '/dashboard?tab=corrective-actions': {
+    title: 'Dashboard: Corrective Actions',
+    description: 'Oversight of the institutional corrective action request (CAR) pipeline and bottlenecks.',
+    steps: [
+      { title: 'Pipeline Backlog', desc: 'Review status breakdowns (Open, Awaiting Response, For Verification, Closed).' },
+      { title: 'Aging & Overdue', desc: 'Identify critical open CARs exceeding the 90-day QMS verification limit.' },
+      { title: 'Top Units Workload', desc: 'Track departments with the highest corrective action burden to allocate assistance.' }
+    ],
+    buttons: [
+      { label: 'Print CARs', labelShort: 'Print', action: 'Generates the consolidated corrective action register report.' }
+    ]
+  },
+  '/dashboard?tab=actionable-decisions': {
+    title: 'Dashboard: Actionable Decisions',
+    description: 'Implementation status of actionable directives from Management Reviews (MR).',
+    steps: [
+      { title: 'MR Task Progress', desc: 'Monitor open, ongoing, and completed tasks assigned to campuses/units.' },
+      { title: 'Timeline Triage', desc: 'Identify pending review decisions that are past their target resolution dates.' },
+      { title: 'Sync Evidence', desc: 'Confirm unit accomplishments are supported by appropriate evidence uploads.' }
+    ],
+    buttons: [
+      { label: 'New Session', labelShort: 'Add', action: 'Registers a new Management Review session in the database.' }
     ]
   },
   '/dashboard?tab=actions': {
