@@ -851,6 +851,20 @@ export default function HomePage() {
         <TabsContent value="overview" className="space-y-6">
           <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
           
+          <ExecutiveOverview
+            submissions={submissions}
+            risks={risks}
+            cars={allCars}
+            allCompliances={allCompliances}
+            academicPrograms={academicPrograms}
+            schedules={dashboardSchedules}
+            units={allUnits}
+            campuses={campuses}
+            selectedYear={selectedYear}
+            scope="unit"
+            scopeId={userProfile?.unitId}
+          />
+          
           <UnitActionCenter 
              risks={risks}
              unitCars={unitCars}
@@ -1120,6 +1134,19 @@ export default function HomePage() {
       </div>
 
       <TabsContent value="overview" className="space-y-6">
+        <ExecutiveOverview
+          submissions={submissions}
+          risks={risks}
+          cars={allCars}
+          allCompliances={allCompliances}
+          academicPrograms={academicPrograms}
+          schedules={dashboardSchedules}
+          units={allUnits}
+          campuses={campuses}
+          selectedYear={selectedYear}
+          scope="campus"
+          scopeId={userProfile?.campusId}
+        />
         <UnitAuditSchedule
           schedules={dashboardSchedules}
           isLoading={isLoadingSchedules || isLoadingSubmissions}
@@ -1198,6 +1225,20 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      
+      <ExecutiveOverview
+        submissions={submissions}
+        risks={risks}
+        cars={allCars}
+        allCompliances={allCompliances}
+        academicPrograms={academicPrograms}
+        schedules={dashboardSchedules}
+        units={allUnits}
+        campuses={campuses}
+        selectedYear={selectedYear}
+        scope="unit"
+        scopeId={userProfile?.unitId}
+      />
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         {Object.entries(stats).map(([k, s]: any) => (

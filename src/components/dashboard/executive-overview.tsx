@@ -34,6 +34,8 @@ interface ExecutiveOverviewProps {
   units: Unit[] | null;
   campuses: Campus[] | null;
   selectedYear: number;
+  scope?: 'university' | 'campus' | 'unit';
+  scopeId?: string;
 }
 
 export function ExecutiveOverview({
@@ -45,36 +47,76 @@ export function ExecutiveOverview({
   schedules = [],
   units = [],
   campuses = [],
-  selectedYear
+  selectedYear,
+  scope = 'university',
+  scopeId
 }: ExecutiveOverviewProps) {
 
+  // Filter collections by scope
+  const { scopedSubmissions, scopedRisks, scopedCars, scopedCompliances, scopedPrograms, scopedSchedules, scopedUnits } = useMemo(() => {
+    let sub = submissions || [];
+    let rsk = risks || [];
+    let cr = cars || [];
+    let comp = allCompliances || [];
+    let prog = academicPrograms || [];
+    let sched = schedules || [];
+    let unt = units || [];
+
+    if (scope === 'campus' && scopeId) {
+      sub = sub.filter(s => s.campusId === scopeId);
+      rsk = rsk.filter(r => r.campusId === scopeId);
+      cr = cr.filter(c => c.campusId === scopeId);
+      comp = comp.filter(c => c.campusId === scopeId);
+      prog = prog.filter(p => p.campusId === scopeId);
+      sched = sched.filter(s => s.campusId === scopeId);
+      unt = unt.filter(u => u.campusIds?.includes(scopeId));
+    } else if (scope === 'unit' && scopeId) {
+      sub = sub.filter(s => s.unitId === scopeId);
+      rsk = rsk.filter(r => r.unitId === scopeId);
+      cr = cr.filter(c => c.unitId === scopeId);
+      comp = comp.filter(c => c.unitId === scopeId || c.programId === scopeId);
+      prog = prog.filter(p => p.id === scopeId);
+      sched = sched.filter(s => s.targetId === scopeId);
+      unt = unt.filter(u => u.id === scopeId);
+    }
+    return {
+      scopedSubmissions: sub,
+      scopedRisks: rsk,
+      scopedCars: cr,
+      scopedCompliances: comp,
+      scopedPrograms: prog,
+      scopedSchedules: sched,
+      scopedUnits: unt
+    };
+  }, [submissions, risks, cars, allCompliances, academicPrograms, schedules, units, scope, scopeId]);
+
   // 1. SUBMISSION COMPLIANCE RATE
-  const approvedSubs = useMemo(() => submissions?.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved') || [], [submissions, selectedYear]);
-  const pendingSubs = useMemo(() => submissions?.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'submitted') || [], [submissions, selectedYear]);
-  const expectedSubs = useMemo(() => (units?.length || 0) * 2, [units]); // 2 cycles per unit
+  const approvedSubs = useMemo(() => scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved'), [scopedSubmissions, selectedYear]);
+  const pendingSubs = useMemo(() => scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'submitted'), [scopedSubmissions, selectedYear]);
+  const expectedSubs = useMemo(() => scope === 'unit' ? 2 : (scopedUnits.length || 0) * 2, [scopedUnits, scope]); // 2 cycles per unit
   const submissionRate = useMemo(() => expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0, [approvedSubs, expectedSubs]);
 
   // 2. IQA PROGRESS RATE
-  const yearSchedules = useMemo(() => schedules?.filter(s => {
+  const yearSchedules = useMemo(() => scopedSchedules.filter(s => {
     if (!s.scheduledDate) return false;
     const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
     return date.getFullYear() === selectedYear;
-  }) || [], [schedules, selectedYear]);
+  }), [scopedSchedules, selectedYear]);
   const completedAudits = useMemo(() => yearSchedules.filter(s => s.status === 'Completed'), [yearSchedules]);
   const inProgressAudits = useMemo(() => yearSchedules.filter(s => s.status === 'In Progress'), [yearSchedules]);
   const iqaProgressRate = useMemo(() => yearSchedules.length > 0 ? Math.min(100, Math.round((completedAudits.length / yearSchedules.length) * 100)) : 0, [completedAudits, yearSchedules]);
 
   // 3. CORRECTIVE ACTION REQUEST (CAR) CLOSURE RATE
-  const yearCars = useMemo(() => cars?.filter(c => {
+  const yearCars = useMemo(() => scopedCars.filter(c => {
     if (!c.createdAt) return true;
     const date = c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
     return date.getFullYear() === selectedYear;
-  }) || cars || [], [cars, selectedYear]);
+  }), [scopedCars, selectedYear]);
   const closedCars = useMemo(() => yearCars.filter(c => c.status === 'Closed'), [yearCars]);
   const carResolutionRate = useMemo(() => yearCars.length > 0 ? Math.min(100, Math.round((closedCars.length / yearCars.length) * 100)) : 0, [closedCars, yearCars]);
 
   // 4. ACCREDITATION GAPS RESOLUTION RATE
-  const recommendationsList = useMemo(() => allCompliances?.reduce((acc: any[], c) => {
+  const recommendationsList = useMemo(() => scopedCompliances.reduce((acc: any[], c) => {
     c.accreditationRecords?.forEach(ar => {
       ar.recommendations?.forEach(rec => {
         acc.push({
@@ -85,17 +127,17 @@ export function ExecutiveOverview({
       });
     });
     return acc;
-  }, []) || [], [allCompliances, units]);
+  }, []) || [], [scopedCompliances, units]);
   const closedRecs = useMemo(() => recommendationsList.filter(r => r.status === 'Closed'), [recommendationsList]);
   const accreditationResolutionRate = useMemo(() => recommendationsList.length > 0 ? Math.min(100, Math.round((closedRecs.length / recommendationsList.length) * 100)) : 0, [closedRecs, recommendationsList]);
 
   // 5. CHED COPC RATE
-  const copcCompliant = useMemo(() => allCompliances?.filter(c => c.ched?.copcStatus === 'With COPC') || [], [allCompliances]);
-  const totalProgramsCount = useMemo(() => academicPrograms?.length || 0, [academicPrograms]);
+  const copcCompliant = useMemo(() => scopedCompliances.filter(c => c.ched?.copcStatus === 'With COPC'), [scopedCompliances]);
+  const totalProgramsCount = useMemo(() => scopedPrograms.length, [scopedPrograms]);
   const copcComplianceRate = useMemo(() => totalProgramsCount > 0 ? Math.min(100, Math.round((copcCompliant.length / totalProgramsCount) * 100)) : 0, [copcCompliant, totalProgramsCount]);
 
   // 6. RISK MITIGATION RATE
-  const yearRisks = useMemo(() => risks?.filter(r => r.year === selectedYear) || [], [risks, selectedYear]);
+  const yearRisks = useMemo(() => scopedRisks.filter(r => r.year === selectedYear), [scopedRisks, selectedYear]);
   const mitigatedRisks = useMemo(() => yearRisks.filter(r => r.status === 'Closed' || r.preTreatment?.rating === 'low' || r.postTreatment?.rating === 'low'), [yearRisks]);
   const riskControlRate = useMemo(() => yearRisks.length > 0 ? Math.min(100, Math.round((mitigatedRisks.length / yearRisks.length) * 100)) : 0, [mitigatedRisks, yearRisks]);
 
@@ -121,28 +163,195 @@ export function ExecutiveOverview({
 
   // EOMS Quality Status Text & Badge
   const statusDetails = useMemo(() => {
-    if (eomsQualityScore >= 85) return { text: 'Optimal Compliance', desc: 'The University exhibits outstanding alignment with EOMS standards.', color: 'text-emerald-600 border-emerald-200 bg-emerald-50' };
-    if (eomsQualityScore >= 65) return { text: 'Good standing', desc: 'System is stable, though minor compliance gaps require correction.', color: 'text-blue-600 border-blue-200 bg-blue-50' };
+    if (eomsQualityScore >= 85) return { text: 'Optimal Compliance', desc: scope === 'unit' ? 'The department exhibits outstanding alignment with EOMS standards.' : scope === 'campus' ? 'The campus exhibits outstanding alignment with EOMS standards.' : 'The University exhibits outstanding alignment with EOMS standards.', color: 'text-emerald-600 border-emerald-200 bg-emerald-50' };
+    if (eomsQualityScore >= 65) return { text: 'Good standing', desc: scope === 'unit' ? 'Department operations are stable, though minor gaps require correction.' : scope === 'campus' ? 'Campus is stable, though minor compliance gaps require correction.' : 'System is stable, though minor compliance gaps require correction.', color: 'text-blue-600 border-blue-200 bg-blue-50' };
     if (eomsQualityScore >= 45) return { text: 'Needs Improvement', desc: 'Active non-conformities and missing evidence registries detected.', color: 'text-amber-600 border-amber-200 bg-amber-50' };
-    return { text: 'Critical Attention Required', desc: 'Substantial compliance deficiencies found across several sites.', color: 'text-rose-600 border-rose-200 bg-rose-50' };
-  }, [eomsQualityScore]);
+    return { text: 'Critical Attention Required', desc: scope === 'unit' ? 'Substantial compliance deficiencies found in this department.' : scope === 'campus' ? 'Substantial compliance deficiencies found across campus departments.' : 'Substantial compliance deficiencies found across several sites.', color: 'text-rose-600 border-rose-200 bg-rose-50' };
+  }, [eomsQualityScore, scope]);
 
-  // Campus Comparison Submissions Rate
-  const campusSubmissionRates = useMemo(() => {
-    if (!campuses?.length) return [];
-    return campuses.map(campus => {
-      const campusApproved = submissions?.filter(s => s.campusId === campus.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
-      const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id)).length || 0;
-      const campusExpected = campusUnitsCount * 2;
-      const rate = campusExpected > 0 ? Math.min(100, Math.round((campusApproved / campusExpected) * 100)) : 0;
-      return {
-        name: campus.name,
-        approved: campusApproved,
-        expected: campusExpected,
-        rate
-      };
-    }).sort((a, b) => b.rate - a.rate);
-  }, [campuses, submissions, selectedYear, units]);
+  // Scoped standings/comparison rate
+  const complianceStandings = useMemo(() => {
+    if (scope === 'campus' && scopeId) {
+      // Find all units belonging to this campus
+      const campusUnits = units?.filter(u => u.campusIds?.includes(scopeId)) || [];
+      return campusUnits.map(unit => {
+        const unitApproved = submissions?.filter(s => s.unitId === unit.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
+        const expected = 2; // 2 cycles per unit
+        const rate = Math.min(100, Math.round((unitApproved / expected) * 100));
+        return {
+          name: unit.name,
+          approved: unitApproved,
+          expected,
+          rate
+        };
+      }).sort((a, b) => b.rate - a.rate);
+    } else if (scope === 'unit' && scopeId) {
+      return [];
+    } else {
+      // University scope
+      if (!campuses?.length) return [];
+      return campuses.map(campus => {
+        const campusApproved = submissions?.filter(s => s.campusId === campus.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
+        const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id)).length || 0;
+        const campusExpected = campusUnitsCount * 2;
+        const rate = campusExpected > 0 ? Math.min(100, Math.round((campusApproved / campusExpected) * 100)) : 0;
+        return {
+          name: campus.name,
+          approved: campusApproved,
+          expected: campusExpected,
+          rate
+        };
+      }).sort((a, b) => b.rate - a.rate);
+    }
+  }, [scope, scopeId, campuses, units, submissions, selectedYear]);
+
+  // Dynamic rule-based insights and recommendations (without using AI)
+  const insights = useMemo(() => {
+    const analysis: string[] = [];
+    const recommendations: string[] = [];
+
+    // 1. Analyze Submission Compliance
+    if (submissionRate === 100) {
+      analysis.push("Submission Compliance is optimal (100%).");
+    } else if (submissionRate >= 75) {
+      analysis.push(`Submission Compliance is good (${submissionRate}%), but some units are missing evidence logs.`);
+      recommendations.push("Ensure all outstanding unit evidence logs are submitted and approved.");
+    } else {
+      analysis.push(`Submission Compliance is critical (${submissionRate}%) due to multiple missing evidence registries.`);
+      recommendations.push("Urgent: Instruct all departments to submit their required cycle deliverables.");
+    }
+
+    // 2. Analyze Audits
+    if (yearSchedules.length > 0) {
+      const pendingAudits = yearSchedules.length - completedAudits.length;
+      if (iqaProgressRate === 100) {
+        analysis.push("All scheduled internal audits have been completed.");
+      } else if (iqaProgressRate >= 70) {
+        analysis.push(`IQA audit progress is satisfactory at ${iqaProgressRate}%.`);
+        recommendations.push(`Complete the remaining ${pendingAudits} scheduled internal quality audits (IQA).`);
+      } else {
+        analysis.push(`Internal quality audits are lagging heavily with only ${iqaProgressRate}% completed (${completedAudits.length}/${yearSchedules.length}).`);
+        recommendations.push(`Expedite the ${pendingAudits} pending internal quality audits (IQA) to document compliance findings.`);
+      }
+    }
+
+    // 3. Analyze CARs
+    if (yearCars.length > 0) {
+      const openCars = yearCars.length - closedCars.length;
+      if (carResolutionRate === 100) {
+        analysis.push("All Corrective Action Requests (CARs) are fully closed.");
+      } else if (carResolutionRate >= 60) {
+        analysis.push(`CAR resolution is at ${carResolutionRate}%.`);
+        recommendations.push(`Verify and close the remaining ${openCars} active Corrective Action Requests (CARs).`);
+      } else {
+        analysis.push(`A high volume of unresolved Corrective Action Requests (${openCars} open CARs) is holding back compliance health.`);
+        recommendations.push(`Follow up on the ${openCars} open CARs and request verification evidence from responsible offices.`);
+      }
+    }
+
+    // 4. Analyze Risks
+    if (yearRisks.length > 0) {
+      const unmitigated = yearRisks.length - mitigatedRisks.length;
+      if (riskControlRate === 100) {
+        analysis.push("All identified risks have verified treatment plans.");
+      } else if (riskControlRate >= 50) {
+        analysis.push(`Risk mitigation is moderate (${riskControlRate}%).`);
+        recommendations.push(`Implement treatment plans for the remaining ${unmitigated} unmitigated risk registers.`);
+      } else {
+        analysis.push(`Risk registers are largely untreated with only ${riskControlRate}% mitigated (${mitigatedRisks.length}/${yearRisks.length}).`);
+        recommendations.push(`Ensure mitigation actions and treatment evidence are logged for the ${unmitigated} open risks.`);
+      }
+    }
+
+    // 5. Analyze CHED COPC
+    if (totalProgramsCount > 0) {
+      const missingCopcCount = totalProgramsCount - copcCompliant.length;
+      if (copcComplianceRate === 100) {
+        analysis.push("All academic programs possess valid CHED COPC certificates.");
+      } else if (copcComplianceRate >= 75) {
+        analysis.push(`CHED COPC compliance is strong at ${copcComplianceRate}%.`);
+        if (missingCopcCount > 0) {
+          recommendations.push(`Apply for CHED COPC certificate for the remaining ${missingCopcCount} academic program(s).`);
+        }
+      } else {
+        analysis.push(`A significant number of programs (${missingCopcCount} out of ${totalProgramsCount}) lack CHED COPC certificates.`);
+        recommendations.push(`Initiate CHED quality reviews to obtain COPC status for the ${missingCopcCount} program(s) in need.`);
+      }
+    }
+
+    // 6. Analyze Accreditation Gaps
+    if (recommendationsList.length > 0) {
+      const openRecs = recommendationsList.length - closedRecs.length;
+      if (accreditationResolutionRate === 100) {
+        analysis.push("All accreditation recommendation gaps have been resolved.");
+      } else if (accreditationResolutionRate >= 50) {
+        analysis.push(`Accreditation recommendations are ${accreditationResolutionRate}% resolved.`);
+        recommendations.push(`Action and close the remaining ${openRecs} pending accreditation survey recommendations.`);
+      } else {
+        analysis.push(`None of the logged accreditation recommendation gaps have been resolved (0/${recommendationsList.length}).`);
+        recommendations.push(`Resolve and document compliance evidence for the ${openRecs} pending accreditation gaps.`);
+      }
+    }
+
+    // Construct explanation sentence
+    let overallExplanation = "";
+    if (eomsQualityScore >= 85) {
+      overallExplanation = "The system is in optimal health. Most quality gates are fully checked and verified.";
+    } else if (eomsQualityScore >= 65) {
+      overallExplanation = "The system is in good standing, but overall performance is capped by minor outstanding quality actions.";
+    } else {
+      // Find the two worst-performing metrics
+      const activeStats = [
+        { name: "Submission Compliance", rate: submissionRate, active: true },
+        { name: "IQA Audit Progress", rate: iqaProgressRate, active: yearSchedules.length > 0 },
+        { name: "CAR Resolution Rate", rate: carResolutionRate, active: yearCars.length > 0 },
+        { name: "Risk Control Index", rate: riskControlRate, active: yearRisks.length > 0 },
+        { name: "CHED COPC", rate: copcComplianceRate, active: totalProgramsCount > 0 },
+        { name: "Accreditation Gaps", rate: accreditationResolutionRate, active: recommendationsList.length > 0 }
+      ].filter(m => m.active).sort((a, b) => a.rate - b.rate);
+
+      if (activeStats.length > 0) {
+        const worst = activeStats[0];
+        const secondWorst = activeStats[1];
+        if (secondWorst) {
+          overallExplanation = `Performance is heavily constrained by low ${worst.name} (${worst.rate}%) and ${secondWorst.name} (${secondWorst.rate}%).`;
+        } else {
+          overallExplanation = `Performance is heavily constrained by low ${worst.name} (${worst.rate}%).`;
+        }
+      } else {
+        overallExplanation = "Active metrics are not fully populated, resulting in a low overall EOMS rating.";
+      }
+    }
+
+    // If no specific recommendations are compiled, add a generic one
+    if (recommendations.length === 0) {
+      recommendations.push("Maintain current compliance monitoring schedule and verified registries.");
+    }
+
+    return {
+      explanation: overallExplanation,
+      details: analysis,
+      recommendations
+    };
+  }, [
+    submissionRate,
+    iqaProgressRate,
+    carResolutionRate,
+    riskControlRate,
+    copcComplianceRate,
+    accreditationResolutionRate,
+    yearSchedules,
+    completedAudits,
+    yearCars,
+    closedCars,
+    yearRisks,
+    mitigatedRisks,
+    totalProgramsCount,
+    copcCompliant,
+    recommendationsList,
+    closedRecs,
+    eomsQualityScore
+  ]);
 
   // High-Priority EOMS Bottlenecks
   const bottlenecks = useMemo(() => {
@@ -196,8 +405,8 @@ export function ExecutiveOverview({
     }
 
     // 5. Missing COPCs
-    const nonCopc = academicPrograms?.filter(ap => {
-      const comp = allCompliances?.find(c => c.programId === ap.id);
+    const nonCopc = scopedPrograms.filter(ap => {
+      const comp = scopedCompliances.find(c => c.programId === ap.id);
       return !comp || comp.ched?.copcStatus === 'No COPC';
     }) || [];
     if (nonCopc.length > 0) {
@@ -211,24 +420,27 @@ export function ExecutiveOverview({
     }
 
     return alerts.slice(0, 4); // Limit to top 4 alerts
-  }, [yearCars, yearRisks, inProgressAudits, recommendationsList, academicPrograms, allCompliances]);
+  }, [yearCars, yearRisks, inProgressAudits, recommendationsList, scopedPrograms, scopedCompliances]);
 
   return (
     <div className="space-y-6">
-      {/* SECTION 1: Health Index Gauge & Campus comparison */}
+      {/* SECTION 1: Health Index Gauge & Campus/Department comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
         
         {/* EQI SCORECARD */}
-        <Card className="lg:col-span-4 border-primary/20 bg-white shadow-lg overflow-hidden flex flex-col justify-between">
+        <Card className={cn(
+          "border-primary/20 bg-white shadow-lg overflow-hidden flex flex-col justify-between",
+          scope === 'unit' ? "lg:col-span-7" : "lg:col-span-4"
+        )}>
           <CardHeader className="bg-primary/5 pb-4 border-b">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                  EOMS Executive Health Score
+                  {scope === 'unit' ? 'Unit EOMS Quality Score' : scope === 'campus' ? 'Campus EOMS Health Score' : 'EOMS Executive Health Score'}
                 </CardTitle>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
-                  University-Wide Quality Performance Index
+                  {scope === 'unit' ? 'Departmental Quality Performance Index' : scope === 'campus' ? 'Site Quality Performance Index' : 'University-Wide Quality Performance Index'}
                 </CardDescription>
               </div>
               <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2.5 py-1 border rounded-full shadow-xs", statusDetails.color)}>
@@ -287,52 +499,78 @@ export function ExecutiveOverview({
             </div>
           </CardContent>
 
+          {/* INSIGHTS & ACTION PLAN */}
+          <div className="border-t border-slate-100 bg-slate-50/50 p-6 space-y-4">
+            <div>
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">EOMS Quality Insights</h4>
+              <p className="text-xs font-semibold text-slate-700 mt-1 leading-relaxed">
+                {insights.explanation}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <h5 className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Required Actions to Improve Score</h5>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 list-none">
+                {insights.recommendations.map((rec, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-[10px] font-bold text-slate-600">
+                    <span className="text-amber-500 font-extrabold select-none mt-0.5">•</span>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           <CardFooter className="bg-primary/5 border-t py-3 px-6 text-[10px] font-medium text-slate-500 italic">
             {statusDetails.desc}
           </CardFooter>
         </Card>
 
-        {/* CAMPUS PERFORMANCE COMPARISON */}
-        <Card className="lg:col-span-3 border-primary/20 bg-white shadow-lg flex flex-col justify-between">
-          <CardHeader className="bg-primary/5 pb-4 border-b">
-            <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 flex items-center gap-2">
-              <Building className="h-5 w-5 text-indigo-600" />
-              Campus Compliance standings
-            </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
-              Comparative submission rates per site for {selectedYear}
-            </CardDescription>
-          </CardHeader>
+        {/* STANDINGS COMPARISON */}
+        {scope !== 'unit' && (
+          <Card className="lg:col-span-3 border-primary/20 bg-white shadow-lg flex flex-col justify-between">
+            <CardHeader className="bg-primary/5 pb-4 border-b">
+              <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 flex items-center gap-2">
+                <Building className="h-5 w-5 text-indigo-600" />
+                {scope === 'campus' ? 'Department Standings' : 'Campus Standings'}
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
+                {scope === 'campus' 
+                  ? `Comparative submission rates per unit/dept` 
+                  : `Comparative submission rates per site`}
+              </CardDescription>
+            </CardHeader>
 
-          <CardContent className="pt-6 pb-4 space-y-4">
-            {campusSubmissionRates.map((cRate, idx) => (
-              <div key={idx} className="space-y-1.5">
-                <div className="flex justify-between items-center text-[10px] font-bold">
-                  <span className="text-slate-800 uppercase truncate max-w-[170px]">{cRate.name}</span>
-                  <span className="text-slate-900 font-black">{cRate.rate}% <span className="text-slate-400 font-medium font-mono text-[9px]">({cRate.approved}/{cRate.expected})</span></span>
+            <CardContent className="pt-6 pb-4 space-y-4 max-h-[220px] overflow-y-auto">
+              {complianceStandings.map((cRate, idx) => (
+                <div key={idx} className="space-y-1.5">
+                  <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-slate-800 uppercase truncate max-w-[170px]">{cRate.name}</span>
+                    <span className="text-slate-900 font-black">{cRate.rate}% <span className="text-slate-400 font-medium font-mono text-[9px]">({cRate.approved}/{cRate.expected})</span></span>
+                  </div>
+                  <div className="relative w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        cRate.rate >= 80 ? "bg-emerald-500" : cRate.rate >= 60 ? "bg-blue-500" : cRate.rate >= 40 ? "bg-amber-500" : "bg-rose-500"
+                      )}
+                      style={{ width: `${cRate.rate}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="relative w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      cRate.rate >= 80 ? "bg-emerald-500" : cRate.rate >= 60 ? "bg-blue-500" : cRate.rate >= 40 ? "bg-amber-500" : "bg-rose-500"
-                    )}
-                    style={{ width: `${cRate.rate}%` }}
-                  />
+              ))}
+              {complianceStandings.length === 0 && (
+                <div className="py-12 text-center opacity-40 text-[10px] font-bold uppercase text-slate-500">
+                  No datasets recorded
                 </div>
-              </div>
-            ))}
-            {campusSubmissionRates.length === 0 && (
-              <div className="py-12 text-center opacity-40 text-[10px] font-bold uppercase text-slate-500">
-                No campus datasets recorded
-              </div>
-            )}
-          </CardContent>
+              )}
+            </CardContent>
 
-          <CardFooter className="bg-primary/5 border-t py-3 px-6 text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
-            Ranked by percentage of verified approved submissions
-          </CardFooter>
-        </Card>
+            <CardFooter className="bg-primary/5 border-t py-3 px-6 text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+              Ranked by percentage of verified approved submissions
+            </CardFooter>
+          </Card>
+        )}
 
       </div>
 
