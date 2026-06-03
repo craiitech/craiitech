@@ -180,8 +180,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isVp = roleLower.includes('vice president');
     const isAuditor = roleLower.includes('auditor');
     
-    // Anyone with "Director" or "ODIMO" in their role is an oversight supervisor
-    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo');
+    // Anyone with "Director", "ODIMO", "President", or "Head" in their role is an oversight supervisor
+    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head');
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(

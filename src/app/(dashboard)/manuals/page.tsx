@@ -133,7 +133,7 @@ export default function ProcedureManualsPage() {
     
     if (!isAdmin && userRole !== 'Auditor') {
         filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
-        if (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') {
+        if (!isSupervisor || userRole === 'Unit ODIMO') {
             filtered = filtered.filter(u => u.id === userProfile.unitId);
         }
     }

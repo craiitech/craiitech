@@ -195,9 +195,16 @@ export function SidebarNav({
     if (!route.roles) return true;
     if (isAdmin && route.roles.includes('Admin')) return true;
     if (userRole) {
-        const isVp = userRole.toLowerCase().includes('vice president');
+        const roleLower = userRole.toLowerCase();
+        const isVp = roleLower.includes('vice president');
+        const isPresident = roleLower.includes('president');
+        const isQmsHead = roleLower.includes('quality management system head') || roleLower.includes('qms head');
+        
         if (route.roles.includes(userRole)) return true;
         if (isVp && route.roles.includes('Vice President')) return true;
+        if (isPresident && (route.roles.includes('Vice President') || route.roles.includes('Campus Director') || route.roles.includes('Admin'))) return true;
+        if (isQmsHead && (route.roles.includes('Campus Director') || route.roles.includes('Admin'))) return true;
+        if (userRole === 'Faculty' && (route.roles.includes('Unit Coordinator') || route.roles.includes('Unit ODIMO'))) return true;
     }
     return false;
   });

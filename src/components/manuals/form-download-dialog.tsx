@@ -66,6 +66,19 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
   const onSubmit = async (values: z.infer<typeof downloadSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
+    
+    // Open a blank window synchronously to satisfy the browser's popup blocker rules
+    const downloadWindow = window.open('', '_blank');
+    if (downloadWindow) {
+      downloadWindow.document.title = "Opening Form...";
+      downloadWindow.document.body.innerHTML = `
+        <div style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f8fafc; color: #0f172a; margin: 0;">
+          <div style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Authorizing Access</div>
+          <div style="font-size: 0.875rem; color: #64748b;">Please wait while we register this request...</div>
+        </div>
+      `;
+    }
+
     try {
       const logData = {
         unitId,
@@ -79,12 +92,20 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
 
       await addDoc(collection(firestore, 'formDownloadLogs'), logData);
       
-      window.open(form.googleDriveLink, '_blank');
+      if (downloadWindow) {
+        downloadWindow.location.href = form.googleDriveLink;
+      } else {
+        // Fallback if popup blocker still blocked it initially
+        window.open(form.googleDriveLink, '_blank');
+      }
       
       toast({ title: 'Link Authorized', description: 'Institutional form link has been opened in a new tab.' });
       onOpenChange(false);
     } catch (error) {
       console.error(error);
+      if (downloadWindow) {
+        downloadWindow.close();
+      }
       toast({ title: 'Request Failed', description: 'Could not authorize the download link.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);

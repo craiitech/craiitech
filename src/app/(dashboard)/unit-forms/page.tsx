@@ -67,7 +67,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function UnitFormsPage() {
-  const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
+  const { userProfile, isAdmin, userRole, isUserLoading, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -151,7 +151,7 @@ export default function UnitFormsPage() {
     
     if (!isAdmin && userRole !== 'Auditor') {
         filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
-        if (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') {
+        if (!isSupervisor || userRole === 'Unit ODIMO') {
             filtered = filtered.filter(u => u.id === userProfile.unitId);
         }
     }
@@ -166,7 +166,7 @@ export default function UnitFormsPage() {
     const hasAcademic = allUnits.some(u => u.category === 'Academic');
     if (hasAcademic) {
         const myUnit = allUnits.find(u => u.id === userProfile.unitId);
-        const canSeeAcademic = isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic';
+        const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
         
         if (canSeeAcademic) {
             items.push({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
@@ -174,7 +174,7 @@ export default function UnitFormsPage() {
     }
 
     return items.sort((a, b) => (a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name)));
-  }, [allUnits, userProfile, isAdmin, userRole, isUserLoading, searchTerm]);
+  }, [allUnits, userProfile, isAdmin, userRole, isSupervisor, isUserLoading, searchTerm]);
 
   useEffect(() => {
     if (userProfile && !isUserLoading && !isAdmin && allUnits && allUnits.length > 0) {

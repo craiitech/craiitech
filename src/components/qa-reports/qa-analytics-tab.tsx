@@ -65,7 +65,7 @@ export function QaAnalyticsTab() {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
 
-  const isInstitutionalViewer = isAdmin || userRole === 'Auditor';
+  const isInstitutionalViewer = isAdmin || userRole === 'Auditor' || userRole?.toLowerCase().includes('president') || userRole?.toLowerCase().includes('quality management') || userRole?.toLowerCase().includes('qms');
 
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;

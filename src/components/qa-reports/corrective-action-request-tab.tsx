@@ -127,7 +127,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState('all');
 
-  const isInstitutionalViewer = isAdmin || isAuditor;
+  const isInstitutionalViewer = isAdmin || isAuditor || userRole?.toLowerCase().includes('president') || userRole?.toLowerCase().includes('quality management') || userRole?.toLowerCase().includes('qms');
 
   const carQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null), [firestore]);
   const { data: rawCars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);

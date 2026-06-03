@@ -66,7 +66,7 @@ export default function AcademicProgramsPage() {
   // Institutional Oversight roles see everything.
   const isGlobalViewer = isAdmin || isVp || isAuditor;
   const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO' || userRole === 'Faculty';
 
   const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator'));
 

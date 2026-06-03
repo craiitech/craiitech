@@ -120,7 +120,7 @@ export default function SubmissionsPage() {
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
 
-  const isInstitutionalViewer = isAdmin || isAuditor || isVp;
+  const isInstitutionalViewer = isAdmin || isAuditor || isVp || userRole?.toLowerCase().includes('president') || userRole?.toLowerCase().includes('quality management') || userRole?.toLowerCase().includes('qms');
 
   useEffect(() => {
     if (userProfile && !isUserLoading) {

@@ -1,4 +1,4 @@
-﻿
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -145,7 +145,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const processedOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
     
-    const isInstitutionalViewer = isAdmin || isAuditor;
+    const isInstitutionalViewer = isAdmin || isAuditor || userRole?.toLowerCase().includes('president') || userRole?.toLowerCase().includes('quality management') || userRole?.toLowerCase().includes('qms');
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 

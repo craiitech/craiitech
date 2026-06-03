@@ -46,7 +46,9 @@ export default function ApprovalsPage() {
     if (!firestore || !userProfile || !isSupervisor) return null;
     const baseRef = collection(firestore, 'submissions');
     
-    if (isAdmin) {
+    const isGlobalViewer = isAdmin || userRole?.toLowerCase().includes('president') || userRole?.toLowerCase().includes('quality management') || userRole?.toLowerCase().includes('qms');
+    
+    if (isGlobalViewer) {
         return query(baseRef, where('statusId', '==', 'submitted'));
     }
     
@@ -55,7 +57,7 @@ export default function ApprovalsPage() {
         where('statusId', '==', 'submitted'),
         where('campusId', '==', userProfile.campusId)
     );
-  }, [firestore, userProfile, isAdmin, isSupervisor]);
+  }, [firestore, userProfile, isAdmin, isSupervisor, userRole]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
