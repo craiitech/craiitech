@@ -207,7 +207,7 @@ export default function ProcedureManualsPage() {
     : '';
 
   return (
-    <div className="space-y-4">
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
       {/* Header tab switcher */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -316,7 +316,7 @@ export default function ProcedureManualsPage() {
               </div>
 
               <div className="flex-1 overflow-hidden pt-4">
-                <Tabs value={currentTab} className="h-full m-0">
+                <div className="h-full m-0">
                   {/* TAB 1: VIEW MANUAL */}
                   <TabsContent value="view" className="h-full m-0 animate-in fade-in duration-300">
                     <Card className="h-full flex flex-col shadow-md border-primary/10 overflow-hidden">
@@ -450,7 +450,7 @@ export default function ProcedureManualsPage() {
                       </div>
                     </ScrollArea>
                   </TabsContent>
-                </Tabs>
+                </div>
               </div>
             </div>
           ) : (
@@ -561,6 +561,6 @@ export default function ProcedureManualsPage() {
           }}
         />
       )}
-    </div>
+    </Tabs>
   );
 }
