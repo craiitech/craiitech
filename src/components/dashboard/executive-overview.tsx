@@ -541,7 +541,7 @@ export function ExecutiveOverview({
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="pt-6 pb-4 space-y-4 max-h-[220px] overflow-y-auto">
+            <CardContent className="pt-6 pb-4 space-y-4 flex-1 overflow-y-auto">
               {complianceStandings.map((cRate, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <div className="flex justify-between items-center text-[10px] font-bold">
