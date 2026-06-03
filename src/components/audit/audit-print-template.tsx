@@ -128,9 +128,6 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                         <div className="space-y-3 pl-2">
                             <p className="font-bold">1.</p>
                             <p className="font-bold">2.</p>
-                            <p className="font-bold">3.</p>
-                            <p className="font-bold">4.</p>
-                            <p className="font-bold">5.</p>
                         </div>
                     ) : (
                         <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>
