@@ -197,7 +197,7 @@ function calculateEomsScore(
   // 1. SUBMISSION COMPLIANCE RATE
   const approvedSubs = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
   const expectedSubs = scope === 'unit' ? 2 : (scopedUnits.length || 1) * 2;
-  const submissionRate = expectedSubs > 0 ? Math.round((approvedSubs.length / expectedSubs) * 100) : 0;
+  const submissionRate = expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0;
 
   // 2. IQA PROGRESS RATE
   const yearSchedules = scopedSchedules.filter(s => {
