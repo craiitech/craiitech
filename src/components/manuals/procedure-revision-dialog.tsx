@@ -342,7 +342,7 @@ export function ProcedureRevisionDialog({
                 type="button" 
                 variant="ghost" 
                 size="icon" 
-                className="absolute top-2 right-2 text-destructive h-7 w-7 hover:bg-destructive/10 hover:text-destructive z-10" 
+                className="absolute top-2 right-2 text-destructive h-7 w-7 hover:bg-destructive/10 hover:text-destructive z-30" 
                 onClick={() => remove(index)}
               >
                 <Trash2 className="h-4 w-4" />
