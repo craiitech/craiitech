@@ -36,7 +36,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
   const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
 
   return (
-    <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
+    <div className="text-black bg-white mx-auto leading-tight print:p-0" style={{ width: '7.5in', fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
       <style>{`
         @media print {
           tr, td {
@@ -94,15 +94,17 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       {/* Main Evidence Log Table (using Flexbox to prevent Chrome print page-break bugs) */}
       <div className="w-full mb-6" style={{ fontSize: '11pt' }}>
         {/* Header */}
-        <div className={cn("flex w-full border-2 border-black bg-white font-black uppercase box-border", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>
-          <div className="w-[12%] border-r-2 border-black p-2 text-center flex items-center justify-center shrink-0 box-border">
-            ISO 21001:2018
+        <div className="flex w-full border-2 border-black bg-white font-bold uppercase box-border text-[10pt]">
+          <div className="w-[12%] border-r-2 border-black p-2 text-center flex flex-col items-center justify-center shrink-0 box-border">
+            <div>ISO</div>
+            <div>21001:2018</div>
           </div>
-          <div className="w-[70%] border-r-2 border-black p-2 text-left flex items-center flex-1 box-border">
+          <div className="w-[70%] border-r-2 border-black p-2 text-center flex items-center justify-center flex-1 box-border">
             REQUIREMENTS & OBSERVATIONS (OBJECTIVE EVIDENCE)
           </div>
-          <div className="w-[18%] p-2 text-center flex items-center justify-center shrink-0 box-border">
-            FINDINGS (C, NC, OFI)
+          <div className="w-[18%] p-2 text-center flex flex-col items-center justify-center shrink-0 box-border">
+            <div>FINDINGS</div>
+            <div>(C, NC, OFI)</div>
           </div>
         </div>
 
@@ -117,87 +119,66 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
               className="flex w-full border-x-2 border-b-2 border-black bg-white box-border" 
               style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
             >
-              <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-3 shrink-0 box-border">
+              <div className="w-[12%] border-r-2 border-black p-2 text-center font-bold flex items-center justify-center shrink-0 box-border text-[11pt]">
                 {clause.id}
               </div>
-              <div className="w-[70%] border-r-2 border-black p-3 align-top space-y-3 flex-1 box-border">
-                <div className="space-y-2">
-                  <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
-                  <ul 
-                    className={cn(
-                      "pl-6 text-slate-800 font-bold",
-                      isBlankTemplate ? "space-y-0.5" : "space-y-1.5 leading-relaxed"
-                    )}
-                    style={{ 
-                      fontSize: isBlankTemplate ? '11pt' : '10pt', 
-                      lineHeight: isBlankTemplate ? '1.2' : undefined 
-                    }}
-                  >
-                      {questions.map((q, i) => <li key={i}>{q}</li>)}
-                  </ul>
+              <div className="w-[70%] border-r-2 border-black p-3.5 align-top space-y-3.5 flex-1 box-border">
+                <div className="space-y-1.5">
+                  <p className="font-bold uppercase text-black" style={{ fontSize: '11pt' }}>{clause.title}</p>
+                  <div className="space-y-1 text-black font-normal" style={{ fontSize: '11pt', lineHeight: '1.2' }}>
+                    {questions.map((q, i) => (
+                      <div key={i} className="flex items-start gap-2 pl-1">
+                        <span className="shrink-0">•</span>
+                        <span>{q}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                
-                <div style={{ borderTop: '1px solid #e2e8f0', margin: '10px 0' }} />
 
-                <div className={cn("pt-2", isBlankTemplate ? "min-h-[90px]" : "min-h-[60px]")}>
-                  <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
+                <div className={cn("pt-1", isBlankTemplate ? "min-h-[85px]" : "min-h-[55px]")}>
+                  <p className="font-bold uppercase text-black mb-1" style={{ fontSize: '11pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                   {isBlankTemplate ? (
-                      <div className="space-y-2 pl-2 mt-1.5">
-                          <div className="flex items-end gap-2 h-6">
-                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>1.</span>
-                              <div className="flex-1 border-b border-black/40 mb-1" />
-                          </div>
-                          <div className="flex items-end gap-2 h-6">
-                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>2.</span>
-                              <div className="flex-1 border-b border-black/40 mb-1" />
-                          </div>
-                          <div className="flex items-end gap-2 h-6">
-                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>3.</span>
-                              <div className="flex-1 border-b border-black/40 mb-1" />
-                          </div>
+                      <div className="space-y-6 pl-1 mt-1 font-normal text-black" style={{ fontSize: '11pt' }}>
+                          <div>1.</div>
+                          <div>2.</div>
+                          <div>3.</div>
                       </div>
                   ) : (
-                      <p className="whitespace-pre-wrap leading-relaxed">{finding?.evidence || ""}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed font-normal" style={{ fontSize: '11pt' }}>{finding?.evidence || ""}</p>
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 mt-2">
-                   <p className="font-black uppercase text-slate-900 mb-1" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>Finding Statement:</p>
+                <div className="pt-1">
+                   <p className="font-bold text-black mb-1" style={{ fontSize: '11pt' }}>Finding Statement</p>
                    {isBlankTemplate ? (
-                      <div className="space-y-2 pl-2 mt-1.5">
-                          <div className="flex items-end gap-2 h-6">
-                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>1.</span>
-                              <div className="flex-1 border-b border-black/40 mb-1" />
-                          </div>
-                          <div className="flex items-end gap-2 h-6">
-                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>2.</span>
-                              <div className="flex-1 border-b border-black/40 mb-1" />
-                          </div>
+                      <div className="space-y-6 pl-1 mt-1 font-normal text-black" style={{ fontSize: '11pt' }}>
+                          <div>1.</div>
+                          <div>2.</div>
                       </div>
                    ) : (
-                      <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>
+                      <p className="italic leading-relaxed font-normal" style={{ fontSize: '11pt' }}>{finding?.ncStatement || finding?.description || ""}</p>
                    )}
                 </div>
               </div>
-              <div className="w-[18%] p-3 flex flex-col justify-center shrink-0 box-border">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                      <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
-                          {finding?.type === 'Compliance' && <Check className="h-4 w-4 text-white" />}
+              <div className="w-[18%] p-3 flex flex-col justify-center items-center shrink-0 box-border select-none">
+                <div className="space-y-3.5 font-normal text-black w-fit" style={{ fontSize: '11pt' }}>
+                  <div className="flex items-center gap-2">
+                      <div className="border border-black flex-shrink-0" style={{ width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? '#000' : 'transparent' }}>
+                          {finding?.type === 'Compliance' && <Check className="h-3 w-3 text-white" />}
                       </div>
-                      <span className={cn("font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>Compliant</span>
+                      <span>Compliant</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                      <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
-                          {finding?.type === 'Observation for Improvement' && <Check className="h-4 w-4 text-white" />}
+                  <div className="flex items-center gap-2">
+                      <div className="border border-black flex-shrink-0" style={{ width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? '#000' : 'transparent' }}>
+                          {finding?.type === 'Observation for Improvement' && <Check className="h-3 w-3 text-white" />}
                       </div>
-                      <span className={cn("font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>OFI</span>
+                      <span>OFI</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                      <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
-                          {finding?.type === 'Non-Conformance' && <Check className="h-4 w-4 text-white" />}
+                  <div className="flex items-center gap-2">
+                      <div className="border border-black flex-shrink-0" style={{ width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? '#000' : 'transparent' }}>
+                          {finding?.type === 'Non-Conformance' && <Check className="h-3 w-3 text-white" />}
                       </div>
-                      <span className={cn("font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>NC</span>
+                      <span>NC</span>
                   </div>
                 </div>
               </div>
