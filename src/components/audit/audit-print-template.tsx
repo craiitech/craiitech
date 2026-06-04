@@ -35,6 +35,17 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
   return (
     <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
+      <style>{`
+        @media print {
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          table {
+            page-break-inside: auto;
+          }
+        }
+      `}</style>
       {/* Institutional Branding Header */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
@@ -93,7 +104,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
             const questions = clauseQuestions[clause.id] || [];
             
             return (
-              <tr key={clause.id} className="break-inside-avoid">
+              <tr key={clause.id} className="break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                 <td className="border-2 border-black p-2 text-center font-black align-top pt-4">
                   {clause.id}
                 </td>
@@ -110,12 +121,19 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                   <div className={cn("pt-4", isBlankTemplate ? "min-h-[140px]" : "min-h-[80px]")}>
                     <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                     {isBlankTemplate ? (
-                        <div className="space-y-3 pl-2">
-                            <p className="font-bold">1.</p>
-                            <p className="font-bold">2.</p>
-                            <p className="font-bold">3.</p>
-                            <p className="font-bold">4.</p>
-                            <p className="font-bold">5.</p>
+                        <div className="space-y-4 pl-2 mt-2">
+                            <div className="flex items-end gap-2 h-7">
+                                <span className="font-bold text-xs shrink-0">1.</span>
+                                <div className="flex-1 border-b border-black/40 mb-1" />
+                            </div>
+                            <div className="flex items-end gap-2 h-7">
+                                <span className="font-bold text-xs shrink-0">2.</span>
+                                <div className="flex-1 border-b border-black/40 mb-1" />
+                            </div>
+                            <div className="flex items-end gap-2 h-7">
+                                <span className="font-bold text-xs shrink-0">3.</span>
+                                <div className="flex-1 border-b border-black/40 mb-1" />
+                            </div>
                         </div>
                     ) : (
                         <p className="whitespace-pre-wrap leading-relaxed">{finding?.evidence || ""}</p>
@@ -125,9 +143,15 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                   <div className="pt-4 border-t border-slate-100 mt-4">
                      <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: '9pt' }}>Finding Statement:</p>
                      {isBlankTemplate ? (
-                        <div className="space-y-3 pl-2">
-                            <p className="font-bold">1.</p>
-                            <p className="font-bold">2.</p>
+                        <div className="space-y-4 pl-2 mt-2">
+                            <div className="flex items-end gap-2 h-7">
+                                <span className="font-bold text-xs shrink-0">1.</span>
+                                <div className="flex-1 border-b border-black/40 mb-1" />
+                            </div>
+                            <div className="flex items-end gap-2 h-7">
+                                <span className="font-bold text-xs shrink-0">2.</span>
+                                <div className="flex-1 border-b border-black/40 mb-1" />
+                            </div>
                         </div>
                     ) : (
                         <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>
