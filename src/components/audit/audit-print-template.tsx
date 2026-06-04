@@ -117,16 +117,16 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
               className="flex w-full border-x-2 border-b-2 border-black bg-white box-border" 
               style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
             >
-              <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-4 shrink-0 box-border">
+              <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-3 shrink-0 box-border">
                 {clause.id}
               </div>
-              <div className="w-[70%] border-r-2 border-black p-4 align-top space-y-4 flex-1 box-border">
+              <div className="w-[70%] border-r-2 border-black p-3 align-top space-y-3 flex-1 box-border">
                 <div className="space-y-2">
                   <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
                   <ul 
                     className={cn(
                       "pl-6 text-slate-800 font-bold",
-                      isBlankTemplate ? "space-y-1" : "space-y-1.5 leading-relaxed"
+                      isBlankTemplate ? "space-y-0.5" : "space-y-1.5 leading-relaxed"
                     )}
                     style={{ 
                       fontSize: isBlankTemplate ? '11pt' : '10pt', 
@@ -137,21 +137,21 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                   </ul>
                 </div>
                 
-                <div style={{ borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
+                <div style={{ borderTop: '1px solid #e2e8f0', margin: '10px 0' }} />
 
-                <div className={cn("pt-4", isBlankTemplate ? "min-h-[140px]" : "min-h-[80px]")}>
-                  <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
+                <div className={cn("pt-2", isBlankTemplate ? "min-h-[90px]" : "min-h-[60px]")}>
+                  <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                   {isBlankTemplate ? (
-                      <div className="space-y-4 pl-2 mt-2">
-                          <div className="flex items-end gap-2 h-7">
+                      <div className="space-y-2 pl-2 mt-1.5">
+                          <div className="flex items-end gap-2 h-6">
                               <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>1.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
-                          <div className="flex items-end gap-2 h-7">
+                          <div className="flex items-end gap-2 h-6">
                               <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>2.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
-                          <div className="flex items-end gap-2 h-7">
+                          <div className="flex items-end gap-2 h-6">
                               <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>3.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
@@ -161,15 +161,15 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 mt-4">
-                   <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>Finding Statement:</p>
+                <div className="pt-2 border-t border-slate-100 mt-2">
+                   <p className="font-black uppercase text-slate-900 mb-1" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>Finding Statement:</p>
                    {isBlankTemplate ? (
-                      <div className="space-y-4 pl-2 mt-2">
-                          <div className="flex items-end gap-2 h-7">
+                      <div className="space-y-2 pl-2 mt-1.5">
+                          <div className="flex items-end gap-2 h-6">
                               <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>1.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
-                          <div className="flex items-end gap-2 h-7">
+                          <div className="flex items-end gap-2 h-6">
                               <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>2.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
@@ -179,8 +179,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                    )}
                 </div>
               </div>
-              <div className="w-[18%] p-4 align-top pt-20 shrink-0 box-border">
-                <div className="space-y-6">
+              <div className="w-[18%] p-3 flex flex-col justify-center shrink-0 box-border">
+                <div className="space-y-3">
                   <div className="flex items-center gap-3">
                       <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
                           {finding?.type === 'Compliance' && <Check className="h-4 w-4 text-white" />}
