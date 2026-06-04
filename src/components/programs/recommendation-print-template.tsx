@@ -12,6 +12,8 @@ interface AccreditationRecommendationReportProps {
     surveyDate?: string;
     recommendation: AccreditationRecommendation;
     certificateLink?: string;
+    college?: string;
+    campus?: string;
   }[];
   unitMap: Map<string, string>;
   scope: 'institutional' | 'program' | 'unit';
@@ -53,9 +55,9 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
       <table className="w-full border-collapse border-2 border-black mb-12">
         <thead>
           <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[18%]" style={{ fontSize: '9pt' }}>Program Offering</th>
+            <th className="border border-black p-2 w-[22%]" style={{ fontSize: '9pt' }}>Program Offering</th>
             <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>Type</th>
-            <th className="border border-black p-2 w-[34%]" style={{ fontSize: '9pt' }}>Accreditor's Recommendation</th>
+            <th className="border border-black p-2 w-[30%]" style={{ fontSize: '9pt' }}>Accreditor's Recommendation</th>
             <th className="border border-black p-2 w-[18%]" style={{ fontSize: '9pt' }}>Assigned Responsibility (Offices)</th>
             <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>Status</th>
             <th className="border border-black p-2 text-center" style={{ fontSize: '8pt' }}>Evidence / Initials</th>
@@ -65,10 +67,12 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
           {items.map((item, i) => (
             <tr key={i} className="border-b border-black">
               <td className="border border-black p-2 align-top">
-                <p className="font-black leading-tight uppercase" style={{ fontSize: '9pt' }}>{item.programName}</p>
-                <p className="text-slate-500 mt-1 uppercase font-bold" style={{ fontSize: '8pt' }}>
-                    {item.level} | {item.surveyDate || 'TBA'}
-                </p>
+                <p className="font-black leading-tight uppercase text-slate-900" style={{ fontSize: '9.5pt' }}>{item.programName}</p>
+                <div className="text-slate-600 mt-1 font-bold uppercase space-y-0.5" style={{ fontSize: '8pt' }}>
+                    {item.college && <p>College: {item.college}</p>}
+                    {item.campus && <p>Campus: {item.campus}</p>}
+                    <p>{item.level} | {item.surveyDate || 'TBA'}</p>
+                </div>
                 {item.certificateLink && (
                   <div className="mt-2 pt-1 border-t border-slate-200">
                     <a href={item.certificateLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline font-bold uppercase tracking-tight text-[7.5pt] block hover:text-blue-900">

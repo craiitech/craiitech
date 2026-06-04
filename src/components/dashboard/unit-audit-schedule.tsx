@@ -330,7 +330,9 @@ export function UnitAuditSchedule({
                     abbreviation: '',
                     level: r.level,
                     recommendation: r.recommendation,
-                    certificateLink: r.certificateLink
+                    certificateLink: r.certificateLink,
+                    college: r.college || '',
+                    campus: r.campus || ''
                 }))}
                 unitMap={unitMap}
                 scope={scope}

@@ -189,7 +189,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     level: m.level,
                     surveyDate: m.dateOfSurvey,
                     recommendation: reco,
-                    certificateLink: certificateLink
+                    certificateLink: certificateLink,
+                    college: p.collegeId,
+                    campus: campusMap.get(p.campusId) || p.campusId
                 });
             });
         });

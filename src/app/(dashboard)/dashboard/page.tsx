@@ -658,20 +658,23 @@ export default function HomePage() {
                 }
 
                 if (isRelevant) {
+                    const prog = academicPrograms?.find(p => p.id === record.programId);
                     results.push({
                         programId: record.programId,
                         programName: allUnits?.find(u => u.id === record.programId)?.name || 'Academic Program',
                         campusId: record.campusId,
                         level: milestone.level,
                         recommendation: reco,
-                        certificateLink: certificateLink
+                        certificateLink: certificateLink,
+                        college: prog?.collegeId || '',
+                        campus: campusMap.get(record.campusId) || 'Main'
                     });
                 }
             });
         });
     });
     return results;
-  }, [allCompliances, userProfile, allUnits, isAdmin, isCampusSupervisor]);
+  }, [allCompliances, userProfile, allUnits, isAdmin, isCampusSupervisor, academicPrograms, campusMap]);
 
   const auditPlansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
