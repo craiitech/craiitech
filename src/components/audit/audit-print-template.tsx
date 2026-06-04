@@ -37,7 +37,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
     <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
       <style>{`
         @media print {
-          tr {
+          tr, td {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
@@ -90,7 +90,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </div>
 
       {/* Main Evidence Log Table */}
-      <table className="w-full border-separate border-2 border-black mb-6" style={{ fontSize: '11pt', borderCollapse: 'collapse' }}>
+      <table className="w-full border-separate border-2 border-black mb-6" style={{ fontSize: '11pt', borderCollapse: 'separate', borderSpacing: '0' }}>
         <thead style={{ display: 'table-header-group' }}>
           <tr className="bg-white">
             <th className="border-2 border-black p-2 text-center w-[12%] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
