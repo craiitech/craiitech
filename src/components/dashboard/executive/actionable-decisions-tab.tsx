@@ -10,10 +10,11 @@ import {
 } from 'recharts';
 import {
   AlertTriangle, CheckCircle2, ShieldAlert, GraduationCap, ClipboardCheck,
-  TrendingUp, TrendingDown, Minus, Target, Zap, Award, Clock, Flag
+  TrendingUp, TrendingDown, Minus, Target, Zap, Award, Clock, Flag, Info, Lightbulb, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ActionableDecisionsTabProps {
   risks: Risk[];
@@ -37,6 +38,9 @@ interface DecisionFlag {
   description: string;
   icon: React.ReactNode;
   quadrant: 'urgent-high' | 'not-urgent-high' | 'urgent-low' | 'not-urgent-low';
+  breakdownLabel: string;
+  recommendation: string;
+  sourceInfo: string;
 }
 
 const SEVERITY_CONFIG: Record<FlagSeverity, { border: string; bg: string; badge: string; icon: string }> = {
@@ -110,8 +114,97 @@ export function ActionableDecisionsTab({
   const submission_compliance = yearSubs.length > 0 ? Math.round((yearSubs.filter(s => s.statusId === 'approved').length / yearSubs.length) * 100) : 0;
   const qualityScore = Math.round((iqa_completion + car_closure + risk_treatment + ched_compliance + submission_compliance) / 5);
 
+  const qualityMetrics = useMemo(() => {
+    const subApproved = yearSubs.filter(s => s.statusId === 'approved').length;
+    const subTotal = yearSubs.length;
+    
+    const carClosed = cars.filter(c => c.status === 'Closed').length;
+    const carTotal = cars.length;
+
+    const riskTreated = yearRisks.filter(r => r.postTreatment).length;
+    const riskTotal = yearRisks.length;
+
+    const activeProgs = academicPrograms.filter(p => p.isActive);
+    const chedWithCopc = activeProgs.filter(p => allCompliances.find(c => c.programId === p.id)?.ched?.copcStatus === 'With COPC').length;
+    const chedTotal = activeProgs.length;
+
+    const iqaCompleted = yearSchedules.filter(s => s.status === 'Completed').length;
+    const iqaTotal = yearSchedules.length;
+
+    return [
+      {
+        label: 'Submission Compliance',
+        value: submission_compliance,
+        numerator: subApproved,
+        denominator: subTotal,
+        definition: 'Percentage of quality compliance submissions that have been reviewed and approved.',
+        formula: 'Approved Submissions / Total Submissions',
+        description: 'Submission completion status for academic quality cycles.',
+        breakdownLabel: `${subApproved} of ${subTotal} submissions approved`,
+      },
+      {
+        label: 'CAR Closure Rate',
+        value: car_closure,
+        numerator: carClosed,
+        denominator: carTotal,
+        definition: 'Percentage of Corrective Action Requests (CARs) successfully closed and verified by the QA office.',
+        formula: 'Closed CARs / Total Logged CARs',
+        description: 'Measures effectiveness in resolving audit findings.',
+        breakdownLabel: `${carClosed} of ${carTotal} corrective actions closed`,
+      },
+      {
+        label: 'Risk Treatment',
+        value: risk_treatment,
+        numerator: riskTreated,
+        denominator: riskTotal,
+        definition: 'Percentage of identified program risks that have an active post-treatment mitigation plan.',
+        formula: 'Risks with Treatments / Total Risks',
+        description: 'Reflects risk prevention and control coverage.',
+        breakdownLabel: `${riskTreated} of ${riskTotal} risks treated`,
+      },
+      {
+        label: 'CHED Compliance',
+        value: ched_compliance,
+        numerator: chedWithCopc,
+        denominator: chedTotal,
+        definition: 'Percentage of active academic offerings holding a valid CHED Certificate of Program Compliance (COPC).',
+        formula: 'Active Programs with COPC / Total Active Programs',
+        description: 'Critical regulatory standing score for academic programs.',
+        breakdownLabel: `${chedWithCopc} of ${chedTotal} active programs with COPC`,
+      },
+      {
+        label: 'IQA Completion',
+        value: iqa_completion,
+        numerator: iqaCompleted,
+        denominator: iqaTotal,
+        definition: 'Percentage of scheduled Internal Quality Audits (IQA) completed for this year.',
+        formula: 'Completed Audits / Scheduled Audits',
+        description: 'Reflects adherence to the annual internal audit calendar.',
+        breakdownLabel: `${iqaCompleted} of ${iqaTotal} audits completed`,
+      },
+    ];
+  }, [
+    yearSubs, cars, yearRisks, academicPrograms, allCompliances, yearSchedules,
+    submission_compliance, car_closure, risk_treatment, ched_compliance, iqa_completion
+  ]);
+
+  const totalHighRisks = useMemo(() => yearRisks.filter(r => r.type === 'Risk' && (r.preTreatment?.rating === 'Very High' || r.preTreatment?.rating === 'High')).length, [yearRisks]);
+  const totalOpenCars = useMemo(() => cars.filter(c => c.status !== 'Closed').length, [cars]);
+  const totalActiveProgs = useMemo(() => academicPrograms.filter(p => p.isActive).length, [academicPrograms]);
+  const totalMandatoryRecs = useMemo(() => {
+    let count = 0;
+    allCompliances.forEach(c => {
+      c.accreditationRecords?.forEach(m => {
+        m.recommendations?.forEach(r => {
+          if (r.type === 'Mandatory') count++;
+        });
+      });
+    });
+    return count;
+  }, [allCompliances]);
+
   // --- Decision Flags ---
-  const flags: DecisionFlag[] = [
+  const flags: DecisionFlag[] = useMemo(() => [
     {
       id: 'critical-risks',
       severity: criticalRisks.length > 0 ? 'critical' : 'good',
@@ -122,6 +215,11 @@ export function ActionableDecisionsTab({
         : 'All critical risks have treatment actions recorded.',
       icon: <AlertTriangle className="h-5 w-5" />,
       quadrant: 'urgent-high',
+      breakdownLabel: `${criticalRisks.length} untreated out of ${totalHighRisks} high-severity risks`,
+      recommendation: criticalRisks.length > 0
+        ? 'Convene with Risk Owners to formulate post-treatment mitigation plans immediately.'
+        : 'Continue regular monitoring and periodic review of the Risk Registry.',
+      sourceInfo: `Risk Registry (AY ${selectedYear})`,
     },
     {
       id: 'overdue-cars',
@@ -133,6 +231,11 @@ export function ActionableDecisionsTab({
         : 'No CARs have exceeded the 90-day resolution threshold.',
       icon: <Clock className="h-5 w-5" />,
       quadrant: 'urgent-high',
+      breakdownLabel: `${overdueCars.length} overdue out of ${totalOpenCars} open CARs`,
+      recommendation: overdueCars.length > 0
+        ? 'Direct Unit Heads to submit compliance proof and escalate unresolved items.'
+        : 'CAR turnaround times are within the allowable 90-day threshold.',
+      sourceInfo: 'Corrective Action Log',
     },
     {
       id: 'no-copc',
@@ -144,6 +247,11 @@ export function ActionableDecisionsTab({
         : 'All active programs have secured CHED COPC.',
       icon: <GraduationCap className="h-5 w-5" />,
       quadrant: 'not-urgent-high',
+      breakdownLabel: `${noCopcPrograms.length} without COPC out of ${totalActiveProgs} active programs`,
+      recommendation: noCopcPrograms.length > 0
+        ? 'Mobilize Deans/Directors to fast-track COPC applications with the CHED regional office.'
+        : 'Maintain current compliance documentation and monitor renewals.',
+      sourceInfo: 'CHED COPC Registry',
     },
     {
       id: 'mandatory-recs',
@@ -155,6 +263,11 @@ export function ActionableDecisionsTab({
         : 'No mandatory accreditation recommendations are pending.',
       icon: <Flag className="h-5 w-5" />,
       quadrant: 'not-urgent-high',
+      breakdownLabel: `${mandatoryOpenRecs.length} open out of ${totalMandatoryRecs} mandatory recommendations`,
+      recommendation: mandatoryOpenRecs.length > 0
+        ? 'Prioritize resource allocation to address these open recommendations prior to the next accreditors visit.'
+        : 'All mandatory recommendations have been addressed.',
+      sourceInfo: 'AACCUP Accreditation Registry',
     },
     {
       id: 'cars-verification',
@@ -166,6 +279,11 @@ export function ActionableDecisionsTab({
         : 'No CARs are pending final QA verification.',
       icon: <ShieldAlert className="h-5 w-5" />,
       quadrant: 'urgent-low',
+      breakdownLabel: `${carsAwaitingVerification.length} awaiting verification out of ${totalOpenCars} open CARs`,
+      recommendation: carsAwaitingVerification.length > 0
+        ? 'Deploy QA Team to verify submitted evidence and finalize closures.'
+        : 'No verification queues pending.',
+      sourceInfo: 'Corrective Action Log',
     },
     {
       id: 'iqa-completion',
@@ -175,6 +293,11 @@ export function ActionableDecisionsTab({
       description: `${yearSchedules.filter(s => s.status === 'Completed').length} of ${yearSchedules.length} scheduled IQA sessions completed this academic year.`,
       icon: <ClipboardCheck className="h-5 w-5" />,
       quadrant: 'not-urgent-low',
+      breakdownLabel: `${yearSchedules.filter(s => s.status === 'Completed').length} completed out of ${yearSchedules.length} scheduled audits`,
+      recommendation: iqa_completion < 100
+        ? 'Liaise with audit teams to resolve delayed audits and publish final reports.'
+        : 'Excellent adherence to the Internal Quality Audit schedule.',
+      sourceInfo: 'IQA Audit Schedules',
     },
     {
       id: 'closed-cars',
@@ -184,6 +307,11 @@ export function ActionableDecisionsTab({
       description: `${closedCarsThisYear.length} corrective action(s) successfully closed and verified this academic year — positive quality closure metric.`,
       icon: <CheckCircle2 className="h-5 w-5" />,
       quadrant: 'not-urgent-low',
+      breakdownLabel: `${closedCarsThisYear.length} closed out of ${cars.length} total logged CARs`,
+      recommendation: closedCarsThisYear.length > 0
+        ? 'Acknowledge units with high closure rates; analyze lessons learned.'
+        : 'Support units in developing resolution capabilities.',
+      sourceInfo: 'Corrective Action Log',
     },
     {
       id: 'level-iv',
@@ -195,8 +323,18 @@ export function ActionableDecisionsTab({
         : 'No programs have achieved Level IV accreditation yet.',
       icon: <Award className="h-5 w-5" />,
       quadrant: 'not-urgent-low',
+      breakdownLabel: `${topLevelAccredPrograms} programs at Level IV out of ${allCompliances.length} assessed programs`,
+      recommendation: topLevelAccredPrograms > 0
+        ? 'Leverage these high-performing programs to mentor other departments.'
+        : 'Establish an institutional development plan to elevate programs to Level IV.',
+      sourceInfo: 'AACCUP Accreditation Registry',
     },
-  ];
+  ], [
+    criticalRisks, totalHighRisks, selectedYear, overdueCars, totalOpenCars,
+    noCopcPrograms, totalActiveProgs, mandatoryOpenRecs, totalMandatoryRecs,
+    carsAwaitingVerification, iqa_completion, yearSchedules, closedCarsThisYear,
+    cars, topLevelAccredPrograms, allCompliances
+  ]);
 
   // Quality score gauge data
   const gaugeData = [{ name: 'Quality Score', value: qualityScore, fill: qualityScore >= 75 ? '#10b981' : qualityScore >= 50 ? '#f59e0b' : '#ef4444' }];
@@ -217,7 +355,8 @@ export function ActionableDecisionsTab({
   ] as const;
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider delayDuration={100}>
+      <div className="space-y-6">
       {/* Header Banner */}
       <div className="rounded-2xl bg-gradient-to-r from-primary via-primary/90 to-indigo-600 p-6 text-white shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -243,22 +382,44 @@ export function ActionableDecisionsTab({
 
       {/* Quality Score Breakdown */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[
-          { label: 'Submission Compliance', value: submission_compliance },
-          { label: 'CAR Closure Rate', value: car_closure },
-          { label: 'Risk Treatment', value: risk_treatment },
-          { label: 'CHED Compliance', value: ched_compliance },
-          { label: 'IQA Completion', value: iqa_completion },
-        ].map(({ label, value }) => (
-          <Card key={label} className="bg-white border-primary/10 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
-              <div className={cn('text-2xl font-black', value >= 75 ? 'text-emerald-600' : value >= 50 ? 'text-amber-600' : 'text-red-600')}>{value}%</div>
-              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className={cn('h-full rounded-full transition-all', value >= 75 ? 'bg-emerald-500' : value >= 50 ? 'bg-amber-500' : 'bg-red-500')}
-                  style={{ width: `${value}%` }}
-                />
+        {qualityMetrics.map((metric) => (
+          <Card key={metric.label} className="bg-white border-primary/10 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
+            <CardContent className="p-4 flex flex-col h-full justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{metric.label}</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label={`Information for ${metric.label}`}>
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">{metric.label}</p>
+                      <p className="text-slate-200 mb-1.5">{metric.definition}</p>
+                      <p className="text-[9px] text-slate-400 italic">Formula: {metric.formula}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className={cn('text-2xl font-black tracking-tight tabular-nums', metric.value >= 75 ? 'text-emerald-600' : metric.value >= 50 ? 'text-amber-600' : 'text-red-600')}>
+                    {metric.value}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                  <div
+                    className={cn('h-full rounded-full transition-all duration-500', metric.value >= 75 ? 'bg-emerald-500' : metric.value >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+                    style={{ width: `${metric.value}%` }}
+                  />
+                </div>
+              </div>
+              <div className="mt-auto space-y-1">
+                <p className="text-[10px] font-black text-slate-700 leading-tight">
+                  {metric.breakdownLabel}
+                </p>
+                <p className="text-[9px] text-slate-400 font-bold leading-tight">
+                  {metric.description}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -321,20 +482,74 @@ export function ActionableDecisionsTab({
           {flags.map(flag => {
             const config = SEVERITY_CONFIG[flag.severity];
             return (
-              <Card key={flag.id} className={cn('border shadow-sm transition-all hover:shadow-md', config.border, config.bg)}>
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-3">
-                    <div className={cn('p-2 rounded-lg shrink-0', flag.severity === 'critical' ? 'bg-red-100 text-red-600' : flag.severity === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600')}>
-                      {flag.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-[11px] font-black uppercase text-slate-800 leading-tight">{flag.title}</p>
-                        <span className={cn('text-lg font-black tabular-nums shrink-0', flag.severity === 'critical' ? 'text-red-600' : flag.severity === 'warning' ? 'text-amber-600' : 'text-emerald-600')}>
+              <Card key={flag.id} className={cn('border shadow-sm transition-all hover:shadow-md overflow-hidden flex flex-col justify-between', config.border, config.bg)}>
+                {/* Top Accent Strip based on severity */}
+                <div className={cn('h-1.5 w-full shrink-0', 
+                  flag.severity === 'critical' ? 'bg-red-500' : 
+                  flag.severity === 'warning' ? 'bg-amber-500' : 
+                  'bg-emerald-500'
+                )} />
+                <CardContent className="p-4 flex flex-col justify-between h-full gap-4">
+                  <div>
+                    {/* Title & Value Row */}
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={cn('p-2 rounded-lg shrink-0', 
+                          flag.severity === 'critical' ? 'text-red-600' : 
+                          flag.severity === 'warning' ? 'text-amber-600' : 
+                          'text-emerald-600'
+                        )} style={{ backgroundColor: flag.severity === 'critical' ? 'rgba(239, 68, 68, 0.1)' : flag.severity === 'warning' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)' }}>
+                          {flag.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-[11px] font-black uppercase text-slate-800 leading-tight truncate">{flag.title}</h4>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5">{flag.sourceInfo}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={cn('text-2xl font-black tabular-nums block leading-none', 
+                          flag.severity === 'critical' ? 'text-red-600' : 
+                          flag.severity === 'warning' ? 'text-amber-600' : 
+                          'text-emerald-600'
+                        )}>
                           {flag.value}
                         </span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block mt-1">Active Status</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{flag.description}</p>
+                    </div>
+
+                    {/* Description / Definition Block */}
+                    <div className="bg-white/80 p-3 rounded-lg border border-slate-200/50 space-y-2">
+                      <p className="text-[10px] text-slate-600 font-bold leading-relaxed">
+                        {flag.description}
+                      </p>
+                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-200/60">
+                        <Layers className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                          Data Label: <span className="text-slate-700 normal-case font-extrabold">{flag.breakdownLabel}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recommendation Panel */}
+                  <div className={cn('border-t pt-3 flex items-start gap-2.5 mt-auto', 
+                    flag.severity === 'critical' ? 'border-red-100/80' : 
+                    flag.severity === 'warning' ? 'border-amber-100/80' : 
+                    'border-emerald-100/80'
+                  )}>
+                    <div className={cn('p-1 rounded shrink-0',
+                      flag.severity === 'critical' ? 'text-red-500 bg-red-50' : 
+                      flag.severity === 'warning' ? 'text-amber-500 bg-amber-50' : 
+                      'text-emerald-500 bg-emerald-50'
+                    )}>
+                      <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Decision Recommendation</p>
+                      <p className="text-[10px] text-slate-600 font-bold leading-normal">
+                        {flag.recommendation}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -370,6 +585,7 @@ export function ActionableDecisionsTab({
           </ResponsiveContainer>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
