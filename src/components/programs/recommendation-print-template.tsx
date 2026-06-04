@@ -54,26 +54,27 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
       <table className="w-full border-collapse border-2 border-black mb-12">
         <thead>
           <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[22%]" style={{ fontSize: '10pt' }}>Program Offering</th>
-            <th className="border border-black p-2 w-[12%]" style={{ fontSize: '10pt' }}>Type</th>
-            <th className="border border-black p-2 w-[40%]" style={{ fontSize: '10pt' }}>Accreditor's Recommendation</th>
-            <th className="border border-black p-2 w-[11%]" style={{ fontSize: '10pt' }}>Status</th>
-            <th className="border border-black p-2 text-center" style={{ fontSize: '9pt' }}>Evidence / Initials</th>
+            <th className="border border-black p-2 w-[18%]" style={{ fontSize: '9pt' }}>Program Offering</th>
+            <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>Type</th>
+            <th className="border border-black p-2 w-[34%]" style={{ fontSize: '9pt' }}>Accreditor's Recommendation</th>
+            <th className="border border-black p-2 w-[18%]" style={{ fontSize: '9pt' }}>Assigned Responsibility (Offices)</th>
+            <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>Status</th>
+            <th className="border border-black p-2 text-center" style={{ fontSize: '8pt' }}>Evidence / Initials</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, i) => (
             <tr key={i} className="border-b border-black">
               <td className="border border-black p-2 align-top">
-                <p className="font-black leading-tight uppercase" style={{ fontSize: '10pt' }}>{item.programName}</p>
+                <p className="font-black leading-tight uppercase" style={{ fontSize: '9pt' }}>{item.programName}</p>
                 <p className="text-slate-500 mt-1 uppercase font-bold" style={{ fontSize: '8pt' }}>
                     {item.level} | {item.surveyDate || 'TBA'}
                 </p>
               </td>
-              <td className="border border-black p-2 text-center align-top font-bold uppercase" style={{ fontSize: '9pt' }}>
+              <td className="border border-black p-2 text-center align-top font-bold uppercase" style={{ fontSize: '8pt' }}>
                 {item.recommendation.type}
               </td>
-              <td className="border border-black p-2 align-top italic leading-relaxed" style={{ fontSize: '10pt' }}>
+              <td className="border border-black p-2 align-top italic leading-relaxed" style={{ fontSize: '9pt' }}>
                 "{item.recommendation.text}"
                 {item.recommendation.additionalInfo && (
                     <div className="mt-2 pt-2 border-t border-slate-100 not-italic font-bold" style={{ fontSize: '8pt' }}>
@@ -82,7 +83,19 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
                     </div>
                 )}
               </td>
-              <td className="border border-black p-2 text-center align-top font-black uppercase" style={{ fontSize: '9pt' }}>
+              <td className="border border-black p-2 align-top font-bold uppercase text-slate-800" style={{ fontSize: '8pt' }}>
+                <div className="flex flex-col gap-1">
+                  {(item.recommendation.assignedUnitIds || []).map((uid: string) => (
+                    <div key={uid} className="leading-tight">
+                      • {unitMap.get(uid) || uid}
+                    </div>
+                  ))}
+                  {!item.recommendation.assignedUnitIds?.length && (
+                    <span className="text-slate-400 italic">Institutional</span>
+                  )}
+                </div>
+              </td>
+              <td className="border border-black p-2 text-center align-top font-black uppercase" style={{ fontSize: '8pt' }}>
                 {item.recommendation.status}
               </td>
               <td className="border border-black p-2 align-top min-h-[60px]">
@@ -91,7 +104,7 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
             </tr>
           ))}
           {items.length === 0 && (
-            <tr><td colSpan={5} className="p-8 text-center italic text-gray-400">No active accreditation gaps recorded for this cycle.</td></tr>
+            <tr><td colSpan={6} className="p-8 text-center italic text-gray-400">No active accreditation gaps recorded for this cycle.</td></tr>
           )}
         </tbody>
       </table>

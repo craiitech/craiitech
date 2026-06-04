@@ -529,9 +529,9 @@ export default function HomePage() {
   }, [allCompliances, userProfile]);
 
   const unitRecommendations = useMemo(() => {
-    if (!unitCompliances || !userProfile?.unitId) return [];
+    if (!allCompliances || !userProfile?.unitId) return [];
     const recs: any[] = [];
-    unitCompliances.forEach(c => {
+    allCompliances.forEach(c => {
         c.accreditationRecords?.forEach(m => {
             m.recommendations?.forEach(reco => {
                 if (reco.assignedUnitIds?.includes(userProfile.unitId)) {
@@ -541,7 +541,7 @@ export default function HomePage() {
         });
     });
     return recs;
-  }, [unitCompliances, userProfile]);
+  }, [allCompliances, userProfile]);
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;

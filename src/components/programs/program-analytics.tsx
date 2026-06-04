@@ -404,14 +404,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   const filteredRecommendations = useMemo(() => {
     if (!analytics?.allRecommendations) return [];
-    
-    const academicUnitIds = new Set(units.filter(u => u.category === 'Academic').map(u => u.id));
 
     return analytics.allRecommendations.filter(item => {
         if (!isAdmin && userProfile?.unitId) {
             const isAssigned = item.recommendation.assignedUnitIds?.includes(userProfile.unitId);
             if (!isAssigned) return false;
-            if (!academicUnitIds.has(userProfile.unitId)) return false;
         }
 
         if (isAdmin && recoUnitFilter !== 'all') {
@@ -426,18 +423,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (!item.programName.toLowerCase().includes(lowerSearch) && !item.recommendation.text.toLowerCase().includes(lowerSearch)) return false;
         }
 
-        const hasAcademicAssignment = item.recommendation.assignedUnitIds?.some((uid: string) => academicUnitIds.has(uid));
-        if (!hasAcademicAssignment && (item.recommendation.assignedUnitIds?.length || 0) > 0) return false;
-
         return true;
     }).map(item => ({
         ...item,
         recommendation: {
             ...item.recommendation,
-            assignedUnitIds: (item.recommendation.assignedUnitIds || []).filter((uid: string) => academicUnitIds.has(uid))
+            assignedUnitIds: item.recommendation.assignedUnitIds || []
         }
     }));
-  }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter, units]);
+  }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter]);
 
   const handlePrintGaps = () => {
     if (!filteredRecommendations.length) {
@@ -586,18 +580,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-muted/10 border-b py-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1"><div className="flex items-center gap-2 text-primary"><ClipboardCheck className="h-6 w-6" /><CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle></div><CardDescription className="text-xs font-medium">Registry of accreditation gaps focused exclusively on Academic Units.</CardDescription></div>
+                  <div className="space-y-1"><div className="flex items-center gap-2 text-primary"><ClipboardCheck className="h-6 w-6" /><CardTitle className="text-lg font-black uppercase tracking-tight">Accreditor's Recommendations & Compliance Log</CardTitle></div><CardDescription className="text-xs font-medium">Registry of accreditation gaps focused on both Academic and Non-Academic Units.</CardDescription></div>
                   <Button onClick={handlePrintGaps} variant="outline" className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"><Printer className="h-4 w-4" /> {isAdmin ? 'Print Institutional Gaps Registry' : 'Print Unit Compliance Report'}</Button>
               </div>
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
                 <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input placeholder="Search recommendations..." value={recoSearch} onChange={(e) => setRecoSearch(e.target.value)} className="h-9 pl-8 text-xs bg-white"/></div>
                 <Select value={recoStatusFilter} onValueChange={setRecoStatusFilter}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Statuses" /></SelectTrigger><SelectContent><SelectItem value="all">All Implementation Statuses</SelectItem><SelectItem value="Open">Open (Pending)</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed (Complied)</SelectItem></SelectContent></Select>
-                {isAdmin ? (<Select value={recoUnitFilter} onValueChange={setRecoUnitFilter}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Academic Units" /></SelectTrigger><SelectContent><SelectItem value="all">Institutional View (All Academic Units)</SelectItem>{units.filter(u => u.category === 'Academic').sort((a,b) => a.name.localeCompare(b.name)).map(u => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}</SelectContent></Select>) : (<div className="flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">Locked to: {unitMap.get(userProfile?.unitId || '')}</div>)}
+                {isAdmin ? (<Select value={recoUnitFilter} onValueChange={setRecoUnitFilter}><SelectTrigger className="h-9 text-xs bg-white"><SelectValue placeholder="All Units / Offices" /></SelectTrigger><SelectContent><SelectItem value="all">Institutional View (All Units)</SelectItem>{units.sort((a,b) => a.name.localeCompare(b.name)).map(u => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}</SelectContent></Select>) : (<div className="flex items-center px-4 h-9 rounded-md border bg-muted/20 text-[10px] font-black uppercase text-primary/60">Locked to: {unitMap.get(userProfile?.unitId || '')}</div>)}
               </div>
           </CardHeader>
           <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
-                  <Table><TableHeader className="bg-muted/30 sticky top-0 z-10"><TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead><TableHead className="text-[10px] font-black uppercase">Type</TableHead><TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead><TableHead className="text-[10px] font-black uppercase">Accountable Academic Units</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead></TableRow></TableHeader>
+                  <Table><TableHeader className="bg-muted/30 sticky top-0 z-10"><TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead><TableHead className="text-[10px] font-black uppercase">Type</TableHead><TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead><TableHead className="text-[10px] font-black uppercase">Accountable Units / Offices</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                           {filteredRecommendations.map((item, idx) => (
                               <TableRow key={idx} className="hover:bg-muted/20 transition-colors"><TableCell className="pl-8 py-5"><div className="flex flex-col"><span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span><Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge></div></TableCell><TableCell><Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">{item.recommendation.type}</Badge></TableCell><TableCell className="py-5 max-w-md"><p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>{item.recommendation.additionalInfo && (<div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase"><Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}</div>)}</TableCell><TableCell><div className="flex flex-wrap gap-1">{(item.recommendation.assignedUnitIds || []).map((uid: string) => (<Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">{unitMap.get(uid) || uid}</Badge>))}{!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}</div></TableCell><TableCell className="text-right pr-8"><Badge className={cn("h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm", item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : item.recommendation.status === 'Move to the Official Current Level' ? "bg-indigo-600 text-white" : "bg-emerald-600 text-white")}>{item.recommendation.status}</Badge></TableCell></TableRow>
