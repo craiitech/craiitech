@@ -230,6 +230,150 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const { fields: followUpFields, append: appendFollowUp, remove: removeFollowUp } = useFieldArray({ control: form.control, name: "followUpLogs" });
   const { fields: effectivenessFields, append: appendEffectiveness, remove: removeEffectiveness } = useFieldArray({ control: form.control, name: "effectivenessAudits" });
 
+  const currentActionSteps = form.watch('actionSteps') || [];
+
+  const renderActionVerificationArea = (sectionType: 'follow-up' | 'final') => {
+    if (currentActionSteps.length === 0) {
+      return (
+        <div className="mt-4 p-4 border border-dashed rounded-lg bg-slate-50 text-center w-full">
+          <p className="text-xs text-muted-foreground italic">No Action Steps submitted by the unit yet.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-4 border rounded-xl overflow-hidden bg-white shadow-sm w-full">
+        <div className="p-3 bg-slate-50 border-b flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-primary" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">Unit Action Steps & Evidence Verification</span>
+          </div>
+          {isInstitutionalViewer && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-[9px] font-black uppercase bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary gap-1.5"
+              onClick={() => {
+                appendAction({
+                  description: '',
+                  type: 'Long-term Corrective Action',
+                  completionDate: format(new Date(), 'yyyy-MM-dd'),
+                  status: 'Pending',
+                  evidenceLink: ''
+                });
+                form.setValue('status', 'Awaiting Response/Update');
+                toast({
+                  title: "Action Requested",
+                  description: "Added a new action step and set CAR status to 'Awaiting Response/Update'."
+                });
+              }}
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Add More Action & Return to Unit
+            </Button>
+          )}
+        </div>
+        <div className="divide-y">
+          {currentActionSteps.map((step, i) => (
+            <div key={i} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors w-full">
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className={cn(
+                    "text-[8px] font-black uppercase",
+                    step.type === 'Immediate Correction' ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  )}>
+                    {step.type}
+                  </Badge>
+                  <Badge className={cn(
+                    "text-[8px] font-black uppercase",
+                    step.status === 'Completed' ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                  )}>
+                    {step.status}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    Target: {step.completionDate ? format(new Date(step.completionDate), 'yyyy-MM-dd') : 'No Date'}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-slate-700 break-words leading-relaxed">
+                  {step.description || <span className="text-rose-500 italic">No description entered yet (please fill in Section 3)</span>}
+                </p>
+                {step.evidenceLink ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <LinkIcon className="h-3 w-3 text-primary" />
+                    <a
+                      href={step.evidenceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline font-bold inline-flex items-center gap-1"
+                    >
+                      Open Submitted Evidence Link
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground italic mt-1">No evidence link provided by unit</p>
+                )}
+              </div>
+
+              {isInstitutionalViewer && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {step.status !== 'Completed' ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 font-black text-[9px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80"
+                      onClick={() => {
+                        form.setValue(`actionSteps.${i}.status`, 'Completed');
+                        toast({ title: "Step Verified", description: "Action step status set to Completed." });
+                      }}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+                      Verify Correct
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 font-black text-[9px] uppercase border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100/80"
+                      onClick={() => {
+                        form.setValue(`actionSteps.${i}.status`, 'Pending');
+                        toast({ title: "Step Reset", description: "Action step status set back to Pending." });
+                      }}
+                    >
+                      <Undo2 className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                      Mark Pending
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 font-black text-[9px] uppercase border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100/80"
+                    onClick={() => {
+                      form.setValue('status', 'Awaiting Response/Update');
+                      toast({
+                        title: "Returned to Unit",
+                        description: "CAR status set to 'Awaiting Response/Update'. Please click 'Commit Update' to save."
+                      });
+                    }}
+                  >
+                    <Undo2 className="h-3.5 w-3.5 mr-1 text-rose-600" />
+                    Return CAR
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : '');
@@ -262,7 +406,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits')) return !isInstitutionalViewer;
     if (fieldName === 'adminFeedback') return !isInstitutionalViewer;
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
-    if (responderFields.some(f => fieldName.startsWith(f))) return userProfile?.unitId !== form.getValues('unitId');
+    if (responderFields.some(f => fieldName.startsWith(f))) {
+      return !isInstitutionalViewer && userProfile?.unitId !== form.getValues('unitId');
+    }
     if (fieldName === 'status') return !isInstitutionalViewer;
     return true; 
   };
@@ -619,6 +765,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>)} />
                                                 <FormField control={form.control} name={`followUpLogs.${index}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Date</FormLabel><FormControl><Input type="date" {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.date`)} /></FormControl></FormItem>)} />
                                             </div>
+                                            <FormField control={form.control} name={`followUpLogs.${index}.remarks`} render={({ field: iF }) => (
+                                                <FormItem className="md:col-span-2">
+                                                    <FormLabel className="text-[9px] font-black uppercase">Remarks / Comments (Printed in Report)</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea {...iF} value={iF.value || ''} rows={2} className="bg-white text-xs italic" placeholder="Add comments/remarks for report..." disabled={isFieldReadOnly(`followUpLogs.${index}.remarks`)} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )} />
+                                            {renderActionVerificationArea('follow-up')}
                                             {isInstitutionalViewer && (
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFollowUp(index)}>
                                                     <Trash2 className="h-3.5 w-3.5" />
@@ -659,6 +814,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 )} />
                                                 <FormField control={form.control} name={`effectivenessAudits.${idx}.date`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase text-emerald-600">Verification Date</FormLabel><FormControl><Input type="date" {...iF} className="h-10 font-bold bg-white" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.date`)} /></FormControl></FormItem>)} />
                                             </div>
+                                            <FormField control={form.control} name={`effectivenessAudits.${idx}.remarks`} render={({ field: iF }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[9px] font-black uppercase text-emerald-600">Remarks / Comments (Printed in Report)</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea {...iF} value={iF.value || ''} rows={2} className="bg-white border-emerald-100 text-xs italic" placeholder="Add comments/remarks for report..." disabled={isFieldReadOnly(`effectivenessAudits.${idx}.remarks`)} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )} />
+                                            {renderActionVerificationArea('final')}
                                             {isInstitutionalViewer && (
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEffectiveness(idx)}>
                                                     <Trash2 className="h-3.5 w-3.5" />
