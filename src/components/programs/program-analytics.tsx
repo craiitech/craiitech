@@ -89,6 +89,7 @@ import { AccreditationRecommendationReport } from './recommendation-print-templa
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -358,6 +359,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         statusTotals,
         levelCounts,
         currentYearAccreditationCount,
+        programsWithRecordThisYear,
         dataIntegrityIndex: Math.round((programsWithRecordThisYear / (activeCount || 1)) * 100),
         roadmapForecastData,
         accreditationYearCounts,
@@ -490,27 +492,110 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   if (!analytics) return null;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <TooltipProvider delayDuration={100}>
+      <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-slate-50 border-primary/5 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span><LayoutGrid className="h-4 w-4 text-slate-300" /></div>
-            <div className="text-4xl font-black text-slate-900 leading-none">{analytics.activeCount} Active</div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">{analytics.closedCount} Closed Programs</p>
+        <Card className="bg-slate-50/50 border-slate-200 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label="Scope Portfolio Information">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Scope Portfolio</p>
+                  <p className="text-slate-200">Tracks the ratio of active program offerings currently offered by the institution versus closed or phased-out programs.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-3xl font-black text-slate-900 leading-none mb-2">{analytics.activeCount} Active</div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-slate-200/60">
+              <p className="text-[10px] font-black text-slate-700 leading-tight">
+                {analytics.activeCount} of {programs.length} total programs active
+              </p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                {analytics.closedCount} Closed / Phased-Out Programs
+              </p>
+            </div>
         </Card>
-        <Card className="bg-emerald-50/30 border-emerald-100 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/60">COPC Performance</span><ShieldCheck className="h-4 w-4 text-emerald-400" /></div>
-            <div className="text-4xl font-black text-emerald-600 leading-none">{analytics.activeCopc} Active</div>
-            <p className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mt-2">Verified Authority</p>
+        <Card className="bg-emerald-50/20 border-emerald-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/70">COPC Performance</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-emerald-400 hover:text-emerald-600 transition-colors focus:outline-none" aria-label="COPC Performance Information">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">COPC Performance</p>
+                  <p className="text-slate-200">Measures the percentage of active academic programs holding a valid CHED Certificate of Program Compliance (COPC).</p>
+                  <p className="text-[9px] text-emerald-400 font-bold mt-1">Regulatory Target: 100%</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-3xl font-black text-emerald-600 leading-none mb-2">{analytics.activeCopc} Compliant</div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-emerald-100/60">
+              <p className="text-[10px] font-black text-slate-700 leading-tight">
+                {analytics.activeCopc} of {analytics.activeCount} active offerings with COPC
+              </p>
+              <p className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">
+                {analytics.activeCount > 0 ? Math.round((analytics.activeCopc / analytics.activeCount) * 100) : 0}% COPC Compliance Rate
+              </p>
+            </div>
         </Card>
-        <Card className="bg-amber-50/30 border-amber-100 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/60">Quality Maturity</span><Trophy className="h-4 w-4 text-amber-400" /></div>
-            <div className="text-4xl font-black text-amber-600 leading-none">{analytics.activeAccredited} Active</div>
-            <p className="text-[9px] font-bold text-amber-600/60 uppercase tracking-widest mt-2">Level I+ AACCUP</p>
+        <Card className="bg-amber-50/20 border-amber-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/70">Quality Maturity</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-amber-400 hover:text-amber-600 transition-colors focus:outline-none" aria-label="Quality Maturity Information">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Quality Maturity</p>
+                  <p className="text-slate-200">Measures the percentage of active academic programs that have attained AACCUP Level I or above accreditation.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-3xl font-black text-amber-600 leading-none mb-2">{analytics.activeAccredited} Accredited</div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-amber-100/60">
+              <p className="text-[10px] font-black text-slate-700 leading-tight">
+                {analytics.activeAccredited} of {analytics.activeCount} programs accredited
+              </p>
+              <p className="text-[9px] font-bold text-amber-600/70 uppercase tracking-widest">
+                {analytics.activeCount > 0 ? Math.round((analytics.activeAccredited / analytics.activeCount) * 100) : 0}% Accreditation Rate
+              </p>
+            </div>
         </Card>
-        <Card className="bg-blue-50/30 border-blue-100 shadow-sm rounded-3xl overflow-hidden flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60">Monitored Registry</span><Activity className="h-4 w-4 text-blue-400" /></div>
-            <div className="text-4xl font-black text-blue-600 leading-none">{analytics.dataIntegrityIndex}%</div>
-            <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest mt-2">Data Integrity Index</p>
+        <Card className="bg-blue-50/20 border-blue-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/70">Monitored Registry</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-blue-400 hover:text-blue-600 transition-colors focus:outline-none" aria-label="Monitored Registry Information">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Monitored Registry</p>
+                  <p className="text-slate-200">Calculates active compliance cycle reporting coverage. Higher index denotes more complete data submissions.</p>
+                  <p className="text-[9px] text-blue-400 font-bold mt-1">Data integrity index: submissions vs. active offerings.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-3xl font-black text-blue-600 leading-none mb-2">{analytics.dataIntegrityIndex}%</div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-blue-100/60">
+              <p className="text-[10px] font-black text-slate-700 leading-tight">
+                {analytics.programsWithRecordThisYear} of {analytics.activeCount} active programs reported
+              </p>
+              <p className="text-[9px] font-bold text-blue-600/70 uppercase tracking-widest">
+                Reporting Coverage (AY {selectedYear})
+              </p>
+            </div>
         </Card>
       </div>
 
@@ -650,7 +735,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </Tabs>
           </CardContent>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
