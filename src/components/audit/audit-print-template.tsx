@@ -89,102 +89,111 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
         </div>
       </div>
 
-      {/* Main Evidence Log Table */}
-      <table className="w-full border-separate border-2 border-black mb-6" style={{ fontSize: '11pt', borderCollapse: 'separate', borderSpacing: '0' }}>
-        <thead style={{ display: 'table-header-group' }}>
-          <tr className="bg-white">
-            <th className="border-2 border-black p-2 text-center w-[12%] uppercase font-black" style={{ fontSize: '10pt' }}>ISO 21001:2018</th>
-            <th className="border-2 border-black p-2 text-left uppercase font-black" style={{ fontSize: '10pt' }}>REQUIREMENTS & OBSERVATIONS (OBJECTIVE EVIDENCE)</th>
-            <th className="border-2 border-black p-2 text-center w-[18%] uppercase font-black" style={{ fontSize: '10pt' }}>FINDINGS (C, NC, OFI)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedClauses.map((clause) => {
-            const finding = findingsMap.get(clause.id);
-            const questions = clauseQuestions[clause.id] || [];
-            
-            return (
-              <tr key={clause.id} className="break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                <td className="border-2 border-black p-2 text-center font-black align-top pt-4">
-                  {clause.id}
-                </td>
-                <td className="border-2 border-black p-4 align-top space-y-4">
-                  <div className="space-y-2">
-                    <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
-                    <ul className="space-y-1.5 pl-6 text-slate-800 leading-relaxed font-bold" style={{ fontSize: '10pt' }}>
-                        {questions.map((q, i) => <li key={i}>{q}</li>)}
-                    </ul>
-                  </div>
-                  
-                  <div style={{ borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
+      {/* Main Evidence Log Table (using Flexbox to prevent Chrome print page-break bugs) */}
+      <div className="w-full mb-6" style={{ fontSize: '11pt' }}>
+        {/* Header */}
+        <div className="flex border-2 border-black bg-white font-black text-[10pt] uppercase">
+          <div className="w-[12%] border-r-2 border-black p-2 text-center flex items-center justify-center shrink-0">
+            ISO 21001:2018
+          </div>
+          <div className="w-[70%] border-r-2 border-black p-2 text-left flex items-center flex-1">
+            REQUIREMENTS & OBSERVATIONS (OBJECTIVE EVIDENCE)
+          </div>
+          <div className="w-[18%] p-2 text-center flex items-center justify-center shrink-0">
+            FINDINGS (C, NC, OFI)
+          </div>
+        </div>
 
-                  <div className={cn("pt-4", isBlankTemplate ? "min-h-[140px]" : "min-h-[80px]")}>
-                    <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
-                    {isBlankTemplate ? (
-                        <div className="space-y-4 pl-2 mt-2">
-                            <div className="flex items-end gap-2 h-7">
-                                <span className="font-bold text-xs shrink-0">1.</span>
-                                <div className="flex-1 border-b border-black/40 mb-1" />
-                            </div>
-                            <div className="flex items-end gap-2 h-7">
-                                <span className="font-bold text-xs shrink-0">2.</span>
-                                <div className="flex-1 border-b border-black/40 mb-1" />
-                            </div>
-                            <div className="flex items-end gap-2 h-7">
-                                <span className="font-bold text-xs shrink-0">3.</span>
-                                <div className="flex-1 border-b border-black/40 mb-1" />
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="whitespace-pre-wrap leading-relaxed">{finding?.evidence || ""}</p>
-                    )}
-                  </div>
+        {/* Rows */}
+        {sortedClauses.map((clause) => {
+          const finding = findingsMap.get(clause.id);
+          const questions = clauseQuestions[clause.id] || [];
+          
+          return (
+            <div 
+              key={clause.id} 
+              className="flex border-x-2 border-b-2 border-t-0 border-black bg-white" 
+              style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+            >
+              <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-4 shrink-0">
+                {clause.id}
+              </div>
+              <div className="w-[70%] border-r-2 border-black p-4 align-top space-y-4 flex-1">
+                <div className="space-y-2">
+                  <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
+                  <ul className="space-y-1.5 pl-6 text-slate-800 leading-relaxed font-bold" style={{ fontSize: '10pt' }}>
+                      {questions.map((q, i) => <li key={i}>{q}</li>)}
+                  </ul>
+                </div>
+                
+                <div style={{ borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
 
-                  <div className="pt-4 border-t border-slate-100 mt-4">
-                     <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: '9pt' }}>Finding Statement:</p>
-                     {isBlankTemplate ? (
-                        <div className="space-y-4 pl-2 mt-2">
-                            <div className="flex items-end gap-2 h-7">
-                                <span className="font-bold text-xs shrink-0">1.</span>
-                                <div className="flex-1 border-b border-black/40 mb-1" />
-                            </div>
-                            <div className="flex items-end gap-2 h-7">
-                                <span className="font-bold text-xs shrink-0">2.</span>
-                                <div className="flex-1 border-b border-black/40 mb-1" />
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>
-                    )}
+                <div className={cn("pt-4", isBlankTemplate ? "min-h-[140px]" : "min-h-[80px]")}>
+                  <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
+                  {isBlankTemplate ? (
+                      <div className="space-y-4 pl-2 mt-2">
+                          <div className="flex items-end gap-2 h-7">
+                              <span className="font-bold text-xs shrink-0">1.</span>
+                              <div className="flex-1 border-b border-black/40 mb-1" />
+                          </div>
+                          <div className="flex items-end gap-2 h-7">
+                              <span className="font-bold text-xs shrink-0">2.</span>
+                              <div className="flex-1 border-b border-black/40 mb-1" />
+                          </div>
+                          <div className="flex items-end gap-2 h-7">
+                              <span className="font-bold text-xs shrink-0">3.</span>
+                              <div className="flex-1 border-b border-black/40 mb-1" />
+                          </div>
+                      </div>
+                  ) : (
+                      <p className="whitespace-pre-wrap leading-relaxed">{finding?.evidence || ""}</p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 mt-4">
+                   <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: '9pt' }}>Finding Statement:</p>
+                   {isBlankTemplate ? (
+                      <div className="space-y-4 pl-2 mt-2">
+                          <div className="flex items-end gap-2 h-7">
+                              <span className="font-bold text-xs shrink-0">1.</span>
+                              <div className="flex-1 border-b border-black/40 mb-1" />
+                          </div>
+                          <div className="flex items-end gap-2 h-7">
+                              <span className="font-bold text-xs shrink-0">2.</span>
+                              <div className="flex-1 border-b border-black/40 mb-1" />
+                          </div>
+                      </div>
+                   ) : (
+                      <p className="italic leading-relaxed">{finding?.ncStatement || finding?.description || ""}</p>
+                   )}
+                </div>
+              </div>
+              <div className="w-[18%] p-4 align-top pt-20 shrink-0">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                      <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
+                          {finding?.type === 'Compliance' && <Check className="h-4 w-4 text-white" />}
+                      </div>
+                      <span className="text-[10pt] font-black uppercase">Compliant</span>
                   </div>
-                </td>
-                <td className="border-2 border-black p-4 align-top pt-20">
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                        <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
-                            {finding?.type === 'Compliance' && <Check className="h-4 w-4 text-white" />}
-                        </div>
-                        <span className="text-[10pt] font-black uppercase">Compliant</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
-                            {finding?.type === 'Observation for Improvement' && <Check className="h-4 w-4 text-white" />}
-                        </div>
-                        <span className="text-[10pt] font-black uppercase">OFI</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
-                            {finding?.type === 'Non-Conformance' && <Check className="h-4 w-4 text-white" />}
-                        </div>
-                        <span className="text-[10pt] font-black uppercase">NC</span>
-                    </div>
+                  <div className="flex items-center gap-3">
+                      <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
+                          {finding?.type === 'Observation for Improvement' && <Check className="h-4 w-4 text-white" />}
+                      </div>
+                      <span className="text-[10pt] font-black uppercase">OFI</span>
                   </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <div className="flex items-center gap-3">
+                      <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
+                          {finding?.type === 'Non-Conformance' && <Check className="h-4 w-4 text-white" />}
+                      </div>
+                      <span className="text-[10pt] font-black uppercase">NC</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Official Signatories Section */}
       <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10">
