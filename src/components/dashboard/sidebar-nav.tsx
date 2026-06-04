@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck, WifiOff } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck, WifiOff, Mail } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -15,11 +15,13 @@ import { useState, useEffect } from 'react';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
+  commNotificationCount?: number;
 }
 
 export function SidebarNav({
   className,
   notificationCount,
+  commNotificationCount = 0,
   ...props
 }: SidebarNavProps) {
   const pathname = usePathname();
@@ -79,6 +81,13 @@ export function SidebarNav({
       active: pathname.startsWith('/activity-log'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <UserCheck />,
+    },
+    {
+      href: '/communications',
+      label: 'Communications Logbook',
+      active: pathname.startsWith('/communications'),
+      icon: <Mail />,
+      showBadge: true,
     },
     {
       href: '/advisories',
@@ -231,10 +240,20 @@ export function SidebarNav({
                 <Link href={route.href}>
                     {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
                     <span>{route.label}</span>
-                    {route.showBadge && notificationCount > 0 && !isDisabled && (
-                    <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                        {notificationCount}
-                    </SidebarMenuBadge>
+                    {route.showBadge && !isDisabled && (
+                      route.href === '/communications' ? (
+                        commNotificationCount > 0 && (
+                          <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                            {commNotificationCount}
+                          </SidebarMenuBadge>
+                        )
+                      ) : (
+                        notificationCount > 0 && (
+                          <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                            {notificationCount}
+                          </SidebarMenuBadge>
+                        )
+                      )
                     )}
                 </Link>
                 </SidebarMenuButton>

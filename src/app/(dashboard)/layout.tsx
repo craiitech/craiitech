@@ -211,6 +211,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [firestore]);
   const { data: decisionNotifications } = useCollection<ManagementReviewOutput>(decisionsNotifQuery);
 
+  const commsNotifQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'communications');
+  }, [firestore]);
+  const { data: commsNotifications } = useCollection<any>(commsNotifQuery);
+
   const subNotificationsCount = useMemo(() => {
     if (!subNotifications) return 0;
     if (isAdmin) return subNotifications.length;
@@ -279,9 +285,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }).length;
   }, [decisionNotifications, userProfile, allUnits, isAdmin, isSupervisor]);
 
+  const commNotificationsCount = useMemo(() => {
+    if (!commsNotifications || !userProfile) return 0;
+    const currentYear = new Date().getFullYear();
+    return commsNotifications.filter(c => {
+      if (c.senderUnitId === userProfile.unitId) return false;
+      const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
+      if (date && date.getFullYear() !== currentYear) return false;
+
+      let isRecipient = false;
+      if (c.recipientType === 'all') {
+        isRecipient = true;
+      } else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) {
+        isRecipient = true;
+      } else if (c.recipientType === 'unit' && c.recipientIds?.includes(userProfile.unitId)) {
+        isRecipient = true;
+      } else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) {
+        isRecipient = true;
+      }
+
+      const hasRead = c.readBy?.includes(userProfile.id);
+      return isRecipient && !hasRead;
+    }).length;
+  }, [commsNotifications, userProfile]);
+
   const totalNotificationsCount = useMemo(() => {
-    return subNotificationsCount + carNotificationsCount + riskNotificationsCount + accreditationNotificationsCount + decisionNotificationsCount;
-  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount]);
+    return subNotificationsCount + carNotificationsCount + riskNotificationsCount + accreditationNotificationsCount + decisionNotificationsCount + commNotificationsCount;
+  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, commNotificationsCount]);
 
   const notificationsList = useMemo(() => {
     const list: any[] = [];
@@ -340,9 +370,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         link: '/qa-reports?tab=decisions'
       });
     }
+
+    if (commNotificationsCount > 0) {
+      list.push({
+        id: 'communications',
+        module: 'communications',
+        label: 'Communications Logbook',
+        count: commNotificationsCount,
+        description: `${commNotificationsCount} new incoming communications`,
+        link: '/communications'
+      });
+    }
     
     return list;
-  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, isAdmin, isSupervisor, isAuditor]);
+  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, commNotificationsCount, isAdmin, isSupervisor, isAuditor]);
 
   const notificationCount = subNotificationsCount;
 
@@ -455,7 +496,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </SidebarHeader>
             <SidebarContent className="p-4 pt-2">
-              <SidebarNav notificationCount={notificationCount} />
+              <SidebarNav notificationCount={notificationCount} commNotificationCount={commNotificationsCount} />
             </SidebarContent>
           </Sidebar>
           <SidebarInset className="overflow-hidden">
