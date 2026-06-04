@@ -138,7 +138,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
                 {/* Column 2: Requirements, Observations, Findings */}
                 <td className="border-r-2 border-black p-3.5 align-top">
-                  <div className="space-y-3.5">
+                  <div className="space-y-2">
                     <div className="space-y-1.5">
                       <p className="font-bold uppercase text-black" style={{ fontSize: '11pt' }}>{clause.title}</p>
                       <div className="space-y-1 text-black font-normal" style={{ fontSize: '11pt', lineHeight: '1.2' }}>
@@ -151,10 +151,10 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                       </div>
                     </div>
 
-                    <div className={cn("pt-1", isBlankTemplate ? "min-h-[85px]" : "min-h-[55px]")}>
+                    <div className="pt-1">
                       <p className="font-bold uppercase text-black mb-1" style={{ fontSize: '11pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                       {isBlankTemplate ? (
-                          <div className="space-y-6 pl-1 mt-1 font-normal text-black" style={{ fontSize: '11pt' }}>
+                          <div className="space-y-0.5 pl-1 mt-0.5 font-normal text-black" style={{ fontSize: '11pt' }}>
                               <div>1.</div>
                               <div>2.</div>
                               <div>3.</div>
@@ -167,7 +167,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                     <div className="pt-1">
                        <p className="font-bold text-black mb-1" style={{ fontSize: '11pt' }}>Finding Statement</p>
                        {isBlankTemplate ? (
-                          <div className="space-y-6 pl-1 mt-1 font-normal text-black" style={{ fontSize: '11pt' }}>
+                          <div className="space-y-0.5 pl-1 mt-0.5 font-normal text-black" style={{ fontSize: '11pt' }}>
                               <div>1.</div>
                               <div>2.</div>
                           </div>
