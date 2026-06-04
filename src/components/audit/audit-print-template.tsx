@@ -34,7 +34,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
   const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
 
   return (
-    <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
+    <div className="w-full text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '100%', fontSize: '12pt' }}>
       <style>{`
         @media print {
           tr, td {
@@ -92,7 +92,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       {/* Main Evidence Log Table (using Flexbox to prevent Chrome print page-break bugs) */}
       <div className="w-full mb-6" style={{ fontSize: '11pt' }}>
         {/* Header */}
-        <div className="flex border-2 border-black bg-white font-black text-[10pt] uppercase">
+        <div className="flex w-full border-2 border-black bg-white font-black text-[10pt] uppercase">
           <div className="w-[12%] border-r-2 border-black p-2 text-center flex items-center justify-center shrink-0">
             ISO 21001:2018
           </div>
@@ -112,7 +112,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
           return (
             <div 
               key={clause.id} 
-              className="flex border-x-2 border-b-2 border-t-0 border-black bg-white" 
+              className="flex w-full border-x-2 border-b-2 border-black bg-white" 
               style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
             >
               <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-4 shrink-0">
