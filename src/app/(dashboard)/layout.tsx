@@ -12,7 +12,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest } from '@/lib/types';
+import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest, Risk, ProgramComplianceRecord, ManagementReviewOutput } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw, Loader2 } from 'lucide-react';
@@ -182,24 +182,169 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return query(col, where('unitId', '==', userProfile.unitId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
   }
 
+  const getRisksNotificationQuery = (): Query | null => {
+      if (!firestore || !userProfile || !userRole) return null;
+      const col = collection(firestore, 'risks');
+      if (isAdmin || isSupervisor) return col;
+      if (userProfile.unitId) return query(col, where('unitId', '==', userProfile.unitId));
+      return null;
+  }
+
   const subNotifQuery = useMemoFirebase(() => getSubmissionsNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
   const { data: subNotifications } = useCollection<Submission>(subNotifQuery);
 
   const carNotifQuery = useMemoFirebase(() => getCarNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin, isAuditor]);
   const { data: carNotifications } = useCollection<CorrectiveActionRequest>(carNotifQuery);
 
-  const notificationCount = useMemo(() => {
+  const risksNotifQuery = useMemoFirebase(() => getRisksNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
+  const { data: riskNotifications } = useCollection<Risk>(risksNotifQuery);
+
+  const compliancesNotifQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'programCompliances');
+  }, [firestore]);
+  const { data: complianceNotifications } = useCollection<ProgramComplianceRecord>(compliancesNotifQuery);
+
+  const decisionsNotifQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore]);
+  const { data: decisionNotifications } = useCollection<ManagementReviewOutput>(decisionsNotifQuery);
+
+  const subNotificationsCount = useMemo(() => {
     if (!subNotifications) return 0;
-    // Mirror exactly what the /approvals page shows:
-    // - Admin: all submitted submissions (no self-filter, admins don't submit)
-    // - Non-admin supervisor: exclude their own submissions
     if (isAdmin) return subNotifications.length;
     if (isSupervisor && userProfile) {
       return subNotifications.filter(s => s.userId !== userProfile.id).length;
     }
-    // Regular users: count their own rejected submissions (from the query)
     return subNotifications.length;
   }, [subNotifications, userProfile, isAdmin, isSupervisor]);
+
+  const carNotificationsCount = useMemo(() => {
+    if (!carNotifications) return 0;
+    return carNotifications.length;
+  }, [carNotifications]);
+
+  const riskNotificationsCount = useMemo(() => {
+    if (!riskNotifications) return 0;
+    return riskNotifications.filter(r => {
+      if (r.status === 'Closed') return false;
+      if (isAdmin) return true;
+      if (isSupervisor && userProfile) {
+         return r.campusId === userProfile.campusId;
+      }
+      return r.unitId === userProfile?.unitId;
+    }).length;
+  }, [riskNotifications, userProfile, isAdmin, isSupervisor]);
+
+  const accreditationNotificationsCount = useMemo(() => {
+    if (!complianceNotifications || !userProfile) return 0;
+    let count = 0;
+    complianceNotifications.forEach(c => {
+        c.accreditationRecords?.forEach(m => {
+            m.recommendations?.forEach(reco => {
+                if (reco.status === 'Closed') return;
+                
+                let isRelevant = false;
+                if (isAdmin) {
+                    isRelevant = true;
+                } else if (isSupervisor) {
+                    isRelevant = reco.assignedUnitIds?.some(uid => {
+                        const unit = allUnits?.find(u => u.id === uid);
+                        return unit?.campusIds?.includes(userProfile.campusId);
+                    }) || false;
+                } else {
+                    isRelevant = reco.assignedUnitIds?.includes(userProfile.unitId) || false;
+                }
+                
+                if (isRelevant) count++;
+            });
+        });
+    });
+    return count;
+  }, [complianceNotifications, userProfile, allUnits, isAdmin, isSupervisor]);
+
+  const decisionNotificationsCount = useMemo(() => {
+    if (!decisionNotifications || !userProfile) return 0;
+    return decisionNotifications.filter(o => {
+      if (o.status === 'Closed') return false;
+      if (isAdmin) return true;
+      if (isSupervisor) {
+         return o.assignments?.some((a: any) => {
+             const unit = allUnits?.find(u => u.id === a.unitId);
+             return unit?.campusIds?.includes(userProfile.campusId);
+         }) || false;
+      }
+      return o.assignments?.some((a: any) => a.unitId === userProfile.unitId) || false;
+    }).length;
+  }, [decisionNotifications, userProfile, allUnits, isAdmin, isSupervisor]);
+
+  const totalNotificationsCount = useMemo(() => {
+    return subNotificationsCount + carNotificationsCount + riskNotificationsCount + accreditationNotificationsCount + decisionNotificationsCount;
+  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount]);
+
+  const notificationsList = useMemo(() => {
+    const list: any[] = [];
+    
+    if (subNotificationsCount > 0) {
+      list.push({
+        id: 'submissions',
+        module: 'submissions',
+        label: 'Submissions Hub',
+        count: subNotificationsCount,
+        description: isAdmin || isSupervisor ? `${subNotificationsCount} pending approvals` : `${subNotificationsCount} rejected submissions`,
+        link: isAdmin || isSupervisor ? '/approvals' : '/submissions'
+      });
+    }
+    
+    if (carNotificationsCount > 0) {
+      list.push({
+        id: 'car',
+        module: 'car',
+        label: 'Corrective Actions (CAR)',
+        count: carNotificationsCount,
+        description: isAdmin || isAuditor ? `${carNotificationsCount} for final verification` : `${carNotificationsCount} open corrective actions`,
+        link: '/qa-reports?tab=car'
+      });
+    }
+
+    if (riskNotificationsCount > 0) {
+      list.push({
+        id: 'risk',
+        module: 'risk',
+        label: 'Risk Register',
+        count: riskNotificationsCount,
+        description: `${riskNotificationsCount} open/treatment risks`,
+        link: '/risk-register'
+      });
+    }
+
+    if (accreditationNotificationsCount > 0) {
+      list.push({
+        id: 'accreditation',
+        module: 'accreditation',
+        label: 'Accreditation Gaps',
+        count: accreditationNotificationsCount,
+        description: `${accreditationNotificationsCount} open accreditor gaps`,
+        link: isAdmin || isSupervisor ? '/dashboard#overview' : '/academic-programs'
+      });
+    }
+
+    if (decisionNotificationsCount > 0) {
+      list.push({
+        id: 'decisions',
+        module: 'decisions',
+        label: 'Actionable Decisions',
+        count: decisionNotificationsCount,
+        description: `${decisionNotificationsCount} open MR decisions`,
+        link: '/qa-reports?tab=decisions'
+      });
+    }
+    
+    return list;
+  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, isAdmin, isSupervisor, isAuditor]);
+
+  const notificationCount = subNotificationsCount;
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
@@ -316,6 +461,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarInset className="overflow-hidden">
             <Header 
                 notificationCount={notificationCount} 
+                totalNotificationsCount={totalNotificationsCount}
+                notificationsList={notificationsList}
                 isGuidanceVisible={isGuidanceVisible}
                 onToggleGuidance={handleToggleGuidance}
             />

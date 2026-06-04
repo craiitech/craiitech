@@ -21,11 +21,19 @@ import { useState, useEffect } from 'react';
 
 interface HeaderProps {
     notificationCount: number;
+    totalNotificationsCount?: number;
+    notificationsList?: any[];
     isGuidanceVisible: boolean;
     onToggleGuidance: () => void;
 }
 
-export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance }: HeaderProps) {
+export function Header({ 
+  notificationCount, 
+  totalNotificationsCount = 0, 
+  notificationsList = [], 
+  isGuidanceVisible, 
+  onToggleGuidance 
+}: HeaderProps) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
   const isOnline = useNetworkStatus();
@@ -112,7 +120,13 @@ export function Header({ notificationCount, isGuidanceVisible, onToggleGuidance 
             </TooltipProvider>
 
             <ContextualHelp />
-            <UserNav user={user} userProfile={userProfile} notificationCount={notificationCount} />
+            <UserNav 
+                user={user} 
+                userProfile={userProfile} 
+                notificationCount={notificationCount} 
+                totalNotificationsCount={totalNotificationsCount}
+                notificationsList={notificationsList}
+            />
         </div>
     </header>
   );
