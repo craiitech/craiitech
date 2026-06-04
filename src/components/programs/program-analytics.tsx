@@ -171,6 +171,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+        
+        const officialCurrentMilestone = milestones.find(m => m.lifecycleStatus === 'Current');
+        const certificateLink = officialCurrentMilestone?.certificateLink;
+
         const rawLevel = (currentMilestone?.level || 'Non Accredited').trim();
         const isAccredited = currentMilestone && rawLevel !== 'Non Accredited' && !rawLevel.includes('PSV') && rawLevel !== 'AWAITING RESULT';
         const hasCopc = record?.ched?.copcStatus === 'With COPC';
@@ -184,7 +188,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     abbreviation: p.abbreviation,
                     level: m.level,
                     surveyDate: m.dateOfSurvey,
-                    recommendation: reco
+                    recommendation: reco,
+                    certificateLink: certificateLink
                 });
             });
         });

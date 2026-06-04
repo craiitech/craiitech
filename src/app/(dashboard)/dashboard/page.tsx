@@ -638,6 +638,9 @@ export default function HomePage() {
     
     const results: any[] = [];
     allCompliances.forEach(record => {
+        const officialCurrentMilestone = record.accreditationRecords?.find(m => m.lifecycleStatus === 'Current');
+        const certificateLink = officialCurrentMilestone?.certificateLink;
+
         record.accreditationRecords?.forEach(milestone => {
             milestone.recommendations?.forEach(reco => {
                 if (reco.status === 'Closed') return;
@@ -660,7 +663,8 @@ export default function HomePage() {
                         programName: allUnits?.find(u => u.id === record.programId)?.name || 'Academic Program',
                         campusId: record.campusId,
                         level: milestone.level,
-                        recommendation: reco
+                        recommendation: reco,
+                        certificateLink: certificateLink
                     });
                 }
             });

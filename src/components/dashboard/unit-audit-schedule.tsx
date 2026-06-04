@@ -81,9 +81,15 @@ export function UnitAuditSchedule({
 
   const [selectedCampus, setSelectedCampus] = useState<string>('all');
   const [selectedProgram, setSelectedProgram] = useState<string>('all');
+  const [selectedRecoUnit, setSelectedRecoUnit] = useState<string>('all');
 
   const [selectedItineraryCampus, setSelectedItineraryCampus] = useState<string>('all');
   const [selectedItineraryUnit, setSelectedItineraryUnit] = useState<string>('all');
+
+  const recoUnits = useMemo(() => {
+    if (!units) return [];
+    return [...units].sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
 
   const unitMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -113,9 +119,10 @@ export function UnitAuditSchedule({
     return recommendations.filter(r => {
       const matchCampus = selectedCampus === 'all' || r.campusId === selectedCampus;
       const matchProgram = selectedProgram === 'all' || r.programId === selectedProgram;
-      return matchCampus && matchProgram;
+      const matchUnit = selectedRecoUnit === 'all' || r.recommendation.assignedUnitIds?.includes(selectedRecoUnit);
+      return matchCampus && matchProgram && matchUnit;
     });
-  }, [recommendations, selectedCampus, selectedProgram]);
+  }, [recommendations, selectedCampus, selectedProgram, selectedRecoUnit]);
 
   // IQA Itinerary dynamic dropdown options & filtered items
   const itineraryCampuses = useMemo(() => {
@@ -300,6 +307,9 @@ export function UnitAuditSchedule({
         if (selectedProgram !== 'all') {
             scope = 'unit';
             reportUnitName = unitMap.get(selectedProgram);
+        } else if (selectedRecoUnit !== 'all') {
+            scope = 'unit';
+            reportUnitName = unitMap.get(selectedRecoUnit);
         } else if (selectedCampus !== 'all') {
             scope = 'institutional';
             reportUnitName = campuses?.find(c => c.id === selectedCampus)?.name;
@@ -311,7 +321,8 @@ export function UnitAuditSchedule({
                     programName: r.programName,
                     abbreviation: '',
                     level: r.level,
-                    recommendation: r.recommendation
+                    recommendation: r.recommendation,
+                    certificateLink: r.certificateLink
                 }))}
                 unitMap={unitMap}
                 scope={scope}
@@ -808,6 +819,26 @@ export function UnitAuditSchedule({
                 </SelectContent>
               </Select>
             </div>
+            {/* Unit / Office dropdown */}
+            {isAdmin && (
+              <div className="w-full sm:w-[250px]">
+                <Select value={selectedRecoUnit} onValueChange={setSelectedRecoUnit}>
+                  <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-wider bg-white border-amber-200 text-amber-800 shadow-xs focus:ring-amber-500">
+                    <SelectValue placeholder="All Units / Offices" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-amber-200">
+                    <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                      All Units / Offices
+                    </SelectItem>
+                    {recoUnits.map(u => (
+                      <SelectItem key={u.id} value={u.id} className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -844,6 +875,25 @@ export function UnitAuditSchedule({
                                             <span className="uppercase font-bold text-slate-500 mr-1">Notes:</span>
                                             {recoItem.recommendation.additionalInfo}
                                         </p>
+                                    )}
+                                    {/* Assigned units/offices badges */}
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {(recoItem.recommendation.assignedUnitIds || []).map((uid: string) => (
+                                            <Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">
+                                                {unitMap.get(uid) || uid}
+                                            </Badge>
+                                        ))}
+                                        {!recoItem.recommendation.assignedUnitIds?.length && (
+                                            <span className="text-[8px] text-muted-foreground italic">Institutional</span>
+                                        )}
+                                    </div>
+                                    {/* Official Certificate Link */}
+                                    {recoItem.certificateLink && (
+                                        <div className="mt-2 text-[9px] font-bold text-blue-600 uppercase">
+                                            <a href={recoItem.certificateLink} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1">
+                                                <span>View Milestone Certificate Link</span>
+                                            </a>
+                                        </div>
                                     )}
                                 </div>
                             </div>

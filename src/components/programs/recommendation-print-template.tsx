@@ -11,6 +11,7 @@ interface AccreditationRecommendationReportProps {
     level: string;
     surveyDate?: string;
     recommendation: AccreditationRecommendation;
+    certificateLink?: string;
   }[];
   unitMap: Map<string, string>;
   scope: 'institutional' | 'program' | 'unit';
@@ -70,6 +71,13 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
                 <p className="text-slate-500 mt-1 uppercase font-bold" style={{ fontSize: '8pt' }}>
                     {item.level} | {item.surveyDate || 'TBA'}
                 </p>
+                {item.certificateLink && (
+                  <div className="mt-2 pt-1 border-t border-slate-200">
+                    <a href={item.certificateLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline font-bold uppercase tracking-tight text-[7.5pt] block hover:text-blue-900">
+                      View Certificate
+                    </a>
+                  </div>
+                )}
               </td>
               <td className="border border-black p-2 text-center align-top font-bold uppercase" style={{ fontSize: '8pt' }}>
                 {item.recommendation.type}
