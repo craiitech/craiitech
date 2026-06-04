@@ -118,7 +118,7 @@
       },
       "required": ["controlNumber", "subject", "releaseDate", "googleDriveLink", "scope"]
     },
-    "Comment": {
+     "Comment": {
       "title": "Comment",
       "type": "object",
       "properties": {
@@ -127,6 +127,29 @@
         "authorName": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Communication": {
+      "title": "Communication",
+      "description": "Official communication or correspondence log record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["Memorandum Order", "Office Order", "Office Memorandum"] },
+        "subject": { "type": "string" },
+        "driveLink": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "manual": { "type": "boolean" },
+        "readBy": { "type": "array", "items": { "type": "string" } },
+        "senderUnitId": { "type": "string" },
+        "senderRefNum": { "type": "string" },
+        "recipientType": { "type": "string", "enum": ["unit", "campus", "individual", "all"] },
+        "recipientIds": { "type": "array", "items": { "type": "string" } },
+        "recipientRefNums": { "type": "object", "additionalProperties": { "type": "string" } },
+        "toText": { "type": "string" },
+        "senderText": { "type": "string" },
+        "manualType": { "type": "string", "enum": ["incoming", "outgoing"] }
+      },
+      "required": ["kind", "subject", "createdAt", "manual", "readBy", "toText", "senderText"]
     }
   },
   "auth": {
@@ -138,6 +161,7 @@
     "/unitForms/{formId}": { "schema": { "$ref": "#/backend/entities/UnitForm" }, "description": "Active roster of controlled forms." },
     "/auditPlans/{planId}": { "schema": { "$ref": "#/backend/entities/AuditPlan" }, "description": "High-level IQA frameworks." },
     "/employeeActivities/{activityId}": { "schema": { "$ref": "#/backend/entities/EmployeeActivity" }, "description": "Daily task logs." },
-    "/qaAdvisories/{advisoryId}": { "schema": { "$ref": "#/backend/entities/QaAdvisory" }, "description": "QA communications." }
+    "/qaAdvisories/{advisoryId}": { "schema": { "$ref": "#/backend/entities/QaAdvisory" }, "description": "QA communications." },
+    "/communications/{communicationId}": { "schema": { "$ref": "#/backend/entities/Communication" }, "description": "Official communications and correspondences." }
   }
 }

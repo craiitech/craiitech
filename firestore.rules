@@ -144,6 +144,24 @@ service cloud.firestore {
       allow get, list, write: if isSignedIn();
     }
 
+    match /communications/{id} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        profile().get('role', '').matches('(?i).*(odimo|director|president|vice president).*')
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /qaAdvisories/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --------------------------------------------------------------------------
     // SYSTEM COLLECTIONS
     // --------------------------------------------------------------------------

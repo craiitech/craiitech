@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where } from 'firebase/firestore';
-import type { Campus, Unit } from '@/lib/types';
+import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit } from 'firebase/firestore';
+import type { Campus, Unit, Communication, CommunicationKind } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,11 +64,11 @@ export default function CommunicationsPage() {
   // Dialog State
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedComm, setSelectedComm] = useState<any | null>(null);
+  const [selectedComm, setSelectedComm] = useState<Communication | null>(null);
 
   // Form State
   const [commsMode, setCommsMode] = useState<'digital' | 'manual'>('digital');
-  const [kind, setKind] = useState('Office Memorandum');
+  const [kind, setKind] = useState<CommunicationKind>('Office Memorandum');
   const [subject, setSubject] = useState('');
   const [driveLink, setDriveLink] = useState('');
 
@@ -96,9 +96,13 @@ export default function CommunicationsPage() {
 
   const commsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'communications'), orderBy('createdAt', 'desc'));
+    return query(
+      collection(firestore, 'communications'),
+      orderBy('createdAt', 'desc'),
+      limit(150)
+    );
   }, [firestore]);
-  const { data: rawComms, isLoading: isLoadingComms } = useCollection<any>(commsQuery);
+  const { data: rawComms, isLoading: isLoadingComms } = useCollection<Communication>(commsQuery);
 
   // Role permissions
   const isOdimo = userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || isAdmin;
@@ -108,8 +112,8 @@ export default function CommunicationsPage() {
   const processedComms = useMemo(() => {
     if (!rawComms || !userProfile) return { incoming: [], outgoing: [] };
 
-    const incoming: any[] = [];
-    const outgoing: any[] = [];
+    const incoming: Communication[] = [];
+    const outgoing: Communication[] = [];
 
     rawComms.forEach(c => {
       // Determine Outgoing matching:
@@ -153,6 +157,11 @@ export default function CommunicationsPage() {
     });
   }, [processedComms, activeTab, searchTerm, kindFilter, userProfile?.unitId]);
 
+  const unreadCount = useMemo(() => {
+    if (!userProfile) return 0;
+    return processedComms.incoming.filter(c => !c.readBy?.includes(userProfile.id) && c.senderUnitId !== userProfile.unitId).length;
+  }, [processedComms.incoming, userProfile]);
+
   const handleAddRecipient = () => {
     if (currentRecipientSelection && !selectedRecipients.includes(currentRecipientSelection)) {
       setSelectedRecipients(prev => [...prev, currentRecipientSelection]);
@@ -184,7 +193,7 @@ export default function CommunicationsPage() {
     return url;
   };
 
-  const handleOpenDetail = async (comm: any) => {
+  const handleOpenDetail = async (comm: Communication) => {
     setSelectedComm(comm);
     // Mark as read in Firestore if not read yet
     if (firestore && userProfile && comm.id && !comm.readBy?.includes(userProfile.id) && comm.senderUnitId !== userProfile.unitId) {
@@ -400,7 +409,13 @@ export default function CommunicationsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
           <TabsList className="bg-slate-100 p-1 border rounded-xl h-10 w-max shadow-sm">
             <TabsTrigger value="incoming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 rounded-lg">
-              <ArrowDownLeft className="h-4 w-4 text-emerald-600" /> Incoming Logbook
+              <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
+              Incoming Logbook
+              {unreadCount > 0 && (
+                <span className="ml-1.5 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black tabular-nums transition-all hover:scale-105">
+                  {unreadCount}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="outgoing" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 rounded-lg">
               <ArrowUpRight className="h-4 w-4 text-indigo-600" /> Outgoing Logbook
@@ -473,16 +488,19 @@ export default function CommunicationsPage() {
                         key={comm.id}
                         onClick={() => handleOpenDetail(comm)}
                         className={cn(
-                          "cursor-pointer hover:bg-slate-50/80 transition-colors border-b",
-                          isUnread && "bg-indigo-50/20 hover:bg-indigo-50/40 font-bold"
+                          "cursor-pointer hover:bg-slate-50/80 transition-all border-b relative group",
+                          isUnread && "bg-indigo-50/10 hover:bg-indigo-50/20 font-bold"
                         )}
                       >
-                        <TableCell className="pl-6 py-4">
+                        <TableCell className="pl-6 py-4 relative">
+                          {isUnread && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 rounded-r bg-indigo-600 transition-all" />
+                          )}
                           <div className="flex items-center gap-2">
                             {isUnread && (
                               <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse shrink-0" />
                             )}
-                            <span className="font-black text-xs text-slate-800 tabular-nums uppercase">{displayRefNum}</span>
+                            <span className="font-black text-xs text-slate-800 tabular-nums uppercase transition-transform group-hover:translate-x-1">{displayRefNum}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-slate-500 font-medium tabular-nums">{dateStr}</TableCell>
@@ -557,7 +575,7 @@ export default function CommunicationsPage() {
             {/* KIND */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Correspondence Type</label>
-              <Select value={kind} onValueChange={setKind}>
+              <Select value={kind} onValueChange={(val) => setKind(val as CommunicationKind)}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
