@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
@@ -116,6 +117,9 @@ function AccreditationRecordCard({
 }) {
     const { setValue } = useFormContext();
     
+    const accreditationRecords = useWatch({ control, name: 'accreditationRecords' }) || [];
+    const currentMilestoneIdx = accreditationRecords.findIndex((m: any) => m.lifecycleStatus === 'Current');
+
     const selectedComponents = useWatch({ control, name: `accreditationRecords.${index}.components` }) || [];
     const areas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
     const certificateLinkVal = useWatch({ control, name: `accreditationRecords.${index}.certificateLink` });
@@ -186,20 +190,32 @@ function AccreditationRecordCard({
 
                         <Separator />
 
-                        <FormField control={control} name={`accreditationRecords.${index}.lifecycleStatus`} render={({ field: inputField }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Status</FormLabel>
-                                <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit || !isAdmin}>
-                                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="TBA">Archive / Historical</SelectItem>
-                                        <SelectItem value="Undergoing">Ongoing Survey</SelectItem>
-                                        <SelectItem value="Completed">Recently Completed</SelectItem>
-                                        <SelectItem value="Waiting for Official Result">Waiting for Official Result</SelectItem>
-                                        <SelectItem value="Current" className="font-bold text-primary">Official Current Level</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )} />
+                        <FormField control={control} name={`accreditationRecords.${index}.lifecycleStatus`} render={({ field: inputField }) => {
+                            const handleLifecycleStatusChange = (newStatus: string) => {
+                                inputField.onChange(newStatus);
+                                if (newStatus === 'Current') {
+                                    accreditationRecords.forEach((rec: any, idx: number) => {
+                                        if (idx !== index && rec.lifecycleStatus === 'Current') {
+                                            setValue(`accreditationRecords.${idx}.lifecycleStatus`, 'TBA');
+                                        }
+                                    });
+                                }
+                            };
+                            return (
+                                <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Status</FormLabel>
+                                    <Select onValueChange={handleLifecycleStatusChange} value={inputField.value} disabled={!canEdit || !isAdmin}>
+                                        <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="TBA">Archive / Historical</SelectItem>
+                                            <SelectItem value="Undergoing">Ongoing Survey</SelectItem>
+                                            <SelectItem value="Completed">Recently Completed</SelectItem>
+                                            <SelectItem value="Waiting for Official Result">Waiting for Official Result</SelectItem>
+                                            <SelectItem value="Current" className="font-bold text-primary">Official Current Level</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            );
+                        }} />
                         
                         <FormField control={control} name={`accreditationRecords.${index}.dateOfSurvey`} render={({ field: inputField }) => (
                             <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date of Survey</FormLabel><FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Oct 12-14, 2024" className="h-9 text-xs" disabled={!canEdit || !isAdmin} /></FormControl></FormItem>
@@ -361,16 +377,44 @@ function AccreditationRecordCard({
                                                     <Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none", type === 'Mandatory' ? "bg-rose-600" : "bg-blue-600")}>
                                                         {type === 'Mandatory' ? 'REQUIREMENT' : 'ENHANCEMENT'}
                                                     </Badge>
-                                                    <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.status`} render={({ field: inputField }) => (
-                                                        <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit}>
-                                                            <FormControl><SelectTrigger className="h-6 w-32 text-[9px] font-bold bg-white"><SelectValue /></SelectTrigger></FormControl>
-                                                            <SelectContent>
-                                                                <SelectItem value="Open">Open</SelectItem>
-                                                                <SelectItem value="In Progress">In Progress</SelectItem>
-                                                                <SelectItem value="Closed">Closed / Complied</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )} />
+                                                    <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.status`} render={({ field: inputField }) => {
+                                                        const handleRecoStatusChange = (val: string) => {
+                                                            inputField.onChange(val);
+                                                            if (val === 'Move to the Official Current Level') {
+                                                                if (currentMilestoneIdx !== -1 && currentMilestoneIdx !== index) {
+                                                                    const currentMilestoneRecos = [...(accreditationRecords[currentMilestoneIdx]?.recommendations || [])];
+                                                                    const reco = accreditationRecords[index]?.recommendations?.[recoIdx];
+                                                                    if (reco) {
+                                                                        const alreadyCopied = currentMilestoneRecos.some((r: any) => r.text === reco.text && r.type === reco.type);
+                                                                        if (!alreadyCopied) {
+                                                                            currentMilestoneRecos.push({
+                                                                                id: Math.random().toString(36).substr(2, 9),
+                                                                                type: reco.type,
+                                                                                text: reco.text,
+                                                                                assignedUnitIds: reco.assignedUnitIds || [],
+                                                                                status: 'Open',
+                                                                                additionalInfo: reco.additionalInfo || ''
+                                                                            });
+                                                                            setValue(`accreditationRecords.${currentMilestoneIdx}.recommendations`, currentMilestoneRecos, { shouldValidate: true, shouldDirty: true });
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        };
+                                                        return (
+                                                            <Select onValueChange={handleRecoStatusChange} value={inputField.value} disabled={!canEdit}>
+                                                                <FormControl><SelectTrigger className="h-6 w-32 text-[9px] font-bold bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Open">Open</SelectItem>
+                                                                    <SelectItem value="In Progress">In Progress</SelectItem>
+                                                                    <SelectItem value="Closed">Closed / Complied</SelectItem>
+                                                                    {currentMilestoneIdx !== -1 && currentMilestoneIdx !== index && (
+                                                                        <SelectItem value="Move to the Official Current Level">Move to the Official Current Level</SelectItem>
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        );
+                                                    }} />
                                                 </div>
                                                 <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.text`} render={({ field: inputField }) => (
                                                     <FormItem>
@@ -421,7 +465,7 @@ function AccreditationRecordCard({
 
 export function AccreditationModule({ canEdit, programSpecializations }: { canEdit: boolean, programSpecializations?: { id: string, name: string }[] }) {
   const firestore = useFirestore();
-  const { control } = useFormContext();
+  const { control, setValue } = useFormContext();
   const { isAdmin } = useUser();
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
@@ -431,6 +475,30 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
     control,
     name: "accreditationRecords"
   });
+
+  const records = useWatch({ control, name: "accreditationRecords" }) || [];
+
+  // Enforce exactly one 'Current' milestone status
+  useEffect(() => {
+    if (!records || records.length === 0) return;
+    
+    const currentIndices: number[] = [];
+    records.forEach((rec: any, idx: number) => {
+      if (rec.lifecycleStatus === 'Current') {
+        currentIndices.push(idx);
+      }
+    });
+
+    if (currentIndices.length === 0) {
+      // If none is current, make the first one current
+      setValue(`accreditationRecords.0.lifecycleStatus`, 'Current', { shouldValidate: true, shouldDirty: true });
+    } else if (currentIndices.length > 1) {
+      // If more than one is current, keep the first one and set others to TBA
+      for (let i = 1; i < currentIndices.length; i++) {
+        setValue(`accreditationRecords.${currentIndices[i]}.lifecycleStatus`, 'TBA', { shouldValidate: true, shouldDirty: true });
+      }
+    }
+  }, [records, setValue]);
 
   return (
     <div className="space-y-8 pb-20">

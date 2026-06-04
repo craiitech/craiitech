@@ -531,6 +531,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                               "h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm",
                                               reco.status === 'Open' ? "bg-rose-600 text-white" : 
                                               reco.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
+                                              reco.status === 'Move to the Official Current Level' ? "bg-indigo-600 text-white" : 
                                               "bg-emerald-600 text-white"
                                           )}
                                       >

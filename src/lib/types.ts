@@ -590,7 +590,7 @@ export type AccreditationRecommendation = {
     text: string;
     type: 'Mandatory' | 'Enhancement';
     assignedUnitIds: string[];
-    status: 'Open' | 'In Progress' | 'Closed';
+    status: 'Open' | 'In Progress' | 'Closed' | 'Move to the Official Current Level';
     additionalInfo?: string;
 };
 
