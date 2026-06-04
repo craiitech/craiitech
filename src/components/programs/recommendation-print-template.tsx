@@ -24,10 +24,8 @@ interface AccreditationRecommendationReportProps {
  * Optimized for Folio (8.5 x 13) with 10-11pt base font.
  */
 export function AccreditationRecommendationReport({ items, unitMap, scope, year, unitName }: AccreditationRecommendationReportProps) {
-  const currentTitle = scope === 'institutional' 
+  const currentTitle = (scope === 'institutional' || scope === 'unit')
     ? 'Institutional Accreditation Gaps Registry' 
-    : scope === 'unit' 
-    ? 'Unit Quality Compliance Audit' 
     : 'Program Accreditation Recommendations';
 
   return (

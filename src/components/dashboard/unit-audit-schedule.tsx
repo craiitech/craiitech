@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Calendar, Clock, ClipboardList, Info, Printer, Loader2, FileText, Award, GraduationCap, TriangleAlert, ListChecks, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
@@ -19,6 +19,7 @@ import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUser } from '@/firebase';
 
 import { ChedProgramsTab } from '@/components/dashboard/executive/ched-programs-tab';
 import { RiskOpportunityTab } from '@/components/dashboard/executive/risk-opportunity-tab';
@@ -74,6 +75,7 @@ export function UnitAuditSchedule({
     showDecisionSupport = false
 }: UnitAuditScheduleProps) {
   const { toast } = useToast();
+  const { userProfile } = useUser();
   const [isPrintingPlan, setIsPrintingPlan] = useState(false);
   const [isPrintingReport, setIsPrintingReport] = useState(false);
   const [isPrintingRecos, setIsPrintingRecos] = useState(false);
@@ -82,6 +84,12 @@ export function UnitAuditSchedule({
   const [selectedCampus, setSelectedCampus] = useState<string>('all');
   const [selectedProgram, setSelectedProgram] = useState<string>('all');
   const [selectedRecoUnit, setSelectedRecoUnit] = useState<string>('all');
+
+  useEffect(() => {
+    if (!isAdmin && userProfile?.unitId) {
+      setSelectedRecoUnit(userProfile.unitId);
+    }
+  }, [userProfile, isAdmin]);
 
   const [selectedItineraryCampus, setSelectedItineraryCampus] = useState<string>('all');
   const [selectedItineraryUnit, setSelectedItineraryUnit] = useState<string>('all');
@@ -820,7 +828,7 @@ export function UnitAuditSchedule({
               </Select>
             </div>
             {/* Unit / Office dropdown */}
-            {isAdmin && (
+            {isAdmin ? (
               <div className="w-full sm:w-[250px]">
                 <Select value={selectedRecoUnit} onValueChange={setSelectedRecoUnit}>
                   <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-wider bg-white border-amber-200 text-amber-800 shadow-xs focus:ring-amber-500">
@@ -838,7 +846,11 @@ export function UnitAuditSchedule({
                   </SelectContent>
                 </Select>
               </div>
-            )}
+            ) : userProfile?.unitId ? (
+              <div className="flex items-center px-3.5 h-8 rounded-md border border-amber-200/50 bg-amber-50/20 text-[10px] font-black uppercase text-amber-800/80 shadow-xs">
+                Locked to: {unitMap.get(userProfile.unitId) || userProfile.unitId}
+              </div>
+            ) : null}
           </div>
         </div>
 
