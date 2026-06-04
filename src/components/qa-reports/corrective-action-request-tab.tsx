@@ -96,6 +96,7 @@ const carSchema = z.object({
     completionDate: z.string().min(1, 'Date is required'),
     status: z.enum(['Pending', 'Completed']),
     evidenceLink: z.string().url('Invalid URL').optional().or(z.literal('')),
+    verificationStatus: z.enum(['Accepted', 'Not Accepted', 'Pending']).optional(),
   })).optional(),
   followUpLogs: z.array(z.object({
     result: z.string().min(1, 'Result is required'),
@@ -260,7 +261,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                   type: 'Long-term Corrective Action',
                   completionDate: format(new Date(), 'yyyy-MM-dd'),
                   status: 'Pending',
-                  evidenceLink: ''
+                  evidenceLink: '',
+                  verificationStatus: 'Pending'
                 });
                 form.setValue('status', 'Awaiting Response/Update');
                 toast({
@@ -285,12 +287,25 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                   )}>
                     {step.type}
                   </Badge>
-                  <Badge className={cn(
-                    "text-[8px] font-black uppercase",
-                    step.status === 'Completed' ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                  )}>
-                    {step.status}
-                  </Badge>
+                  {sectionType === 'follow-up' ? (
+                    <Badge className={cn(
+                      "text-[8px] font-black uppercase",
+                      step.status === 'Completed' ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                    )}>
+                      {step.status}
+                    </Badge>
+                  ) : (
+                    <Badge className={cn(
+                      "text-[8px] font-black uppercase",
+                      step.verificationStatus === 'Accepted' ? "bg-emerald-100 text-emerald-800" :
+                      step.verificationStatus === 'Not Accepted' ? "bg-rose-100 text-rose-800" :
+                      "bg-amber-100 text-amber-800"
+                    )}>
+                      {step.verificationStatus === 'Accepted' ? 'Verified Effective' :
+                       step.verificationStatus === 'Not Accepted' ? 'Not Effective' :
+                       'Awaiting Effectiveness Check'}
+                    </Badge>
+                  )}
                   <span className="text-[10px] text-muted-foreground font-mono">
                     Target: {step.completionDate ? format(new Date(step.completionDate), 'yyyy-MM-dd') : 'No Date'}
                   </span>
@@ -318,34 +333,70 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
               {isInstitutionalViewer && (
                 <div className="flex items-center gap-2 shrink-0">
-                  {step.status !== 'Completed' ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 font-black text-[9px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80"
-                      onClick={() => {
-                        form.setValue(`actionSteps.${i}.status`, 'Completed');
-                        toast({ title: "Step Verified", description: "Action step status set to Completed." });
-                      }}
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
-                      Verify Correct
-                    </Button>
+                  {sectionType === 'follow-up' ? (
+                    <>
+                      {step.status !== 'Completed' ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 font-black text-[9px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80"
+                          onClick={() => {
+                            form.setValue(`actionSteps.${i}.status`, 'Completed');
+                            toast({ title: "Step Verified", description: "Action step status set to Completed." });
+                          }}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+                          Verify Correct
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 font-black text-[9px] uppercase border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100/80"
+                          onClick={() => {
+                            form.setValue(`actionSteps.${i}.status`, 'Pending');
+                            toast({ title: "Step Reset", description: "Action step status set back to Pending." });
+                          }}
+                        >
+                          <Undo2 className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                          Mark Pending
+                        </Button>
+                      )}
+                    </>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 font-black text-[9px] uppercase border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100/80"
-                      onClick={() => {
-                        form.setValue(`actionSteps.${i}.status`, 'Pending');
-                        toast({ title: "Step Reset", description: "Action step status set back to Pending." });
-                      }}
-                    >
-                      <Undo2 className="h-3.5 w-3.5 mr-1 text-amber-600" />
-                      Mark Pending
-                    </Button>
+                    <>
+                      {step.verificationStatus !== 'Accepted' ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 font-black text-[9px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80"
+                          onClick={() => {
+                            form.setValue(`actionSteps.${i}.verificationStatus`, 'Accepted');
+                            toast({ title: "Step Effective", description: "Action step verified as effective." });
+                          }}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+                          Verified Effective
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 font-black text-[9px] uppercase border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100/80"
+                          onClick={() => {
+                            form.setValue(`actionSteps.${i}.verificationStatus`, 'Not Accepted');
+                            toast({ title: "Step Not Effective", description: "Action step marked as not effective." });
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1 text-rose-600" />
+                          Not Effective
+                        </Button>
+                      )}
+                    </>
                   )}
 
                   <Button
@@ -385,7 +436,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         actionSteps: (car.actionSteps || []).map(s => ({ 
             ...s, 
             completionDate: safeDate(s.completionDate),
-            evidenceLink: s.evidenceLink || '' 
+            evidenceLink: s.evidenceLink || '',
+            verificationStatus: s.verificationStatus || 'Pending'
         })),
         followUpLogs: (car.followUpLogs || []).map(log => ({
             ...log,
