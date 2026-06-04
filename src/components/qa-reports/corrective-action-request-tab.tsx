@@ -760,6 +760,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">I. Follow-up Result</h5>
                                     {followUpFields.map((field, index) => (
                                         <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
+                                            {renderActionVerificationArea('follow-up')}
                                             <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: iF }) => (<FormItem className="md:col-span-2"><FormLabel className="text-[9px] font-black uppercase">Official Auditor Observation</FormLabel><FormControl><Textarea {...iF} rows={4} className="bg-white text-xs italic" disabled={isFieldReadOnly(`followUpLogs.${index}.result`)} /></FormControl></FormItem>)} />
                                             <div className="grid grid-cols-2 gap-4">
                                                 <FormField control={form.control} name={`followUpLogs.${index}.verifiedBy`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...iF} className="h-8 text-xs bg-white" disabled={isFieldReadOnly(`followUpLogs.${index}.verifiedBy`)} /></FormControl></FormItem>)} />
@@ -773,7 +774,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     </FormControl>
                                                 </FormItem>
                                             )} />
-                                            {renderActionVerificationArea('follow-up')}
                                             {isInstitutionalViewer && (
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFollowUp(index)}>
                                                     <Trash2 className="h-3.5 w-3.5" />
@@ -791,6 +791,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <h5 className="text-[10px] font-black uppercase text-emerald-700 tracking-widest border-b pb-1">II. Final Verification</h5>
                                     {effectivenessFields.map((field, idx) => (
                                         <div key={field.id} className="p-6 rounded-2xl border bg-emerald-50/20 space-y-6 group relative">
+                                            {renderActionVerificationArea('final')}
                                             <FormField control={form.control} name={`effectivenessAudits.${idx}.result`} render={({ field: iF }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase text-emerald-900">Audit Verification Outcome</FormLabel><FormControl><Textarea {...iF} rows={3} className="bg-white border-emerald-100 text-sm shadow-inner" disabled={isFieldReadOnly(`effectivenessAudits.${idx}.result`)} /></FormControl></FormItem>)} />
                                             <div className="grid grid-cols-2 gap-6">
                                                 <FormField control={form.control} name={`effectivenessAudits.${idx}.action`} render={({ field: iF }) => (
@@ -822,7 +823,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     </FormControl>
                                                 </FormItem>
                                             )} />
-                                            {renderActionVerificationArea('final')}
                                             {isInstitutionalViewer && (
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEffectiveness(idx)}>
                                                     <Trash2 className="h-3.5 w-3.5" />
