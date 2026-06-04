@@ -7,6 +7,7 @@ import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
+import allClausesData from '@/lib/iso-clauses.json';
 
 interface AuditPrintTemplateProps {
   schedule: AuditSchedule;
@@ -23,12 +24,13 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
     : (schedule.scheduledDate ? new Date(schedule.scheduledDate) : new Date());
 
   const findingsMap = new Map(findings.map(f => [f.isoClause, f]));
-  const sortedClauses = [...clauses].sort((a, b) => 
+  const isBlankTemplate = findings.length === 0;
+  const clausesToRender = isBlankTemplate ? allClausesData.clauses : clauses;
+  const sortedClauses = [...clausesToRender].sort((a, b) => 
     a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })
   );
 
   const qaoDirectorName = signatories?.qaoDirector || 'Director, Quality Assurance Office';
-  const isBlankTemplate = findings.length === 0;
 
   // Identify the primary auditee name to display
   const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
@@ -92,7 +94,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       {/* Main Evidence Log Table (using Flexbox to prevent Chrome print page-break bugs) */}
       <div className="w-full mb-6" style={{ fontSize: '11pt' }}>
         {/* Header */}
-        <div className="flex w-full border-2 border-black bg-white font-black text-[10pt] uppercase">
+        <div className={cn("flex w-full border-2 border-black bg-white font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>
           <div className="w-[12%] border-r-2 border-black p-2 text-center flex items-center justify-center shrink-0">
             ISO 21001:2018
           </div>
@@ -121,7 +123,16 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
               <div className="w-[70%] border-r-2 border-black p-4 align-top space-y-4 flex-1">
                 <div className="space-y-2">
                   <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
-                  <ul className="space-y-1.5 pl-6 text-slate-800 leading-relaxed font-bold" style={{ fontSize: '10pt' }}>
+                  <ul 
+                    className={cn(
+                      "pl-6 text-slate-800 font-bold",
+                      isBlankTemplate ? "space-y-1" : "space-y-1.5 leading-relaxed"
+                    )}
+                    style={{ 
+                      fontSize: isBlankTemplate ? '11pt' : '10pt', 
+                      lineHeight: isBlankTemplate ? '1.2' : undefined 
+                    }}
+                  >
                       {questions.map((q, i) => <li key={i}>{q}</li>)}
                   </ul>
                 </div>
@@ -129,19 +140,19 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 <div style={{ borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
 
                 <div className={cn("pt-4", isBlankTemplate ? "min-h-[140px]" : "min-h-[80px]")}>
-                  <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
+                  <p className="font-black uppercase text-slate-900 mb-4" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                   {isBlankTemplate ? (
                       <div className="space-y-4 pl-2 mt-2">
                           <div className="flex items-end gap-2 h-7">
-                              <span className="font-bold text-xs shrink-0">1.</span>
+                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>1.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
                           <div className="flex items-end gap-2 h-7">
-                              <span className="font-bold text-xs shrink-0">2.</span>
+                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>2.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
                           <div className="flex items-end gap-2 h-7">
-                              <span className="font-bold text-xs shrink-0">3.</span>
+                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>3.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
                       </div>
@@ -151,15 +162,15 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 mt-4">
-                   <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: '9pt' }}>Finding Statement:</p>
+                   <p className="font-black uppercase text-slate-900 mb-2" style={{ fontSize: isBlankTemplate ? '11pt' : '9pt' }}>Finding Statement:</p>
                    {isBlankTemplate ? (
                       <div className="space-y-4 pl-2 mt-2">
                           <div className="flex items-end gap-2 h-7">
-                              <span className="font-bold text-xs shrink-0">1.</span>
+                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>1.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
                           <div className="flex items-end gap-2 h-7">
-                              <span className="font-bold text-xs shrink-0">2.</span>
+                              <span className="font-bold shrink-0" style={{ fontSize: '11pt' }}>2.</span>
                               <div className="flex-1 border-b border-black/40 mb-1" />
                           </div>
                       </div>
@@ -174,19 +185,19 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                       <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
                           {finding?.type === 'Compliance' && <Check className="h-4 w-4 text-white" />}
                       </div>
-                      <span className="text-[10pt] font-black uppercase">Compliant</span>
+                      <span className={cn("font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>Compliant</span>
                   </div>
                   <div className="flex items-center gap-3">
                       <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Observation for Improvement' ? 'black' : 'transparent' }}>
                           {finding?.type === 'Observation for Improvement' && <Check className="h-4 w-4 text-white" />}
                       </div>
-                      <span className="text-[10pt] font-black uppercase">OFI</span>
+                      <span className={cn("font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>OFI</span>
                   </div>
                   <div className="flex items-center gap-3">
                       <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Non-Conformance' ? 'black' : 'transparent' }}>
                           {finding?.type === 'Non-Conformance' && <Check className="h-4 w-4 text-white" />}
                       </div>
-                      <span className="text-[10pt] font-black uppercase">NC</span>
+                      <span className={cn("font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>NC</span>
                   </div>
                 </div>
               </div>
