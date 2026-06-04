@@ -92,6 +92,7 @@ export default function RiskRegisterPage() {
     
     // Inline Confirmation State for Duplicate Audit
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [detailedTab, setDetailedTab] = useState<'all' | 'risks' | 'opportunities'>('all');
     
     // Core Filters
     const [campusFilter, setCampusFilter] = useState<string>('all');
@@ -183,6 +184,9 @@ export default function RiskRegisterPage() {
             return true;
         });
     }, [allRisks, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, userProfile]);
+
+    const risksOnly = useMemo(() => filteredRisks.filter(r => r.type === 'Risk'), [filteredRisks]);
+    const opportunitiesOnly = useMemo(() => filteredRisks.filter(r => r.type === 'Opportunity'), [filteredRisks]);
     
     /**
      * DUPLICATE AUDIT LOGIC
@@ -422,23 +426,65 @@ export default function RiskRegisterPage() {
         </TabsContent>
         <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
             <Card className="shadow-md border-primary/10 overflow-hidden">
-                <CardContent className="p-0">
-                    <RiskTable 
-                        risks={filteredRisks} 
-                        usersMap={new Map()} 
-                        onEdit={handleEditRisk} 
-                        onDelete={setDeletingRisk} 
-                        isAdmin={isAdmin} 
-                        isSupervisor={isSupervisor} 
-                        campusMap={campusMap} 
-                        unitMap={unitMap} 
-                    />
-                </CardContent>
+                <Tabs value={detailedTab} onValueChange={(val) => setDetailedTab(val as any)} className="w-full">
+                    <div className="flex items-center justify-between border-b bg-slate-50/50 px-6 py-2">
+                        <TabsList className="bg-slate-100 p-0.5 border rounded-lg h-8 w-max shadow-sm">
+                            <TabsTrigger value="all" className="gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 h-6 rounded-md">
+                                <Layers className="h-3 w-3" /> All Entries ({filteredRisks.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="risks" className="gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 h-6 rounded-md text-rose-600 data-[state=active]:text-rose-700">
+                                <Shield className="h-3 w-3" /> Risks ({risksOnly.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="opportunities" className="gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 h-6 rounded-md text-emerald-600 data-[state=active]:text-emerald-700">
+                                <TrendingUp className="h-3 w-3" /> Opportunities ({opportunitiesOnly.length})
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="all" className="p-0 m-0">
+                        <RiskTable 
+                            risks={filteredRisks} 
+                            usersMap={new Map()} 
+                            onEdit={handleEditRisk} 
+                            onDelete={setDeletingRisk} 
+                            isAdmin={isAdmin} 
+                            isSupervisor={isSupervisor} 
+                            campusMap={campusMap} 
+                            unitMap={unitMap} 
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="risks" className="p-0 m-0">
+                        <RiskTable 
+                            risks={risksOnly} 
+                            usersMap={new Map()} 
+                            onEdit={handleEditRisk} 
+                            onDelete={setDeletingRisk} 
+                            isAdmin={isAdmin} 
+                            isSupervisor={isSupervisor} 
+                            campusMap={campusMap} 
+                            unitMap={unitMap} 
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="opportunities" className="p-0 m-0">
+                        <RiskTable 
+                            risks={opportunitiesOnly} 
+                            usersMap={new Map()} 
+                            onEdit={handleEditRisk} 
+                            onDelete={setDeletingRisk} 
+                            isAdmin={isAdmin} 
+                            isSupervisor={isSupervisor} 
+                            campusMap={campusMap} 
+                            unitMap={unitMap} 
+                        />
+                    </TabsContent>
+                </Tabs>
                 <CardFooter className="bg-muted/5 border-t py-3 px-8">
                     <div className="flex items-start gap-3">
                         <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                         <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            Displaying <strong>{filteredRisks.length}</strong> entries matching the current criteria. Use the filters above to refine the list by campus, unit, risk magnitude, or type.
+                            Displaying <strong>{detailedTab === 'all' ? filteredRisks.length : detailedTab === 'risks' ? risksOnly.length : opportunitiesOnly.length}</strong> {detailedTab === 'all' ? 'total entries' : detailedTab === 'risks' ? 'risks' : 'opportunities'} matching the current criteria. Use the filters above to refine the list by campus, unit, risk magnitude, or type.
                         </p>
                     </div>
                 </CardFooter>
