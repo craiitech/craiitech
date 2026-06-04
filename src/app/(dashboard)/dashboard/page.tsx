@@ -30,6 +30,7 @@ import {
   Briefcase,
   Home as HomeIcon,
   Circle,
+  Calendar,
   Activity,
   ArrowRight,
   ChevronRight,
@@ -105,6 +106,7 @@ import { ChedProgramsTab } from '@/components/dashboard/executive/ched-programs-
 import { RiskOpportunityTab } from '@/components/dashboard/executive/risk-opportunity-tab';
 import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
 import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
+import { ScheduleTab } from '@/components/dashboard/executive/schedule-tab';
 import type {
   Submission,
   User as AppUser,
@@ -504,16 +506,16 @@ export default function HomePage() {
   const allCars = dashboardCars;
   const unitCars = dashboardCars;
 
-  const unitMrOutputsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || isAdmin) return null;
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
     return collection(firestore, 'managementReviewOutputs');
-  }, [firestore, userProfile, isAdmin]);
-  const { data: rawUnitMrOutputs } = useCollection<ManagementReviewOutput>(unitMrOutputsQuery);
+  }, [firestore]);
+  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   const unitMrOutputs = useMemo(() => {
-    if (!rawUnitMrOutputs || !userProfile?.unitId) return [];
-    return rawUnitMrOutputs.filter(o => o.assignments?.some((a: any) => a.unitId === userProfile.unitId));
-  }, [rawUnitMrOutputs, userProfile]);
+    if (!mrOutputs || !userProfile?.unitId) return [];
+    return mrOutputs.filter(o => o.assignments?.some((a: any) => a.unitId === userProfile.unitId));
+  }, [mrOutputs, userProfile]);
 
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !selectedYear) return null;
@@ -974,6 +976,7 @@ export default function HomePage() {
         <ScrollArea className="w-full">
           <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="schedule"><Calendar className="mr-2 h-4 w-4" />Schedule Today | Upcoming</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
@@ -1033,6 +1036,20 @@ export default function HomePage() {
             </Card>
           </div>
         </div>
+      </TabsContent>
+      <TabsContent value="schedule" className="space-y-6">
+        <ScheduleTab
+          schedules={dashboardSchedules || []}
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={allCompliances || []}
+          academicPrograms={academicPrograms || []}
+          campuses={campuses || []}
+          allUnits={allUnits || []}
+          cycles={allCycles || []}
+          mrOutputs={mrOutputs || []}
+          selectedYear={selectedYear}
+        />
       </TabsContent>
       <TabsContent value="analytics" className="space-y-6">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
