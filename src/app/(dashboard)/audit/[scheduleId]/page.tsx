@@ -379,7 +379,7 @@ export default function AuditExecutionPage() {
                     <div class="no-print mb-8 flex justify-center">
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print IQA Report</button>
                     </div>
-                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
+                    <div id="print-content">${reportHtml}</div>
                 </body>
                 </html>
             `);

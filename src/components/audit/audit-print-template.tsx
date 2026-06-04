@@ -36,7 +36,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
   const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
 
   return (
-    <div className="w-full text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '100%', fontSize: '12pt' }}>
+    <div className="text-black bg-white mx-auto font-sans leading-tight print:p-0" style={{ width: '7.5in', fontSize: '12pt' }}>
       <style>{`
         @media print {
           tr, td {
@@ -94,14 +94,14 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       {/* Main Evidence Log Table (using Flexbox to prevent Chrome print page-break bugs) */}
       <div className="w-full mb-6" style={{ fontSize: '11pt' }}>
         {/* Header */}
-        <div className={cn("flex w-full border-2 border-black bg-white font-black uppercase", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>
-          <div className="w-[12%] border-r-2 border-black p-2 text-center flex items-center justify-center shrink-0">
+        <div className={cn("flex w-full border-2 border-black bg-white font-black uppercase box-border", isBlankTemplate ? "text-[11pt]" : "text-[10pt]")}>
+          <div className="w-[12%] border-r-2 border-black p-2 text-center flex items-center justify-center shrink-0 box-border">
             ISO 21001:2018
           </div>
-          <div className="w-[70%] border-r-2 border-black p-2 text-left flex items-center flex-1">
+          <div className="w-[70%] border-r-2 border-black p-2 text-left flex items-center flex-1 box-border">
             REQUIREMENTS & OBSERVATIONS (OBJECTIVE EVIDENCE)
           </div>
-          <div className="w-[18%] p-2 text-center flex items-center justify-center shrink-0">
+          <div className="w-[18%] p-2 text-center flex items-center justify-center shrink-0 box-border">
             FINDINGS (C, NC, OFI)
           </div>
         </div>
@@ -114,13 +114,13 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
           return (
             <div 
               key={clause.id} 
-              className="flex w-full border-x-2 border-b-2 border-black bg-white" 
+              className="flex w-full border-x-2 border-b-2 border-black bg-white box-border" 
               style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
             >
-              <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-4 shrink-0">
+              <div className="w-[12%] border-r-2 border-black p-2 text-center font-black align-top pt-4 shrink-0 box-border">
                 {clause.id}
               </div>
-              <div className="w-[70%] border-r-2 border-black p-4 align-top space-y-4 flex-1">
+              <div className="w-[70%] border-r-2 border-black p-4 align-top space-y-4 flex-1 box-border">
                 <div className="space-y-2">
                   <p className="font-black uppercase text-slate-900" style={{ fontSize: '11pt' }}>{clause.title}</p>
                   <ul 
@@ -179,7 +179,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                    )}
                 </div>
               </div>
-              <div className="w-[18%] p-4 align-top pt-20 shrink-0">
+              <div className="w-[18%] p-4 align-top pt-20 shrink-0 box-border">
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
                       <div style={{ width: '18px', height: '18px', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? 'black' : 'transparent' }}>
