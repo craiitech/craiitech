@@ -82,13 +82,7 @@ export function SidebarNav({
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <UserCheck />,
     },
-    {
-      href: '/communications',
-      label: 'Communications Logbook',
-      active: pathname.startsWith('/communications'),
-      icon: <Mail />,
-      showBadge: true,
-    },
+
     {
       href: '/advisories',
       label: 'QA Advisories',
@@ -263,6 +257,29 @@ export function SidebarNav({
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname.startsWith('/communications')}
+                  tooltip="Communication"
+                  onClick={(e) => handleNavClick(e, '/communications')}
+                  className={cn(
+                    "rounded-md hover:bg-sky-950/40 hover:text-sky-200 text-sky-300 [&_svg]:text-sky-300",
+                    "[&[data-active=true]]:bg-sky-500 [&[data-active=true]]:text-slate-950 [&[data-active=true]_svg]:text-slate-950 [&[data-active=true]]:hover:bg-sky-400 [&[data-active=true]]:hover:text-slate-950",
+                    (!isOnline || isForcedOffline) && "opacity-20 cursor-not-allowed"
+                  )}
+                >
+                  <Link href="/communications">
+                    <Mail />
+                    <span>Communication</span>
+                    {commNotificationCount > 0 && !(!isOnline || isForcedOffline) && (
+                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                        {commNotificationCount}
+                      </SidebarMenuBadge>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild 

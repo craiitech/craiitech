@@ -375,7 +375,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       list.push({
         id: 'communications',
         module: 'communications',
-        label: 'Communications Logbook',
+        label: 'Communication',
         count: commNotificationsCount,
         description: `${commNotificationsCount} new incoming communications`,
         link: '/communications'
