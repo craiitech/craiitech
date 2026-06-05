@@ -568,7 +568,9 @@ export default function CommunicationsPage() {
       
       let nameOfSender = comm.senderName || 'N/A';
       let agencyOrCompany = 'N/A';
-      const officeOrUnit = !isIncoming ? comm.toText : 'N/A';
+      const officeOrUnit = !isIncoming
+        ? resolveUnitName(comm.senderUnitId || userProfile.unitId)
+        : 'N/A';
 
       if (isIncoming) {
         if (comm.manual) {
