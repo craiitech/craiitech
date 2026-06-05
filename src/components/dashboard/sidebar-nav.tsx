@@ -111,6 +111,7 @@ export function SidebarNav({
             <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace;">${index + 1}</td>
             <td style="border: 1px solid black; padding: 8px; font-family: monospace;">${dateStr}</td>
             <td style="border: 1px solid black; padding: 8px; font-weight: bold;">${log.name}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: center;">${log.sex || 'N/A'}</td>
             <td style="border: 1px solid black; padding: 8px;">${log.purpose}</td>
             <td style="border: 1px solid black; padding: 8px;">${log.lookingFor}</td>
           </tr>
@@ -141,10 +142,11 @@ export function SidebarNav({
               <thead>
                 <tr>
                   <th style="width: 5%; text-align: center;">#</th>
-                  <th style="width: 25%;">Date & Time</th>
+                  <th style="width: 20%;">Date & Time</th>
                   <th style="width: 25%;">Visitor Name</th>
-                  <th style="width: 25%;">Purpose of Visit</th>
-                  <th style="width: 20%;">Person to Meet</th>
+                  <th style="width: 10%; text-align: center;">Sex</th>
+                  <th style="width: 22%;">Purpose of Visit</th>
+                  <th style="width: 18%;">Person to Meet</th>
                 </tr>
               </thead>
               <tbody>

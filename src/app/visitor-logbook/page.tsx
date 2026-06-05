@@ -30,6 +30,7 @@ export default function VisitorLogbookPage() {
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [visitorName, setVisitorName] = useState('');
+  const [sex, setSex] = useState('');
   const [purpose, setPurpose] = useState('');
   const [lookingFor, setLookingFor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +51,7 @@ export default function VisitorLogbookPage() {
       const resetTimer = setTimeout(() => {
         setSubmitSuccess(false);
         setVisitorName('');
+        setSex('');
         setPurpose('');
         setLookingFor('');
       }, 4000);
@@ -61,10 +63,10 @@ export default function VisitorLogbookPage() {
     e.preventDefault();
     if (!firestore || !userProfile) return;
 
-    if (!visitorName.trim() || !purpose.trim() || !lookingFor.trim()) {
+    if (!visitorName.trim() || !sex || !purpose.trim() || !lookingFor.trim()) {
       toast({
         title: 'Missing Details',
-        description: 'Please complete all required fields.',
+        description: 'Please complete all required fields (including selecting your sex).',
         variant: 'destructive',
       });
       return;
@@ -74,6 +76,7 @@ export default function VisitorLogbookPage() {
     try {
       const logPayload = {
         name: visitorName.trim(),
+        sex: sex,
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
         unitId: userProfile.unitId || 'N/A',
@@ -211,6 +214,37 @@ export default function VisitorLogbookPage() {
                         required
                         className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder-slate-500 rounded-xl focus-visible:ring-1 focus-visible:ring-[#D4AF37] focus-visible:border-transparent transition-all"
                       />
+                    </div>
+                  </div>
+
+                  {/* Sex Selection */}
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-[#D4AF37]">
+                      Sex
+                    </Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setSex('Male')}
+                        className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
+                          sex === 'Male'
+                            ? 'bg-[#1B6535] text-white border-[#D4AF37] shadow-lg shadow-[#1B6535]/30'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        Male
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSex('Female')}
+                        className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
+                          sex === 'Female'
+                            ? 'bg-[#1B6535] text-white border-[#D4AF37] shadow-lg shadow-[#1B6535]/30'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        Female
+                      </button>
                     </div>
                   </div>
 
