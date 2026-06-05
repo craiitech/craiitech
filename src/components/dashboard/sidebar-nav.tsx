@@ -68,8 +68,7 @@ export function SidebarNav({
     try {
       const q = query(
         collection(firestore, 'visitorLogs'),
-        where('unitId', '==', userProfile.unitId || 'N/A'),
-        orderBy('createdAt', 'asc')
+        where('unitId', '==', userProfile.unitId || 'N/A')
       );
       const querySnapshot = await getDocs(q);
       
@@ -88,6 +87,13 @@ export function SidebarNav({
         logs.push({ id: doc.id, ...doc.data() });
       });
 
+      // Sort logs in memory by createdAt ascending to avoid composite index requirement in Firestore
+      logs.sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeA - timeB;
+      });
+
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         toast({
@@ -103,18 +109,19 @@ export function SidebarNav({
       const formattedDate = format(new Date(), 'MMMM dd, yyyy');
 
       let tableRows = '';
-      logs.forEach((log, index) => {
+      logs.forEach((log) => {
         const dateStr = log.createdAt?.toDate 
           ? format(log.createdAt.toDate(), 'MM/dd/yyyy hh:mm a') 
           : 'N/A';
         tableRows += `
           <tr>
-            <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace;">${index + 1}</td>
             <td style="border: 1px solid black; padding: 8px; font-family: monospace;">${dateStr}</td>
             <td style="border: 1px solid black; padding: 8px; font-weight: bold;">${log.name}</td>
+            <td style="border: 1px solid black; padding: 8px;">
+              <div style="font-weight: bold; font-size: 11px;">${log.purpose}</div>
+              <div style="margin-top: 4px; font-size: 10px; color: #555;">To Meet: ${log.lookingFor}</div>
+            </td>
             <td style="border: 1px solid black; padding: 8px; text-align: center;">${log.sex || 'N/A'}</td>
-            <td style="border: 1px solid black; padding: 8px;">${log.purpose}</td>
-            <td style="border: 1px solid black; padding: 8px;">${log.lookingFor}</td>
           </tr>
         `;
       });
@@ -142,12 +149,10 @@ export function SidebarNav({
             <table>
               <thead>
                 <tr>
-                  <th style="width: 5%; text-align: center;">#</th>
-                  <th style="width: 20%;">Date & Time</th>
-                  <th style="width: 25%;">Visitor Name</th>
+                  <th style="width: 25%;">Date & Time</th>
+                  <th style="width: 30%;">Visitor Name</th>
+                  <th style="width: 35%;">Purpose of Visit & Person Visited</th>
                   <th style="width: 10%; text-align: center;">Sex</th>
-                  <th style="width: 22%;">Purpose of Visit</th>
-                  <th style="width: 18%;">Person to Meet</th>
                 </tr>
               </thead>
               <tbody>
