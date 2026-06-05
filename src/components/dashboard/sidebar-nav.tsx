@@ -5,13 +5,26 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
+  useFirestore,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2 } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { format } from 'date-fns';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
@@ -28,8 +41,12 @@ export function SidebarNav({
   const router = useRouter();
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
-  const { isAdmin, userRole, isSupervisor } = useUser();
+  const { isAdmin, userRole, isSupervisor, userProfile } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
+  
+  const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const firestore = useFirestore();
 
   useEffect(() => {
     const checkState = () => {
@@ -42,6 +59,122 @@ export function SidebarNav({
 
   const handleLogout = () => {
     router.push('/logout');
+  };
+
+  const handlePrintVisitorLogs = async () => {
+    if (!firestore || !userProfile) return;
+    setIsPrinting(true);
+    try {
+      const q = query(
+        collection(firestore, 'visitorLogs'),
+        where('unitId', '==', userProfile.unitId || 'N/A'),
+        orderBy('createdAt', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        toast({
+          title: 'No Logs Found',
+          description: 'There are no visitor entries recorded for your unit.',
+          variant: 'destructive',
+        });
+        setIsPrinting(false);
+        return;
+      }
+
+      const logs: any[] = [];
+      querySnapshot.forEach((doc) => {
+        logs.push({ id: doc.id, ...doc.data() });
+      });
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          title: 'Pop-up Blocked',
+          description: 'Please allow pop-ups to print the logbook.',
+          variant: 'destructive',
+        });
+        setIsPrinting(false);
+        return;
+      }
+
+      const unitName = userProfile.unitName || 'Office/Unit';
+      const formattedDate = format(new Date(), 'MMMM dd, yyyy');
+
+      let tableRows = '';
+      logs.forEach((log, index) => {
+        const dateStr = log.createdAt?.toDate 
+          ? format(log.createdAt.toDate(), 'MM/dd/yyyy hh:mm a') 
+          : 'N/A';
+        tableRows += `
+          <tr>
+            <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace;">${index + 1}</td>
+            <td style="border: 1px solid black; padding: 8px; font-family: monospace;">${dateStr}</td>
+            <td style="border: 1px solid black; padding: 8px; font-weight: bold;">${log.name}</td>
+            <td style="border: 1px solid black; padding: 8px;">${log.purpose}</td>
+            <td style="border: 1px solid black; padding: 8px;">${log.lookingFor}</td>
+          </tr>
+        `;
+      });
+
+      printWindow.document.write(\`
+        <html>
+          <head>
+            <title>Visitor Logbook - \${unitName}</title>
+            <style>
+              @media print {
+                body { margin: 0.5in; font-family: sans-serif; color: black; }
+                .no-print { display: none !important; }
+              }
+              body { font-family: sans-serif; padding: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+              th { background-color: #f2f2f2; border: 1px solid black; padding: 10px; text-align: left; text-transform: uppercase; font-size: 10px; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid black; padding-bottom: 10px;">
+              <h2 style="margin: 0; text-transform: uppercase; letter-spacing: 1px;">ROMBLON STATE UNIVERSITY</h2>
+              <h3 style="margin: 5px 0 0 0; text-transform: uppercase; color: #444;">VISITOR LOGBOOK</h3>
+              <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 12px;">OFFICE: \${unitName.toUpperCase()} &bull; DATE EXPORTED: \${formattedDate}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 5%; text-align: center;">#</th>
+                  <th style="width: 25%;">Date & Time</th>
+                  <th style="width: 25%;">Visitor Name</th>
+                  <th style="width: 25%;">Purpose of Visit</th>
+                  <th style="width: 20%;">Person to Meet</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${tableRows}
+              </tbody>
+            </table>
+            <div style="margin-top: 40px; text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+              Generated via RSU EOMS Portal
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+                window.close();
+              }
+            </script>
+          </body>
+        </html>
+      \`);
+      printWindow.document.close();
+      setIsVisitorDialogOpen(false);
+    } catch (e) {
+      console.error('Error fetching logs for print:', e);
+      toast({
+        title: 'Error Printing',
+        description: 'Failed to retrieve visitor logs.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   /**
@@ -222,36 +355,48 @@ export function SidebarNav({
 
           return (
             <SidebarMenuItem key={route.href}>
+              {route.href === '/visitor-logbook' ? (
                 <SidebarMenuButton 
-                asChild 
-                isActive={route.active} 
-                tooltip={route.label}
-                onClick={(e) => handleNavClick(e, route.href)}
-                className={cn(
-                    "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
-                    isDisabled && "opacity-20 cursor-not-allowed grayscale pointer-events-auto"
-                )}
+                  isActive={route.active} 
+                  tooltip={route.label}
+                  onClick={() => setIsVisitorDialogOpen(true)}
+                  className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
                 >
-                <Link href={route.href}>
-                    {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
-                    <span>{route.label}</span>
-                    {route.showBadge && !isDisabled && (
-                      route.href === '/communications' ? (
-                        commNotificationCount > 0 && (
-                          <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                            {commNotificationCount}
-                          </SidebarMenuBadge>
-                        )
-                      ) : (
-                        notificationCount > 0 && (
-                          <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                            {notificationCount}
-                          </SidebarMenuBadge>
-                        )
-                      )
-                    )}
-                </Link>
+                  {route.icon}
+                  <span>{route.label}</span>
                 </SidebarMenuButton>
+              ) : (
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={route.active} 
+                  tooltip={route.label}
+                  onClick={(e) => handleNavClick(e, route.href)}
+                  className={cn(
+                      "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
+                      isDisabled && "opacity-20 cursor-not-allowed grayscale pointer-events-auto"
+                  )}
+                >
+                  <Link href={route.href}>
+                      {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
+                      <span>{route.label}</span>
+                      {route.showBadge && !isDisabled && (
+                        route.href === '/communications' ? (
+                          commNotificationCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {commNotificationCount}
+                            </SidebarMenuBadge>
+                          )
+                        ) : (
+                          notificationCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {notificationCount}
+                            </SidebarMenuBadge>
+                          )
+                        )
+                      )}
+                  </Link>
+                </SidebarMenuButton>
+              )}
             </SidebarMenuItem>
           );
         })}
@@ -306,6 +451,50 @@ export function SidebarNav({
             </SidebarMenuItem>
         </SidebarMenu>
       </div>
+
+      <AlertDialog open={isVisitorDialogOpen} onOpenChange={setIsVisitorDialogOpen}>
+        <AlertDialogContent className="max-w-md bg-white border border-[#D4AF37]/20 rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-black uppercase text-[#1B6535] tracking-tight flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-[#D4AF37]" /> Visitor Logbook Hub
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 font-medium text-xs mt-1">
+              Select an action for the Visitor Logbook of <span className="font-extrabold text-[#1B6535]">{userProfile?.unitName || 'your unit'}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-1 gap-3 py-4">
+            <Button 
+              onClick={() => {
+                window.open('/visitor-logbook', '_blank');
+                setIsVisitorDialogOpen(false);
+              }}
+              className="w-full h-12 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 flex items-center justify-center gap-2 transition-all"
+            >
+              Open Kiosk Sign-In Page
+            </Button>
+            <Button 
+              onClick={handlePrintVisitorLogs}
+              disabled={isPrinting}
+              className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+            >
+              {isPrinting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Fetching Logs...
+                </>
+              ) : (
+                <>
+                  Print Logbook Records
+                </>
+              )}
+            </Button>
+          </div>
+          <AlertDialogFooter className="border-t pt-3">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
+              Close
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
