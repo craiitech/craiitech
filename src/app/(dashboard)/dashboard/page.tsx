@@ -516,12 +516,6 @@ export default function HomePage() {
     return mrOutputs.filter(o => o.assignments?.some((a: any) => a.unitId === userProfile.unitId));
   }, [mrOutputs, userProfile]);
 
-  const campusMrOutputs = useMemo(() => {
-    if (!mrOutputs || !userProfile?.campusId || !allUnits) return [];
-    const campusUnitIds = new Set(allUnits.filter(u => u.campusIds?.includes(userProfile.campusId)).map(u => u.id));
-    return mrOutputs.filter(o => o.assignments?.some((a: any) => campusUnitIds.has(a.unitId)));
-  }, [mrOutputs, userProfile?.campusId, allUnits]);
-
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !selectedYear) return null;
     return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
@@ -566,6 +560,12 @@ export default function HomePage() {
 
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
+
+  const campusMrOutputs = useMemo(() => {
+    if (!mrOutputs || !userProfile?.campusId || !allUnits) return [];
+    const campusUnitIds = new Set(allUnits.filter(u => u.campusIds?.includes(userProfile.campusId)).map(u => u.id));
+    return mrOutputs.filter(o => o.assignments?.some((a: any) => campusUnitIds.has(a.unitId)));
+  }, [mrOutputs, userProfile?.campusId, allUnits]);
 
   const academicProgramsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'academicPrograms') : null), [firestore]);
   const { data: academicPrograms } = useCollection<AcademicProgram>(academicProgramsQuery);
