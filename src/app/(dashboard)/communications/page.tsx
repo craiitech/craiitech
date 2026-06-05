@@ -380,6 +380,283 @@ export default function CommunicationsPage() {
     }
   };
 
+  const getMonthYearRange = (comms: Communication[]) => {
+    if (comms.length === 0) {
+      return format(new Date(), 'MMMM yyyy');
+    }
+    const dates = comms.map(c => {
+      if (c.createdAt?.toDate) return c.createdAt.toDate();
+      if (c.createdAt?.seconds) return new Date(c.createdAt.seconds * 1000);
+      return new Date(c.createdAt || Date.now());
+    });
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    const minStr = format(minDate, 'MMMM yyyy');
+    const maxStr = format(maxDate, 'MMMM yyyy');
+    return minStr === maxStr ? minStr : `${minStr} - ${maxStr}`;
+  };
+
+  const getRefNosRange = (comms: Communication[], isIncoming: boolean) => {
+    if (comms.length === 0) return 'N/A';
+    const refs = comms.map(c => {
+      return isIncoming
+        ? (c.recipientRefNums?.[userProfile?.unitId || ''] || c.senderRefNum || '')
+        : (c.senderRefNum || '');
+    }).filter(Boolean);
+    if (refs.length === 0) return 'N/A';
+    if (refs.length === 1) return refs[0];
+    return `${refs[0]} - ${refs[refs.length - 1]}`;
+  };
+
+  const handlePrintLogbook = (type: 'incoming' | 'outgoing') => {
+    if (!userProfile) return;
+
+    const list = processedComms[type];
+    const printList = [...list].filter(c => {
+      const matchesSearch = c.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.senderRefNum?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.recipientRefNums?.[userProfile?.unitId || '']?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesKind = kindFilter === 'all' || c.kind === kindFilter;
+      return matchesSearch && matchesKind;
+    }).sort((a, b) => {
+      const tA = a.createdAt?.seconds || 0;
+      const tB = b.createdAt?.seconds || 0;
+      return tA - tB;
+    });
+
+    if (printList.length === 0) {
+      toast({
+        title: 'No Records Found',
+        description: `There are no ${type} communications to print under your current filters.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const monthYear = getMonthYearRange(printList);
+    const refNos = getRefNosRange(printList, type === 'incoming');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: 'Pop-up Blocked',
+        description: 'Please allow pop-ups to print the logbook.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const isIncoming = type === 'incoming';
+
+    let blocksHtml = '';
+    printList.forEach((comm) => {
+      const dateOfReceipt = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MM/dd/yyyy') : 'N/A';
+      const referenceNo = isIncoming
+        ? (comm.recipientRefNums?.[userProfile.unitId] || comm.senderRefNum || 'N/A')
+        : (comm.senderRefNum || 'N/A');
+      const nameOfAddressee = comm.toText || 'N/A';
+      const nameOfSender = comm.senderText || 'N/A';
+      const agencyOrCompany = isIncoming ? comm.senderText : 'N/A';
+      const officeOrUnit = !isIncoming ? comm.toText : 'N/A';
+      const address = 'Romblon State University, Main Campus, Odiongan, Romblon';
+      const subject = comm.subject || 'N/A';
+
+      blocksHtml += `
+        <div class="page-block" style="page-break-inside: avoid; margin-bottom: 40px; max-width: 800px; margin-left: auto; margin-right: auto;">
+          <!-- Header for individual block -->
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-family: sans-serif; margin-bottom: 4px; border-bottom: none;">
+            <div>
+              <div style="font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">${isIncoming ? 'Incoming Template' : 'Outgoing Template'}</div>
+              <div style="margin-top: 4px;">
+                <span style="font-weight: bold;">Month / Year:</span>
+                <span style="border-bottom: 1px solid black; padding: 0 10px; font-weight: bold;">${monthYear}</span>
+              </div>
+            </div>
+            <div style="align-self: flex-end; padding-bottom: 2px;">
+              <span style="font-weight: bold;">Ref. Nos:</span>
+              <span style="border-bottom: 1px solid black; padding: 0 10px; font-weight: bold;">${refNos}</span>
+            </div>
+          </div>
+
+          <!-- Bordered Box containing the template -->
+          <div class="border-box" style="border: 2px solid black; padding: 15px; font-family: sans-serif; font-size: 13px; background-color: #fff;">
+            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+              <tbody>
+                <!-- Row 1: Date of Receipt & Reference No -->
+                <tr style="border-bottom: 1px solid black;">
+                  <td style="width: 50%; padding: 8px 0; border-right: 1px solid black; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Date of Receipt: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${dateOfReceipt}</span>
+                  </td>
+                  <td style="width: 50%; padding: 8px 0; padding-left: 15px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Reference No: <span style="font-weight: bold; text-decoration: underline; padding-left: 5px; font-family: monospace;">${referenceNo}</span>
+                  </td>
+                </tr>
+
+                <!-- Row 2: Name of Addressee -->
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Name of Addressee: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${nameOfAddressee}</span>
+                  </td>
+                </tr>
+
+                <!-- Row 3 & 4: Sender / Office/Unit -->
+                ${isIncoming ? `
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${nameOfSender}</span>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Agency/Company: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${agencyOrCompany}</span>
+                  </td>
+                </tr>
+                ` : `
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Office / Unit: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${officeOrUnit}</span>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${nameOfSender}</span>
+                  </td>
+                </tr>
+                `}
+
+                <!-- Row 5: Address -->
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Address: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${address}</span>
+                  </td>
+                </tr>
+
+                <!-- Row 6: Subject -->
+                <tr ${!isIncoming ? 'style="border-bottom: 1px solid black;"' : ''}>
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold; vertical-align: top;">
+                    <div style="display: flex; align-items: flex-start;">
+                      <span style="flex-shrink: 0;">Subject:</span>
+                      <div style="flex-grow: 1; padding-left: 10px; font-weight: normal; line-height: 1.8;">
+                        <span style="text-decoration: underline; display: block; word-wrap: break-word;">${subject}</span>
+                        <div style="border-bottom: 1px solid #ddd; height: 20px; margin-top: 5px;"></div>
+                        <div style="border-bottom: 1px solid #ddd; height: 20px; margin-top: 5px;"></div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Row 7: Remarks (Outgoing only) -->
+                ${!isIncoming ? `
+                <tr>
+                  <td colspan="2" style="padding: 12px 0 4px 0; font-weight: bold;">
+                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 11px;">
+                      <span>Remarks:</span>
+                      <label style="display: flex; align-items: center; gap: 5px; font-weight: normal; margin-right: 15px;">
+                        <span style="border: 1px solid black; display: inline-block; width: 12px; height: 12px; border-radius: 2px;"></span>
+                        Delivered / Recieved
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 5px; font-weight: normal; margin-right: 15px;">
+                        <span style="border: 1px solid black; display: inline-block; width: 12px; height: 12px; border-radius: 2px;"></span>
+                        Lost in Transit
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 5px; font-weight: normal; margin-right: 15px;">
+                        <span style="border: 1px solid black; display: inline-block; width: 12px; height: 12px; border-radius: 2px;"></span>
+                        Returned to Senter
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                        <span style="border: 1px solid black; display: inline-block; width: 12px; height: 12px; border-radius: 2px;"></span>
+                        Addresee can't be located
+                      </label>
+                    </div>
+                  </td>
+                </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+
+    const title = `Communication ${isIncoming ? 'Incoming' : 'Outgoing'} Logbook`;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @media print {
+              body {
+                background: white;
+                color: black;
+                margin: 0.4in !important;
+                padding: 0 !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+              .page-block {
+                page-break-inside: avoid;
+              }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              background-color: #f8fafc;
+              color: #1e293b;
+              padding: 40px;
+              margin: 0;
+            }
+            .no-print-bar {
+              background-color: #1e1b4b;
+              color: white;
+              padding: 15px 25px;
+              border-radius: 12px;
+              margin-bottom: 30px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+              max-width: 800px;
+              margin-left: auto;
+              margin-right: auto;
+            }
+            .print-btn {
+              background-color: #3b82f6;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              font-weight: 900;
+              text-transform: uppercase;
+              font-size: 11px;
+              letter-spacing: 0.05em;
+              border-radius: 8px;
+              cursor: pointer;
+              box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+              transition: all 0.2s;
+            }
+            .print-btn:hover {
+              background-color: #2563eb;
+              transform: translateY(-1px);
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print no-print-bar">
+            <div>
+              <div style="font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Logbook Print Preview</div>
+              <div style="font-size: 11px; opacity: 0.8; font-weight: 500; margin-top: 2px;">Review layout and click the print button.</div>
+            </div>
+            <button onclick="window.print()" class="print-btn">Print Logbook</button>
+          </div>
+          <div id="print-content">
+            ${blocksHtml}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header Banner */}
@@ -394,7 +671,21 @@ export default function CommunicationsPage() {
             <p className="text-sm text-white/70 font-medium mt-1">Official incoming and outgoing records for {unitMap.get(userProfile?.unitId || '') || 'your unit'}</p>
           </div>
           {isOdimo && (
-            <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button 
+                onClick={() => handlePrintLogbook('incoming')} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-wider py-5 px-4 rounded-xl shadow-lg flex items-center gap-2 transition-all hover:scale-105"
+              >
+                <FileText className="h-4 w-4 shrink-0" />
+                Print Incoming Logbook
+              </Button>
+              <Button 
+                onClick={() => handlePrintLogbook('outgoing')} 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-xs tracking-wider py-5 px-4 rounded-xl shadow-lg flex items-center gap-2 transition-all hover:scale-105"
+              >
+                <FileText className="h-4 w-4 shrink-0" />
+                Print Outgoing Logbook
+              </Button>
               <Button onClick={() => setIsLogDialogOpen(true)} className="bg-white hover:bg-slate-50 text-indigo-700 font-black uppercase text-xs tracking-wider py-5 px-6 rounded-xl shadow-lg border border-indigo-100 flex items-center gap-2 transition-all hover:scale-105">
                 <Plus className="h-4.5 w-4.5 text-indigo-700 shrink-0" />
                 Log/Send Communication
