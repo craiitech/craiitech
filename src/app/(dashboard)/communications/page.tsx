@@ -86,6 +86,7 @@ export default function CommunicationsPage() {
   const [kindFilter, setKindFilter] = useState('all');
   const [editingCommId, setEditingCommId] = useState<string | null>(null);
   const [deleteConfirmCommId, setDeleteConfirmCommId] = useState<string | null>(null);
+  const [senderNameText, setSenderNameText] = useState('');
 
   // Form Panel State
   const [isLogFormOpen, setIsLogFormOpen] = useState(false);
@@ -221,6 +222,7 @@ export default function CommunicationsPage() {
     setKind('Office Memorandum');
     setCustomDate(format(new Date(), 'yyyy-MM-dd'));
     setEditingCommId(null);
+    setSenderNameText('');
   };
 
   // Google Drive preview URL parser
@@ -279,6 +281,17 @@ export default function CommunicationsPage() {
       setCustomRefNum(nextRef);
     }
   }, [commsMode, manualType, rawComms, isLogFormOpen, editingCommId]);
+
+  useEffect(() => {
+    if (isLogFormOpen && !editingCommId) {
+      if (commsMode === 'manual' && manualType === 'incoming') {
+        setSenderNameText('');
+      } else if (userProfile && users) {
+        const coordinatorName = getUnitHeadName(userProfile.unitId);
+        setSenderNameText(coordinatorName || `${userProfile.firstName} ${userProfile.lastName}`);
+      }
+    }
+  }, [commsMode, manualType, users, userProfile, isLogFormOpen, editingCommId]);
 
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,6 +389,7 @@ export default function CommunicationsPage() {
         createdAt: Timestamp.fromDate(parsedDate),
         manual: commsMode === 'manual',
         readBy: [userProfile.id],
+        senderName: senderNameText.trim() || null,
       };
 
       if (commsMode === 'digital') {
@@ -552,30 +566,36 @@ export default function CommunicationsPage() {
         : (comm.senderRefNum || 'N/A');
       const nameOfAddressee = comm.toText || 'N/A';
       
-      let nameOfSender = 'N/A';
+      let nameOfSender = comm.senderName || 'N/A';
       let agencyOrCompany = 'N/A';
       const officeOrUnit = !isIncoming ? comm.toText : 'N/A';
 
       if (isIncoming) {
         if (comm.manual) {
-          if (comm.senderText && comm.senderText.includes('/')) {
-            const parts = comm.senderText.split('/');
-            agencyOrCompany = parts[0].trim();
-            nameOfSender = parts[1].trim();
-          } else {
-            agencyOrCompany = comm.senderText || 'N/A';
-            nameOfSender = comm.senderText || 'N/A';
+          agencyOrCompany = comm.senderText || 'N/A';
+          if (nameOfSender === 'N/A') {
+            if (comm.senderText && comm.senderText.includes('/')) {
+              const parts = comm.senderText.split('/');
+              agencyOrCompany = parts[0].trim();
+              nameOfSender = parts[1].trim();
+            } else {
+              nameOfSender = comm.senderText || 'N/A';
+            }
           }
         } else {
           const senderUnitId = comm.senderUnitId || comm.senderText;
-          const headName = getUnitHeadName(senderUnitId);
-          nameOfSender = headName || 'N/A';
           agencyOrCompany = resolveUnitName(senderUnitId);
+          if (nameOfSender === 'N/A') {
+            const headName = getUnitHeadName(senderUnitId);
+            nameOfSender = headName || 'N/A';
+          }
         }
       } else {
-        const senderUnitId = comm.senderUnitId || userProfile.unitId;
-        const headName = getUnitHeadName(senderUnitId);
-        nameOfSender = headName || 'N/A';
+        if (nameOfSender === 'N/A') {
+          const senderUnitId = comm.senderUnitId || userProfile.unitId;
+          const headName = getUnitHeadName(senderUnitId);
+          nameOfSender = headName || 'N/A';
+        }
       }
 
       const address = 'Romblon State University, Main Campus, Odiongan, Romblon';
@@ -790,6 +810,7 @@ export default function CommunicationsPage() {
           : format(new Date(), 'yyyy-MM-dd'));
     setCustomDate(formattedDate);
 
+    setSenderNameText(comm.senderName || '');
     if (comm.manual) {
       setCommsMode('manual');
       setManualType(comm.manualType || 'incoming');
@@ -958,6 +979,17 @@ export default function CommunicationsPage() {
                     <Input value={unitMap.get(userProfile?.unitId || '') || '...'} disabled className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-bold" />
                   </div>
 
+                  {/* SENDER NAME */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Name of Sender</label>
+                    <Input
+                      placeholder="e.g. Dr. John Doe (Unit Coordinator)"
+                      value={senderNameText}
+                      onChange={(e) => setSenderNameText(e.target.value)}
+                      className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-bold"
+                    />
+                  </div>
+
                   {/* RECIPIENT TYPE */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Send To Recipients</label>
@@ -1043,25 +1075,47 @@ export default function CommunicationsPage() {
                   </div>
 
                   {manualType === 'incoming' ? (
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Sender (From Office/Person)</label>
-                      <Input
-                        placeholder="e.g. CHED Regional Office / Executive Director"
-                        value={manualSenderText}
-                        onChange={(e) => setManualSenderText(e.target.value)}
-                        className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Sender (From Office/Person)</label>
+                        <Input
+                          placeholder="e.g. CHED Regional Office / Executive Director"
+                          value={manualSenderText}
+                          onChange={(e) => setManualSenderText(e.target.value)}
+                          className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Name of Sender</label>
+                        <Input
+                          placeholder="e.g. Dr. John Smith (Executive Director)"
+                          value={senderNameText}
+                          onChange={(e) => setSenderNameText(e.target.value)}
+                          className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-bold"
+                        />
+                      </div>
+                    </>
                   ) : (
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Recipient (To Office/Person)</label>
-                      <Input
-                        placeholder="e.g. RSU President / Quality Assurance Committee"
-                        value={manualRecipientText}
-                        onChange={(e) => setManualRecipientText(e.target.value)}
-                        className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Recipient (To Office/Person)</label>
+                        <Input
+                          placeholder="e.g. RSU President / Quality Assurance Committee"
+                          value={manualRecipientText}
+                          onChange={(e) => setManualRecipientText(e.target.value)}
+                          className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Name of Sender</label>
+                        <Input
+                          placeholder="e.g. Jane Doe (Unit Coordinator)"
+                          value={senderNameText}
+                          onChange={(e) => setSenderNameText(e.target.value)}
+                          className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-bold"
+                        />
+                      </div>
+                    </>
                   )}
                 </>
               )}
@@ -1316,10 +1370,13 @@ export default function CommunicationsPage() {
                       <span className="text-xs font-bold text-slate-700 truncate">
                         {(() => {
                           if (selectedComm.manual) {
+                            if (selectedComm.senderName) {
+                              return `${selectedComm.senderText} (${selectedComm.senderName})`;
+                            }
                             return selectedComm.senderText;
                           }
                           const unitName = resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText);
-                          const coordinator = getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText);
+                          const coordinator = selectedComm.senderName || getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText);
                           return coordinator ? `${unitName} (${coordinator})` : unitName;
                         })()}
                       </span>

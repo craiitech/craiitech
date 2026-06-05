@@ -964,4 +964,5 @@ export type Communication = {
   toText: string;
   senderText: string;
   manualType?: 'incoming' | 'outgoing';
+  senderName?: string;
 };
