@@ -158,6 +158,13 @@ export function SidebarNav({
       active: pathname.startsWith('/qa-reports'),
       icon: <FolderKanban />,
     },
+    {
+      href: '/visitor-logbook',
+      label: 'Visitor Logbook',
+      active: pathname === '/visitor-logbook',
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO'],
+      icon: <BookOpen />,
+    },
      {
       href: '/reports',
       label: 'Reports',

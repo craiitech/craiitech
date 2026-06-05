@@ -157,6 +157,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /visitorLogs/{id} {
+      allow read, write: if isSignedIn();
+    }
+
     match /qaAdvisories/{id} {
       allow read, list: if isSignedIn();
       allow write: if isAdmin();
