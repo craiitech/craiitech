@@ -150,14 +150,16 @@ service cloud.firestore {
         isAdmin() ||
         profile().get('role', '').matches('(?i).*(odimo|director|president|vice president|coordinator).*')
       );
+      // Any signed-in user can mark as read or stamp-receive (update readBy / recipientRefNums)
+      // Full edits (subject, kind, etc.) are restricted to admins and authorized roles
       allow update: if isSignedIn() && (
         isAdmin() ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recipientRefNums', 'readBy']) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recipientRefNums']) ||
         (
-          profile().get('role', '').matches('(?i).*(odimo|director|president|vice president|coordinator).*') && (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recipientRefNums', 'readBy']) ||
-            resource.data.senderUnitId == profile().get('unitId', '')
-          )
+          hasProfile() &&
+          profile().get('role', '').matches('(?i).*(odimo|director|president|vice president|coordinator).*')
         )
       );
       allow delete: if isAdmin();
