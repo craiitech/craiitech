@@ -102,7 +102,7 @@ export default function CommunicationsPage() {
   const [driveLink, setDriveLink] = useState('');
 
   // Digital Send Specifics
-  const [recipientType, setRecipientType] = useState<'unit' | 'campus' | 'individual' | 'all'>('unit');
+  const [recipientType, setRecipientType] = useState<'unit' | 'campus' | 'campus-unit' | 'individual' | 'all'>('unit');
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [currentRecipientSelection, setCurrentRecipientSelection] = useState('');
 
@@ -192,24 +192,42 @@ export default function CommunicationsPage() {
 
     rawComms.forEach(c => {
       // Determine Outgoing matching:
-      // Sourced by our unit
-      if (c.senderUnitId === userProfile.unitId) {
+      // Campus ODIMO: their senderUnitId is campusId; others: senderUnitId is unitId
+      const myId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
+      if (c.senderUnitId === myId) {
         outgoing.push(c);
       }
 
       // Determine Incoming matching:
       let isIncoming = false;
-      if (c.manual && c.manualType === 'incoming' && c.recipientIds?.includes(userProfile.unitId)) {
-        isIncoming = true;
-      } else if (!c.manual && c.senderUnitId !== userProfile.unitId) {
-        if (c.recipientType === 'all') {
+      if (isCampusOdimo) {
+        // Campus ODIMO sees comms addressed to their campus or to any unit within their campus
+        if (!c.manual && c.senderUnitId !== userProfile.campusId) {
+          if (c.recipientType === 'all') {
+            isIncoming = true;
+          } else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) {
+            isIncoming = true;
+          } else if (c.recipientType === 'unit') {
+            // Check if any of the recipient units belong to this campus
+            const campusUnitIds = units?.filter(u => u.campusIds?.includes(userProfile.campusId || '')).map(u => u.id) || [];
+            isIncoming = c.recipientIds?.some(id => campusUnitIds.includes(id)) || false;
+          } else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) {
+            isIncoming = true;
+          }
+        }
+      } else {
+        if (c.manual && c.manualType === 'incoming' && c.recipientIds?.includes(userProfile.unitId)) {
           isIncoming = true;
-        } else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) {
-          isIncoming = true;
-        } else if (c.recipientType === 'unit' && c.recipientIds?.includes(userProfile.unitId)) {
-          isIncoming = true;
-        } else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) {
-          isIncoming = true;
+        } else if (!c.manual && c.senderUnitId !== userProfile.unitId) {
+          if (c.recipientType === 'all') {
+            isIncoming = true;
+          } else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) {
+            isIncoming = true;
+          } else if (c.recipientType === 'unit' && c.recipientIds?.includes(userProfile.unitId)) {
+            isIncoming = true;
+          } else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) {
+            isIncoming = true;
+          }
         }
       }
 
@@ -223,7 +241,7 @@ export default function CommunicationsPage() {
     });
 
     return { incoming, outgoing };
-  }, [rawComms, userProfile, isOdimo, receivingKey]);
+  }, [rawComms, userProfile, isOdimo, isCampusOdimo, receivingKey, units]);
 
   const filteredComms = useMemo(() => {
     const list = processedComms[activeTab];
@@ -480,24 +498,34 @@ export default function CommunicationsPage() {
         // Campus ODIMO sends on behalf of their campus (senderUnitId = campusId for routing purposes)
         payload.senderUnitId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
         payload.senderRefNum = computedSenderRef;
-        payload.recipientType = recipientType;
-        payload.recipientIds = selectedRecipients;
         payload.recipientRefNums = computedRecipientRefs;
-        
-        let toText = '';
-        if (recipientType === 'all') {
-          toText = 'University-Wide (All)';
-        } else if (recipientType === 'unit') {
-          toText = selectedRecipients.map(id => unitMap.get(id) || id).join(', ');
-        } else if (recipientType === 'campus') {
-          toText = selectedRecipients.map(id => campusMap.get(id) || id).join(', ');
-        } else if (recipientType === 'individual') {
-          toText = selectedRecipients.map(id => {
-            const u = users?.find(x => x.id === id);
-            return u ? `${u.firstName} ${u.lastName}` : id;
-          }).join(', ');
+
+        // Handle "campus-unit" pseudo-type: send to all units within the Campus ODIMO's campus
+        if (recipientType === 'campus-unit') {
+          const campusUnitIds = units?.filter(u => u.campusIds?.includes(userProfile.campusId || '')).map(u => u.id) || [];
+          const campusName = campusMap.get(userProfile.campusId || '') || 'Campus';
+          payload.recipientType = 'unit';
+          payload.recipientIds = campusUnitIds;
+          payload.toText = `All Units — ${campusName}`;
+        } else {
+          payload.recipientType = recipientType;
+          payload.recipientIds = selectedRecipients;
+
+          let toText = '';
+          if (recipientType === 'all') {
+            toText = 'University-Wide (All)';
+          } else if (recipientType === 'unit') {
+            toText = selectedRecipients.map(id => unitMap.get(id) || id).join(', ');
+          } else if (recipientType === 'campus') {
+            toText = selectedRecipients.map(id => campusMap.get(id) || id).join(', ');
+          } else if (recipientType === 'individual') {
+            toText = selectedRecipients.map(id => {
+              const u = users?.find((x: any) => x.id === id);
+              return u ? `${u.firstName} ${u.lastName}` : id;
+            }).join(', ');
+          }
+          payload.toText = toText;
         }
-        payload.toText = toText;
         const resolvedSenderName = isCampusOdimo
           ? (campusMap.get(userProfile.campusId || '') || userProfile.campusId || '')
           : (units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId || '');
@@ -1132,18 +1160,28 @@ export default function CommunicationsPage() {
                         <SelectValue placeholder="Select Scope" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="unit" className="text-xs font-medium">Academic & Oversight Units</SelectItem>
-                        <SelectItem value="campus" className="text-xs font-medium">Campus Sites</SelectItem>
-                        <SelectItem value="individual" className="text-xs font-medium">Individual Users (Direct)</SelectItem>
-                        <SelectItem value="all" disabled={!isPresident} className="text-xs font-medium">
-                          University-Wide (All Officers) {!isPresident && '(President Only)'}
-                        </SelectItem>
+                        {isCampusOdimo ? (
+                          <>
+                            <SelectItem value="unit" className="text-xs font-medium">Specific Unit (within campus)</SelectItem>
+                            <SelectItem value="campus-unit" className="text-xs font-medium">All Units in Campus</SelectItem>
+                            <SelectItem value="individual" className="text-xs font-medium">Individual User (Direct)</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="unit" className="text-xs font-medium">Academic & Oversight Units</SelectItem>
+                            <SelectItem value="campus" className="text-xs font-medium">Campus Sites</SelectItem>
+                            <SelectItem value="individual" className="text-xs font-medium">Individual Users (Direct)</SelectItem>
+                            <SelectItem value="all" disabled={!isPresident} className="text-xs font-medium">
+                              University-Wide (All Officers) {!isPresident && '(President Only)'}
+                            </SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* RECIPIENT LIST BUILDER */}
-                  {recipientType !== 'all' && (
+                  {recipientType !== 'all' && recipientType !== 'campus-unit' && (
                     <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 border-slate-200">
                       <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Add Recipients</label>
                       <div className="flex gap-2">
@@ -1152,15 +1190,38 @@ export default function CommunicationsPage() {
                             <SelectValue placeholder={`Select ${recipientType}`} />
                           </SelectTrigger>
                           <SelectContent>
-                            {recipientType === 'unit' && units?.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
-                              <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
-                            ))}
+                            {recipientType === 'unit' && (
+                              // Campus ODIMO: only units within their campus; others: all units
+                              isCampusOdimo
+                                ? units
+                                    ?.filter(u => u.campusIds?.includes(userProfile?.campusId || ''))
+                                    .sort((a, b) => a.name.localeCompare(b.name))
+                                    .map(u => (
+                                      <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
+                                    ))
+                                : units?.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+                                    <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
+                                  ))
+                            )}
                             {recipientType === 'campus' && campuses?.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
                               <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
                             ))}
-                            {recipientType === 'individual' && users?.sort((a,b) => a.firstName.localeCompare(b.firstName)).map(u => (
-                              <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
-                            ))}
+                            {recipientType === 'individual' && (
+                              // Campus ODIMO: only individuals within their campus; others: all users
+                              isCampusOdimo
+                                ? users
+                                    ?.filter((u: any) => {
+                                      const userUnit = units?.find(un => un.id === u.unitId);
+                                      return userUnit?.campusIds?.includes(userProfile?.campusId || '') || u.campusId === userProfile?.campusId;
+                                    })
+                                    .sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
+                                    .map((u: any) => (
+                                      <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
+                                    ))
+                                : users?.sort((a: any, b: any) => a.firstName.localeCompare(b.firstName)).map((u: any) => (
+                                    <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
+                                  ))
+                            )}
                           </SelectContent>
                         </Select>
                         <Button type="button" onClick={handleAddRecipient} size="sm" className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0">
