@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, Timestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { Campus, Unit } from '@/lib/types';
+import type { Campus, Unit, SystemSettings } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,7 @@ import Image from 'next/image';
 import { getDirectDriveLink } from '@/lib/utils';
 
 export default function VisitorLogbookPage() {
-  const { userProfile, isUserLoading, systemSettings } = useUser();
+  const { userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -45,6 +45,13 @@ export default function VisitorLogbookPage() {
 
   const { data: unitDoc } = useDoc<Unit>(unitRef);
   const { data: campusDoc } = useDoc<Campus>(campusRef);
+
+  const systemSettingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'system', 'settings');
+  }, [firestore]);
+
+  const { data: systemSettingsDoc } = useDoc<SystemSettings>(systemSettingsRef);
 
   const getCampusSitePrefix = (campusName: string): string => {
     const nameUpper = campusName.toUpperCase();
@@ -67,8 +74,8 @@ export default function VisitorLogbookPage() {
     ? `${campusNameStr} | ${unitNameStr}`
     : (userProfile?.unitName || 'our Office');
 
-  const logoSrc = systemSettings?.logoUrl 
-    ? getDirectDriveLink(systemSettings.logoUrl) 
+  const logoSrc = systemSettingsDoc?.logoUrl 
+    ? getDirectDriveLink(systemSettingsDoc.logoUrl) 
     : '/rsupage.png';
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
