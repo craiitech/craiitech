@@ -93,6 +93,7 @@ export default function CommunicationsPage() {
   const [commsMode, setCommsMode] = useState<'digital' | 'manual'>('digital');
   const [kind, setKind] = useState<CommunicationKind>('Office Memorandum');
   const [customRefNum, setCustomRefNum] = useState('');
+  const [customDate, setCustomDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [subject, setSubject] = useState('');
   const [driveLink, setDriveLink] = useState('');
 
@@ -205,6 +206,7 @@ export default function CommunicationsPage() {
     setManualSenderText('');
     setManualRecipientText('');
     setKind('Office Memorandum');
+    setCustomDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
   // Google Drive preview URL parser
@@ -349,11 +351,15 @@ export default function CommunicationsPage() {
       }
 
       // Assemble document payload
+      const parsedDate = customDate ? new Date(customDate) : new Date();
+      const now = new Date();
+      parsedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
       const payload: any = {
         kind,
         subject,
         driveLink: driveLink || null,
-        createdAt: Timestamp.now(),
+        createdAt: Timestamp.fromDate(parsedDate),
         manual: commsMode === 'manual',
         readBy: [userProfile.id],
       };
@@ -790,6 +796,17 @@ export default function CommunicationsPage() {
                   value={customRefNum}
                   onChange={(e) => setCustomRefNum(e.target.value)}
                   className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
+                />
+              </div>
+
+              {/* DATE OF RECEIPT */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Date of Receipt</label>
+                <Input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-bold"
                 />
               </div>
 
