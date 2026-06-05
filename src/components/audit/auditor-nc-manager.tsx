@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from '@/components/qa-reports/car-print-template';
@@ -86,8 +86,8 @@ export function AuditorNCManager({
             isIssued: !!linkedCar
         };
     }).filter((item): item is NonNullable<typeof item> => item !== null).sort((a, b) => {
-        const dateA = a.finding.createdAt?.toMillis?.() || new Date(a.finding.createdAt).getTime();
-        const dateB = b.finding.createdAt?.toMillis?.() || new Date(b.finding.createdAt).getTime();
+        const dateA = parseDate(a.finding.createdAt).getTime();
+        const dateB = parseDate(b.finding.createdAt).getTime();
         return dateB - dateA;
     });
   }, [findings, schedules, cars, campusFilter, searchTerm]);

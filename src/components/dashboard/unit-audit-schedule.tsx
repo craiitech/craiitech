@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { AuditSchedule, AuditPlan, Signatories, AuditGroup, AuditFinding, ISOClause, Unit, Campus, AcademicProgram, Risk, CorrectiveActionRequest, ProgramComplianceRecord, Submission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from '@/components/audit/audit-plan-print-template';
@@ -691,7 +691,7 @@ export function UnitAuditSchedule({
         <ScrollArea className="h-[450px]">
             <div className="divide-y divide-primary/10 bg-white/50">
                 {filteredSchedules.map(schedule => {
-                    const date = schedule.scheduledDate instanceof Timestamp ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
+                    const date = parseDate(schedule.scheduledDate);
                     return (
                         <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white transition-colors gap-4 animate-in fade-in duration-300">
                             <div className="flex items-center gap-4">

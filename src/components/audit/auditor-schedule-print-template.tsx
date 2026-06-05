@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 
 interface AuditorSchedulePrintTemplateProps {
   plan?: AuditPlan;
@@ -34,7 +34,7 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
 
   const safeFormatTime = (d: any) => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? '' : format(date, 'h:mm a');
   };
 
@@ -46,7 +46,7 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
           // Determine unique dates for THIS campus
           const uniqueDates = Array.from(new Set(
               campusSchedules.map(s => {
-                  const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+                  const d = parseDate(s.scheduledDate);
                   return format(d, 'MM/dd/yyyy');
               })
           )).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
@@ -97,11 +97,11 @@ export function AuditorSchedulePrintTemplate({ plan, schedules, campusMap, signa
                                 </td>
                                 {uniqueDates.map(date => {
                                     const dateSessions = sessions.filter(s => {
-                                        const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+                                        const d = parseDate(s.scheduledDate);
                                         return format(d, 'MM/dd/yyyy') === date;
                                     }).sort((a, b) => {
-                                        const tA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
-                                        const tB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
+                                        const tA = parseDate(a.scheduledDate).getTime();
+                                        const tB = parseDate(b.scheduledDate).getTime();
                                         return tA - tB;
                                     });
 

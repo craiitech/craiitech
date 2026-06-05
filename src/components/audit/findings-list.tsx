@@ -13,6 +13,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { parseDate } from '@/lib/utils';
 
 interface FindingsListProps {
   findings: AuditFinding[];
@@ -36,7 +37,7 @@ export function FindingsList({ findings, schedules, correctiveActionPlans, isAud
             ...schedule,
             findings: findings.filter(f => f.auditScheduleId === schedule.id)
         })).filter(s => s.findings.length > 0)
-        .sort((a,b) => b.scheduledDate.toMillis() - a.scheduledDate.toMillis());
+        .sort((a,b) => parseDate(b.scheduledDate).getTime() - parseDate(a.scheduledDate).getTime());
     }, [schedules, findings]);
 
     const findCap = (findingId: string) => correctiveActionPlans.find(c => c.findingId === findingId);
@@ -54,7 +55,7 @@ export function FindingsList({ findings, schedules, correctiveActionPlans, isAud
                 <div className="text-left">
                     <p className="font-semibold">{schedule.targetName}</p>
                     <p className="text-sm text-muted-foreground">
-                        Audit Date: {format(schedule.scheduledDate.toDate(), 'PPP')}
+                        Audit Date: {format(parseDate(schedule.scheduledDate), 'PPP')}
                     </p>
                 </div>
             </div>

@@ -48,7 +48,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -232,8 +232,8 @@ export default function AuditExecutionPage() {
 
   useEffect(() => {
       if (schedule && isInitialLoadRef.current) {
-          const startDate = schedule.scheduledDate?.toDate ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
-          const endDate = schedule.endScheduledDate?.toDate ? schedule.endScheduledDate.toDate() : new Date(schedule.endScheduledDate);
+          const startDate = parseDate(schedule.scheduledDate);
+          const endDate = parseDate(schedule.endScheduledDate);
           
           form.reset({
             officerInCharge: schedule.officerInCharge || schedule.auditeeHeadName || '',
@@ -456,7 +456,7 @@ export default function AuditExecutionPage() {
   if (isLoading) return <LoadingSkeleton />;
   if (!schedule) return null;
 
-  const conductDate = schedule.scheduledDate instanceof Timestamp ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
+  const conductDate = parseDate(schedule.scheduledDate);
 
   return (
     <div className="space-y-6">

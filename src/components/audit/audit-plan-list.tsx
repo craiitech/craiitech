@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { Timestamp, doc } from 'firebase/firestore';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
@@ -100,7 +100,7 @@ function PlanItineraryRegistry({
             result.sort((a, b) => {
                 let valA: any, valB: any;
                 switch(key) {
-                    case 'scheduledDate': valA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime(); valB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime(); break;
+                    case 'scheduledDate': valA = parseDate(a.scheduledDate).getTime(); valB = parseDate(b.scheduledDate).getTime(); break;
                     case 'processCategory': valA = a.processCategory || ''; valB = b.processCategory || ''; break;
                     case 'targetName': valA = a.targetName || ''; valB = b.targetName || ''; break;
                     case 'status': valA = a.status || ''; valB = b.status || ''; break;
@@ -157,7 +157,7 @@ function PlanItineraryRegistry({
                     <TableBody>
                         {processedSchedules.map(schedule => (
                             <TableRow key={schedule.id} className="group hover:bg-slate-50/50 transition-colors">
-                                <TableCell className="py-6 pl-8"><div className="flex flex-col gap-1.5"><div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-primary" /><span className="font-black text-sm text-slate-800 tabular-nums">{format(schedule.scheduledDate.toDate(), 'MM/dd/yyyy')}</span></div><div className="flex items-center gap-2 bg-muted/20 w-fit px-2 py-1 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{format(schedule.scheduledDate.toDate(), 'hh:mm a')} - {format(schedule.endScheduledDate.toDate(), 'hh:mm a')}</span></div></div></TableCell>
+                                <TableCell className="py-6 pl-8"><div className="flex flex-col gap-1.5"><div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-primary" /><span className="font-black text-sm text-slate-800 tabular-nums">{format(parseDate(schedule.scheduledDate), 'MM/dd/yyyy')}</span></div><div className="flex items-center gap-2 bg-muted/20 w-fit px-2 py-1 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{format(parseDate(schedule.scheduledDate), 'hh:mm a')} - {format(parseDate(schedule.endScheduledDate), 'hh:mm a')}</span></div></div></TableCell>
                                 <TableCell className="py-6 text-center">{schedule.processCategory && <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary whitespace-nowrap">{schedule.processCategory.replace(' Processes', '')}</Badge>}</TableCell>
                                 <TableCell className="py-6"><div className="flex flex-wrap gap-1 max-w-[180px]">{schedule.isoClausesToAudit.map((cls, clsIdx) => <Badge key={`${schedule.id}-${cls}-${clsIdx}`} variant="outline" className="text-[9px] font-black bg-white border-slate-200 h-4 px-1">{cls}</Badge>)}</div></TableCell>
                                 <TableCell className="py-6">

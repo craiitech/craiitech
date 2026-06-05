@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 
 interface UnitSchedulePrintTemplateProps {
   plan?: AuditPlan;
@@ -33,13 +33,13 @@ export function UnitSchedulePrintTemplate({ plan, schedules, campusMap, signator
 
   const safeFormatDate = (d: any) => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? '' : format(date, 'MM/dd/yyyy');
   };
 
   const safeFormatTime = (d: any) => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? '' : format(date, 'h:mm a');
   };
 
@@ -50,8 +50,8 @@ export function UnitSchedulePrintTemplate({ plan, schedules, campusMap, signator
       {campusGroups.map(([campusId, campusSchedules], cgIdx) => {
           const campusName = campusMap.get(campusId) || 'Institutional';
           const sortedSchedules = [...campusSchedules].sort((a, b) => {
-            const timeA = a.scheduledDate instanceof Timestamp ? a.scheduledDate.toMillis() : new Date(a.scheduledDate).getTime();
-            const timeB = b.scheduledDate instanceof Timestamp ? b.scheduledDate.toMillis() : new Date(b.scheduledDate).getTime();
+            const timeA = parseDate(a.scheduledDate).getTime();
+            const timeB = parseDate(b.scheduledDate).getTime();
             return timeA - timeB;
           });
 

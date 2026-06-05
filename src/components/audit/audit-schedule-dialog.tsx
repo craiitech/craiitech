@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {
   Dialog,
@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup, Campus } from '@/lib/types';
 import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../ui/command';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -180,8 +180,8 @@ export function AuditScheduleDialog({
   useEffect(() => {
     if (isOpen) {
         if (schedule) {
-            const start = schedule.scheduledDate?.toDate?.() || new Date();
-            const end = schedule.endScheduledDate?.toDate?.() || new Date();
+            const start = parseDate(schedule.scheduledDate);
+            const end = parseDate(schedule.endScheduledDate);
             
             form.reset({
                 campusId: schedule.campusId || (plan.campusId === 'university-wide' ? '' : plan.campusId),

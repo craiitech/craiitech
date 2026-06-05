@@ -21,6 +21,7 @@ import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-tem
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { parseDate } from '@/lib/utils';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
@@ -64,8 +65,8 @@ export function AuditorScheduleList({
   
   const sortedSchedules = useMemo(() => {
     return [...schedules].sort((a,b) => {
-        const timeA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
-        const timeB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
+        const timeA = parseDate(a.scheduledDate).getTime();
+        const timeB = parseDate(b.scheduledDate).getTime();
         return timeA - timeB;
     });
   }, [schedules]);
@@ -266,11 +267,11 @@ export function AuditorScheduleList({
             <TableRow key={schedule.id} className="hover:bg-muted/10 transition-colors">
                 <TableCell className="pl-6 py-4">
                     <div className="flex flex-col">
-                        <span className="font-black text-xs text-slate-700">{format(schedule.scheduledDate.toDate(), 'MM/dd/yyyy')}</span>
+                        <span className="font-black text-xs text-slate-700">{format(parseDate(schedule.scheduledDate), 'MM/dd/yyyy')}</span>
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
                             <Clock className="h-2.5 w-2.5" />
-                            {format(schedule.scheduledDate.toDate(), 'hh:mm a')}
-                            {schedule.endScheduledDate && ` - ${format(schedule.endScheduledDate.toDate(), 'hh:mm a')}`}
+                            {format(parseDate(schedule.scheduledDate), 'hh:mm a')}
+                            {schedule.endScheduledDate && ` - ${format(parseDate(schedule.endScheduledDate), 'hh:mm a')}`}
                         </span>
                     </div>
                 </TableCell>

@@ -5,7 +5,7 @@ import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import allClausesData from '@/lib/iso-clauses.json';
 
@@ -19,9 +19,7 @@ interface AuditPrintTemplateProps {
 }
 
 export function AuditPrintTemplate({ schedule, findings, clauses, signatories, leadAuditorName, campusName }: AuditPrintTemplateProps) {
-  const conductDate = schedule.scheduledDate instanceof Timestamp 
-    ? schedule.scheduledDate.toDate() 
-    : (schedule.scheduledDate ? new Date(schedule.scheduledDate) : new Date());
+  const conductDate = parseDate(schedule.scheduledDate);
 
   const findingsMap = new Map(findings.map(f => [f.isoClause, f]));
   const isBlankTemplate = findings.length === 0;

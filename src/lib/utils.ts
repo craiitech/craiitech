@@ -126,3 +126,22 @@ export function generateControlNumber(
   
   return `${universityCode}-${unitPrefix}-${revPadded}-${docControl}-${reportCode}-${dateStr}`;
 }
+
+/**
+ * Safely parses various Firestore timestamp representations and date-like formats into a JavaScript Date object.
+ */
+export function parseDate(d: any): Date {
+  if (!d) return new Date();
+  if (d instanceof Date) return d;
+  if (typeof d.toDate === 'function') return d.toDate();
+  if (typeof d.toMillis === 'function') return new Date(d.toMillis());
+  if (typeof d.seconds === 'number') {
+    return new Date(d.seconds * 1000 + Math.floor((d.nanoseconds || 0) / 1000000));
+  }
+  if (typeof d === 'string' || typeof d === 'number') {
+    const parsed = new Date(d);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date(d);
+}
+

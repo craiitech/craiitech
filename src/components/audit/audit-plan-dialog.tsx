@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * @fileOverview A dialog component for creating or editing audit plans.
@@ -59,7 +59,7 @@ import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types
 import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info, Database, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 
 interface AuditPlanDialogProps {
   isOpen: boolean;
@@ -133,11 +133,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     if (plan && isOpen) {
       const safeDate = (d: any) => {
           if (!d) return '';
-          let date: Date;
-          if (d.toDate && typeof d.toDate === 'function') date = d.toDate();
-          else if (d.seconds) date = new Date(d.seconds * 1000);
-          else date = new Date(d);
-          
+          const date = parseDate(d);
           if (isNaN(date.getTime())) return '';
           return format(date, "yyyy-MM-dd'T'HH:mm");
       };

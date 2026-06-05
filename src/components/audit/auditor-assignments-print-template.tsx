@@ -3,7 +3,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 
 interface AssignmentEntry {
     unitName: string;
@@ -32,13 +32,13 @@ interface AuditorAssignmentsPrintTemplateProps {
 export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector, leadAuditorName }: AuditorAssignmentsPrintTemplateProps) {
   const safeFormatDate = (d: any) => {
     if (!d) return 'TBA';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? 'TBA' : format(date, 'MM/dd/yyyy');
   };
 
   const safeFormatTime = (d: any) => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? '' : format(date, 'hh:mm a');
   };
 
@@ -80,7 +80,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
                   </tr>
               </thead>
               <tbody>
-                  {auditor.assignments.sort((a,b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0)).map((a, i) => (
+                  {auditor.assignments.sort((a,b) => parseDate(a.date).getTime() - parseDate(b.date).getTime()).map((a, i) => (
                       <tr key={i} className="break-inside-avoid border-b border-black">
                           <td className="border border-black p-2 font-bold tabular-nums text-center" style={{ fontSize: '11pt' }}>{safeFormatDate(a.date)}</td>
                           <td className="border border-black p-2 font-bold uppercase whitespace-nowrap text-center" style={{ fontSize: '11pt' }}>

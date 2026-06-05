@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { parseDate } from '@/lib/utils';
 
 interface ConsolidatedAuditReportTemplateProps {
   plan: AuditPlan;
@@ -171,7 +172,7 @@ export function ConsolidatedAuditReportTemplate({
 
   const auditDateRange = useMemo(() => {
     if (schedules.length === 0) return '--';
-    const dates = schedules.map(s => s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate));
+    const dates = schedules.map(s => parseDate(s.scheduledDate));
     const min = new Date(Math.min(...dates.map(d => d.getTime())));
     const max = new Date(Math.max(...dates.map(d => d.getTime())));
     return `${format(min, 'MMMM dd, yyyy')} to ${format(max, 'MMMM dd, yyyy')}`;

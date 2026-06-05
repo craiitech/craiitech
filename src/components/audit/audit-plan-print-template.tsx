@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Signatories, AuditGroup } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 
 interface AuditPlanPrintTemplateProps {
   plan: AuditPlan;
@@ -17,25 +17,25 @@ interface AuditPlanPrintTemplateProps {
 export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatories, section }: AuditPlanPrintTemplateProps) {
   const safeFormatDate = (d: any, fmt: string = 'yyyy-MM-dd') => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? '' : format(date, fmt);
   };
 
   const safeFormatTime = (d: any) => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    const date = parseDate(d);
     return isNaN(date.getTime()) ? '' : format(date, 'h:mm a');
   };
 
   const sortedSchedules = [...schedules].sort((a, b) => {
-    const timeA = a.scheduledDate instanceof Timestamp ? a.scheduledDate.toMillis() : new Date(a.scheduledDate).getTime();
-    const timeB = b.scheduledDate instanceof Timestamp ? b.scheduledDate.toMillis() : new Date(b.scheduledDate).getTime();
+    const timeA = parseDate(a.scheduledDate).getTime();
+    const timeB = parseDate(b.scheduledDate).getTime();
     return timeA - timeB;
   });
 
   const auditDateRange = useMemo(() => {
     if (schedules.length === 0) return '--';
-    const dates = schedules.map(s => s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate));
+    const dates = schedules.map(s => parseDate(s.scheduledDate));
     const min = new Date(Math.min(...dates.map(d => d.getTime())));
     const max = new Date(Math.max(...dates.map(d => d.getTime())));
     return `${format(min, 'yyyy-MM-dd')} to ${format(max, 'yyyy-MM-dd')}`;
