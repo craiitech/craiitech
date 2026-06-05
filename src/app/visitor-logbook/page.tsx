@@ -25,9 +25,11 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import Image from 'next/image';
+import { getDirectDriveLink } from '@/lib/utils';
 
 export default function VisitorLogbookPage() {
-  const { userProfile, isUserLoading } = useUser();
+  const { userProfile, isUserLoading, systemSettings } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -64,6 +66,10 @@ export default function VisitorLogbookPage() {
   const officeName = campusNameStr && unitNameStr 
     ? `${campusNameStr} | ${unitNameStr}`
     : (userProfile?.unitName || 'our Office');
+
+  const logoSrc = systemSettings?.logoUrl 
+    ? getDirectDriveLink(systemSettings.logoUrl) 
+    : '/rsupage.png';
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [visitorName, setVisitorName] = useState('');
@@ -238,6 +244,17 @@ export default function VisitorLogbookPage() {
         
         {/* Left column: Welcome, date/time info */}
         <div className="w-full xl:w-1/2 flex flex-col justify-center text-center xl:text-left space-y-6">
+          <div className="flex justify-center xl:justify-start">
+            <div className="relative h-28 w-28 md:h-36 md:w-36 transition-all hover:scale-105 duration-300">
+              <Image 
+                src={logoSrc} 
+                alt="University Logo" 
+                fill 
+                className="object-contain" 
+                priority
+              />
+            </div>
+          </div>
           <div className="space-y-3">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
               <Sparkles className="h-3 w-3" /> Romblon State University
