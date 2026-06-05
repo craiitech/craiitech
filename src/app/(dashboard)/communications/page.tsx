@@ -141,7 +141,19 @@ export default function CommunicationsPage() {
   const { data: rawComms, isLoading: isLoadingComms } = useCollection<Communication>(commsQuery);
 
   // Role permissions
-  const isOdimo = userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || isAdmin;
+  const isOdimo = useMemo(() => {
+    if (!userRole) return false;
+    const roleLower = userRole.toLowerCase();
+    return (
+      isAdmin ||
+      roleLower.includes('coordinator') ||
+      roleLower.includes('odimo') ||
+      roleLower.includes('director') ||
+      roleLower.includes('president') ||
+      roleLower.includes('head') ||
+      roleLower.includes('vice president')
+    );
+  }, [userRole, isAdmin]);
   const isPresident = userRole?.toLowerCase().includes('president') || isAdmin;
 
   const canManageComm = (comm: Communication): boolean => {
