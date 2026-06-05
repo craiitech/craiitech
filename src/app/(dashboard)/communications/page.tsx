@@ -146,13 +146,37 @@ export default function CommunicationsPage() {
     userRole === 'Unit ODIMO' ||
     userRole === 'Campus ODIMO' ||
     userRole?.toLowerCase().includes('coordinator');
+  const isCampusOdimo = userRole === 'Campus ODIMO';
   const isPresident = userRole?.toLowerCase().includes('president') || isAdmin;
+
+  /**
+   * receivingKey: the Firestore field key used inside recipientRefNums.
+   * - Campus ODIMO logs at the campus level (campusId)
+   * - Everyone else logs at the unit level (unitId)
+   */
+  const receivingKey: string = isCampusOdimo
+    ? (userProfile?.campusId || '')
+    : (userProfile?.unitId || '');
+
+  /**
+   * receivingLabel: human-readable name for the receiving entity.
+   */
+  const receivingLabel: string = isCampusOdimo
+    ? (campusMap.get(userProfile?.campusId || '') || 'your campus')
+    : (unitMap.get(userProfile?.unitId || '') || 'your unit');
 
   const canManageComm = (comm: Communication): boolean => {
     if (!userProfile) return false;
     if (isAdmin) return true;
     if (!isOdimo) return false;
-    // Can manage comms sent by their unit or addressed to their unit
+    // Can manage comms sent by their unit/campus or addressed to their unit/campus
+    if (isCampusOdimo) {
+      return (
+        comm.senderUnitId === userProfile.campusId ||
+        comm.recipientIds?.includes(userProfile.campusId) ||
+        (comm.manual && comm.recipientIds?.includes(userProfile.campusId))
+      );
+    }
     return (
       comm.senderUnitId === userProfile.unitId ||
       (comm.manual && comm.recipientIds?.includes(userProfile.unitId))
@@ -190,8 +214,8 @@ export default function CommunicationsPage() {
       }
 
       if (isIncoming) {
-        // If not ODIMO, only show incoming communications that have been received/logged by the ODIMO
-        const isReceivedByUnit = !!c.recipientRefNums?.[userProfile.unitId];
+        // If not ODIMO/Coordinator, only show incoming comms that have been received/logged
+        const isReceivedByUnit = !!c.recipientRefNums?.[receivingKey];
         if (isOdimo || isReceivedByUnit) {
           incoming.push(c);
         }
@@ -199,18 +223,18 @@ export default function CommunicationsPage() {
     });
 
     return { incoming, outgoing };
-  }, [rawComms, userProfile, isOdimo]);
+  }, [rawComms, userProfile, isOdimo, receivingKey]);
 
   const filteredComms = useMemo(() => {
     const list = processedComms[activeTab];
     return list.filter(c => {
       const matchesSearch = c.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             c.senderRefNum?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.recipientRefNums?.[userProfile?.unitId || '']?.toLowerCase().includes(searchTerm.toLowerCase());
+                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesKind = kindFilter === 'all' || c.kind === kindFilter;
       return matchesSearch && matchesKind;
     });
-  }, [processedComms, activeTab, searchTerm, kindFilter, userProfile?.unitId]);
+  }, [processedComms, activeTab, searchTerm, kindFilter, receivingKey]);
 
   const unreadCount = useMemo(() => {
     if (!userProfile) return 0;
@@ -278,11 +302,12 @@ export default function CommunicationsPage() {
     const isIncoming = (mode === 'manual' && mType === 'incoming');
 
     if (isIncoming) {
+      // Use receivingKey (campusId for Campus ODIMO, unitId for others)
       const lastIncomingWithRef = processedComms.incoming.find(
-        (c) => c.recipientRefNums?.[userProfile.unitId]
+        (c) => c.recipientRefNums?.[receivingKey]
       );
       if (lastIncomingWithRef) {
-        const lastRef = lastIncomingWithRef.recipientRefNums[userProfile.unitId];
+        const lastRef = lastIncomingWithRef.recipientRefNums[receivingKey];
         if (lastRef) return incrementReferenceNumber(lastRef);
       }
       return `${currentYear}-001`;
@@ -301,11 +326,12 @@ export default function CommunicationsPage() {
   const getNextIncomingRefNum = (): string => {
     if (!userProfile) return '';
     const currentYear = new Date().getFullYear();
+    // Use receivingKey (campusId for Campus ODIMO, unitId for others)
     const lastIncomingWithRef = processedComms.incoming.find(
-      (c) => c.recipientRefNums?.[userProfile.unitId]
+      (c) => c.recipientRefNums?.[receivingKey]
     );
     if (lastIncomingWithRef) {
-      const lastRef = lastIncomingWithRef.recipientRefNums[userProfile.unitId];
+      const lastRef = lastIncomingWithRef.recipientRefNums[receivingKey];
       if (lastRef) return incrementReferenceNumber(lastRef);
     }
     return `${currentYear}-001`;
@@ -326,12 +352,14 @@ export default function CommunicationsPage() {
       return;
     }
 
-    // Validate that the user has a unitId — required for the Firestore field path
-    const unitKey = userProfile.unitId?.trim();
-    if (!unitKey) {
+    // Validate that the receivingKey is valid — required for the Firestore field path
+    const stampKey = receivingKey.trim();
+    if (!stampKey) {
       toast({
-        title: 'Missing Unit Assignment',
-        description: 'Your account does not have a unit assigned. Please complete your profile or contact an administrator.',
+        title: isCampusOdimo ? 'Missing Campus Assignment' : 'Missing Unit Assignment',
+        description: isCampusOdimo
+          ? 'Your account does not have a campus assigned. Please complete your profile or contact an administrator.'
+          : 'Your account does not have a unit assigned. Please complete your profile or contact an administrator.',
         variant: 'destructive'
       });
       return;
@@ -340,17 +368,16 @@ export default function CommunicationsPage() {
     setIsReceivingSubmitting(true);
     try {
       const docRef = doc(firestore, 'communications', commToReceive.id);
-      const readByEntries: string[] = [userProfile.id];
-      if (unitKey) readByEntries.push(unitKey);
+      const readByEntries: string[] = [userProfile.id, stampKey];
 
       await updateDoc(docRef, {
-        [`recipientRefNums.${unitKey}`]: receivingRefNum.trim(),
+        [`recipientRefNums.${stampKey}`]: receivingRefNum.trim(),
         readBy: arrayUnion(...readByEntries)
       });
 
       toast({
         title: 'Communication Received & Stamped',
-        description: `Successfully logged under Receiver's Ref: ${receivingRefNum}`,
+        description: `Successfully logged under Receiver's Ref: ${receivingRefNum} for ${receivingLabel}`,
       });
       setIsReceiveDialogOpen(false);
       setCommToReceive(null);
@@ -419,8 +446,8 @@ export default function CommunicationsPage() {
             setIsSubmitting(false);
             return;
           }
-          // Use user-entered receiving reference number (stored in customRefNum)
-          computedRecipientRefs[userProfile.unitId] = customRefNum;
+          // Use user-entered receiving reference number, keyed by receivingKey
+          if (receivingKey) computedRecipientRefs[receivingKey] = customRefNum;
           // Use user-entered origin's reference number (stored in manualOriginRefNum)
           computedSenderRef = manualOriginRefNum;
         } else {
@@ -445,12 +472,13 @@ export default function CommunicationsPage() {
         driveLink: driveLink || null,
         createdAt: Timestamp.fromDate(parsedDate),
         manual: commsMode === 'manual',
-        readBy: userProfile.unitId ? [userProfile.id, userProfile.unitId] : [userProfile.id],
+        readBy: receivingKey ? [userProfile.id, receivingKey] : [userProfile.id],
         senderName: senderNameText.trim() || null,
       };
 
       if (commsMode === 'digital') {
-        payload.senderUnitId = userProfile.unitId;
+        // Campus ODIMO sends on behalf of their campus (senderUnitId = campusId for routing purposes)
+        payload.senderUnitId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
         payload.senderRefNum = computedSenderRef;
         payload.recipientType = recipientType;
         payload.recipientIds = selectedRecipients;
@@ -470,20 +498,24 @@ export default function CommunicationsPage() {
           }).join(', ');
         }
         payload.toText = toText;
-        const resolvedSenderUnitName = units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId;
-        payload.senderText = resolvedSenderUnitName;
+        const resolvedSenderName = isCampusOdimo
+          ? (campusMap.get(userProfile.campusId || '') || userProfile.campusId || '')
+          : (units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId || '');
+        payload.senderText = resolvedSenderName;
       } else {
         // Manual entry
         payload.manualType = manualType;
-        const resolvedSenderUnitName = units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId;
+        const resolvedSenderName = isCampusOdimo
+          ? (campusMap.get(userProfile.campusId || '') || userProfile.campusId || '')
+          : (units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId || '');
         if (manualType === 'incoming') {
           payload.senderText = manualSenderText;
-          payload.toText = resolvedSenderUnitName;
-          payload.recipientIds = [userProfile.unitId];
+          payload.toText = resolvedSenderName;
+          payload.recipientIds = receivingKey ? [receivingKey] : [];
           payload.recipientRefNums = computedRecipientRefs;
         } else {
-          payload.senderUnitId = userProfile.unitId;
-          payload.senderText = resolvedSenderUnitName;
+          payload.senderUnitId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
+          payload.senderText = resolvedSenderName;
           payload.senderRefNum = computedSenderRef;
           payload.toText = manualRecipientText;
         }
@@ -493,13 +525,13 @@ export default function CommunicationsPage() {
         await updateDoc(doc(firestore, 'communications', editingCommId), payload);
         toast({
           title: 'Communication Updated',
-          description: `Successfully updated Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[userProfile.unitId] || 'N/A'}`,
+          description: `Successfully updated Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[receivingKey] || 'N/A'}`,
         });
       } else {
         await addDoc(collection(firestore, 'communications'), payload);
         toast({
           title: 'Communication Logged',
-          description: `Successfully logged under Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[userProfile.unitId] || 'N/A'}`,
+          description: `Successfully logged under Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[receivingKey] || 'N/A'}`,
         });
       }
 
@@ -567,7 +599,7 @@ export default function CommunicationsPage() {
     if (comms.length === 0) return 'N/A';
     const refs = comms.map(c => {
       return isIncoming
-        ? (c.recipientRefNums?.[userProfile?.unitId || ''] || '')
+        ? (c.recipientRefNums?.[receivingKey] || '')
         : (c.senderRefNum || '');
     }).filter(Boolean);
     if (refs.length === 0) return 'N/A';
@@ -582,7 +614,7 @@ export default function CommunicationsPage() {
     const printList = [...list].filter(c => {
       const matchesSearch = c.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             c.senderRefNum?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.recipientRefNums?.[userProfile?.unitId || '']?.toLowerCase().includes(searchTerm.toLowerCase());
+                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesKind = kindFilter === 'all' || c.kind === kindFilter;
       return matchesSearch && matchesKind;
     }).sort((a, b) => {
@@ -620,14 +652,14 @@ export default function CommunicationsPage() {
       const dateOfReceipt = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MM/dd/yyyy') : 'N/A';
       const originRefNo = comm.senderRefNum || 'N/A';
       const receiverRefNo = isIncoming
-        ? (comm.recipientRefNums?.[userProfile.unitId] || 'Pending Receipt')
+        ? (comm.recipientRefNums?.[receivingKey] || 'Pending Receipt')
         : 'N/A';
       const nameOfAddressee = comm.toText || 'N/A';
       
       let nameOfSender = comm.senderName || 'N/A';
       let agencyOrCompany = 'N/A';
       const officeOrUnit = !isIncoming
-        ? resolveUnitName(comm.senderUnitId || userProfile.unitId)
+        ? resolveUnitName(comm.senderUnitId || (isCampusOdimo ? userProfile.campusId : userProfile.unitId) || '')
         : 'N/A';
 
       if (isIncoming) {
@@ -888,7 +920,7 @@ export default function CommunicationsPage() {
       if (comm.manualType === 'incoming') {
         setManualSenderText(comm.senderText || '');
         setManualOriginRefNum(comm.senderRefNum || '');
-        const displayRefNum = comm.recipientRefNums?.[userProfile?.unitId || ''] || '';
+        const displayRefNum = comm.recipientRefNums?.[receivingKey] || '';
         setCustomRefNum(displayRefNum);
       } else {
         setManualRecipientText(comm.toText || '');
@@ -938,7 +970,7 @@ export default function CommunicationsPage() {
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Institutional Correspondence Management</p>
             </div>
             <h3 className="text-2xl font-black uppercase tracking-tight">Communications Logbook</h3>
-            <p className="text-sm text-white/70 font-medium mt-1">Official incoming and outgoing records for {unitMap.get(userProfile?.unitId || '') || 'your unit'}</p>
+            <p className="text-sm text-white/70 font-medium mt-1">Official incoming and outgoing records for <span className="font-black text-white">{receivingLabel}</span></p>
           </div>
           {isOdimo && (
             <div className="flex flex-wrap items-center gap-3">
@@ -1077,8 +1109,8 @@ export default function CommunicationsPage() {
                 <>
                   {/* FROM */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">From Office / Unit</label>
-                    <Input value={unitMap.get(userProfile?.unitId || '') || '...'} disabled className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-bold" />
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">{isCampusOdimo ? 'From Campus' : 'From Office / Unit'}</label>
+                    <Input value={receivingLabel} disabled className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-bold" />
                   </div>
 
                   {/* SENDER NAME */}
@@ -1335,11 +1367,11 @@ export default function CommunicationsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredComms.map((comm) => {
-                    const hasRead = comm.readBy?.includes(userProfile?.id || '') || (userProfile?.unitId && comm.readBy?.includes(userProfile.unitId));
-                    const isUnread = activeTab === 'incoming' && !hasRead && comm.senderUnitId !== userProfile?.unitId;
+                    const hasRead = comm.readBy?.includes(userProfile?.id || '') || (receivingKey && comm.readBy?.includes(receivingKey));
+                    const isUnread = activeTab === 'incoming' && !hasRead && comm.senderUnitId !== (isCampusOdimo ? userProfile?.campusId : userProfile?.unitId);
                     const dateStr = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MMM dd, yyyy') : '...';
                     // Ref num variables for render
-                    const receiverRef = comm.recipientRefNums?.[userProfile?.unitId || ''];
+                    const receiverRef = comm.recipientRefNums?.[receivingKey];
                     const originRef = comm.senderRefNum;
 
                     return (
@@ -1424,7 +1456,7 @@ export default function CommunicationsPage() {
                         {isOdimo && (
                           <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                             <div className="inline-flex items-center gap-2 justify-end w-full">
-                              {activeTab === 'incoming' && !comm.recipientRefNums?.[userProfile?.unitId || ''] ? (
+                              {activeTab === 'incoming' && !comm.recipientRefNums?.[receivingKey] ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1454,7 +1486,7 @@ export default function CommunicationsPage() {
                                   </Button>
                                 </>
                               ) : (
-                                !(!comm.recipientRefNums?.[userProfile?.unitId || ''] && activeTab === 'incoming') && (
+                                !(!comm.recipientRefNums?.[receivingKey] && activeTab === 'incoming') && (
                                   <span className="text-[9px] text-slate-400 font-bold uppercase italic">Locked</span>
                                 )
                               )}
@@ -1486,7 +1518,7 @@ export default function CommunicationsPage() {
                       {selectedComm.kind}
                     </Badge>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      Reference: {activeTab === 'incoming' ? (selectedComm.recipientRefNums?.[userProfile?.unitId || ''] || 'Pending') : (selectedComm.senderRefNum || 'N/A')}
+                      Reference: {activeTab === 'incoming' ? (selectedComm.recipientRefNums?.[receivingKey] || 'Pending') : (selectedComm.senderRefNum || 'N/A')}
                     </span>
                   </div>
                   <h3 className="text-sm font-black text-slate-800 leading-snug uppercase">
@@ -1562,7 +1594,7 @@ export default function CommunicationsPage() {
                     <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Receiver's Reference Number</h5>
                     <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                       <span className="text-xs font-mono font-bold text-slate-700 whitespace-normal break-words py-0.5">
-                        {selectedComm.recipientRefNums?.[userProfile?.unitId || ''] || 'Pending Receipt'}
+                        {selectedComm.recipientRefNums?.[receivingKey] || 'Pending Receipt'}
                       </span>
                     </div>
                   </div>
