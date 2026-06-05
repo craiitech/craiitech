@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, Timestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import type { Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,40 @@ export default function VisitorLogbookPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const unitRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return doc(firestore, 'units', userProfile.unitId);
+  }, [firestore, userProfile?.unitId]);
+
+  const campusRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.campusId) return null;
+    return doc(firestore, 'campuses', userProfile.campusId);
+  }, [firestore, userProfile?.campusId]);
+
+  const { data: unitDoc } = useDoc<Unit>(unitRef);
+  const { data: campusDoc } = useDoc<Campus>(campusRef);
+
+  const getCampusSitePrefix = (campusName: string): string => {
+    const nameUpper = campusName.toUpperCase();
+    if (nameUpper.includes('MAIN')) return 'SITE 1 - MAIN CAMPUS';
+    if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
+    if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
+    if (nameUpper.includes('CAJIDIOCAN')) return 'SITE 4 - CAJIDIOCAN CAMPUS';
+    if (nameUpper.includes('SAN AGUSTIN')) return 'SITE 5 - SAN AGUSTIN CAMPUS';
+    if (nameUpper.includes('CALATRAVA')) return 'SITE 6 - CALATRAVA CAMPUS';
+    if (nameUpper.includes('SAN JOSE')) return 'SITE 7 - SAN JOSE CAMPUS';
+    if (nameUpper.includes('SANTA FE')) return 'SITE 8 - SANTA FE CAMPUS';
+    if (nameUpper.includes('SANTA MARIA')) return 'SITE 9 - SANTA MARIA CAMPUS';
+    return campusName.toUpperCase();
+  };
+
+  const campusNameStr = campusDoc?.name ? getCampusSitePrefix(campusDoc.name) : '';
+  const unitNameStr = unitDoc?.name ? unitDoc.name.toUpperCase() : '';
+
+  const officeName = campusNameStr && unitNameStr 
+    ? `${campusNameStr} | ${unitNameStr}`
+    : (userProfile?.unitName || 'our Office');
+
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [visitorName, setVisitorName] = useState('');
   const [sex, setSex] = useState('');
@@ -48,7 +83,7 @@ export default function VisitorLogbookPage() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Enter fullscreen automatically on first click if requested via query param
+  // Enter fullscreen automatically on first user gesture if requested via query param
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
@@ -61,10 +96,13 @@ export default function VisitorLogbookPage() {
               console.warn('Auto-fullscreen failed:', err);
             });
           }
-          window.removeEventListener('click', enterFS);
+          events.forEach(event => window.removeEventListener(event, enterFS));
         };
-        window.addEventListener('click', enterFS);
-        return () => window.removeEventListener('click', enterFS);
+        const events = ['click', 'touchstart', 'focusin', 'keydown'];
+        events.forEach(event => window.addEventListener(event, enterFS, { passive: true }));
+        return () => {
+          events.forEach(event => window.removeEventListener(event, enterFS));
+        };
       }
     }
   }, []);
@@ -127,7 +165,7 @@ export default function VisitorLogbookPage() {
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
         unitId: userProfile.unitId || 'N/A',
-        unitName: userProfile.unitName || 'Office',
+        unitName: unitDoc?.name || userProfile.unitName || 'Office',
         createdAt: Timestamp.now(),
       };
 
@@ -160,7 +198,7 @@ export default function VisitorLogbookPage() {
     );
   }
 
-  const officeName = userProfile?.unitName || 'our Office';
+  // officeName is dynamically defined above
 
   return (
     <div className="relative min-h-screen w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-hidden p-6 md:p-12">
