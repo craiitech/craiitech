@@ -152,7 +152,13 @@ service cloud.firestore {
       );
       allow update: if isSignedIn() && (
         isAdmin() ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) ||
+        (
+          profile().get('role', '').matches('(?i).*(odimo|director|president|vice president).*') && (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recipientRefNums', 'readBy']) ||
+            resource.data.senderUnitId == profile().get('unitId', '')
+          )
+        )
       );
       allow delete: if isAdmin();
     }

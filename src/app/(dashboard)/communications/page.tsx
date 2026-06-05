@@ -141,19 +141,7 @@ export default function CommunicationsPage() {
   const { data: rawComms, isLoading: isLoadingComms } = useCollection<Communication>(commsQuery);
 
   // Role permissions
-  const isOdimo = useMemo(() => {
-    if (!userRole) return false;
-    const roleLower = userRole.toLowerCase();
-    return (
-      isAdmin ||
-      roleLower.includes('coordinator') ||
-      roleLower.includes('odimo') ||
-      roleLower.includes('director') ||
-      roleLower.includes('president') ||
-      roleLower.includes('head') ||
-      roleLower.includes('vice president')
-    );
-  }, [userRole, isAdmin]);
+  const isOdimo = userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || isAdmin;
   const isPresident = userRole?.toLowerCase().includes('president') || isAdmin;
 
   const canManageComm = (comm: Communication): boolean => {
@@ -197,12 +185,16 @@ export default function CommunicationsPage() {
       }
 
       if (isIncoming) {
-        incoming.push(c);
+        // If not ODIMO, only show incoming communications that have been received/logged by the ODIMO
+        const isReceivedByUnit = !!c.recipientRefNums?.[userProfile.unitId];
+        if (isOdimo || isReceivedByUnit) {
+          incoming.push(c);
+        }
       }
     });
 
     return { incoming, outgoing };
-  }, [rawComms, userProfile]);
+  }, [rawComms, userProfile, isOdimo]);
 
   const filteredComms = useMemo(() => {
     const list = processedComms[activeTab];

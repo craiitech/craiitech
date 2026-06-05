@@ -288,6 +288,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const commNotificationsCount = useMemo(() => {
     if (!commsNotifications || !userProfile) return 0;
     const currentYear = new Date().getFullYear();
+    const isOdimo = userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || isAdmin;
+
     return commsNotifications.filter(c => {
       if (c.senderUnitId === userProfile.unitId) return false;
       const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
@@ -304,10 +306,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         isRecipient = true;
       }
 
+      if (!isRecipient) return false;
+
+      // If not ODIMO, only count/notify if the communication has been received/stamped by the unit's ODIMO
+      const isReceivedByUnit = !!c.recipientRefNums?.[userProfile.unitId];
+      if (!isOdimo && !isReceivedByUnit) return false;
+
       const hasRead = c.readBy?.includes(userProfile.id) || (userProfile.unitId && c.readBy?.includes(userProfile.unitId));
-      return isRecipient && !hasRead;
+      return !hasRead;
     }).length;
-  }, [commsNotifications, userProfile]);
+  }, [commsNotifications, userProfile, userRole, isAdmin]);
 
   const totalNotificationsCount = useMemo(() => {
     return subNotificationsCount + carNotificationsCount + riskNotificationsCount + accreditationNotificationsCount + decisionNotificationsCount + commNotificationsCount;
