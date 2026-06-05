@@ -118,10 +118,10 @@ export function SidebarNav({
         `;
       });
 
-      printWindow.document.write(\`
+      printWindow.document.write(`
         <html>
           <head>
-            <title>Visitor Logbook - \${unitName}</title>
+            <title>Visitor Logbook - ${unitName}</title>
             <style>
               @media print {
                 body { margin: 0.5in; font-family: sans-serif; color: black; }
@@ -136,7 +136,7 @@ export function SidebarNav({
             <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid black; padding-bottom: 10px;">
               <h2 style="margin: 0; text-transform: uppercase; letter-spacing: 1px;">ROMBLON STATE UNIVERSITY</h2>
               <h3 style="margin: 5px 0 0 0; text-transform: uppercase; color: #444;">VISITOR LOGBOOK</h3>
-              <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 12px;">OFFICE: \${unitName.toUpperCase()} &bull; DATE EXPORTED: \${formattedDate}</p>
+              <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 12px;">OFFICE: ${unitName.toUpperCase()} &bull; DATE EXPORTED: ${formattedDate}</p>
             </div>
             <table>
               <thead>
@@ -150,7 +150,7 @@ export function SidebarNav({
                 </tr>
               </thead>
               <tbody>
-                \${tableRows}
+                ${tableRows}
               </tbody>
             </table>
             <div style="margin-top: 40px; text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
@@ -164,7 +164,7 @@ export function SidebarNav({
             </script>
           </body>
         </html>
-      \`);
+      `);
       printWindow.document.close();
       setIsVisitorDialogOpen(false);
     } catch (e) {
