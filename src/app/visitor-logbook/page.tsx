@@ -18,7 +18,9 @@ import {
   HelpCircle,
   Users2,
   Sparkles,
-  ClipboardList
+  ClipboardList,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -35,6 +37,51 @@ export default function VisitorLogbookPage() {
   const [lookingFor, setLookingFor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Monitor fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Enter fullscreen automatically on first click if requested via query param
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const shouldAutoFullscreen = searchParams.get('fullscreen') === 'true';
+
+      if (shouldAutoFullscreen) {
+        const enterFS = () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+              console.warn('Auto-fullscreen failed:', err);
+            });
+          }
+          window.removeEventListener('click', enterFS);
+        };
+        window.addEventListener('click', enterFS);
+        return () => window.removeEventListener('click', enterFS);
+      }
+    }
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('Error toggling fullscreen:', err);
+    }
+  };
 
   // Update clock every second
   useEffect(() => {
@@ -130,9 +177,21 @@ export default function VisitorLogbookPage() {
           <ArrowLeft className="h-3.5 w-3.5" /> Dashboard
         </Link>
         
-        <div className="flex items-center gap-2 bg-[#1B6535]/30 border border-[#D4AF37]/20 px-4 py-1.5 rounded-full shadow-lg">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Kiosk Active</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#D4AF37]/70 hover:text-[#D4AF37] transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-[#D4AF37]/20 shadow-lg active:scale-95"
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+          </button>
+
+          <div className="flex items-center gap-2 bg-[#1B6535]/30 border border-[#D4AF37]/20 px-4 py-1.5 rounded-full shadow-lg">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Kiosk Active</span>
+          </div>
         </div>
       </div>
 

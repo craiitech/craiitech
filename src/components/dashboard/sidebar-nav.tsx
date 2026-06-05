@@ -467,7 +467,7 @@ export function SidebarNav({
           <div className="grid grid-cols-1 gap-3 py-4">
             <Button 
               onClick={() => {
-                window.open('/visitor-logbook', '_blank');
+                window.open('/visitor-logbook?fullscreen=true', '_blank');
                 setIsVisitorDialogOpen(false);
               }}
               className="w-full h-12 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 flex items-center justify-center gap-2 transition-all"
