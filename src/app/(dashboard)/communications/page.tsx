@@ -598,6 +598,14 @@ export default function CommunicationsPage() {
         }
       }
 
+      // Format sender name display as: SITE / OFFICE / UNIT | Name of the Sender
+      const resolvedSenderUnit = isIncoming
+        ? agencyOrCompany
+        : resolveUnitName(comm.senderUnitId || userProfile.unitId);
+      const resolvedSenderNameDisplay = (resolvedSenderUnit && resolvedSenderUnit !== 'N/A' && nameOfSender && nameOfSender !== 'N/A')
+        ? `${resolvedSenderUnit} | ${nameOfSender}`
+        : (resolvedSenderUnit !== 'N/A' ? resolvedSenderUnit : nameOfSender);
+
       const address = 'Romblon State University, Main Campus, Odiongan, Romblon';
       const subject = comm.subject || 'N/A';
 
@@ -643,7 +651,7 @@ export default function CommunicationsPage() {
                 ${isIncoming ? `
                 <tr style="border-bottom: 1px solid black;">
                   <td colspan="2" style="padding: 8px 0; font-weight: bold;">
-                    Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${nameOfSender}</span>
+                    Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${resolvedSenderNameDisplay}</span>
                   </td>
                 </tr>
                 <tr style="border-bottom: 1px solid black;">
@@ -659,7 +667,7 @@ export default function CommunicationsPage() {
                 </tr>
                 <tr style="border-bottom: 1px solid black;">
                   <td colspan="2" style="padding: 8px 0; font-weight: bold;">
-                    Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${nameOfSender}</span>
+                    Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${resolvedSenderNameDisplay}</span>
                   </td>
                 </tr>
                 `}
@@ -1369,15 +1377,13 @@ export default function CommunicationsPage() {
                       </div>
                       <span className="text-xs font-bold text-slate-700 truncate">
                         {(() => {
-                          if (selectedComm.manual) {
-                            if (selectedComm.senderName) {
-                              return `${selectedComm.senderText} (${selectedComm.senderName})`;
-                            }
-                            return selectedComm.senderText;
-                          }
-                          const unitName = resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText);
-                          const coordinator = selectedComm.senderName || getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText);
-                          return coordinator ? `${unitName} (${coordinator})` : unitName;
+                          const unitName = selectedComm.manual 
+                            ? (selectedComm.senderText || 'N/A')
+                            : resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText);
+                          const coordinator = selectedComm.senderName || (selectedComm.manual 
+                            ? '' 
+                            : getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText));
+                          return coordinator ? `${unitName} | ${coordinator}` : unitName;
                         })()}
                       </span>
                     </div>
