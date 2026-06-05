@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -52,6 +53,8 @@ export function ExecutiveOverview({
   scope = 'university',
   scopeId
 }: ExecutiveOverviewProps) {
+
+  const [startIndex, setStartIndex] = useState(0);
 
   // Filter collections by scope
   const { scopedSubmissions, scopedRisks, scopedCars, scopedCompliances, scopedPrograms, scopedSchedules, scopedUnits } = useMemo(() => {
@@ -205,6 +208,15 @@ export function ExecutiveOverview({
       }).sort((a, b) => b.rate - a.rate);
     }
   }, [scope, scopeId, campuses, units, submissions, selectedYear]);
+
+  const maxVal = useMemo(() => Math.max(0, complianceStandings.length - 10), [complianceStandings]);
+  const currentStartIndex = Math.min(startIndex, maxVal);
+  const visibleStandings = useMemo(() => {
+    if (scope === 'campus' && complianceStandings.length > 10) {
+      return complianceStandings.slice(currentStartIndex, currentStartIndex + 10);
+    }
+    return complianceStandings;
+  }, [complianceStandings, currentStartIndex, scope]);
 
   // Dynamic rule-based insights and recommendations (without using AI)
   const insights = useMemo(() => {
@@ -733,7 +745,7 @@ export function ExecutiveOverview({
             </CardHeader>
 
             <CardContent className="pt-6 pb-4 space-y-4 flex-1 overflow-y-auto">
-              {complianceStandings.map((cRate, idx) => (
+              {visibleStandings.map((cRate, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-slate-800 uppercase truncate max-w-[170px]">{cRate.name}</span>
@@ -750,7 +762,24 @@ export function ExecutiveOverview({
                   </div>
                 </div>
               ))}
-              {complianceStandings.length === 0 && (
+              
+              {scope === 'campus' && complianceStandings.length > 10 && (
+                <div className="space-y-2 pt-4 border-t border-slate-100">
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                    <span>Move Slider to Scroll</span>
+                    <span className="font-extrabold">{currentStartIndex + 1}-{currentStartIndex + visibleStandings.length} of {complianceStandings.length}</span>
+                  </div>
+                  <Slider
+                    value={[currentStartIndex]}
+                    onValueChange={(val) => setStartIndex(val[0])}
+                    max={maxVal}
+                    step={1}
+                    className="py-2 cursor-pointer"
+                  />
+                </div>
+              )}
+
+              {visibleStandings.length === 0 && (
                 <div className="py-12 text-center opacity-40 text-[10px] font-bold uppercase text-slate-500">
                   No datasets recorded
                 </div>

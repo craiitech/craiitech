@@ -516,6 +516,12 @@ export default function HomePage() {
     return mrOutputs.filter(o => o.assignments?.some((a: any) => a.unitId === userProfile.unitId));
   }, [mrOutputs, userProfile]);
 
+  const campusMrOutputs = useMemo(() => {
+    if (!mrOutputs || !userProfile?.campusId || !allUnits) return [];
+    const campusUnitIds = new Set(allUnits.filter(u => u.campusIds?.includes(userProfile.campusId)).map(u => u.id));
+    return mrOutputs.filter(o => o.assignments?.some((a: any) => campusUnitIds.has(a.unitId)));
+  }, [mrOutputs, userProfile?.campusId, allUnits]);
+
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !selectedYear) return null;
     return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
@@ -1141,9 +1147,14 @@ export default function HomePage() {
         </div>
         <ScrollArea className="w-full">
           <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="strategic">Strategic</TabsTrigger>
+            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="schedule"><Calendar className="mr-2 h-4 w-4" />Schedule Today | Upcoming</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
+            <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
+            <TabsTrigger value="corrective-actions"><ListChecks className="mr-2 h-4 w-4" />Corrective Actions</TabsTrigger>
+            <TabsTrigger value="actionable-decisions"><Zap className="mr-2 h-4 w-4" />Actionable Decisions</TabsTrigger>
           </TabsList>
         </ScrollArea>
       </div>
@@ -1202,14 +1213,93 @@ export default function HomePage() {
           </div>
         </div>
       </TabsContent>
+
+      <TabsContent value="schedule" className="space-y-6">
+        <ScheduleTab
+          schedules={dashboardSchedules || []}
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={filteredCompliances || []}
+          academicPrograms={filteredAcademicPrograms || []}
+          campuses={campuses || []}
+          allUnits={allUnits || []}
+          cycles={allCycles || []}
+          mrOutputs={campusMrOutputs || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
       <TabsContent value="analytics" className="space-y-6">
-        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          {Object.entries(stats).map(([k, s]: any) => (
+            <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+              <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="shadow-md"><CardHeader><CardTitle>Campus Progress</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
+            <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
+          </div>
+          <div className="lg:col-span-3 space-y-6">
+            <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+            <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+            <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+          </div>
+        </div>
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
+        <ComplianceHeatmap units={allUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
       </TabsContent>
+
       <TabsContent value="strategic" className="space-y-6">
-        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
+        <MaturityRadar campuses={campuses?.filter(c => c.id === userProfile?.campusId) || []} submissions={submissions || []} risks={risks || []} mrOutputs={campusMrOutputs || []} selectedYear={selectedYear} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+      </TabsContent>
+
+      <TabsContent value="ched-programs" className="space-y-6">
+        <ChedProgramsTab
+          academicPrograms={filteredAcademicPrograms || []}
+          allCompliances={filteredCompliances || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="risk-opportunity" className="space-y-6">
+        <RiskOpportunityTab
+          risks={risks || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="corrective-actions" className="space-y-6">
+        <CorrectiveActionsTab
+          cars={allCars || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="actionable-decisions" className="space-y-6">
+        <ActionableDecisionsTab
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={filteredCompliances || []}
+          academicPrograms={filteredAcademicPrograms || []}
+          auditSchedules={dashboardSchedules || []}
+          submissions={submissions || []}
+          campuses={campuses || []}
+          allUnits={allUnits || []}
+          selectedYear={selectedYear}
+        />
       </TabsContent>
     </Tabs>
   );
