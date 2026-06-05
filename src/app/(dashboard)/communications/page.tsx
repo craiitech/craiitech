@@ -616,7 +616,8 @@ export default function CommunicationsPage() {
           <!-- Header for individual block -->
           <div style="display: flex; justify-content: space-between; font-size: 12px; font-family: sans-serif; margin-bottom: 4px; border-bottom: none;">
             <div>
-              <div style="font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">${isIncoming ? 'Incoming Template' : 'Outgoing Template'}</div>
+              <div style="font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">ROMBLON STATE UNIVERSITY</div>
+              <div style="font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;">${isIncoming ? 'INCOMING COMMUNICATION' : 'OUTGOING COMMUNICATION'}</div>
               <div style="margin-top: 4px;">
                 <span style="font-weight: bold;">Month / Year:</span>
                 <span style="border-bottom: 1px solid black; padding: 0 10px; font-weight: bold;">${monthYear}</span>
