@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from 'firebase/firestore';
 import type { Campus, Unit, Communication, CommunicationKind } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ import {
 import {
   Mail,
   Plus,
+  Edit2,
   Search,
   Building2,
   User,
@@ -83,6 +84,8 @@ export default function CommunicationsPage() {
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [searchTerm, setSearchTerm] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
+  const [editingCommId, setEditingCommId] = useState<string | null>(null);
+  const [deleteConfirmCommId, setDeleteConfirmCommId] = useState<string | null>(null);
 
   // Form Panel State
   const [isLogFormOpen, setIsLogFormOpen] = useState(false);
@@ -132,6 +135,16 @@ export default function CommunicationsPage() {
   // Role permissions
   const isOdimo = userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || isAdmin;
   const isPresident = userRole?.toLowerCase().includes('president') || isAdmin;
+
+  const canManageComm = (comm: Communication): boolean => {
+    if (!userProfile) return false;
+    if (isAdmin) return true;
+    if (!isOdimo) return false;
+    return (
+      comm.senderUnitId === userProfile.unitId ||
+      (comm.manual && comm.recipientIds?.includes(userProfile.unitId))
+    );
+  };
 
   // Filter and process communications
   const processedComms = useMemo(() => {
@@ -207,6 +220,7 @@ export default function CommunicationsPage() {
     setManualRecipientText('');
     setKind('Office Memorandum');
     setCustomDate(format(new Date(), 'yyyy-MM-dd'));
+    setEditingCommId(null);
   };
 
   // Google Drive preview URL parser
@@ -260,11 +274,11 @@ export default function CommunicationsPage() {
   };
 
   useEffect(() => {
-    if (isLogFormOpen) {
+    if (isLogFormOpen && !editingCommId) {
       const nextRef = getAutoReferenceNumber(commsMode, manualType);
       setCustomRefNum(nextRef);
     }
-  }, [commsMode, manualType, rawComms, isLogFormOpen]);
+  }, [commsMode, manualType, rawComms, isLogFormOpen, editingCommId]);
 
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,29 +399,38 @@ export default function CommunicationsPage() {
           }).join(', ');
         }
         payload.toText = toText;
-        payload.senderText = unitMap.get(userProfile.unitId) || userProfile.unitId;
+        const resolvedSenderUnitName = units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId;
+        payload.senderText = resolvedSenderUnitName;
       } else {
         // Manual entry
         payload.manualType = manualType;
+        const resolvedSenderUnitName = units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId;
         if (manualType === 'incoming') {
           payload.senderText = manualSenderText;
-          payload.toText = unitMap.get(userProfile.unitId) || userProfile.unitId;
+          payload.toText = resolvedSenderUnitName;
           payload.recipientIds = [userProfile.unitId];
           payload.recipientRefNums = computedRecipientRefs;
         } else {
           payload.senderUnitId = userProfile.unitId;
-          payload.senderText = unitMap.get(userProfile.unitId) || userProfile.unitId;
+          payload.senderText = resolvedSenderUnitName;
           payload.senderRefNum = computedSenderRef;
           payload.toText = manualRecipientText;
         }
       }
 
-      await addDoc(collection(firestore, 'communications'), payload);
-
-      toast({
-        title: 'Communication Logged',
-        description: `Successfully logged under Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums[userProfile.unitId]}`,
-      });
+      if (editingCommId) {
+        await updateDoc(doc(firestore, 'communications', editingCommId), payload);
+        toast({
+          title: 'Communication Updated',
+          description: `Successfully updated Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[userProfile.unitId] || 'N/A'}`,
+        });
+      } else {
+        await addDoc(collection(firestore, 'communications'), payload);
+        toast({
+          title: 'Communication Logged',
+          description: `Successfully logged under Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[userProfile.unitId] || 'N/A'}`,
+        });
+      }
 
       setIsLogFormOpen(false);
       resetForm();
@@ -417,6 +440,40 @@ export default function CommunicationsPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getUnitHeadName = (unitIdOrText: string): string => {
+    if (!unitIdOrText || !users) return '';
+    const isUnitId = units?.some(u => u.id === unitIdOrText);
+    const targetUnitId = isUnitId ? unitIdOrText : (users.find((u: any) => u.unitId === unitIdOrText)?.unitId || '');
+    if (!targetUnitId) return '';
+
+    const coord = users.find((u: any) => u.unitId === targetUnitId && u.role === 'Unit Coordinator');
+    if (coord) return `${coord.firstName} ${coord.lastName}`;
+
+    const coordLike = users.find((u: any) => u.unitId === targetUnitId && u.role?.toLowerCase().includes('coordinator'));
+    if (coordLike) return `${coordLike.firstName} ${coordLike.lastName}`;
+
+    const directorLike = users.find((u: any) => u.unitId === targetUnitId && (u.role?.toLowerCase().includes('director') || u.role?.toLowerCase().includes('head')));
+    if (directorLike) return `${directorLike.firstName} ${directorLike.lastName}`;
+
+    const odimo = users.find((u: any) => u.unitId === targetUnitId && u.role === 'Unit ODIMO');
+    if (odimo) return `${odimo.firstName} ${odimo.lastName}`;
+
+    const anyUser = users.find((u: any) => u.unitId === targetUnitId);
+    if (anyUser) return `${anyUser.firstName} ${anyUser.lastName}`;
+
+    return '';
+  };
+
+  const resolveUnitName = (unitIdOrText: string): string => {
+    if (!unitIdOrText) return 'N/A';
+    if (unitMap.has(unitIdOrText)) {
+      return unitMap.get(unitIdOrText) || unitIdOrText;
+    }
+    const matchingUnit = units?.find(u => u.id === unitIdOrText);
+    if (matchingUnit) return matchingUnit.name;
+    return unitIdOrText;
   };
 
   const getMonthYearRange = (comms: Communication[]) => {
@@ -494,9 +551,33 @@ export default function CommunicationsPage() {
         ? (comm.recipientRefNums?.[userProfile.unitId] || comm.senderRefNum || 'N/A')
         : (comm.senderRefNum || 'N/A');
       const nameOfAddressee = comm.toText || 'N/A';
-      const nameOfSender = comm.senderText || 'N/A';
-      const agencyOrCompany = isIncoming ? comm.senderText : 'N/A';
+      
+      let nameOfSender = 'N/A';
+      let agencyOrCompany = 'N/A';
       const officeOrUnit = !isIncoming ? comm.toText : 'N/A';
+
+      if (isIncoming) {
+        if (comm.manual) {
+          if (comm.senderText && comm.senderText.includes('/')) {
+            const parts = comm.senderText.split('/');
+            agencyOrCompany = parts[0].trim();
+            nameOfSender = parts[1].trim();
+          } else {
+            agencyOrCompany = comm.senderText || 'N/A';
+            nameOfSender = comm.senderText || 'N/A';
+          }
+        } else {
+          const senderUnitId = comm.senderUnitId || comm.senderText;
+          const headName = getUnitHeadName(senderUnitId);
+          nameOfSender = headName || 'N/A';
+          agencyOrCompany = resolveUnitName(senderUnitId);
+        }
+      } else {
+        const senderUnitId = comm.senderUnitId || userProfile.unitId;
+        const headName = getUnitHeadName(senderUnitId);
+        nameOfSender = headName || 'N/A';
+      }
+
       const address = 'Romblon State University, Main Campus, Odiongan, Romblon';
       const subject = comm.subject || 'N/A';
 
@@ -696,6 +777,63 @@ export default function CommunicationsPage() {
     printWindow.document.close();
   };
 
+  const handleEditComm = (comm: Communication) => {
+    setEditingCommId(comm.id);
+    setSubject(comm.subject || '');
+    setDriveLink(comm.driveLink || '');
+    setKind(comm.kind);
+    
+    const formattedDate = comm.createdAt?.toDate 
+      ? format(comm.createdAt.toDate(), 'yyyy-MM-dd') 
+      : (comm.createdAt?.seconds 
+          ? format(new Date(comm.createdAt.seconds * 1000), 'yyyy-MM-dd') 
+          : format(new Date(), 'yyyy-MM-dd'));
+    setCustomDate(formattedDate);
+
+    if (comm.manual) {
+      setCommsMode('manual');
+      setManualType(comm.manualType || 'incoming');
+      if (comm.manualType === 'incoming') {
+        setManualSenderText(comm.senderText || '');
+        const displayRefNum = comm.recipientRefNums?.[userProfile?.unitId || ''] || comm.senderRefNum || '';
+        setCustomRefNum(displayRefNum);
+      } else {
+        setManualRecipientText(comm.toText || '');
+        setCustomRefNum(comm.senderRefNum || '');
+      }
+    } else {
+      setCommsMode('digital');
+      setCustomRefNum(comm.senderRefNum || '');
+      setRecipientType(comm.recipientType || 'unit');
+      setSelectedRecipients(comm.recipientIds || []);
+    }
+    
+    setIsLogFormOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteComm = async (commId: string) => {
+    if (!firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'communications', commId));
+      toast({
+        title: 'Record Deleted',
+        description: 'The communication record has been successfully deleted.'
+      });
+      setDeleteConfirmCommId(null);
+      if (selectedComm?.id === commId) {
+        setSelectedComm(null);
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: 'Error Deleting Record',
+        description: e.message || 'Failed to delete communication.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header Banner */}
@@ -742,10 +880,10 @@ export default function CommunicationsPage() {
         <Card className="border-slate-200/80 shadow-md rounded-2xl bg-white overflow-hidden animate-in slide-in-from-top-4 duration-300 mb-6">
           <CardHeader className="bg-slate-50/70 border-b p-5">
             <CardTitle className="text-sm font-black uppercase text-slate-800 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-indigo-600" /> Log / Send New Correspondence
+              <Mail className="h-4 w-4 text-indigo-600" /> {editingCommId ? 'Edit Correspondence Record' : 'Log / Send New Correspondence'}
             </CardTitle>
             <CardDescription className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Compose a digital notification to system users, or manually log physical correspondence.
+              {editingCommId ? `Modifying existing record with Reference Number: ${customRefNum}` : 'Compose a digital notification to system users, or manually log physical correspondence.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -753,15 +891,17 @@ export default function CommunicationsPage() {
             <div className="flex border p-0.5 rounded-lg bg-slate-100/50 mb-5 shrink-0">
               <button
                 type="button"
+                disabled={!!editingCommId}
                 onClick={() => { setCommsMode('digital'); resetForm(); }}
-                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800")}
+                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800", !!editingCommId && "opacity-60 cursor-not-allowed")}
               >
                 Direct Digital Send
               </button>
               <button
                 type="button"
+                disabled={!!editingCommId}
                 onClick={() => { setCommsMode('manual'); resetForm(); }}
-                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800")}
+                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800", !!editingCommId && "opacity-60 cursor-not-allowed")}
               >
                 Manual Registry Log
               </button>
@@ -952,9 +1092,9 @@ export default function CommunicationsPage() {
                 <Button type="button" variant="outline" onClick={() => setIsLogFormOpen(false)} disabled={isSubmitting} className="h-10 font-bold text-xs uppercase tracking-wider rounded-xl">Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 text-white h-10 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/15">
                   {isSubmitting ? (
-                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Logging...</>
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</>
                   ) : (
-                    'Log Record'
+                    editingCommId ? 'Save Changes' : 'Log Record'
                   )}
                 </Button>
               </div>
@@ -1032,6 +1172,9 @@ export default function CommunicationsPage() {
                     <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider">{activeTab === 'incoming' ? 'From' : 'To'}</TableHead>
                     <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider max-w-sm">Subject</TableHead>
                     <TableHead className="text-right pr-6 text-[10px] font-black uppercase text-slate-500 tracking-wider">Document</TableHead>
+                    {isOdimo && (
+                      <TableHead className="text-right pr-6 text-[10px] font-black uppercase text-slate-500 tracking-wider w-28">Actions</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1069,7 +1212,11 @@ export default function CommunicationsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-slate-800 font-black">
-                          {activeTab === 'incoming' ? comm.senderText : comm.toText}
+                          {activeTab === 'incoming' ? (
+                            comm.manual ? comm.senderText : resolveUnitName(comm.senderUnitId || comm.senderText)
+                          ) : (
+                            comm.toText
+                          )}
                         </TableCell>
                         <TableCell className="max-w-md py-4">
                           <p className={cn("text-xs text-slate-700 truncate", isUnread ? "font-bold text-slate-900" : "font-medium")}>
@@ -1090,6 +1237,32 @@ export default function CommunicationsPage() {
                             <span className="text-[9px] text-slate-400 font-bold uppercase italic">No Link</span>
                           )}
                         </TableCell>
+                        {isOdimo && (
+                          <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                            {canManageComm(comm) ? (
+                              <div className="inline-flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditComm(comm)}
+                                  className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg"
+                                >
+                                  <Edit2 className="h-4 w-4 shrink-0" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteConfirmCommId(comm.id)}
+                                  className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg"
+                                >
+                                  <Trash2 className="h-4 w-4 shrink-0" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-[9px] text-slate-400 font-bold uppercase italic">Locked</span>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
@@ -1140,7 +1313,16 @@ export default function CommunicationsPage() {
                       <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
                         <User className="h-4 w-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-700 truncate">{selectedComm.senderText}</span>
+                      <span className="text-xs font-bold text-slate-700 truncate">
+                        {(() => {
+                          if (selectedComm.manual) {
+                            return selectedComm.senderText;
+                          }
+                          const unitName = resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText);
+                          const coordinator = getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText);
+                          return coordinator ? `${unitName} (${coordinator})` : unitName;
+                        })()}
+                      </span>
                     </div>
                   </div>
 
@@ -1175,6 +1357,31 @@ export default function CommunicationsPage() {
                       </div>
                     )}
                   </div>
+
+                  {canManageComm(selectedComm) && (
+                    <div className="pt-4 border-t space-y-2">
+                      <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Manage Record</h5>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setSelectedComm(null);
+                            handleEditComm(selectedComm);
+                          }}
+                          className="flex-grow bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 h-9 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center gap-2"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" /> Edit
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setDeleteConfirmCommId(selectedComm.id);
+                          }}
+                          className="flex-grow bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 h-9 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right side: Drive Document Iframe Preview */}
@@ -1199,6 +1406,37 @@ export default function CommunicationsPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmCommId} onOpenChange={(open) => !open && setDeleteConfirmCommId(null)}>
+        <DialogContent className="max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl p-6 overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black uppercase text-slate-800 flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-rose-600" /> Confirm Delete Record
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 font-medium pt-2">
+              Are you sure you want to delete this communication record? This action is permanent and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteConfirmCommId(null)}
+              className="h-10 text-xs font-bold uppercase tracking-wider rounded-xl flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => deleteConfirmCommId && handleDeleteComm(deleteConfirmCommId)}
+              className="bg-rose-600 hover:bg-rose-700 text-white h-10 text-xs font-bold uppercase tracking-wider rounded-xl flex-1 shadow-lg shadow-rose-600/15"
+            >
+              Delete Record
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

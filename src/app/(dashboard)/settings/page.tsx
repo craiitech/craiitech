@@ -21,7 +21,7 @@ import { ErrorReportManagement } from '@/components/admin/error-report-managemen
 import { ProcedureManualManagement } from '@/components/admin/procedure-manual-management';
 import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
-import { AdvisoryManagement } from '@/components/advisories/advisory-management';
+
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
@@ -79,7 +79,7 @@ export default function SettingsPage() {
                     <TabsTrigger value="units" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Units</TabsTrigger>
                     <TabsTrigger value="unit-grouping" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Explorer</TabsTrigger>
                     <TabsTrigger value="roles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Roles</TabsTrigger>
-                    <TabsTrigger value="advisories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">QA Advisories</TabsTrigger>
+
                     <TabsTrigger value="procedure-manuals" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Procedure Manuals</TabsTrigger>
                     <TabsTrigger value="eoms-policy-manual" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">RSU EOMS Manual</TabsTrigger>
                     <TabsTrigger value="cycles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Cycles & Deadlines</TabsTrigger>
@@ -114,9 +114,7 @@ export default function SettingsPage() {
           <TabsContent value="roles" className="space-y-4 animate-in fade-in duration-500">
             <RoleManagement />
           </TabsContent>
-          <TabsContent value="advisories" className="space-y-4 animate-in fade-in duration-500">
-            <AdvisoryManagement />
-          </TabsContent>
+
           <TabsContent value="procedure-manuals" className="space-y-4 animate-in fade-in duration-500">
             <ProcedureManualManagement />
           </TabsContent>

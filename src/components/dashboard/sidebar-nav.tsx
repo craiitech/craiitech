@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck, WifiOff, Mail } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -83,13 +83,7 @@ export function SidebarNav({
       icon: <UserCheck />,
     },
 
-    {
-      href: '/advisories',
-      label: 'QA Advisories',
-      active: pathname.startsWith('/advisories'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
-      icon: <Megaphone />,
-    },
+
     {
       href: '/audit',
       label: userRole === 'Auditor' ? 'IQA Conduct' : 'Internal Quality Audit',
