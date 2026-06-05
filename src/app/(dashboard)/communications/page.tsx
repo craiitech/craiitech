@@ -241,7 +241,7 @@ export default function CommunicationsPage() {
   const handleOpenDetail = async (comm: Communication) => {
     setSelectedComm(comm);
     // Mark as read in Firestore if not read yet
-    if (firestore && userProfile && comm.id && comm.senderUnitId !== userProfile.unitId) {
+    if (firestore && userProfile && comm.id) {
       const hasRead = comm.readBy?.includes(userProfile.id) || (userProfile.unitId && comm.readBy?.includes(userProfile.unitId));
       if (!hasRead) {
         try {
@@ -1380,7 +1380,7 @@ export default function CommunicationsPage() {
                       <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
                         <Building2 className="h-4 w-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-700 truncate">
+                      <span className="text-xs font-bold text-slate-700 whitespace-normal break-words flex-1 py-0.5">
                         {selectedComm.manual 
                           ? (selectedComm.senderText || 'N/A')
                           : resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText)}
@@ -1400,7 +1400,7 @@ export default function CommunicationsPage() {
                           <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
                             <User className="h-4 w-4" />
                           </div>
-                          <span className="text-xs font-bold text-slate-700 truncate">
+                          <span className="text-xs font-bold text-slate-700 whitespace-normal break-words flex-1 py-0.5">
                             {coordinator}
                           </span>
                         </div>
@@ -1414,7 +1414,7 @@ export default function CommunicationsPage() {
                       <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
                         <Globe className="h-4 w-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-700 truncate">{selectedComm.toText}</span>
+                      <span className="text-xs font-bold text-slate-700 whitespace-normal break-words flex-1 py-0.5">{selectedComm.toText}</span>
                     </div>
                   </div>
 
