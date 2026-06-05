@@ -29,7 +29,7 @@ import Image from 'next/image';
 import { getDirectDriveLink } from '@/lib/utils';
 
 export default function VisitorLogbookPage() {
-  const { userProfile, isUserLoading } = useUser();
+  const { userProfile, isUserLoading, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -67,12 +67,15 @@ export default function VisitorLogbookPage() {
     return campusName.toUpperCase();
   };
 
+  const roleLower = userRole?.toLowerCase() || '';
+  const isCampusOdimoOrDirector = roleLower.includes('campus director') || roleLower.includes('campus odimo');
+
   const campusNameStr = campusDoc?.name ? getCampusSitePrefix(campusDoc.name) : '';
-  const unitNameStr = unitDoc?.name ? unitDoc.name.toUpperCase() : '';
+  const unitNameStr = isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name ? unitDoc.name.toUpperCase() : '');
 
   const officeName = campusNameStr && unitNameStr 
     ? `${campusNameStr} | ${unitNameStr}`
-    : (userProfile?.unitName || 'our Office');
+    : (isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (userProfile?.unitName || 'our Office'));
 
   const logoSrc = systemSettingsDoc?.logoUrl 
     ? getDirectDriveLink(systemSettingsDoc.logoUrl) 
@@ -178,7 +181,7 @@ export default function VisitorLogbookPage() {
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
         unitId: userProfile.unitId || 'N/A',
-        unitName: unitDoc?.name || userProfile.unitName || 'Office',
+        unitName: isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'),
         createdAt: Timestamp.now(),
       };
 
