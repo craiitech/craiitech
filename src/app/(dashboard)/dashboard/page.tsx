@@ -1305,12 +1305,12 @@ export default function HomePage() {
   );
 
   const renderAuditorHome = () => (
-    <div className="space-y-6">
+    <Tabs defaultValue="audit" className="space-y-6">
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 institutional-header">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Active Audit Itinerary for AY {selectedYear}</p>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Active Audit Itinerary for AY {selectedYear}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Link
@@ -1329,48 +1329,55 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-      </div>
-      
-      <ExecutiveOverview
-        submissions={submissions}
-        risks={risks}
-        cars={allCars}
-        allCompliances={allCompliances}
-        academicPrograms={academicPrograms}
-        schedules={dashboardSchedules}
-        units={allUnits}
-        campuses={campuses}
-        selectedYear={selectedYear}
-        scope="unit"
-        scopeId={userProfile?.unitId}
-      />
-
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-        {Object.entries(stats).map(([k, s]: any) => (
-          <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
-            <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-            <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
-          </Card>
-        ))}
+        <ScrollArea className="w-full mt-4">
+          <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+            <TabsTrigger value="audit"><ClipboardCheck className="mr-2 h-4 w-4" />Audit Focus</TabsTrigger>
+            <TabsTrigger value="quality-score"><Award className="mr-2 h-4 w-4" />University EOMS Quality Score</TabsTrigger>
+          </TabsList>
+        </ScrollArea>
       </div>
 
-      <AuditorOfflineManager />
+      <TabsContent value="audit" className="space-y-6">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          {Object.entries(stats).map(([k, s]: any) => (
+            <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+              <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
+              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+            </Card>
+          ))}
+        </div>
 
-      <UnitAuditSchedule
-        schedules={sortedMySchedules}
-        isLoading={isLoadingSchedules}
-        campusName="My Assignments"
-        plans={allAuditPlans || []}
-        findings={allAuditFindings || []}
-        isoClauses={allIsoClauses || []}
-        units={allUnits || []}
-        campuses={campuses || []}
-        signatories={signatories || undefined}
-        academicPrograms={academicPrograms || []}
-      />
+        <AuditorOfflineManager />
 
+        <UnitAuditSchedule
+          schedules={sortedMySchedules}
+          isLoading={isLoadingSchedules}
+          campusName="My Assignments"
+          plans={allAuditPlans || []}
+          findings={allAuditFindings || []}
+          isoClauses={allIsoClauses || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          signatories={signatories || undefined}
+          academicPrograms={academicPrograms || []}
+        />
+      </TabsContent>
 
-    </div>
+      <TabsContent value="quality-score" className="space-y-6 animate-in fade-in duration-500">
+        <ExecutiveOverview
+          submissions={submissions}
+          risks={risks}
+          cars={allCars}
+          allCompliances={allCompliances}
+          academicPrograms={academicPrograms}
+          schedules={dashboardSchedules}
+          units={allUnits}
+          campuses={campuses}
+          selectedYear={selectedYear}
+          scope="university"
+        />
+      </TabsContent>
+    </Tabs>
   );
 
   const renderHomeContent = () => {

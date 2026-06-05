@@ -700,7 +700,16 @@ export function UnitAuditSchedule({
                                     <span className="text-lg font-black leading-none">{format(date, 'dd')}</span>
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs font-black text-slate-900 uppercase truncate" title={schedule.targetName}>{schedule.targetName}</p>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-xs font-black text-slate-900 uppercase truncate" title={schedule.targetName}>
+                                            {schedule.targetName}
+                                        </p>
+                                        {campuses.find(c => c.id === schedule.campusId) && (
+                                            <Badge variant="outline" className="h-4 text-[7px] font-black uppercase text-indigo-700 bg-indigo-50 border-indigo-200">
+                                                {campuses.find(c => c.id === schedule.campusId)?.name.replace('Campus', '').trim()}
+                                            </Badge>
+                                        )}
+                                    </div>
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
                                             <Clock className="h-3 w-3 text-primary/60" />
