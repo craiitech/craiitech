@@ -52,6 +52,29 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+function incrementReferenceNumber(refNum: string): string {
+  if (!refNum) return '';
+  const match = refNum.match(/^(.*?)(\d+)$/);
+  if (match) {
+    const prefix = match[1];
+    const numStr = match[2];
+    const nextNum = parseInt(numStr, 10) + 1;
+    const paddedNum = nextNum.toString().padStart(numStr.length, '0');
+    return prefix + paddedNum;
+  }
+  const anyDigitsMatch = refNum.match(/(\d+)(?!.*\d)/);
+  if (anyDigitsMatch) {
+    const numStr = anyDigitsMatch[1];
+    const index = anyDigitsMatch.index || 0;
+    const prefix = refNum.substring(0, index);
+    const suffix = refNum.substring(index + numStr.length);
+    const nextNum = parseInt(numStr, 10) + 1;
+    const paddedNum = nextNum.toString().padStart(numStr.length, '0');
+    return prefix + paddedNum + suffix;
+  }
+  return refNum + '-1';
+}
+
 export default function CommunicationsPage() {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
@@ -61,14 +84,15 @@ export default function CommunicationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
 
-  // Dialog State
-  const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
+  // Form Panel State
+  const [isLogFormOpen, setIsLogFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedComm, setSelectedComm] = useState<Communication | null>(null);
 
   // Form State
   const [commsMode, setCommsMode] = useState<'digital' | 'manual'>('digital');
   const [kind, setKind] = useState<CommunicationKind>('Office Memorandum');
+  const [customRefNum, setCustomRefNum] = useState('');
   const [subject, setSubject] = useState('');
   const [driveLink, setDriveLink] = useState('');
 
@@ -207,9 +231,47 @@ export default function CommunicationsPage() {
     }
   };
 
+  const getAutoReferenceNumber = (mode: 'digital' | 'manual', mType: 'incoming' | 'outgoing'): string => {
+    if (!userProfile) return '';
+    const currentYear = new Date().getFullYear();
+    const isIncoming = (mode === 'manual' && mType === 'incoming');
+
+    if (isIncoming) {
+      const lastIncoming = processedComms.incoming[0];
+      if (lastIncoming) {
+        const lastRef = lastIncoming.recipientRefNums?.[userProfile.unitId] || lastIncoming.senderRefNum || '';
+        if (lastRef) {
+          return incrementReferenceNumber(lastRef);
+        }
+      }
+      return `${currentYear}-001`;
+    } else {
+      const lastOutgoing = processedComms.outgoing[0];
+      if (lastOutgoing) {
+        const lastRef = lastOutgoing.senderRefNum || '';
+        if (lastRef) {
+          return incrementReferenceNumber(lastRef);
+        }
+      }
+      return `${currentYear}-001`;
+    }
+  };
+
+  useEffect(() => {
+    if (isLogFormOpen) {
+      const nextRef = getAutoReferenceNumber(commsMode, manualType);
+      setCustomRefNum(nextRef);
+    }
+  }, [commsMode, manualType, rawComms, isLogFormOpen]);
+
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !userProfile) return;
+
+    if (!customRefNum.trim()) {
+      toast({ title: 'Validation Error', description: 'Reference number is required.', variant: 'destructive' });
+      return;
+    }
 
     if (!subject.trim()) {
       toast({ title: 'Validation Error', description: 'Subject is required.', variant: 'destructive' });
@@ -225,19 +287,10 @@ export default function CommunicationsPage() {
       const computedRecipientRefs: Record<string, string> = {};
 
       if (commsMode === 'digital') {
-        // Digital outbound: calculate sender's outgoing control number
-        const outgoingSnap = await getDocs(query(
-          collection(firestore, 'communications'),
-          where('senderUnitId', '==', userProfile.unitId),
-          where('createdAt', '>=', Timestamp.fromDate(startOfYear))
-        ));
-        const outgoingCount = outgoingSnap.docs.filter(doc => {
-          const data = doc.data();
-          return !data.manual || data.manualType !== 'incoming';
-        }).length;
-        computedSenderRef = `${currentYear}-${(outgoingCount + 1).toString().padStart(3, '0')}`;
+        // Digital outbound: use the user-entered reference number
+        computedSenderRef = customRefNum;
 
-        // Compute incoming references for each recipient unit
+        // Compute incoming references for each recipient unit automatically
         if (recipientType === 'unit') {
           for (const unitId of selectedRecipients) {
             const incomingSnap = await getDocs(query(
@@ -282,36 +335,16 @@ export default function CommunicationsPage() {
             setIsSubmitting(false);
             return;
           }
-          // Calculate recipient unit's incoming reference number
-          const incomingSnap = await getDocs(query(
-            collection(firestore, 'communications'),
-            where('createdAt', '>=', Timestamp.fromDate(startOfYear))
-          ));
-          const incomingCount = incomingSnap.docs.filter(doc => {
-            const data = doc.data();
-            const isTarget = (data.recipientType === 'unit' && data.recipientIds?.includes(userProfile.unitId)) ||
-                             (data.recipientType === 'all') ||
-                             (data.manual && data.manualType === 'incoming' && data.recipientIds?.includes(userProfile.unitId));
-            return isTarget;
-          }).length;
-          computedRecipientRefs[userProfile.unitId] = `${currentYear}-${(incomingCount + 1).toString().padStart(3, '0')}`;
+          // Use user-entered reference number
+          computedRecipientRefs[userProfile.unitId] = customRefNum;
         } else {
           if (!manualRecipientText.trim()) {
             toast({ title: 'Validation Error', description: 'Recipient details are required.', variant: 'destructive' });
             setIsSubmitting(false);
             return;
           }
-          // Calculate sender unit's outgoing reference number
-          const outgoingSnap = await getDocs(query(
-            collection(firestore, 'communications'),
-            where('senderUnitId', '==', userProfile.unitId),
-            where('createdAt', '>=', Timestamp.fromDate(startOfYear))
-          ));
-          const outgoingCount = outgoingSnap.docs.filter(doc => {
-            const data = doc.data();
-            return !data.manual || data.manualType !== 'incoming';
-          }).length;
-          computedSenderRef = `${currentYear}-${(outgoingCount + 1).toString().padStart(3, '0')}`;
+          // Use user-entered reference number
+          computedSenderRef = customRefNum;
         }
       }
 
@@ -370,7 +403,7 @@ export default function CommunicationsPage() {
         description: `Successfully logged under Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums[userProfile.unitId]}`,
       });
 
-      setIsLogDialogOpen(false);
+      setIsLogFormOpen(false);
       resetForm();
     } catch (e: any) {
       console.error(e);
@@ -686,14 +719,232 @@ export default function CommunicationsPage() {
                 <FileText className="h-4 w-4 shrink-0" />
                 Print Outgoing Logbook
               </Button>
-              <Button onClick={() => setIsLogDialogOpen(true)} className="bg-white hover:bg-slate-50 text-indigo-700 font-black uppercase text-xs tracking-wider py-5 px-6 rounded-xl shadow-lg border border-indigo-100 flex items-center gap-2 transition-all hover:scale-105">
-                <Plus className="h-4.5 w-4.5 text-indigo-700 shrink-0" />
-                Log/Send Communication
+              <Button 
+                onClick={() => { setIsLogFormOpen(!isLogFormOpen); resetForm(); }} 
+                className="bg-white hover:bg-slate-50 text-indigo-700 font-black uppercase text-xs tracking-wider py-5 px-6 rounded-xl shadow-lg border border-indigo-100 flex items-center gap-2 transition-all hover:scale-105"
+              >
+                {isLogFormOpen ? <X className="h-4.5 w-4.5 text-indigo-700 shrink-0" /> : <Plus className="h-4.5 w-4.5 text-indigo-700 shrink-0" />}
+                {isLogFormOpen ? 'Close Logging Panel' : 'Log/Send Communication'}
               </Button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Inline Logging Form */}
+      {isOdimo && isLogFormOpen && (
+        <Card className="border-slate-200/80 shadow-md rounded-2xl bg-white overflow-hidden animate-in slide-in-from-top-4 duration-300 mb-6">
+          <CardHeader className="bg-slate-50/70 border-b p-5">
+            <CardTitle className="text-sm font-black uppercase text-slate-800 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-indigo-600" /> Log / Send New Correspondence
+            </CardTitle>
+            <CardDescription className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              Compose a digital notification to system users, or manually log physical correspondence.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            {/* Comms Mode Switcher */}
+            <div className="flex border p-0.5 rounded-lg bg-slate-100/50 mb-5 shrink-0">
+              <button
+                type="button"
+                onClick={() => { setCommsMode('digital'); resetForm(); }}
+                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800")}
+              >
+                Direct Digital Send
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCommsMode('manual'); resetForm(); }}
+                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800")}
+              >
+                Manual Registry Log
+              </button>
+            </div>
+
+            <form onSubmit={handleLogSubmit} className="space-y-4">
+              {/* KIND */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Correspondence Type</label>
+                <Select value={kind} onValueChange={(val) => setKind(val as CommunicationKind)}>
+                  <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Memorandum Order" disabled={!isPresident} className="text-xs font-medium">
+                      Memorandum Order {!isPresident && '(President Only)'}
+                    </SelectItem>
+                    <SelectItem value="Office Order" className="text-xs font-medium">Office Order</SelectItem>
+                    <SelectItem value="Office Memorandum" className="text-xs font-medium">Office Memorandum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* REFERENCE NUMBER */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
+                  <span>Reference Number</span>
+                  <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Editable - Auto-increments from last entry)</span>
+                </label>
+                <Input
+                  placeholder="e.g. 2026-001"
+                  value={customRefNum}
+                  onChange={(e) => setCustomRefNum(e.target.value)}
+                  className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
+                />
+              </div>
+
+              {commsMode === 'digital' ? (
+                <>
+                  {/* FROM */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">From Office / Unit</label>
+                    <Input value={unitMap.get(userProfile?.unitId || '') || '...'} disabled className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-bold" />
+                  </div>
+
+                  {/* RECIPIENT TYPE */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Send To Recipients</label>
+                    <Select value={recipientType} onValueChange={(val: any) => { setRecipientType(val); setSelectedRecipients([]); }}>
+                      <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
+                        <SelectValue placeholder="Select Scope" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unit" className="text-xs font-medium">Academic & Oversight Units</SelectItem>
+                        <SelectItem value="campus" className="text-xs font-medium">Campus Sites</SelectItem>
+                        <SelectItem value="individual" className="text-xs font-medium">Individual Users (Direct)</SelectItem>
+                        <SelectItem value="all" disabled={!isPresident} className="text-xs font-medium">
+                          University-Wide (All Officers) {!isPresident && '(President Only)'}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* RECIPIENT LIST BUILDER */}
+                  {recipientType !== 'all' && (
+                    <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 border-slate-200">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Add Recipients</label>
+                      <div className="flex gap-2">
+                        <Select value={currentRecipientSelection} onValueChange={setCurrentRecipientSelection}>
+                          <SelectTrigger className="h-9 text-xs bg-white border-slate-200 rounded-lg flex-1">
+                            <SelectValue placeholder={`Select ${recipientType}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {recipientType === 'unit' && units?.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
+                              <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
+                            ))}
+                            {recipientType === 'campus' && campuses?.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
+                              <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
+                            ))}
+                            {recipientType === 'individual' && users?.sort((a,b) => a.firstName.localeCompare(b.firstName)).map(u => (
+                              <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button type="button" onClick={handleAddRecipient} size="sm" className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0">
+                          <Plus className="h-4 w-4" /> Add
+                        </Button>
+                      </div>
+
+                      {/* Selected List */}
+                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 empty:hidden">
+                        {selectedRecipients.map(id => {
+                          let labelText = id;
+                          if (recipientType === 'unit') labelText = unitMap.get(id) || id;
+                          else if (recipientType === 'campus') labelText = campusMap.get(id) || id;
+                          else if (recipientType === 'individual') {
+                            const u = users?.find(x => x.id === id);
+                            labelText = u ? `${u.firstName} ${u.lastName}` : id;
+                          }
+
+                          return (
+                            <Badge key={id} variant="outline" className="bg-white border-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5">
+                              {labelText}
+                              <button type="button" onClick={() => handleRemoveRecipient(id)} className="text-slate-400 hover:text-rose-600 focus:outline-none">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* MANUAL ENTRY LOG */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Log Direction</label>
+                    <Select value={manualType} onValueChange={(val: any) => { setManualType(val); resetForm(); }}>
+                      <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
+                        <SelectValue placeholder="Log Direction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="incoming" className="text-xs font-medium">Incoming (Received Paper/Mail)</SelectItem>
+                        <SelectItem value="outgoing" className="text-xs font-medium">Outgoing (Sent Paper/External)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {manualType === 'incoming' ? (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Sender (From Office/Person)</label>
+                      <Input
+                        placeholder="e.g. CHED Regional Office / Executive Director"
+                        value={manualSenderText}
+                        onChange={(e) => setManualSenderText(e.target.value)}
+                        className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Recipient (To Office/Person)</label>
+                      <Input
+                        placeholder="e.g. RSU President / Quality Assurance Committee"
+                        value={manualRecipientText}
+                        onChange={(e) => setManualRecipientText(e.target.value)}
+                        className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* SUBJECT */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Subject / Purpose</label>
+                <Input
+                  placeholder="Brief summary of the communication..."
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500"
+                />
+              </div>
+
+              {/* GOOGLE DRIVE LINK */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Google Drive Link (with view permissions)</label>
+                <Input
+                  placeholder="https://drive.google.com/file/d/..."
+                  value={driveLink}
+                  onChange={(e) => setDriveLink(e.target.value)}
+                  className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setIsLogFormOpen(false)} disabled={isSubmitting} className="h-10 font-bold text-xs uppercase tracking-wider rounded-xl">Cancel</Button>
+                <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 text-white h-10 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/15">
+                  {isSubmitting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Logging...</>
+                  ) : (
+                    'Log Record'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Primary Logbook Workspace */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
@@ -832,205 +1083,7 @@ export default function CommunicationsPage() {
         </Card>
       </Tabs>
 
-      {/* Log / Compose Modal */}
-      <Dialog open={isLogDialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setIsLogDialogOpen(open); }}>
-        <DialogContent className="max-w-xl bg-white border border-slate-200 rounded-2xl shadow-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black uppercase text-slate-800 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-indigo-600" /> Log / Send New Correspondence
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Compose a digital notification to system users, or manually log physical correspondence.
-            </DialogDescription>
-          </DialogHeader>
 
-          {/* Comms Mode Switcher */}
-          <div className="flex border p-0.5 rounded-lg bg-slate-100/50 mb-5 shrink-0">
-            <button
-              type="button"
-              onClick={() => { setCommsMode('digital'); resetForm(); }}
-              className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800")}
-            >
-              Direct Digital Send
-            </button>
-            <button
-              type="button"
-              onClick={() => { setCommsMode('manual'); resetForm(); }}
-              className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800")}
-            >
-              Manual Registry Log
-            </button>
-          </div>
-
-          <form onSubmit={handleLogSubmit} className="space-y-4">
-            {/* KIND */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Correspondence Type</label>
-              <Select value={kind} onValueChange={(val) => setKind(val as CommunicationKind)}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Memorandum Order" disabled={!isPresident} className="text-xs font-medium">
-                    Memorandum Order {!isPresident && '(President Only)'}
-                  </SelectItem>
-                  <SelectItem value="Office Order" className="text-xs font-medium">Office Order</SelectItem>
-                  <SelectItem value="Office Memorandum" className="text-xs font-medium">Office Memorandum</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {commsMode === 'digital' ? (
-              <>
-                {/* FROM */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">From Office / Unit</label>
-                  <Input value={unitMap.get(userProfile?.unitId || '') || '...'} disabled className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-bold" />
-                </div>
-
-                {/* RECIPIENT TYPE */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Send To Recipients</label>
-                  <Select value={recipientType} onValueChange={(val: any) => { setRecipientType(val); setSelectedRecipients([]); }}>
-                    <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
-                      <SelectValue placeholder="Select Scope" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unit" className="text-xs font-medium">Academic & Oversight Units</SelectItem>
-                      <SelectItem value="campus" className="text-xs font-medium">Campus Sites</SelectItem>
-                      <SelectItem value="individual" className="text-xs font-medium">Individual Users (Direct)</SelectItem>
-                      <SelectItem value="all" disabled={!isPresident} className="text-xs font-medium">
-                        University-Wide (All Officers) {!isPresident && '(President Only)'}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* RECIPIENT LIST BUILDER */}
-                {recipientType !== 'all' && (
-                  <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 border-slate-200">
-                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Add Recipients</label>
-                    <div className="flex gap-2">
-                      <Select value={currentRecipientSelection} onValueChange={setCurrentRecipientSelection}>
-                        <SelectTrigger className="h-9 text-xs bg-white border-slate-200 rounded-lg flex-1">
-                          <SelectValue placeholder={`Select ${recipientType}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {recipientType === 'unit' && units?.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
-                            <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
-                          ))}
-                          {recipientType === 'campus' && campuses?.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
-                            <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
-                          ))}
-                          {recipientType === 'individual' && users?.sort((a,b) => a.firstName.localeCompare(b.firstName)).map(u => (
-                            <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" onClick={handleAddRecipient} size="sm" className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0">
-                        <Plus className="h-4 w-4" /> Add
-                      </Button>
-                    </div>
-
-                    {/* Selected List */}
-                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 empty:hidden">
-                      {selectedRecipients.map(id => {
-                        let labelText = id;
-                        if (recipientType === 'unit') labelText = unitMap.get(id) || id;
-                        else if (recipientType === 'campus') labelText = campusMap.get(id) || id;
-                        else if (recipientType === 'individual') {
-                          const u = users?.find(x => x.id === id);
-                          labelText = u ? `${u.firstName} ${u.lastName}` : id;
-                        }
-
-                        return (
-                          <Badge key={id} variant="outline" className="bg-white border-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5">
-                            {labelText}
-                            <button type="button" onClick={() => handleRemoveRecipient(id)} className="text-slate-400 hover:text-rose-600 focus:outline-none">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {/* MANUAL ENTRY LOG */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Log Direction</label>
-                  <Select value={manualType} onValueChange={(val: any) => { setManualType(val); resetForm(); }}>
-                    <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
-                      <SelectValue placeholder="Log Direction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="incoming" className="text-xs font-medium">Incoming (Received Paper/Mail)</SelectItem>
-                      <SelectItem value="outgoing" className="text-xs font-medium">Outgoing (Sent Paper/External)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {manualType === 'incoming' ? (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Sender (From Office/Person)</label>
-                    <Input
-                      placeholder="e.g. CHED Regional Office / Executive Director"
-                      value={manualSenderText}
-                      onChange={(e) => setManualSenderText(e.target.value)}
-                      className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Recipient (To Office/Person)</label>
-                    <Input
-                      placeholder="e.g. RSU President / Quality Assurance Committee"
-                      value={manualRecipientText}
-                      onChange={(e) => setManualRecipientText(e.target.value)}
-                      className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* SUBJECT */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Subject / Purpose</label>
-              <Input
-                placeholder="Brief summary of the communication..."
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500"
-              />
-            </div>
-
-            {/* GOOGLE DRIVE LINK */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Google Drive Link (with view permissions)</label>
-              <Input
-                placeholder="https://drive.google.com/file/d/..."
-                value={driveLink}
-                onChange={(e) => setDriveLink(e.target.value)}
-                className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500"
-              />
-            </div>
-
-            <DialogFooter className="pt-4 border-t gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsLogDialogOpen(false)} disabled={isSubmitting} className="h-10 font-bold text-xs uppercase tracking-wider rounded-xl">Cancel</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 text-white h-10 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/15">
-                {isSubmitting ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Logging...</>
-                ) : (
-                  'Log Record'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Detail Viewer Modal */}
       <Dialog open={!!selectedComm} onOpenChange={(open) => !open && setSelectedComm(null)}>
