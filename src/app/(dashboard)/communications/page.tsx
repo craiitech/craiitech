@@ -198,7 +198,10 @@ export default function CommunicationsPage() {
 
   const unreadCount = useMemo(() => {
     if (!userProfile) return 0;
-    return processedComms.incoming.filter(c => !c.readBy?.includes(userProfile.id) && c.senderUnitId !== userProfile.unitId).length;
+    return processedComms.incoming.filter(c => {
+      const hasRead = c.readBy?.includes(userProfile.id) || (userProfile.unitId && c.readBy?.includes(userProfile.unitId));
+      return !hasRead && c.senderUnitId !== userProfile.unitId;
+    }).length;
   }, [processedComms.incoming, userProfile]);
 
   const handleAddRecipient = () => {
@@ -238,13 +241,16 @@ export default function CommunicationsPage() {
   const handleOpenDetail = async (comm: Communication) => {
     setSelectedComm(comm);
     // Mark as read in Firestore if not read yet
-    if (firestore && userProfile && comm.id && !comm.readBy?.includes(userProfile.id) && comm.senderUnitId !== userProfile.unitId) {
-      try {
-        await updateDoc(doc(firestore, 'communications', comm.id), {
-          readBy: arrayUnion(userProfile.id)
-        });
-      } catch (e) {
-        console.error('Error marking as read:', e);
+    if (firestore && userProfile && comm.id && comm.senderUnitId !== userProfile.unitId) {
+      const hasRead = comm.readBy?.includes(userProfile.id) || (userProfile.unitId && comm.readBy?.includes(userProfile.unitId));
+      if (!hasRead) {
+        try {
+          await updateDoc(doc(firestore, 'communications', comm.id), {
+            readBy: userProfile.unitId ? arrayUnion(userProfile.id, userProfile.unitId) : arrayUnion(userProfile.id)
+          });
+        } catch (e) {
+          console.error('Error marking as read:', e);
+        }
       }
     }
   };
@@ -388,7 +394,7 @@ export default function CommunicationsPage() {
         driveLink: driveLink || null,
         createdAt: Timestamp.fromDate(parsedDate),
         manual: commsMode === 'manual',
-        readBy: [userProfile.id],
+        readBy: userProfile.unitId ? [userProfile.id, userProfile.unitId] : [userProfile.id],
         senderName: senderNameText.trim() || null,
       };
 
@@ -600,13 +606,8 @@ export default function CommunicationsPage() {
         }
       }
 
-      // Format sender name display as: SITE / OFFICE / UNIT | Name of the Sender
-      const resolvedSenderUnit = isIncoming
-        ? agencyOrCompany
-        : resolveUnitName(comm.senderUnitId || userProfile.unitId);
-      const resolvedSenderNameDisplay = (resolvedSenderUnit && resolvedSenderUnit !== 'N/A' && nameOfSender && nameOfSender !== 'N/A')
-        ? `${resolvedSenderUnit} | ${nameOfSender}`
-        : (resolvedSenderUnit !== 'N/A' ? resolvedSenderUnit : nameOfSender);
+      // Format sender name display as: Name of the Sender (office prefix removed to avoid redundancy)
+      const resolvedSenderNameDisplay = nameOfSender;
 
       const address = 'Romblon State University, Main Campus, Odiongan, Romblon';
       const subject = comm.subject || 'N/A';
@@ -1244,7 +1245,8 @@ export default function CommunicationsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredComms.map((comm) => {
-                    const isUnread = activeTab === 'incoming' && !comm.readBy?.includes(userProfile?.id || '') && comm.senderUnitId !== userProfile?.unitId;
+                    const hasRead = comm.readBy?.includes(userProfile?.id || '') || (userProfile?.unitId && comm.readBy?.includes(userProfile.unitId));
+                    const isUnread = activeTab === 'incoming' && !hasRead && comm.senderUnitId !== userProfile?.unitId;
                     const dateStr = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MMM dd, yyyy') : '...';
                     const displayRefNum = activeTab === 'incoming' 
                       ? comm.recipientRefNums?.[userProfile?.unitId || ''] || comm.senderRefNum || 'N/A'
@@ -1373,24 +1375,38 @@ export default function CommunicationsPage() {
                 {/* Left side: Metadata details */}
                 <div className="w-full md:w-80 border-r p-5 overflow-auto shrink-0 space-y-5 bg-slate-50/50">
                   <div>
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Sender (From)</h5>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Sender Office / Unit</h5>
                     <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                       <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
-                        <User className="h-4 w-4" />
+                        <Building2 className="h-4 w-4" />
                       </div>
                       <span className="text-xs font-bold text-slate-700 truncate">
-                        {(() => {
-                          const unitName = selectedComm.manual 
-                            ? (selectedComm.senderText || 'N/A')
-                            : resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText);
-                          const coordinator = selectedComm.senderName || (selectedComm.manual 
-                            ? '' 
-                            : getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText));
-                          return coordinator ? `${unitName} | ${coordinator}` : unitName;
-                        })()}
+                        {selectedComm.manual 
+                          ? (selectedComm.senderText || 'N/A')
+                          : resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText)}
                       </span>
                     </div>
                   </div>
+
+                  {(() => {
+                    const coordinator = selectedComm.senderName || (selectedComm.manual 
+                      ? '' 
+                      : getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText));
+                    if (!coordinator || coordinator === 'N/A') return null;
+                    return (
+                      <div>
+                        <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Sender Name</h5>
+                        <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
+                          <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                            <User className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-700 truncate">
+                            {coordinator}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div>
                     <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Recipient (To)</h5>

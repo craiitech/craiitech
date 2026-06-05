@@ -304,7 +304,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         isRecipient = true;
       }
 
-      const hasRead = c.readBy?.includes(userProfile.id);
+      const hasRead = c.readBy?.includes(userProfile.id) || (userProfile.unitId && c.readBy?.includes(userProfile.unitId));
       return isRecipient && !hasRead;
     }).length;
   }, [commsNotifications, userProfile]);
