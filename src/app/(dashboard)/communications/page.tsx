@@ -110,6 +110,13 @@ export default function CommunicationsPage() {
   const [manualType, setManualType] = useState<'incoming' | 'outgoing'>('incoming');
   const [manualSenderText, setManualSenderText] = useState('');
   const [manualRecipientText, setManualRecipientText] = useState('');
+  const [manualOriginRefNum, setManualOriginRefNum] = useState('');
+
+  // Receive dialog state
+  const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false);
+  const [commToReceive, setCommToReceive] = useState<Communication | null>(null);
+  const [receivingRefNum, setReceivingRefNum] = useState('');
+  const [isReceivingSubmitting, setIsReceivingSubmitting] = useState(false);
 
   // Fetch collections
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
@@ -222,6 +229,7 @@ export default function CommunicationsPage() {
     setCurrentRecipientSelection('');
     setManualSenderText('');
     setManualRecipientText('');
+    setManualOriginRefNum('');
     setKind('Office Memorandum');
     setCustomDate(format(new Date(), 'yyyy-MM-dd'));
     setEditingCommId(null);
@@ -261,12 +269,12 @@ export default function CommunicationsPage() {
     const isIncoming = (mode === 'manual' && mType === 'incoming');
 
     if (isIncoming) {
-      const lastIncoming = processedComms.incoming[0];
-      if (lastIncoming) {
-        const lastRef = lastIncoming.recipientRefNums?.[userProfile.unitId] || lastIncoming.senderRefNum || '';
-        if (lastRef) {
-          return incrementReferenceNumber(lastRef);
-        }
+      const lastIncomingWithRef = processedComms.incoming.find(
+        (c) => c.recipientRefNums?.[userProfile.unitId]
+      );
+      if (lastIncomingWithRef) {
+        const lastRef = lastIncomingWithRef.recipientRefNums[userProfile.unitId];
+        if (lastRef) return incrementReferenceNumber(lastRef);
       }
       return `${currentYear}-001`;
     } else {
@@ -278,6 +286,56 @@ export default function CommunicationsPage() {
         }
       }
       return `${currentYear}-001`;
+    }
+  };
+
+  const getNextIncomingRefNum = (): string => {
+    if (!userProfile) return '';
+    const currentYear = new Date().getFullYear();
+    const lastIncomingWithRef = processedComms.incoming.find(
+      (c) => c.recipientRefNums?.[userProfile.unitId]
+    );
+    if (lastIncomingWithRef) {
+      const lastRef = lastIncomingWithRef.recipientRefNums[userProfile.unitId];
+      if (lastRef) return incrementReferenceNumber(lastRef);
+    }
+    return `${currentYear}-001`;
+  };
+
+  const handleOpenReceiveDialog = (comm: Communication) => {
+    setCommToReceive(comm);
+    const nextRef = getNextIncomingRefNum();
+    setReceivingRefNum(nextRef);
+    setIsReceiveDialogOpen(true);
+  };
+
+  const handleReceiveComm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !userProfile || !commToReceive?.id) return;
+    if (!receivingRefNum.trim()) {
+      toast({ title: 'Validation Error', description: 'Receiving reference number is required.', variant: 'destructive' });
+      return;
+    }
+
+    setIsReceivingSubmitting(true);
+    try {
+      const docRef = doc(firestore, 'communications', commToReceive.id);
+      await updateDoc(docRef, {
+        [`recipientRefNums.${userProfile.unitId}`]: receivingRefNum,
+        readBy: arrayUnion(userProfile.id, userProfile.unitId)
+      });
+
+      toast({
+        title: 'Communication Received',
+        description: `Successfully logged under Receiver's Ref: ${receivingRefNum}`,
+      });
+      setIsReceiveDialogOpen(false);
+      setCommToReceive(null);
+    } catch (err: any) {
+      console.error('Error receiving communication:', err);
+      toast({ title: 'Database Error', description: err.message || 'Failed to receive communication.', variant: 'destructive' });
+    } finally {
+      setIsReceivingSubmitting(false);
     }
   };
 
@@ -324,44 +382,7 @@ export default function CommunicationsPage() {
       if (commsMode === 'digital') {
         // Digital outbound: use the user-entered reference number
         computedSenderRef = customRefNum;
-
-        // Compute incoming references for each recipient unit automatically
-        if (recipientType === 'unit') {
-          for (const unitId of selectedRecipients) {
-            const incomingSnap = await getDocs(query(
-              collection(firestore, 'communications'),
-              where('createdAt', '>=', Timestamp.fromDate(startOfYear))
-            ));
-            const incomingCount = incomingSnap.docs.filter(doc => {
-              const data = doc.data();
-              const isTarget = (data.recipientType === 'unit' && data.recipientIds?.includes(unitId)) ||
-                               (data.recipientType === 'all') ||
-                               (data.manual && data.manualType === 'incoming' && data.recipientIds?.includes(unitId));
-              return isTarget;
-            }).length;
-            computedRecipientRefs[unitId] = `${currentYear}-${(incomingCount + 1).toString().padStart(3, '0')}`;
-          }
-        } else if (recipientType === 'individual') {
-          for (const userId of selectedRecipients) {
-            const targetUser = users?.find(u => u.id === userId);
-            const targetUnitId = targetUser?.unitId;
-            if (targetUnitId) {
-              const incomingSnap = await getDocs(query(
-                collection(firestore, 'communications'),
-                where('createdAt', '>=', Timestamp.fromDate(startOfYear))
-              ));
-              const incomingCount = incomingSnap.docs.filter(doc => {
-                const data = doc.data();
-                const isTarget = (data.recipientType === 'unit' && data.recipientIds?.includes(targetUnitId)) ||
-                                 (data.recipientType === 'individual' && data.recipientIds?.includes(userId)) ||
-                                 (data.recipientType === 'all') ||
-                                 (data.manual && data.manualType === 'incoming' && data.recipientIds?.includes(targetUnitId));
-                return isTarget;
-              }).length;
-              computedRecipientRefs[targetUnitId] = `${currentYear}-${(incomingCount + 1).toString().padStart(3, '0')}`;
-            }
-          }
-        }
+        // recipientRefNums will start empty for digital communications. Recipient units assign their own sequence upon receipt.
       } else {
         // Manual entries
         if (manualType === 'incoming') {
@@ -370,8 +391,15 @@ export default function CommunicationsPage() {
             setIsSubmitting(false);
             return;
           }
-          // Use user-entered reference number
+          if (!manualOriginRefNum.trim()) {
+            toast({ title: 'Validation Error', description: "Origin's Reference Number is required for manual incoming.", variant: 'destructive' });
+            setIsSubmitting(false);
+            return;
+          }
+          // Use user-entered receiving reference number (stored in customRefNum)
           computedRecipientRefs[userProfile.unitId] = customRefNum;
+          // Use user-entered origin's reference number (stored in manualOriginRefNum)
+          computedSenderRef = manualOriginRefNum;
         } else {
           if (!manualRecipientText.trim()) {
             toast({ title: 'Validation Error', description: 'Recipient details are required.', variant: 'destructive' });
@@ -516,7 +544,7 @@ export default function CommunicationsPage() {
     if (comms.length === 0) return 'N/A';
     const refs = comms.map(c => {
       return isIncoming
-        ? (c.recipientRefNums?.[userProfile?.unitId || ''] || c.senderRefNum || '')
+        ? (c.recipientRefNums?.[userProfile?.unitId || ''] || '')
         : (c.senderRefNum || '');
     }).filter(Boolean);
     if (refs.length === 0) return 'N/A';
@@ -567,9 +595,10 @@ export default function CommunicationsPage() {
     let blocksHtml = '';
     printList.forEach((comm) => {
       const dateOfReceipt = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MM/dd/yyyy') : 'N/A';
-      const referenceNo = isIncoming
-        ? (comm.recipientRefNums?.[userProfile.unitId] || comm.senderRefNum || 'N/A')
-        : (comm.senderRefNum || 'N/A');
+      const originRefNo = comm.senderRefNum || 'N/A';
+      const receiverRefNo = isIncoming
+        ? (comm.recipientRefNums?.[userProfile.unitId] || 'Pending Receipt')
+        : 'N/A';
       const nameOfAddressee = comm.toText || 'N/A';
       
       let nameOfSender = comm.senderName || 'N/A';
@@ -640,9 +669,16 @@ export default function CommunicationsPage() {
                     Date of Receipt: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${dateOfReceipt}</span>
                   </td>
                   <td style="width: 50%; padding: 8px 0; padding-left: 15px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    Reference No: <span style="font-weight: bold; text-decoration: underline; padding-left: 5px; font-family: monospace;">${referenceNo}</span>
+                    ${isIncoming ? `Receiver's Ref No: <span style="font-weight: bold; text-decoration: underline; padding-left: 5px; font-family: monospace;">${receiverRefNo}</span>` : `Reference No: <span style="font-weight: bold; text-decoration: underline; padding-left: 5px; font-family: monospace;">${originRefNo}</span>`}
                   </td>
                 </tr>
+                ${isIncoming ? `
+                <tr style="border-bottom: 1px solid black;">
+                  <td colspan="2" style="padding: 8px 0; font-weight: bold;">
+                    Origin's Ref No: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px; font-family: monospace;">${originRefNo}</span>
+                  </td>
+                </tr>
+                ` : ''}
 
                 <!-- Row 2: Name of Addressee -->
                 <tr style="border-bottom: 1px solid black;">
@@ -828,7 +864,8 @@ export default function CommunicationsPage() {
       setManualType(comm.manualType || 'incoming');
       if (comm.manualType === 'incoming') {
         setManualSenderText(comm.senderText || '');
-        const displayRefNum = comm.recipientRefNums?.[userProfile?.unitId || ''] || comm.senderRefNum || '';
+        setManualOriginRefNum(comm.senderRefNum || '');
+        const displayRefNum = comm.recipientRefNums?.[userProfile?.unitId || ''] || '';
         setCustomRefNum(displayRefNum);
       } else {
         setManualRecipientText(comm.toText || '');
@@ -958,19 +995,49 @@ export default function CommunicationsPage() {
                 </Select>
               </div>
 
-              {/* REFERENCE NUMBER */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
-                  <span>Reference Number</span>
-                  <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Editable - Auto-increments from last entry)</span>
-                </label>
-                <Input
-                  placeholder="e.g. 2026-001"
-                  value={customRefNum}
-                  onChange={(e) => setCustomRefNum(e.target.value)}
-                  className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
-                />
-              </div>
+              {/* REFERENCE NUMBER INPUT(S) */}
+              {commsMode === 'manual' && manualType === 'incoming' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Origin's Reference Number
+                    </label>
+                    <Input
+                      placeholder="e.g. CHED-2026-X88"
+                      value={manualOriginRefNum}
+                      onChange={(e) => setManualOriginRefNum(e.target.value)}
+                      className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
+                      <span>Receiving Reference Number</span>
+                      <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Auto-populated)</span>
+                    </label>
+                    <Input
+                      placeholder="e.g. 2026-001"
+                      value={customRefNum}
+                      onChange={(e) => setCustomRefNum(e.target.value)}
+                      className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
+                    <span>Reference Number</span>
+                    <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Editable - Auto-increments from last entry)</span>
+                  </label>
+                  <Input
+                    placeholder="e.g. 2026-001"
+                    value={customRefNum}
+                    onChange={(e) => setCustomRefNum(e.target.value)}
+                    className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
+                  />
+                </div>
+              )}
 
               {/* DATE OF RECEIPT */}
               <div className="space-y-1.5">
@@ -1248,9 +1315,9 @@ export default function CommunicationsPage() {
                     const hasRead = comm.readBy?.includes(userProfile?.id || '') || (userProfile?.unitId && comm.readBy?.includes(userProfile.unitId));
                     const isUnread = activeTab === 'incoming' && !hasRead && comm.senderUnitId !== userProfile?.unitId;
                     const dateStr = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MMM dd, yyyy') : '...';
-                    const displayRefNum = activeTab === 'incoming' 
-                      ? comm.recipientRefNums?.[userProfile?.unitId || ''] || comm.senderRefNum || 'N/A'
-                      : comm.senderRefNum || 'N/A';
+                    // Ref num variables for render
+                    const receiverRef = comm.recipientRefNums?.[userProfile?.unitId || ''];
+                    const originRef = comm.senderRefNum;
 
                     return (
                       <TableRow
@@ -1265,11 +1332,38 @@ export default function CommunicationsPage() {
                           {isUnread && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 rounded-r bg-indigo-600 transition-all" />
                           )}
-                          <div className="flex items-center gap-2">
-                            {isUnread && (
-                              <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse shrink-0" />
+                          <div className="flex flex-col gap-1">
+                            {activeTab === 'incoming' ? (
+                              <>
+                                <div className="flex items-center gap-1.5">
+                                  {isUnread && (
+                                    <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 animate-pulse shrink-0" />
+                                  )}
+                                  <span className="text-[10px] font-black uppercase text-slate-400">Rec. Ref:</span>
+                                  {receiverRef ? (
+                                    <span className="font-mono font-black text-xs text-slate-800 uppercase tabular-nums transition-transform group-hover:translate-x-1">
+                                      {receiverRef}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-205">
+                                      Pending Receipt
+                                    </span>
+                                  )}
+                                </div>
+                                {originRef && (
+                                  <div className="text-[10px] text-slate-500 font-medium">
+                                    <span className="uppercase text-slate-400 font-bold">Orig. Ref:</span>{' '}
+                                    <span className="font-mono">{originRef}</span>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-xs text-slate-800 uppercase tabular-nums transition-transform group-hover:translate-x-1">
+                                  {originRef || 'N/A'}
+                                </span>
+                              </div>
                             )}
-                            <span className="font-black text-xs text-slate-800 tabular-nums uppercase transition-transform group-hover:translate-x-1">{displayRefNum}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-slate-500 font-medium tabular-nums">{dateStr}</TableCell>
@@ -1306,28 +1400,42 @@ export default function CommunicationsPage() {
                         </TableCell>
                         {isOdimo && (
                           <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                            {canManageComm(comm) ? (
-                              <div className="inline-flex items-center gap-2">
+                            <div className="inline-flex items-center gap-2 justify-end w-full">
+                              {activeTab === 'incoming' && !comm.recipientRefNums?.[userProfile?.unitId || ''] ? (
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditComm(comm)}
-                                  className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenReceiveDialog(comm)}
+                                  className="h-8 px-3 text-[9px] font-black uppercase tracking-wider text-emerald-600 border-emerald-250 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg flex items-center gap-1 shrink-0"
                                 >
-                                  <Edit2 className="h-4 w-4 shrink-0" />
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Receive
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setDeleteConfirmCommId(comm.id)}
-                                  className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg"
-                                >
-                                  <Trash2 className="h-4 w-4 shrink-0" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="text-[9px] text-slate-400 font-bold uppercase italic">Locked</span>
-                            )}
+                              ) : null}
+                              {canManageComm(comm) ? (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditComm(comm)}
+                                    className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg"
+                                  >
+                                    <Edit2 className="h-4 w-4 shrink-0" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setDeleteConfirmCommId(comm.id)}
+                                    className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg"
+                                  >
+                                    <Trash2 className="h-4 w-4 shrink-0" />
+                                  </Button>
+                                </>
+                              ) : (
+                                !(!comm.recipientRefNums?.[userProfile?.unitId || ''] && activeTab === 'incoming') && (
+                                  <span className="text-[9px] text-slate-400 font-bold uppercase italic">Locked</span>
+                                )
+                              )}
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
@@ -1355,7 +1463,7 @@ export default function CommunicationsPage() {
                       {selectedComm.kind}
                     </Badge>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      Reference: {activeTab === 'incoming' ? (selectedComm.recipientRefNums?.[userProfile?.unitId || ''] || selectedComm.senderRefNum || 'N/A') : (selectedComm.senderRefNum || 'N/A')}
+                      Reference: {activeTab === 'incoming' ? (selectedComm.recipientRefNums?.[userProfile?.unitId || ''] || 'Pending') : (selectedComm.senderRefNum || 'N/A')}
                     </span>
                   </div>
                   <h3 className="text-sm font-black text-slate-800 leading-snug uppercase">
@@ -1418,6 +1526,24 @@ export default function CommunicationsPage() {
                     </div>
                   </div>
 
+                  <div>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Origin's Reference Number</h5>
+                    <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
+                      <span className="text-xs font-mono font-bold text-slate-700 whitespace-normal break-words py-0.5">
+                        {selectedComm.senderRefNum || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Receiver's Reference Number</h5>
+                    <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
+                      <span className="text-xs font-mono font-bold text-slate-700 whitespace-normal break-words py-0.5">
+                        {selectedComm.recipientRefNums?.[userProfile?.unitId || ''] || 'Pending Receipt'}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="pt-4 border-t">
                     <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Original Documents</h5>
                     {selectedComm.driveLink ? (
@@ -1439,6 +1565,20 @@ export default function CommunicationsPage() {
                       </div>
                     )}
                   </div>
+
+                  {activeTab === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[userProfile?.unitId || ''] && (
+                    <div className="pt-4 border-t space-y-2">
+                      <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Incoming Receipt</h5>
+                      <Button
+                        onClick={() => {
+                          handleOpenReceiveDialog(selectedComm);
+                        }}
+                        className="w-full h-9 bg-emerald-600 hover:bg-emerald-750 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm transition-all focus:outline-none"
+                      >
+                        <CheckCircle2 className="h-4 w-4 text-white" /> Stamp & Receive
+                      </Button>
+                    </div>
+                  )}
 
                   {canManageComm(selectedComm) && (
                     <div className="pt-4 border-t space-y-2">
@@ -1519,6 +1659,75 @@ export default function CommunicationsPage() {
               Delete Record
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receive & Stamp Confirmation Dialog */}
+      <Dialog open={isReceiveDialogOpen} onOpenChange={(open) => !open && setIsReceiveDialogOpen(false)}>
+        <DialogContent className="max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl p-6 overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black uppercase text-slate-800 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Stamp & Receive Log
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 font-medium pt-2">
+              Provide the unique receiving reference number for this communication. This logs the document in your unit's incoming records.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleReceiveComm}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Origin's Ref No</label>
+                <Input
+                  value={commToReceive?.senderRefNum || 'N/A'}
+                  disabled
+                  className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-mono font-bold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Subject</label>
+                <Input
+                  value={commToReceive?.subject || ''}
+                  disabled
+                  className="h-10 text-xs bg-slate-100/50 border-slate-200 rounded-xl font-bold truncate"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
+                  <span>Receiving Reference Number</span>
+                  <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Auto-populated & editable)</span>
+                </label>
+                <Input
+                  placeholder="e.g. 2026-001"
+                  value={receivingRefNum}
+                  onChange={(e) => setReceivingRefNum(e.target.value)}
+                  className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 font-mono font-bold"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsReceiveDialogOpen(false)}
+                disabled={isReceivingSubmitting}
+                className="h-10 text-xs font-bold uppercase tracking-wider rounded-xl flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isReceivingSubmitting}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 text-xs font-bold uppercase tracking-wider rounded-xl flex-1 shadow-lg shadow-emerald-600/15"
+              >
+                {isReceivingSubmitting ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Stamping...</>
+                ) : (
+                  'Stamp & Log'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
