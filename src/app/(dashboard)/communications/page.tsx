@@ -141,13 +141,18 @@ export default function CommunicationsPage() {
   const { data: rawComms, isLoading: isLoadingComms } = useCollection<Communication>(commsQuery);
 
   // Role permissions
-  const isOdimo = userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || isAdmin;
+  // Coordinators and ODIMOs can both receive and log communications
+  const isOdimo = isAdmin ||
+    userRole === 'Unit ODIMO' ||
+    userRole === 'Campus ODIMO' ||
+    userRole?.toLowerCase().includes('coordinator');
   const isPresident = userRole?.toLowerCase().includes('president') || isAdmin;
 
   const canManageComm = (comm: Communication): boolean => {
     if (!userProfile) return false;
     if (isAdmin) return true;
     if (!isOdimo) return false;
+    // Can manage comms sent by their unit or addressed to their unit
     return (
       comm.senderUnitId === userProfile.unitId ||
       (comm.manual && comm.recipientIds?.includes(userProfile.unitId))
@@ -321,16 +326,30 @@ export default function CommunicationsPage() {
       return;
     }
 
+    // Validate that the user has a unitId — required for the Firestore field path
+    const unitKey = userProfile.unitId?.trim();
+    if (!unitKey) {
+      toast({
+        title: 'Missing Unit Assignment',
+        description: 'Your account does not have a unit assigned. Please complete your profile or contact an administrator.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsReceivingSubmitting(true);
     try {
       const docRef = doc(firestore, 'communications', commToReceive.id);
+      const readByEntries: string[] = [userProfile.id];
+      if (unitKey) readByEntries.push(unitKey);
+
       await updateDoc(docRef, {
-        [`recipientRefNums.${userProfile.unitId}`]: receivingRefNum,
-        readBy: arrayUnion(userProfile.id, userProfile.unitId)
+        [`recipientRefNums.${unitKey}`]: receivingRefNum.trim(),
+        readBy: arrayUnion(...readByEntries)
       });
 
       toast({
-        title: 'Communication Received',
+        title: 'Communication Received & Stamped',
         description: `Successfully logged under Receiver's Ref: ${receivingRefNum}`,
       });
       setIsReceiveDialogOpen(false);
