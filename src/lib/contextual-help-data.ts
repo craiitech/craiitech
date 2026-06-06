@@ -684,6 +684,10 @@ export const helpContent: Record<string, PageHelp> = {
         { label: 'Download Total', labelShort: 'Export', action: 'Generates the high-density Excel backup workbook.' }
     ]
   },
+  '/settings?tab=error-reports': {
+    title: 'Settings: Error Diagnostics',
+    description: 'Monitoring system stability and user-reported issues.',
+    steps: [
       { title: 'Review Logs', desc: 'Inspect stack traces and URLs for reported runtime errors.' },
       { title: 'Triage', desc: 'Update status to "Acknowledged" or "Resolved" during debugging.' }
     ]
