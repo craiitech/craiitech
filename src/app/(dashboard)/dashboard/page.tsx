@@ -447,8 +447,11 @@ export default function HomePage() {
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
 
   const roleLower = userRole?.toLowerCase() || '';
-  const isCampusLevel = isAdmin || isVp || roleLower.includes('campus director') || roleLower.includes('campus odimo');
-  const isCampusSupervisor = isSupervisor && !isAdmin && isCampusLevel;
+  const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
+  const isUniversityExecutive = isAdmin || isVp || isPresident || roleLower.includes('quality management') || roleLower.includes('qms') || roleLower.includes('qao');
+  
+  const isCampusLevel = roleLower.includes('campus director') || roleLower.includes('campus odimo');
+  const isCampusSupervisor = isSupervisor && !isUniversityExecutive && isCampusLevel;
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -459,10 +462,10 @@ export default function HomePage() {
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'submissions');
-    if (isAdmin) return baseRef;
+    if (isUniversityExecutive) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
     return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -482,17 +485,17 @@ export default function HomePage() {
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'risks');
-    if (isAdmin) return baseRef;
+    if (isUniversityExecutive) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
     return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const carsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
-    if (isAdmin) return baseRef;
+    if (isUniversityExecutive) return baseRef;
     if (isCampusSupervisor && userProfile.campusId) {
       return query(baseRef, where('campusId', '==', userProfile.campusId));
     }
@@ -500,7 +503,7 @@ export default function HomePage() {
       return query(baseRef, where('unitId', '==', userProfile.unitId));
     }
     return null;
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);
   const { data: dashboardCars } = useCollection<CorrectiveActionRequest>(carsQuery);
   const allCars = dashboardCars;
   const unitCars = dashboardCars;
@@ -543,11 +546,11 @@ export default function HomePage() {
   }, [allCompliances, userProfile]);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
+    if (!firestore || (!isUniversityExecutive && !isCampusSupervisor)) return null;
     const baseRef = collection(firestore, 'users');
-    if (isAdmin) return baseRef;
+    if (isUniversityExecutive) return baseRef;
     return query(baseRef, where('campusId', '==', userProfile?.campusId));
-  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
+  }, [firestore, isUniversityExecutive, isCampusSupervisor, userProfile]);
 
   const { data: allUsersData } = useCollection<AppUser>(usersQuery);
 
@@ -577,7 +580,7 @@ export default function HomePage() {
 
   const filteredAcademicPrograms = useMemo(() => {
     if (!academicPrograms) return [];
-    if (isAdmin) return academicPrograms;
+    if (isUniversityExecutive) return academicPrograms;
     if (isCampusSupervisor && userProfile?.campusId) {
       return academicPrograms.filter(p => p.campusId === userProfile.campusId);
     }
@@ -585,11 +588,11 @@ export default function HomePage() {
       return academicPrograms.filter(p => p.id === userProfile.unitId);
     }
     return [];
-  }, [academicPrograms, isAdmin, isCampusSupervisor, userProfile]);
+  }, [academicPrograms, isUniversityExecutive, isCampusSupervisor, userProfile]);
 
   const filteredCompliances = useMemo(() => {
     if (!allCompliances) return [];
-    if (isAdmin) return allCompliances;
+    if (isUniversityExecutive) return allCompliances;
     if (isCampusSupervisor && userProfile?.campusId) {
       return allCompliances.filter(c => c.campusId === userProfile.campusId);
     }
@@ -597,7 +600,7 @@ export default function HomePage() {
       return allCompliances.filter(c => c.programId === userProfile.unitId || c.unitId === userProfile.unitId);
     }
     return [];
-  }, [allCompliances, isAdmin, isCampusSupervisor, userProfile]);
+  }, [allCompliances, isUniversityExecutive, isCampusSupervisor, userProfile]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -607,12 +610,12 @@ export default function HomePage() {
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
-    if (isAdmin) return baseRef;
+    if (isUniversityExecutive) return baseRef;
     if (userRole === 'Auditor') return query(baseRef, where('auditorId', '==', userProfile.id));
     if (isCampusLevel && userProfile.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
     if (userProfile.unitId) return query(baseRef, where('targetId', '==', userProfile.unitId));
     return null;
-  }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading, userRole]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusLevel, isUserLoading, userRole]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
@@ -643,7 +646,7 @@ export default function HomePage() {
                 if (reco.status === 'Closed') return;
 
                 let isRelevant = false;
-                if (isAdmin) {
+                if (isUniversityExecutive) {
                     isRelevant = true;
                 } else if (isCampusSupervisor) {
                     isRelevant = reco.assignedUnitIds?.some(uid => {
@@ -671,7 +674,7 @@ export default function HomePage() {
         });
     });
     return results;
-  }, [allCompliances, userProfile, allUnits, isAdmin, isCampusSupervisor, academicPrograms, campusMap]);
+  }, [allCompliances, userProfile, allUnits, isUniversityExecutive, isCampusSupervisor, academicPrograms, campusMap]);
 
   const auditPlansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
   const { data: allAuditPlans } = useCollection<AuditPlan>(auditPlansQuery);
@@ -725,9 +728,9 @@ export default function HomePage() {
   }, [isCampusSupervisor, userProfile?.campusId, eomsData]);
 
   const unitRating = useMemo(() => {
-    if (isAdmin || isCampusSupervisor || !userProfile?.unitId) return null;
+    if (isUniversityExecutive || isCampusSupervisor || !userProfile?.unitId) return null;
     return calculateEomsScore('unit', userProfile.unitId, eomsData);
-  }, [isAdmin, isCampusSupervisor, userProfile?.unitId, eomsData]);
+  }, [isUniversityExecutive, isCampusSupervisor, userProfile?.unitId, eomsData]);
 
   // Synchronize the computed university rating to public settings if admin
   useEffect(() => {
@@ -747,17 +750,17 @@ export default function HomePage() {
   }, [isAdmin, firestore, universityRating]);
 
   const activeUniversityRating = useMemo(() => {
-    if (!isAdmin && (globalSetting as any)?.universityRating) {
+    if (!isUniversityExecutive && (globalSetting as any)?.universityRating) {
       return (globalSetting as any).universityRating as EomsScoreResult;
     }
     return universityRating;
-  }, [isAdmin, globalSetting, universityRating]);
+  }, [isUniversityExecutive, globalSetting, universityRating]);
 
   const stats = useMemo(() => {
     if (!submissions || !userProfile) return { stat1: { value: '0' }, stat2: { value: '0' }, stat3: { value: '0' } };
     const yearSubs = submissions.filter((s) => s.year === selectedYear);
 
-    if (isAdmin) {
+    if (isUniversityExecutive) {
       return {
         stat1: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
         stat2: { title: 'Registry Volume', value: yearSubs.length, icon: <FileText /> },
@@ -789,7 +792,7 @@ export default function HomePage() {
         stat3: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
       };
     }
-  }, [submissions, isAdmin, isCampusSupervisor, allUsersMap, selectedYear, userProfile, userRole, dashboardSchedules]);
+  }, [submissions, isUniversityExecutive, isCampusSupervisor, allUsersMap, selectedYear, userProfile, userRole, dashboardSchedules]);
 
   const renderUnitUserHome = () => {
     const yearSubs = submissions?.filter(s => s.year === selectedYear) || [];
@@ -1381,7 +1384,7 @@ export default function HomePage() {
   );
 
   const renderHomeContent = () => {
-    if (isAdmin) return renderAdminHome();
+    if (isUniversityExecutive) return renderAdminHome();
     if (userRole === 'Auditor') return renderAuditorHome();
     if (isCampusSupervisor) return renderSupervisorHome();
     return renderUnitUserHome();
