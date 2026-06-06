@@ -684,12 +684,186 @@ export const helpContent: Record<string, PageHelp> = {
         { label: 'Download Total', labelShort: 'Export', action: 'Generates the high-density Excel backup workbook.' }
     ]
   },
-  '/settings?tab=error-reports': {
-    title: 'Settings: Error Diagnostics',
-    description: 'Monitoring system stability and user-reported issues.',
-    steps: [
       { title: 'Review Logs', desc: 'Inspect stack traces and URLs for reported runtime errors.' },
       { title: 'Triage', desc: 'Update status to "Acknowledged" or "Resolved" during debugging.' }
     ]
+  },
+
+  // --- SUBMISSIONS DETAIL ---
+  '/submissions/[id]': {
+    title: 'Submission Quality Audit & History',
+    description: 'Detailed compliance review and revision trail for a specific EOMS document.',
+    steps: [
+      { title: 'Review File Revisions', desc: 'Browse the uploaded documents under "Audit Trail". Revisions increment automatically (Rev 00, 01, etc.).' },
+      { title: 'Check Feedback & Comments', desc: 'View feedback from your campus Director or QA auditors in the discussion thread.' },
+      { title: 'Status Assessment', desc: 'Verify the document\'s verification phase: Draft Checked, Approved, or Needs Revision.' }
+    ],
+    buttons: [
+      { label: 'View Link', labelShort: 'Open', action: 'Opens the underlying document in Google Drive.' },
+      { label: 'Submit Revision', labelShort: 'Upload', action: 'Uploads a replacement revision to clear rejection notes.' }
+    ]
+  },
+
+  // --- AUDIT CONDUIT DETAIL ---
+  '/audit/[scheduleId]': {
+    title: 'IQA Execution Checklist',
+    description: 'Auditor workspace for conducting field audits, logging evidence, and registering findings.',
+    steps: [
+      { title: 'Verify Details', desc: 'Confirm unit name, scheduled date, and assigned auditor team details.' },
+      { title: 'Checklist Execution', desc: 'Review individual ISO clauses. Check off items based on verified physical or digital records.' },
+      { title: 'Record Observations', desc: 'Input auditor remarks, recommendations (OFI), or non-conformances (NC) directly under each item.' },
+      { title: 'Sync Registry', desc: 'Click "Save Progress" to mirror data. If offline, the portal caches changes locally.' }
+    ],
+    buttons: [
+      { label: 'Save Draft', labelShort: 'Save', action: 'Caches current checklist scores without closing the audit session.' },
+      { label: 'Complete Audit', labelShort: 'Submit', action: 'Locks the checklist and pushes final records to the QA register.' },
+      { label: 'Generate PDF', labelShort: 'Print', action: 'Generates the official Folio-sized Evidence Log Sheet.' }
+    ]
+  },
+
+  // --- AUDIT CAP FINDING DETAIL ---
+  '/audit/cap/[findingId]': {
+    title: 'Corrective Action Plan (CAP) Console',
+    description: 'A tool for non-conformance root cause analysis and corrective action formulation.',
+    steps: [
+      { title: 'Understand Finding', desc: 'Review the details of the non-conformance (NC) recorded by the auditor.' },
+      { title: 'Root Cause Analysis', desc: 'Explain why the breakdown occurred. Use 5-Why analysis to identify institutional gaps.' },
+      { title: 'Formulate Action Plan', desc: 'Define correction steps and assign target dates with responsible personnel.' },
+      { title: 'Submit Evidence', desc: 'Upload the corrective plan and verify implementation progress.' }
+    ],
+    buttons: [
+      { label: 'Propose CAP', labelShort: 'Submit', action: 'Submits the corrective actions list for Auditor verification.' },
+      { label: 'Acknowledge', labelShort: 'Verify', action: 'Auditor: Confirms the proposed actions address the root cause.' }
+    ]
+  },
+
+  // --- ACADEMIC PROGRAM DETAIL ---
+  '/academic-programs/[programId]': {
+    title: 'Program Compliance Dashboard',
+    description: 'Detailed compliance registry and survey roadmap for a specific degree offering.',
+    steps: [
+      { title: 'CMO Standards', desc: 'Verify program authority (CHED COPC status and Board of Regents resolutions).' },
+      { title: 'Accreditation status', desc: 'Track AACCUP survey levels and target roadmap dates.' },
+      { title: 'Faculty Census', desc: 'Check Sex-Disaggregated faculty profiles, titles, and academic alignments.' }
+    ],
+    buttons: [
+      { label: 'Edit Metadata', labelShort: 'Edit', action: 'Allows coordinators to update program codes or description.' },
+      { label: 'Accreditation', labelShort: 'Level', action: 'Opens the detail checklist for the current AACCUP profile.' }
+    ]
+  },
+
+  // --- VISITOR LOGBOOK ---
+  '/visitor-logbook': {
+    title: 'Visitor Logbook Registry',
+    description: 'On-site logbook for campuses and offices to maintain institutional safety and service history.',
+    steps: [
+      { title: 'Record Purpose', desc: 'Document name, contact details, organization, and clear purpose of visit.' },
+      { title: 'Assign Target Office', desc: 'Select the destination department. Campus Directors & Odimos use "OFFICE OF THE CAMPUS DIRECTOR".' },
+      { title: 'Time Tracking', desc: 'Log check-in times and update check-out status upon visit completion.' }
+    ],
+    buttons: [
+      { label: 'Record Visit', labelShort: 'Log', action: 'Opens the visitor registration popup.' },
+      { label: 'Check-out', labelShort: 'Exit', action: 'Stamps check-out time and updates visit status.' }
+    ]
+  },
+
+  // --- SOFTWARE QUALITY ---
+  '/software-quality': {
+    title: 'ISO/IEC 25010 Software Evaluation',
+    description: 'User evaluation console for quality in use, usability, and operational efficiency.',
+    steps: [
+      { title: 'Quality Pillars', desc: 'Rate portal metrics: Functional Suitability, Performance Efficiency, Usability, Security.' },
+      { title: 'Provide Scoring', desc: 'Select ratings from 1 (Poor) to 5 (Excellent) based on your operational experience.' },
+      { title: 'Submit Review', desc: 'Complete the feedback form to help CRAIITech optimize system response.' }
+    ],
+    buttons: [
+      { label: 'Submit Evaluation', labelShort: 'Save', action: 'Saves your evaluation profile to the central registry.' }
+    ]
+  },
+
+  // --- FACULTY EVALUATION ---
+  '/faculty-evaluation': {
+    title: 'Faculty CMO Quality Audit',
+    description: 'Curriculum-aligned evaluation of teaching personnel against CHED regulatory mandates.',
+    steps: [
+      { title: 'Staff Index', desc: 'Review the list of faculty members mapped to your academic program.' },
+      { title: 'Verify Standards', desc: 'Ensure qualifications (Master\'s/Doctorate degrees, specialization alignment) are updated.' },
+      { title: 'Resolve Flags', desc: 'Address any program alignment issues noted during internal reviews.' }
+    ]
+  },
+
+  // --- PROFILE & ACCESSIBILITY ---
+  '/profile': {
+    title: 'Account Settings & Accessibility',
+    description: 'Manage personal credentials and toggle accessibility options (PWD support).',
+    steps: [
+      { title: 'Identity Controls', desc: 'Update your display name. Institutional roles and office assignments remain locked.' },
+      { title: 'Accessibility Features', desc: 'Toggle Dyslexic Font, High Contrast colors, and scaling factors for comfort.' },
+      { title: 'Security Credentials', desc: 'Update passwords or trigger Data Privacy account erasure if needed.' }
+    ],
+    buttons: [
+      { label: 'Save Settings', labelShort: 'Save', action: 'Commits accessibility profiles and display updates.' },
+      { label: 'Danger Zone', labelShort: 'Delete', action: 'Permits account termination under RA 10173 Right to Erasure.' }
+    ]
+  },
+
+  // --- APPROVALS QUEUE ---
+  '/approvals': {
+    title: 'Approvals Registry Queue',
+    description: 'Supervisor console for reviewing and signing off on unit compliance submissions.',
+    steps: [
+      { title: 'Audit Queue', desc: 'View pending files submitted by units under your site or campus jurisdiction.' },
+      { title: 'Document Verification', desc: 'Open and review EOMS files (SWOT, Risk Registers, OpPlans) for accuracy.' },
+      { title: 'Status Determination', desc: 'Mark files as Approved to complete compliance steps, or Reject with corrective notes.' }
+    ],
+    buttons: [
+      { label: 'Approve Submission', labelShort: 'Accept', action: 'Saves status as Approved, updating unit maturity metric.' },
+      { label: 'Reject Submission', labelShort: 'Return', action: 'Sets status to Rejected and requests unit corrections.' }
+    ]
   }
 };
+
+/**
+ * Resolves the appropriate help content block based on the current pathname and query params.
+ * Supports exact paths, tab contexts, and dynamic route parameter patterns.
+ */
+export function getHelpForPath(pathname: string, activeTab?: string | null): PageHelp | null {
+  // 1. Exact path with tab parameter
+  if (activeTab) {
+    const pathWithTab = `${pathname}?tab=${activeTab}`;
+    if (helpContent[pathWithTab]) return helpContent[pathWithTab];
+  }
+
+  // 2. Exact pathname
+  if (helpContent[pathname]) return helpContent[pathname];
+
+  // 3. Dynamic route matches
+  const segments = pathname.split('/');
+
+  // Submissions dynamic ID: /submissions/[id]
+  if (segments.length === 3 && segments[1] === 'submissions' && segments[2] !== 'new') {
+    return helpContent['/submissions/[id]'];
+  }
+
+  // Audit dynamic ID: /audit/[scheduleId]
+  if (segments.length === 3 && segments[1] === 'audit') {
+    return helpContent['/audit/[scheduleId]'];
+  }
+
+  // Corrective Action Plan: /audit/cap/[findingId]
+  if (segments.length === 4 && segments[1] === 'audit' && segments[2] === 'cap') {
+    return helpContent['/audit/cap/[findingId]'];
+  }
+
+  // Academic Program details: /academic-programs/[programId]
+  if (segments.length === 3 && segments[1] === 'academic-programs') {
+    return helpContent['/academic-programs/[programId]'];
+  }
+
+  // 4. General parent path fallback
+  const parentPath = `/${segments[1]}`;
+  if (helpContent[parentPath]) return helpContent[parentPath];
+
+  return null;
+}
+

@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { helpContent } from '@/lib/contextual-help-data';
+import { helpContent, getHelpForPath } from '@/lib/contextual-help-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,21 +35,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
 
   // Find help content based on current path and active tab
   const help = useMemo(() => {
-    // 1. Precise Match: Path + Tab
-    if (activeTab) {
-        const pathWithTab = `${pathname}?tab=${activeTab}`;
-        if (helpContent[pathWithTab]) return helpContent[pathWithTab];
-    }
-
-    // 2. Base Path Match
-    if (helpContent[pathname]) return helpContent[pathname];
-    
-    // 3. Dynamic Route Fallback
-    const segments = pathname.split('/');
-    const parentPath = `/${segments[1]}`;
-    if (helpContent[parentPath]) return helpContent[parentPath];
-
-    return null;
+    return getHelpForPath(pathname, activeTab);
   }, [pathname, activeTab]);
 
   if (!help) return null;
@@ -160,14 +146,27 @@ export function PageGuidance({ className }: PageGuidanceProps) {
           </ScrollArea>
         </CardContent>
         
-        <CardFooter className="bg-muted/10 border-t py-3 px-6 flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-2 text-muted-foreground">
-                <HelpCircle className="h-3 w-3" />
-                <span className="text-[8px] font-bold uppercase tracking-tighter">Quality Assist v2.5</span>
-            </div>
-            <Button variant="link" className="p-0 h-auto text-[8px] font-black uppercase text-primary hover:no-underline" asChild>
-                <Link href="/help/manual">Open full manual</Link>
+        <CardFooter className="bg-muted/10 border-t py-3 px-6 flex flex-col gap-2 shrink-0">
+            <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-[9px] font-black uppercase tracking-wider h-8 bg-white hover:bg-primary/5 border-primary/20 text-primary transition-all hover:scale-[1.02]"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('rsu-start-guided-tour'));
+                }}
+            >
+                <Sparkles className="h-3 w-3 mr-1.5 text-primary animate-pulse" />
+                Start Interactive Tour
             </Button>
+            <div className="flex justify-between items-center w-full mt-1">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <HelpCircle className="h-3 w-3" />
+                    <span className="text-[8px] font-bold uppercase tracking-tighter">Quality Assist v2.5</span>
+                </div>
+                <Button variant="link" className="p-0 h-auto text-[8px] font-black uppercase text-primary hover:no-underline" asChild>
+                    <Link href="/help/manual">Open full manual</Link>
+                </Button>
+            </div>
         </CardFooter>
       </Card>
     </div>

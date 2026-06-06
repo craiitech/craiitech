@@ -109,6 +109,7 @@ export function Header({
                                 isGuidanceVisible ? "text-primary bg-primary/5" : "text-muted-foreground"
                             )}
                             onClick={onToggleGuidance}
+                            title={isGuidanceVisible ? "Hide Guide" : "Show Guide"}
                         >
                             {isGuidanceVisible ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
                         </Button>

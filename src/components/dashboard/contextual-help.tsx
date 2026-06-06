@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { HelpCircle, Lightbulb, Map, Info } from 'lucide-react';
-import { helpContent, type PageHelp } from '@/lib/contextual-help-data';
+import { helpContent, getHelpForPath, type PageHelp } from '@/lib/contextual-help-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 
@@ -27,14 +27,8 @@ export function ContextualHelp() {
 
   // Find help content based on current path, or use generic fallback
   const currentHelp = useMemo(() => {
-    // Try exact match first
-    if (helpContent[pathname]) return helpContent[pathname];
-    
-    // Check for dynamic routes (e.g. /submissions/id)
-    const segments = pathname.split('/');
-    const parentPath = `/${segments[1]}`;
-    
-    if (helpContent[parentPath]) return helpContent[parentPath];
+    const help = getHelpForPath(pathname);
+    if (help) return help;
 
     // Fallback consistent with PageHelp interface
     return {

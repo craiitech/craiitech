@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
 import { Logo } from '@/components/logo';
 import { PageGuidance } from '@/components/dashboard/page-guidance';
+import { GuidedTour } from '@/components/dashboard/guided-tour';
 import { InstallPwaDialog } from '@/components/dashboard/install-pwa-dialog';
 import { SoftwareEvaluationGate } from '@/components/evaluation/software-evaluation-gate';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -527,6 +528,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
             </main>
             <Chatbot />
+            <GuidedTour />
           </SidebarInset>
         </SidebarProvider>
       </div>
