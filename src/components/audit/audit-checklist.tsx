@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { format } from 'date-fns';
 import { useNetworkStatus } from '@/hooks/use-network-status';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuditChecklistProps {
   scheduleId: string;
@@ -86,6 +88,9 @@ function ClauseForm({
       }
   }, [finding, form, clause.id]);
 
+  /**
+   * NC STATEMENT TEMPLATE GENERATOR
+   */
   useEffect(() => {
     if (watchType === 'Non-Conformance' && !form.getValues('ncStatement')) {
         const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
@@ -113,16 +118,48 @@ function ClauseForm({
         updatedAt: serverTimestamp(),
     };
 
-    try {
-        await setDoc(findingRef, findingData, { merge: true });
-        onSave(findingData); 
-        setLastSaved(new Date());
-    } catch(err) {
-        console.error("Finding save failed:", err);
-    } finally {
-        setIsSubmitting(false);
-    }
+    setDoc(findingRef, findingData, { merge: true })
+        .then(() => {
+            onSave(findingData); 
+            setLastSaved(new Date());
+        })
+        .catch(async (error) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: findingRef.path,
+                operation: 'write',
+                requestResourceData: findingData
+            }));
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   };
+
+  /**
+   * AUTOMATED DEBOUNCED PERSISTENCE
+   */
+  useEffect(() => {
+    if (isInitialLoadRef.current) return;
+
+    // Detect actual content changes before triggering a network write
+    const hasChanged = 
+        watchAll.type !== (finding?.type || '') ||
+        watchAll.evidence !== (finding?.evidence || '') ||
+        watchAll.description !== (finding?.description || '') ||
+        watchAll.ncStatement !== (finding?.ncStatement || '');
+
+    if (hasChanged && watchAll.type) {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        
+        saveTimeoutRef.current = setTimeout(() => {
+            performSave(watchAll);
+        }, 1000); // 1 second debounce for typing fluidly
+    }
+
+    return () => {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [watchAll, finding]);
 
   const onSubmit = (values: ClauseFormData) => {
       performSave(values);

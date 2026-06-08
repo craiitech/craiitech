@@ -296,8 +296,11 @@ export default function AuditExecutionPage() {
     }
   };
 
+  /**
+   * DEBOUNCED SUMMARY AUTO-SAVE
+   */
   useEffect(() => {
-    if (!schedule || !scheduleDocRef) return;
+    if (!schedule || !scheduleDocRef || isInitialLoadRef.current) return;
 
     const hasChanged = 
         watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
@@ -311,13 +314,13 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 800); 
+        }, 1500); 
     }
 
     return () => {
         if (summarySaveTimeoutRef.current) clearTimeout(summarySaveTimeoutRef.current);
     };
-  }, [watchAll, schedule, scheduleDocRef]);
+  }, [watchAll, schedule]);
 
   const handleAddClausesToScope = async () => {
     if (!scheduleDocRef || selectedNewClauses.length === 0) return;
@@ -447,7 +450,7 @@ export default function AuditExecutionPage() {
         const sortedLines = sortSummaryLines(otherLines);
         
         const finalContent = sortedLines.join('\n');
-        form.setValue(fName, finalContent);
+        form.setValue(fName, finalContent, { shouldDirty: true });
     });
   };
 
