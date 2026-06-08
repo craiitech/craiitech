@@ -298,6 +298,7 @@ export default function AuditExecutionPage() {
 
   /**
    * DEBOUNCED SUMMARY AUTO-SAVE
+   * Increased to 5 seconds (5000ms) for high stability.
    */
   useEffect(() => {
     if (!schedule || !scheduleDocRef || isInitialLoadRef.current) return;
@@ -314,7 +315,7 @@ export default function AuditExecutionPage() {
         
         summarySaveTimeoutRef.current = setTimeout(() => {
             handleSaveSummary(watchAll, true);
-        }, 1500); 
+        }, 5000); 
     }
 
     return () => {

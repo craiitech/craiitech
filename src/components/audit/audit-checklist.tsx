@@ -137,6 +137,7 @@ function ClauseForm({
 
   /**
    * AUTOMATED DEBOUNCED PERSISTENCE
+   * Timer increased to 5000ms (5 seconds) as requested for institutional stability.
    */
   useEffect(() => {
     if (isInitialLoadRef.current) return;
@@ -152,7 +153,7 @@ function ClauseForm({
         
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 1000); 
+        }, 5000); 
     }
 
     return () => {
