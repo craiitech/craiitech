@@ -398,14 +398,11 @@ export default function AuditExecutionPage() {
   /**
    * SYNCHRONIZED SUMMARY UPDATE LOGIC
    * Performs a strict search-and-replace using the Clause ID as a key.
-   * This prevents multiple redundant entries for the same clause in the Final Summary.
-   * Keeps clause summaries sorted and cleans up N/A/empty entries.
    */
   const handleFindingSync = (finding: any) => {
     const clauseId = finding.isoClause;
     const type = finding.type;
     
-    // Choose appropriate source text. Prioritize Detailed Description of Findings.
     let actualText = '';
     if (type === 'Compliance') {
       actualText = finding.description || finding.evidence || '';
@@ -431,24 +428,19 @@ export default function AuditExecutionPage() {
     else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
 
     summaryFields.forEach(fName => {
-        // Skip metadata fields
         if (['officerInCharge', 'actualDate', 'actualStartTime', 'actualEndTime'].includes(fName)) return;
         
         const currentVal = form.getValues(fName) || '';
         const lines = currentVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        // 1. FILTER: Remove any existing entry that matches this Clause ID prefix case-insensitively
         const prefix = `[Clause ${clauseId}]:`;
         const otherLines = lines.filter(l => !l.toLowerCase().startsWith(prefix.toLowerCase()));
         
-        // 2. RECONSTRUCT: Add the new formatted entry only to the target field and only if we have text
         if (fName === targetFieldName && formattedEntry) {
             otherLines.push(formattedEntry);
         }
         
-        // 3. SORT: Sort the lines to maintain sequence by clause
         const sortedLines = sortSummaryLines(otherLines);
-        
         const finalContent = sortedLines.join('\n');
         form.setValue(fName, finalContent, { shouldDirty: true });
     });

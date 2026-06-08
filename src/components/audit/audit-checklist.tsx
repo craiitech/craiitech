@@ -141,7 +141,6 @@ function ClauseForm({
   useEffect(() => {
     if (isInitialLoadRef.current) return;
 
-    // Detect actual content changes before triggering a network write
     const hasChanged = 
         watchAll.type !== (finding?.type || '') ||
         watchAll.evidence !== (finding?.evidence || '') ||
@@ -153,7 +152,7 @@ function ClauseForm({
         
         saveTimeoutRef.current = setTimeout(() => {
             performSave(watchAll);
-        }, 1000); // 1 second debounce for typing fluidly
+        }, 1000); 
     }
 
     return () => {
