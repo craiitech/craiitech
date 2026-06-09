@@ -44,6 +44,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
           table {
             page-break-inside: auto;
           }
+          .print-page-break {
+              page-break-after: always;
+          }
         }
       `}</style>
       {/* Institutional Branding Header */}
@@ -206,6 +209,45 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
           })}
         </tbody>
       </table>
+
+      {/* FINAL AUDIT SUMMARY SECTION */}
+      <div className="w-full space-y-4 mb-10 break-inside-avoid">
+          <div className="bg-slate-50 border-2 border-black p-2 font-black uppercase text-center" style={{ fontSize: '11pt' }}>
+              Final Audit Report Summary
+          </div>
+          <table className="w-full border-collapse border-2 border-black" style={{ tableLayout: 'fixed' }}>
+              <tbody>
+                  <tr className="border-b border-black">
+                      <td className="p-3 align-top border-r border-black w-1/2 min-h-[120px]">
+                          <p className="font-black text-[9pt] uppercase text-blue-700 mb-2">Summary of Commendable Practices (P):</p>
+                          <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
+                              {schedule.summaryCommendable || (isBlankTemplate ? '' : 'None recorded.')}
+                          </p>
+                      </td>
+                      <td className="p-3 align-top w-1/2">
+                          <p className="font-black text-[9pt] uppercase text-emerald-700 mb-2">Summary of Compliance (C):</p>
+                          <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
+                              {schedule.summaryCompliance || (isBlankTemplate ? '' : 'None recorded.')}
+                          </p>
+                      </td>
+                  </tr>
+                  <tr>
+                      <td className="p-3 align-top border-r border-black w-1/2 min-h-[120px]">
+                          <p className="font-black text-[9pt] uppercase text-amber-700 mb-2">Opportunities for Improvement (OFI):</p>
+                          <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
+                              {schedule.summaryOFI || (isBlankTemplate ? '' : 'None recorded.')}
+                          </p>
+                      </td>
+                      <td className="p-3 align-top w-1/2">
+                          <p className="font-black text-[9pt] uppercase text-rose-700 mb-2">Non-Conformance / Non-Compliance (NC):</p>
+                          <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
+                              {schedule.summaryNC || (isBlankTemplate ? '' : 'None recorded.')}
+                          </p>
+                      </td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
 
       {/* Official Signatories Section */}
       <div className="grid grid-cols-2 gap-16 mt-16 text-center break-inside-avoid px-10">

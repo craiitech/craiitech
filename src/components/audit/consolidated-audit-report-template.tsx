@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -129,7 +128,7 @@ function CampusFindingsSection({
                   </td>
                   <td className="border border-black p-2 align-top">
                     <div className="space-y-4">
-                      {s.summaryNC && <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>}
+                      {/* CRITICAL: We remove s.summaryNC here to avoid duplicating findings with the individual mapped findings list */}
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
                           <div key={fIdx} className="pl-2 border-l-2 border-slate-200">
@@ -137,6 +136,9 @@ function CampusFindingsSection({
                             <p className="text-[11pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
                         ))}
+                        {ncFindings.length === 0 && s.summaryNC && (
+                            <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -287,6 +289,11 @@ export function ConsolidatedAuditReportTemplate({
           </div>
           <p className="text-[10pt] uppercase font-black text-slate-500">Director, Quality Assurance Office</p>
         </div>
+      </div>
+
+      {/* SYSTEM GENERATED NOTE */}
+      <div className="mt-16 text-center font-bold italic text-slate-500" style={{ fontSize: '10pt' }}>
+        This is a system-generated report; signature is not required.
       </div>
 
       {/* FOOTER */}
