@@ -219,13 +219,13 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
               <tbody>
                   <tr className="border-b border-black">
                       <td className="p-3 align-top border-r border-black w-1/2 min-h-[120px]">
-                          <p className="font-black text-[9pt] uppercase text-blue-700 mb-2">Summary of Commendable Practices (P):</p>
+                          <p className="font-black text-[10pt] uppercase text-blue-700 mb-2">Summary of Commendable Practices (P):</p>
                           <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
                               {schedule.summaryCommendable || (isBlankTemplate ? '' : 'None recorded.')}
                           </p>
                       </td>
                       <td className="p-3 align-top w-1/2">
-                          <p className="font-black text-[9pt] uppercase text-emerald-700 mb-2">Summary of Compliance (C):</p>
+                          <p className="font-black text-[10pt] uppercase text-emerald-700 mb-2">Summary of Compliance (C):</p>
                           <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
                               {schedule.summaryCompliance || (isBlankTemplate ? '' : 'None recorded.')}
                           </p>
@@ -233,13 +233,13 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                   </tr>
                   <tr>
                       <td className="p-3 align-top border-r border-black w-1/2 min-h-[120px]">
-                          <p className="font-black text-[9pt] uppercase text-amber-700 mb-2">Opportunities for Improvement (OFI):</p>
+                          <p className="font-black text-[10pt] uppercase text-amber-700 mb-2">Opportunities for Improvement (OFI):</p>
                           <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
                               {schedule.summaryOFI || (isBlankTemplate ? '' : 'None recorded.')}
                           </p>
                       </td>
                       <td className="p-3 align-top w-1/2">
-                          <p className="font-black text-[9pt] uppercase text-rose-700 mb-2">Non-Conformance / Non-Compliance (NC):</p>
+                          <p className="font-black text-[10pt] uppercase text-rose-700 mb-2">Non-Conformance / Non-Compliance (NC):</p>
                           <p className="text-[10pt] leading-relaxed whitespace-pre-wrap italic">
                               {schedule.summaryNC || (isBlankTemplate ? '' : 'None recorded.')}
                           </p>
@@ -266,12 +266,12 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </div>
 
       {/* System Generated Note */}
-      <div className="mt-8 text-center font-bold italic text-slate-500" style={{ fontSize: '10pt' }}>
+      <div className="mt-8 text-center font-bold italic text-slate-500" style={{ fontSize: '11pt' }}>
         This is a system-generated report; signature is not required.
       </div>
 
       {/* Pagination & Control Footer */}
-      <div className="mt-12 pt-4 border-t border-slate-200 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '9pt' }}>
+      <div className="mt-12 pt-4 border-t border-slate-200 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '10pt' }}>
         <span>RSU-QAO-IQA-LOG | REV 03-2025</span>
         <span className="font-bold">Page 1 of 1</span>
         <span>Issued by: {leadAuditorName || qaoDirectorName}</span>
