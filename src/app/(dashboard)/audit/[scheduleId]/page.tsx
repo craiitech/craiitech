@@ -173,13 +173,15 @@ export default function AuditExecutionPage() {
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const unitCarsQuery = useMemoFirebase(() => {
-    if (!firestore || !schedule?.targetId) return null;
+    if (!firestore || !schedule?.targetId || !schedule?.campusId) return null;
     const unitId = String(schedule.targetId).trim();
+    const campusId = String(schedule.campusId).trim();
     return query(
         collection(firestore, 'correctiveActionRequests'), 
-        where('unitId', '==', unitId)
+        where('unitId', '==', unitId),
+        where('campusId', '==', campusId)
     );
-  }, [firestore, schedule?.targetId]);
+  }, [firestore, schedule?.targetId, schedule?.campusId]);
   
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
 

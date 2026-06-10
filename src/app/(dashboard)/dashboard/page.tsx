@@ -499,8 +499,8 @@ export default function HomePage() {
     if (isCampusSupervisor && userProfile.campusId) {
       return query(baseRef, where('campusId', '==', userProfile.campusId));
     }
-    if (userProfile.unitId) {
-      return query(baseRef, where('unitId', '==', userProfile.unitId));
+    if (userProfile.unitId && userProfile.campusId) {
+      return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
     }
     return null;
   }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);

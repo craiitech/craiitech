@@ -127,13 +127,14 @@ export default function NewSubmissionPage() {
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const digitalRisksQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || !selectedYear) return null;
+    if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
     return query(
         collection(firestore, 'risks'),
         where('unitId', '==', userProfile.unitId),
+        where('campusId', '==', userProfile.campusId),
         where('year', '==', selectedYear)
     );
-  }, [firestore, userProfile?.unitId, selectedYear]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
   const { data: digitalRisks } = useCollection<Risk>(digitalRisksQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {

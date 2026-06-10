@@ -145,8 +145,14 @@ export function AuditorOfflineManager() {
             
             if (s.auditPlanId) await getDoc(doc(firestore, 'auditPlans', s.auditPlanId));
             await getDocs(query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', s.id)));
-            if (s.targetId) {
-                await getDocs(query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', s.targetId)));
+            if (s.targetId && s.campusId) {
+                await getDocs(
+                    query(
+                        collection(firestore, 'correctiveActionRequests'), 
+                        where('unitId', '==', s.targetId),
+                        where('campusId', '==', s.campusId)
+                    )
+                );
             }
 
             const rscUrl = `/audit/${s.id}`;

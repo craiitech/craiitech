@@ -153,7 +153,7 @@ export default function SubmissionsPage() {
     if (isSupervisor && userRole !== 'Unit ODIMO' && userProfile.campusId) {
       return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
-    return query(collection(firestore, 'risks'), where('unitId', '==', userProfile.unitId));
+    return query(collection(firestore, 'risks'), where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
   }, [firestore, isInstitutionalViewer, isSupervisor, userRole, userProfile, isUserLoading]);
 
   const { data: allRisks } = useCollection<Risk>(risksQuery);

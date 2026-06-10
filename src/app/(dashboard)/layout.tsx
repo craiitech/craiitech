@@ -180,14 +180,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isInstitutionalViewer = isAdmin || isAuditor;
       if (isInstitutionalViewer) return query(col, where('status', '==', 'For Final Verification'));
       if (isSupervisor) return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
-      return query(col, where('unitId', '==', userProfile.unitId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
+      return query(col, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
   }
 
   const getRisksNotificationQuery = (): Query | null => {
       if (!firestore || !userProfile || !userRole) return null;
       const col = collection(firestore, 'risks');
       if (isAdmin || isSupervisor) return col;
-      if (userProfile.unitId) return query(col, where('unitId', '==', userProfile.unitId));
+      if (userProfile.unitId && userProfile.campusId) return query(col, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
       return null;
   }
 
