@@ -603,7 +603,7 @@ export default function VisitorLogbookPage() {
             </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Footer copyright */}
       <div className="w-full text-center z-10 border-t border-[#D4AF37]/10 pt-4">
