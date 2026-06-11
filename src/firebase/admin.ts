@@ -49,7 +49,11 @@ function initializeAdmin() {
   }
 }
 
+// Global cached database to survive Next.js module re-evaluations
 let cachedDb: admin.firestore.Firestore | null = null;
+if (typeof global !== 'undefined') {
+  cachedDb = (global as any).adminFirestoreDb || null;
+}
 
 /**
  * Returns an initialized Firestore admin instance.
@@ -63,8 +67,12 @@ export function getAdminFirestore() {
   if (!app) {
     return null;
   }
-  cachedDb = admin.firestore(app);
-  return cachedDb;
+  const db = admin.firestore(app);
+  cachedDb = db;
+  if (typeof global !== 'undefined') {
+    (global as any).adminFirestoreDb = db;
+  }
+  return db;
 }
 
 /**
