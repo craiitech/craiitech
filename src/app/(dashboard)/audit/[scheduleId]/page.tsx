@@ -3,7 +3,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc, setDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan, Campus } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan, Campus, Submission } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -184,6 +184,21 @@ export default function AuditExecutionPage() {
   }, [firestore, schedule?.targetId, schedule?.campusId]);
   
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
+
+  const unitSubmissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !schedule?.targetId || !schedule?.campusId || !plan?.year) return null;
+    const unitId = String(schedule.targetId).trim();
+    const campusId = String(schedule.campusId).trim();
+    const year = Number(plan.year);
+    return query(
+        collection(firestore, 'submissions'), 
+        where('unitId', '==', unitId),
+        where('campusId', '==', campusId),
+        where('year', '==', year)
+    );
+  }, [firestore, schedule?.targetId, schedule?.campusId, plan?.year]);
+
+  const { data: unitSubmissions } = useCollection<Submission>(unitSubmissionsQuery);
 
   const clausesInScope = useMemo(() => {
     if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
@@ -546,7 +561,7 @@ export default function AuditExecutionPage() {
                     </Form></CardContent>
                 </Card>
 
-                <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} />
+                <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} unitSubmissions={unitSubmissions || []} />
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary" />2. Final Audit Report Summary</CardTitle><CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription></CardHeader>

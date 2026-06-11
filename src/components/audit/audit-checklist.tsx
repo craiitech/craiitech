@@ -12,11 +12,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import type { AuditFinding, ISOClause, CorrectiveActionRequest } from '@/lib/types';
+import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission } from '@/lib/types';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -33,7 +33,16 @@ interface AuditChecklistProps {
   existingFindings: AuditFinding[];
   onFindingSaved?: (finding: any) => void;
   unitCars: CorrectiveActionRequest[];
+  unitSubmissions: Submission[];
 }
+
+const CLAUSE_EOMS_MAPPING: Record<string, string[]> = {
+  '4.1': ['SWOT Analysis'],
+  '4.2': ['Needs and Expectation of Interested Parties'],
+  '6.1': ['Risk and Opportunity Registry', 'Risk and Opportunity Action Plan'],
+  '6.2': ['Quality Objectives Monitoring'],
+  '8.1': ['Operational Plan'],
+};
 
 interface ClauseFormData {
   evidence: string;
@@ -47,13 +56,15 @@ function ClauseForm({
   clause, 
   finding, 
   onSave,
-  clauseCars
+  clauseCars,
+  clauseSubmissions
 }: { 
   scheduleId: string; 
   clause: ISOClause; 
   finding: AuditFinding | undefined, 
   onSave: (data: any) => void,
-  clauseCars: CorrectiveActionRequest[]
+  clauseCars: CorrectiveActionRequest[],
+  clauseSubmissions: Submission[]
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -166,8 +177,107 @@ function ClauseForm({
       toast({ title: isOnline ? "Record Verified" : "Stored Locally", description: `Audit results for Clause ${clause.id} have been registered.`});
   };
 
+  const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
+  const hasRequiredDocs = requiredDocs.length > 0;
+
   return (
     <div className="space-y-8">
+        {hasRequiredDocs && (
+            <div className="space-y-3 p-5 rounded-2xl border-indigo-200 bg-indigo-50/40 animate-in slide-in-from-top-2 duration-500">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-indigo-700">
+                        <ShieldCheck className="h-4 w-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">
+                            EOMS Document Submissions
+                        </span>
+                    </div>
+                    <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-indigo-200 text-indigo-700">ISO REQUIRED EVIDENCE</Badge>
+                </div>
+                
+                <div className="space-y-3">
+                    {requiredDocs.map(docType => {
+                        const docSubmissions = clauseSubmissions.filter(s => s.reportType === docType);
+                        
+                        if (docSubmissions.length > 0) {
+                            return (
+                                <div key={docType} className="space-y-2">
+                                    <p className="text-[10px] font-black text-indigo-950 uppercase tracking-wide">{docType}</p>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {docSubmissions.map(sub => {
+                                            let statusColor = "bg-slate-500 text-white";
+                                            let statusLabel = sub.statusId || "Pending";
+                                            
+                                            const statusLower = String(sub.statusId || "").toLowerCase();
+                                            if (statusLower === 'approved') {
+                                                statusColor = "bg-emerald-600 text-white";
+                                                statusLabel = "Approved";
+                                            } else if (statusLower === 'rejected') {
+                                                statusColor = "bg-rose-600 text-white";
+                                                statusLabel = "Rejected";
+                                            } else if (statusLower === 'submitted') {
+                                                statusColor = "bg-indigo-600 text-white";
+                                                statusLabel = "Submitted";
+                                            } else if (statusLower === 'pending' || statusLower === 'awaiting approval') {
+                                                statusColor = "bg-amber-500 text-white";
+                                                statusLabel = "Pending";
+                                            }
+
+                                            return (
+                                                <div key={sub.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-indigo-100 shadow-sm">
+                                                    <div className="min-w-0 flex-1 space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge className={cn("h-4 text-[8px] font-black uppercase border-none", statusColor)}>
+                                                                {statusLabel}
+                                                            </Badge>
+                                                            <Badge variant="outline" className="h-4 text-[8px] font-bold text-slate-500 capitalize bg-slate-50/50">
+                                                                {sub.cycleId || "First"} Cycle
+                                                            </Badge>
+                                                            <span className="text-[9px] font-mono font-medium text-slate-400">
+                                                                Rev {String(sub.revision || 0).padStart(2, '0')}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[9px] font-mono text-slate-400 truncate leading-none">
+                                                            {sub.controlNumber}
+                                                        </p>
+                                                    </div>
+                                                    {sub.googleDriveLink ? (
+                                                        <Button 
+                                                            asChild
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-7 text-[9px] font-black uppercase gap-1 text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 shrink-0 ml-4"
+                                                        >
+                                                            <a href={sub.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                                                                View Document <ExternalLink className="h-3 w-3" />
+                                                            </a>
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-[9px] text-slate-400 italic shrink-0 ml-4">No Link Available</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        } else {
+                            return (
+                                <div key={docType} className="flex items-center gap-3 bg-rose-50/60 p-4 rounded-xl border border-rose-100 shadow-inner">
+                                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                                    <div className="space-y-0.5">
+                                        <p className="text-[10px] font-black text-rose-800 uppercase">Missing EOMS Submission</p>
+                                        <p className="text-[9px] text-rose-600 font-medium italic">
+                                            "{docType}" has not been uploaded for this academic year.
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
+                    })}
+                </div>
+            </div>
+        )}
+
         <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary">
@@ -302,7 +412,7 @@ function ClauseForm({
   );
 }
 
-export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved, unitCars }: AuditChecklistProps) {
+export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved, unitCars, unitSubmissions = [] }: AuditChecklistProps) {
   const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
   const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
 
@@ -323,6 +433,8 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
             const hasFinding = findingsMap.has(clause.id);
             const findingType = findingsMap.get(clause.id)?.type;
             const relevantCars = clause.id === '10.1' ? unitCars : unitCars.filter(c => String(c.concerningClause || '').toLowerCase().includes(String(clause.id).toLowerCase()));
+            const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
+            const relevantSubmissions = unitSubmissions.filter(s => requiredDocs.includes(s.reportType));
 
             return (
               <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
@@ -340,7 +452,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                 </AccordionTrigger>
                 <AccordionContent className="pb-8">
                   <div className="rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50">
-                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} />
+                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} clauseSubmissions={relevantSubmissions} />
                   </div>
                 </AccordionContent>
               </AccordionItem>
