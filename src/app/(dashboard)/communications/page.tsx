@@ -47,7 +47,9 @@ import {
   Lightbulb,
   Layers,
   X,
-  Loader2
+  Loader2,
+  BookOpen,
+  ChevronDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -1060,6 +1062,49 @@ export default function CommunicationsPage() {
               </button>
             </div>
 
+            {/* Operational Guide for Logging Form */}
+            <div className="mb-5 border border-slate-100 rounded-xl bg-slate-50/50 p-4">
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer list-none">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-indigo-650" />
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-705">
+                      Operational Guide: {commsMode === 'digital' ? 'Direct Digital Send' : 'Manual Registry Log'}
+                    </span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+                </summary>
+                
+                <div className="mt-3.5 pt-3.5 border-t border-slate-200/60 text-xs text-slate-600 space-y-2.5 text-left">
+                  {commsMode === 'digital' ? (
+                    <>
+                      <p className="font-semibold text-slate-700">
+                        Use this tab to compose and dispatch official digital notifications directly to other offices, campuses, or individual personnel within the EOMS portal.
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1.5 font-medium">
+                        <li><strong>Correspondence Type:</strong> Select the official document classification. Memorandums are restricted by user role permissions.</li>
+                        <li><strong>Reference Number:</strong> Automatically increments from the last record for convenience, but remains fully editable to align with local document control numbering.</li>
+                        <li><strong>Recipient Scope:</strong> Target specific units, campuses, or select individual users directly to route the digital alert.</li>
+                        <li><strong>Google Drive Link:</strong> Provide the shared cloud link containing the official file (ensure view permissions are open to authorized recipients).</li>
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-slate-700">
+                        Use this tab to log paper-based, physical, or external correspondences received or sent outside EOMS to maintain institutional compliance records.
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1.5 font-medium">
+                        <li><strong>Log Direction:</strong> Categorize as <strong>Incoming</strong> (paper mail received) or <strong>Outgoing</strong> (sent externally) to adjust form parameters.</li>
+                        <li><strong>Reference Numbers:</strong> For incoming letters, record the origin office's reference code alongside your locally generated receiving control number.</li>
+                        <li><strong>Sender/Recipient Info:</strong> Log the names and departments of external correspondents involved in the exchange.</li>
+                        <li><strong>Scan Link:</strong> Provide a scanned PDF copy link (e.g. Google Drive) for institutional trace and verification.</li>
+                      </ul>
+                    </>
+                  )}
+                </div>
+              </details>
+            </div>
+
             <form onSubmit={handleLogSubmit} className="space-y-4">
               {/* Log Direction (for Manual Registry Log, moved to top) */}
               {commsMode === 'manual' && (
@@ -1403,6 +1448,47 @@ export default function CommunicationsPage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Operational Guide for Logbook Workspace */}
+        <div className="border border-slate-150 rounded-xl bg-slate-50/50 p-4">
+          <details className="group">
+            <summary className="flex items-center justify-between cursor-pointer list-none">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-indigo-650" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-705">
+                  Operational Guide: {activeTab === 'incoming' ? 'Incoming Correspondence Logbook' : 'Outgoing Correspondence Logbook'}
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+            </summary>
+            
+            <div className="mt-3.5 pt-3.5 border-t border-slate-200/60 text-xs text-slate-600 space-y-2.5 text-left">
+              {activeTab === 'incoming' ? (
+                <>
+                  <p className="font-semibold text-slate-700">
+                    The <strong>Incoming Logbook</strong> registers all official communications received from external agencies (e.g. CHED, SOCOTEC) or other campuses.
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1.5 font-medium">
+                    <li><strong>Tracking Receipt:</strong> Items requiring action are listed below. Unread items display a prominent blue dot status indicator.</li>
+                    <li><strong>Receive Action:</strong> If a record displays a <span className="text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-black">Pending Receipt</span> status, click **"Receive"** to log the official local date of receipt and local tracking number.</li>
+                    <li><strong>Document Access:</strong> Click **"Open Drive"** to view and download the verified attachment files.</li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-slate-700">
+                    The <strong>Outgoing Logbook</strong> tracks all communications dispatched from this office to academic units, campuses, or individual system recipients.
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1.5 font-medium">
+                    <li><strong>Digital vs Manual:</strong> Directly sent digital correspondence shows the destination units. Manually logged hardcopy mail shows the custom destination text.</li>
+                    <li><strong>Traceability:</strong> Outgoing reference numbers are logged as `Orig. Ref` and can be utilized to audit document routing.</li>
+                    <li><strong>Recipients:</strong> Verify the target scope (individual or unit-wide) to make sure documents were dispatched correctly.</li>
+                  </ul>
+                </>
+              )}
+            </div>
+          </details>
         </div>
 
         {/* Tab Contents */}
