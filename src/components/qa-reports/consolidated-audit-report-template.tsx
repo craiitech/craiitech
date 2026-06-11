@@ -6,6 +6,55 @@ import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { parseDate } from '@/lib/utils';
 
+const getSiteNumber = (name: string): number => {
+  const nameUpper = name.toUpperCase();
+  const match = nameUpper.match(/\bSITE\s+(\d+)\b/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 1;
+  if (nameUpper.includes('ROMBLON')) return 2;
+  if (nameUpper.includes('SAN FERNANDO')) return 3;
+  if (nameUpper.includes('CAJIDIOCAN')) return 4;
+  if (nameUpper.includes('SAN AGUSTIN')) return 5;
+  if (nameUpper.includes('CALATRAVA')) return 6;
+  if (nameUpper.includes('SAN JOSE')) return 7;
+  if (nameUpper.includes('SANTA FE')) return 8;
+  if (nameUpper.includes('SANTA MARIA')) return 9;
+  if (nameUpper.includes('ALCANTARA')) return 10;
+  if (nameUpper.includes('BANTON')) return 11;
+  if (nameUpper.includes('CONCEPCION')) return 12;
+  if (nameUpper.includes('CORCUERA')) return 13;
+  return 10;
+};
+
+const getCampusSiteLabel = (name: string): string => {
+  const nameUpper = name.toUpperCase();
+  if (/^SITE\s+\d+\s+-/.test(nameUpper)) {
+    return nameUpper;
+  }
+  const match = nameUpper.match(/\bSITE\s+(\d+)\b/);
+  if (match) {
+    const siteNum = match[1];
+    const cleanName = nameUpper.replace(/\bSITE\s+\d+\b/g, '').replace(/^[\s-:]+/, '').trim();
+    return `SITE ${siteNum} - ${cleanName}`;
+  }
+  if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 'SITE 1 - MAIN CAMPUS';
+  if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
+  if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
+  if (nameUpper.includes('CAJIDIOCAN')) return 'SITE 4 - CAJIDIOCAN CAMPUS';
+  if (nameUpper.includes('SAN AGUSTIN')) return 'SITE 5 - SAN AGUSTIN CAMPUS';
+  if (nameUpper.includes('CALATRAVA')) return 'SITE 6 - CALATRAVA CAMPUS';
+  if (nameUpper.includes('SAN JOSE')) return 'SITE 7 - SAN JOSE CAMPUS';
+  if (nameUpper.includes('SANTA FE')) return 'SITE 8 - SANTA FE CAMPUS';
+  if (nameUpper.includes('SANTA MARIA')) return 'SITE 9 - SANTA MARIA CAMPUS';
+  if (nameUpper.includes('ALCANTARA')) return 'SITE 10 - ALCANTARA CAMPUS';
+  if (nameUpper.includes('BANTON')) return 'SITE 11 - BANTON CAMPUS';
+  if (nameUpper.includes('CONCEPCION')) return 'SITE 12 - CONCEPCION CAMPUS';
+  if (nameUpper.includes('CORCUERA')) return 'SITE 13 - CORCUERA CAMPUS';
+  return nameUpper === 'UNIVERSITY-WIDE' ? nameUpper : `SITE 10 - ${nameUpper}`;
+};
+
 interface ConsolidatedAuditReportTemplateProps {
   plan: AuditPlan;
   schedules: AuditSchedule[];
@@ -177,41 +226,7 @@ function UnitFindingsSection({
   const ofiList = schedules.filter(s => s.summaryOFI);
   const ncList = schedules.filter(s => s.summaryNC || findings.some(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance'));
 
-  const getSiteNumber = (name: string): number => {
-    const nameUpper = name.toUpperCase();
-    if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 1;
-    if (nameUpper.includes('ROMBLON')) return 2;
-    if (nameUpper.includes('SAN FERNANDO')) return 3;
-    if (nameUpper.includes('CAJIDIOCAN')) return 4;
-    if (nameUpper.includes('SAN AGUSTIN')) return 5;
-    if (nameUpper.includes('CALATRAVA')) return 6;
-    if (nameUpper.includes('SAN JOSE')) return 7;
-    if (nameUpper.includes('SANTA FE')) return 8;
-    if (nameUpper.includes('SANTA MARIA')) return 9;
-    if (nameUpper.includes('ALCANTARA')) return 10;
-    if (nameUpper.includes('BANTON')) return 11;
-    if (nameUpper.includes('CONCEPCION')) return 12;
-    if (nameUpper.includes('CORCUERA')) return 13;
-    return 10;
-  };
 
-  const getCampusSiteLabel = (name: string): string => {
-    const nameUpper = name.toUpperCase();
-    if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 'SITE 1 - MAIN CAMPUS';
-    if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
-    if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
-    if (nameUpper.includes('CAJIDIOCAN')) return 'SITE 4 - CAJIDIOCAN CAMPUS';
-    if (nameUpper.includes('SAN AGUSTIN')) return 'SITE 5 - SAN AGUSTIN CAMPUS';
-    if (nameUpper.includes('CALATRAVA')) return 'SITE 6 - CALATRAVA CAMPUS';
-    if (nameUpper.includes('SAN JOSE')) return 'SITE 7 - SAN JOSE CAMPUS';
-    if (nameUpper.includes('SANTA FE')) return 'SITE 8 - SANTA FE CAMPUS';
-    if (nameUpper.includes('SANTA MARIA')) return 'SITE 9 - SANTA MARIA CAMPUS';
-    if (nameUpper.includes('ALCANTARA')) return 'SITE 10 - ALCANTARA CAMPUS';
-    if (nameUpper.includes('BANTON')) return 'SITE 11 - BANTON CAMPUS';
-    if (nameUpper.includes('CONCEPCION')) return 'SITE 12 - CONCEPCION CAMPUS';
-    if (nameUpper.includes('CORCUERA')) return 'SITE 13 - CORCUERA CAMPUS';
-    return `SITE 10 - ${nameUpper}`;
-  };
 
   const commendableSorted = [...commendableList].sort((a, b) => {
     const aName = campusMap.get(a.campusId) || '';
@@ -388,23 +403,7 @@ export function ConsolidatedAuditReportTemplate({
 
   const qaoDirectorName = signatories?.qaoDirector || '____________________';
 
-  const getCampusSiteLabel = (name: string): string => {
-    const nameUpper = name.toUpperCase();
-    if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 'SITE 1 - MAIN CAMPUS';
-    if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
-    if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
-    if (nameUpper.includes('CAJIDIOCAN')) return 'SITE 4 - CAJIDIOCAN CAMPUS';
-    if (nameUpper.includes('SAN AGUSTIN')) return 'SITE 5 - SAN AGUSTIN CAMPUS';
-    if (nameUpper.includes('CALATRAVA')) return 'SITE 6 - CALATRAVA CAMPUS';
-    if (nameUpper.includes('SAN JOSE')) return 'SITE 7 - SAN JOSE CAMPUS';
-    if (nameUpper.includes('SANTA FE')) return 'SITE 8 - SANTA FE CAMPUS';
-    if (nameUpper.includes('SANTA MARIA')) return 'SITE 9 - SANTA MARIA CAMPUS';
-    if (nameUpper.includes('ALCANTARA')) return 'SITE 10 - ALCANTARA CAMPUS';
-    if (nameUpper.includes('BANTON')) return 'SITE 11 - BANTON CAMPUS';
-    if (nameUpper.includes('CONCEPCION')) return 'SITE 12 - CONCEPCION CAMPUS';
-    if (nameUpper.includes('CORCUERA')) return 'SITE 13 - CORCUERA CAMPUS';
-    return nameUpper === 'UNIVERSITY-WIDE' ? nameUpper : `SITE 10 - ${nameUpper}`;
-  };
+
 
   // The display label for the site header when NOT in perCampus mode
   const displayTarget = overrideCampusName ? getCampusSiteLabel(overrideCampusName) : getCampusSiteLabel(campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE');
@@ -419,23 +418,7 @@ export function ConsolidatedAuditReportTemplate({
       schedules: schedules.filter(s => s.campusId === cId),
     }));
 
-    const getSiteNumber = (name: string): number => {
-      const nameUpper = name.toUpperCase();
-      if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 1;
-      if (nameUpper.includes('ROMBLON')) return 2;
-      if (nameUpper.includes('SAN FERNANDO')) return 3;
-      if (nameUpper.includes('CAJIDIOCAN')) return 4;
-      if (nameUpper.includes('SAN AGUSTIN')) return 5;
-      if (nameUpper.includes('CALATRAVA')) return 6;
-      if (nameUpper.includes('SAN JOSE')) return 7;
-      if (nameUpper.includes('SANTA FE')) return 8;
-      if (nameUpper.includes('SANTA MARIA')) return 9;
-      if (nameUpper.includes('ALCANTARA')) return 10;
-      if (nameUpper.includes('BANTON')) return 11;
-      if (nameUpper.includes('CONCEPCION')) return 12;
-      if (nameUpper.includes('CORCUERA')) return 13;
-      return 10;
-    };
+
 
     return sections
       .map(s => ({

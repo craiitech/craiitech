@@ -55,6 +55,15 @@ export default function VisitorLogbookPage() {
 
   const getCampusSitePrefix = (campusName: string): string => {
     const nameUpper = campusName.toUpperCase();
+    if (/^SITE\s+\d+\s+-/.test(nameUpper)) {
+      return nameUpper;
+    }
+    const match = nameUpper.match(/\bSITE\s+(\d+)\b/);
+    if (match) {
+      const siteNum = match[1];
+      const cleanName = nameUpper.replace(/\bSITE\s+\d+\b/g, '').replace(/^[\s-:]+/, '').trim();
+      return `SITE ${siteNum} - ${cleanName}`;
+    }
     if (nameUpper.includes('MAIN')) return 'SITE 1 - MAIN CAMPUS';
     if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
     if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
