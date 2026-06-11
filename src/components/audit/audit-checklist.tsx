@@ -34,6 +34,7 @@ interface AuditChecklistProps {
   onFindingSaved?: (finding: any) => void;
   unitCars: CorrectiveActionRequest[];
   unitSubmissions: Submission[];
+  isIqaUnit?: boolean;
 }
 
 const CLAUSE_EOMS_MAPPING: Record<string, string[]> = {
@@ -57,14 +58,16 @@ function ClauseForm({
   finding, 
   onSave,
   clauseCars,
-  clauseSubmissions
+  clauseSubmissions,
+  isIqaUnit = false
 }: { 
   scheduleId: string; 
   clause: ISOClause; 
   finding: AuditFinding | undefined, 
   onSave: (data: any) => void,
   clauseCars: CorrectiveActionRequest[],
-  clauseSubmissions: Submission[]
+  clauseSubmissions: Submission[],
+  isIqaUnit?: boolean;
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -182,7 +185,7 @@ function ClauseForm({
 
   return (
     <div className="space-y-8">
-        {hasRequiredDocs && (
+        {!isIqaUnit && hasRequiredDocs && (
             <div className="space-y-3 p-5 rounded-2xl border-indigo-200 bg-indigo-50/40 animate-in slide-in-from-top-2 duration-500">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-indigo-700">
@@ -412,7 +415,7 @@ function ClauseForm({
   );
 }
 
-export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved, unitCars, unitSubmissions = [] }: AuditChecklistProps) {
+export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved, unitCars, unitSubmissions = [], isIqaUnit = false }: AuditChecklistProps) {
   const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
   const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
 
@@ -452,7 +455,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                 </AccordionTrigger>
                 <AccordionContent className="pb-8">
                   <div className="rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50">
-                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} clauseSubmissions={relevantSubmissions} />
+                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} clauseSubmissions={relevantSubmissions} isIqaUnit={isIqaUnit} />
                   </div>
                 </AccordionContent>
               </AccordionItem>

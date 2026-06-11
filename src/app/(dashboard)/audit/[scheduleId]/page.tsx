@@ -200,6 +200,14 @@ export default function AuditExecutionPage() {
 
   const { data: unitSubmissions } = useCollection<Submission>(unitSubmissionsQuery);
 
+  const isIqaUnit = useMemo(() => {
+    return schedule?.targetName?.toLowerCase() === 'internal quality audit' || schedule?.targetName?.toLowerCase() === 'iqa';
+  }, [schedule]);
+
+  const isClauseAllowedForIqa = (clauseId: string) => {
+    return clauseId.startsWith('9.') || ['7.2', '7.5', '10.1'].includes(clauseId);
+  };
+
   const clausesInScope = useMemo(() => {
     if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
     return allIsoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
@@ -207,8 +215,15 @@ export default function AuditExecutionPage() {
 
   const unusedClauses = useMemo(() => {
     if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
-    return allIsoClauses.filter(c => !schedule.isoClausesToAudit.includes(c.id));
-  }, [allIsoClauses, schedule?.isoClausesToAudit]);
+    return allIsoClauses.filter(c => {
+      const isUnused = !schedule.isoClausesToAudit.includes(c.id);
+      if (!isUnused) return false;
+      if (isIqaUnit) {
+        return isClauseAllowedForIqa(c.id);
+      }
+      return true;
+    });
+  }, [allIsoClauses, schedule?.isoClausesToAudit, isIqaUnit]);
 
   const form = useForm<z.infer<typeof summarySchema>>({
     resolver: zodResolver(summarySchema),
@@ -561,7 +576,7 @@ export default function AuditExecutionPage() {
                     </Form></CardContent>
                 </Card>
 
-                <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} unitSubmissions={unitSubmissions || []} />
+                <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} unitSubmissions={unitSubmissions || []} isIqaUnit={isIqaUnit} />
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary" />2. Final Audit Report Summary</CardTitle><CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription></CardHeader>

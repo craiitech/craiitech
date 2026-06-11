@@ -97,7 +97,16 @@ export function ExecutiveOverview({
   // 1. SUBMISSION COMPLIANCE RATE
   const approvedSubs = useMemo(() => scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved'), [scopedSubmissions, selectedYear]);
   const pendingSubs = useMemo(() => scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'submitted'), [scopedSubmissions, selectedYear]);
-  const expectedSubs = useMemo(() => scope === 'unit' ? 2 : (scopedUnits.length || 0) * 2, [scopedUnits, scope]); // 2 cycles per unit
+  
+  const isIqaUnit = useMemo(() => {
+    return scope === 'unit' && scopedUnits.some(u => u.name?.toLowerCase() === 'internal quality audit' || u.name?.toLowerCase() === 'iqa');
+  }, [scope, scopedUnits]);
+
+  const nonIqaUnitsForExpected = useMemo(() => {
+    return scopedUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
+  }, [scopedUnits]);
+
+  const expectedSubs = useMemo(() => scope === 'unit' ? (isIqaUnit ? 0 : 2) : (nonIqaUnitsForExpected.length || 0) * 2, [nonIqaUnitsForExpected, scope, isIqaUnit]); // 2 cycles per unit
   const submissionRate = useMemo(() => expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0, [approvedSubs, expectedSubs]);
 
   // 2. IQA PROGRESS RATE
@@ -148,7 +157,7 @@ export function ExecutiveOverview({
   // COMPOSITE EOMS QUALITY SCORE
   const activeMetrics = useMemo(() => {
     const metrics = [
-      { name: 'Submission compliance', value: submissionRate, weight: 0.25, color: 'bg-emerald-500', active: true },
+      { name: 'Submission compliance', value: submissionRate, weight: 0.25, color: 'bg-emerald-500', active: !isIqaUnit },
       { name: 'IQA Audit Progress', value: iqaProgressRate, weight: 0.20, color: 'bg-indigo-500', active: yearSchedules.length > 0 },
       { name: 'CAR Resolution Rate', value: carResolutionRate, weight: 0.20, color: 'bg-rose-500', active: yearCars.length > 0 },
       { name: 'Risk Control Index', value: riskControlRate, weight: 0.15, color: 'bg-amber-500', active: yearRisks.length > 0 },
@@ -156,7 +165,7 @@ export function ExecutiveOverview({
       { name: 'Accreditation Gaps Closed', value: accreditationResolutionRate, weight: 0.10, color: 'bg-teal-500', active: recommendationsList.length > 0 },
     ];
     return metrics.filter(m => m.active);
-  }, [submissionRate, iqaProgressRate, carResolutionRate, riskControlRate, copcComplianceRate, accreditationResolutionRate, yearSchedules, yearCars, yearRisks, totalProgramsCount, recommendationsList]);
+  }, [submissionRate, iqaProgressRate, carResolutionRate, riskControlRate, copcComplianceRate, accreditationResolutionRate, yearSchedules, yearCars, yearRisks, totalProgramsCount, recommendationsList, isIqaUnit]);
 
   const eomsQualityScore = useMemo(() => {
     const totalWeight = activeMetrics.reduce((sum, m) => sum + m.weight, 0);
@@ -176,8 +185,8 @@ export function ExecutiveOverview({
   // Scoped standings/comparison rate
   const complianceStandings = useMemo(() => {
     if (scope === 'campus' && scopeId) {
-      // Find all units belonging to this campus
-      const campusUnits = units?.filter(u => u.campusIds?.includes(scopeId)) || [];
+      // Find all units belonging to this campus (excluding IQA)
+      const campusUnits = units?.filter(u => u.campusIds?.includes(scopeId) && u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa') || [];
       return campusUnits.map(unit => {
         const unitApproved = submissions?.filter(s => s.unitId === unit.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
         const expected = 2; // 2 cycles per unit
@@ -192,11 +201,11 @@ export function ExecutiveOverview({
     } else if (scope === 'unit' && scopeId) {
       return [];
     } else {
-      // University scope
+      // University scope (excluding IQA from expected counts)
       if (!campuses?.length) return [];
       return campuses.map(campus => {
         const campusApproved = submissions?.filter(s => s.campusId === campus.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
-        const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id)).length || 0;
+        const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id) && u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa').length || 0;
         const campusExpected = campusUnitsCount * 2;
         const rate = campusExpected > 0 ? Math.min(100, Math.round((campusApproved / campusExpected) * 100)) : 0;
         return {

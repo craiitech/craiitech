@@ -121,6 +121,28 @@ export function AuditScheduleDialog({
   const watchEnd = form.watch('endTime');
   const watchCategory = form.watch('processCategory');
 
+  const selectedUnit = useMemo(() => {
+    return allUnits.find(u => u.id === watchTargetId);
+  }, [watchTargetId, allUnits]);
+
+  const isIqaUnit = useMemo(() => {
+    return selectedUnit?.name?.toLowerCase() === 'internal quality audit' || selectedUnit?.name?.toLowerCase() === 'iqa';
+  }, [selectedUnit]);
+
+  const isClauseAllowedForIqa = (clauseId: string) => {
+    return clauseId.startsWith('9.') || ['7.2', '7.5', '10.1'].includes(clauseId);
+  };
+
+  useEffect(() => {
+    if (isIqaUnit) {
+      const selected = form.getValues('isoClausesToAudit') || [];
+      const filtered = selected.filter(id => isClauseAllowedForIqa(id));
+      if (filtered.length !== selected.length) {
+        form.setValue('isoClausesToAudit', filtered);
+      }
+    }
+  }, [isIqaUnit, form]);
+
   const auditeesByCategory = useMemo(() => {
     if (!watchCampusId) return { 'Academic': [], 'Administrative': [], 'Research': [], 'Support': [] };
 
@@ -497,6 +519,15 @@ export function AuditScheduleDialog({
                             name="isoClausesToAudit"
                             render={({ field }) => (
                                 <FormItem className="space-y-4">
+                                    {isIqaUnit && (
+                                        <Alert className="bg-amber-50/50 border-amber-200 text-amber-900 py-3">
+                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                            <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-amber-800">IQA Unit Scope Restriction</AlertTitle>
+                                            <AlertDescription className="text-[9px] font-medium leading-relaxed mt-0.5">
+                                                This is the Internal Quality Audit unit. Audit conduct is restricted to <strong>Clause 9 (Performance Evaluation)</strong> and other relevant administrative/quality support clauses (7.2, 7.5, 10.1).
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-[10px] font-black uppercase text-primary">ISO 21001:2018 Clauses in Scope</FormLabel>
                                         <div className="flex items-center gap-2">
@@ -528,13 +559,13 @@ export function AuditScheduleDialog({
                                                     <>
                                                         <CommandEmpty className="p-4 text-center">
                                                             <div className="flex flex-col items-center gap-2">
-                                                                <Database className="h-8 w-8 opacity-10" />
-                                                                <p className="text-xs font-bold text-muted-foreground uppercase">No clauses found in database</p>
-                                                                <p className="text-[10px] text-muted-foreground max-w-[200px]">Ensure you have clicked 'Seed Standard Clauses' in the Audit Hub.</p>
-                                                            </div>
-                                                        </CommandEmpty>
-                                                        <CommandGroup>
-                                                            {isoClauses?.map(c => {
+                                                                 <Database className="h-8 w-8 opacity-10" />
+                                                                 <p className="text-xs font-bold text-muted-foreground uppercase">No clauses found in database</p>
+                                                                 <p className="text-[10px] text-muted-foreground max-w-[200px]">Ensure you have clicked 'Seed Standard Clauses' in the Audit Hub.</p>
+                                                             </div>
+                                                         </CommandEmpty>
+                                                         <CommandGroup>
+                                                             {isoClauses?.filter(c => !isIqaUnit || isClauseAllowedForIqa(c.id)).map(c => {
                                                                 const isSelected = selectedClauses.includes(c.id);
                                                                 return (
                                                                     <CommandItem

@@ -202,9 +202,13 @@ function calculateEomsScore(
     scopedUnits = scopedUnits.filter(u => u.id === scopeId);
   }
 
+  const isIqaUnit = scope === 'unit' && scopedUnits.some(u => u.name?.toLowerCase() === 'internal quality audit' || u.name?.toLowerCase() === 'iqa');
+  const isSubmissionActive = !isIqaUnit;
+
   // 1. SUBMISSION COMPLIANCE RATE
   const approvedSubs = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
-  const expectedSubs = scope === 'unit' ? 2 : (scopedUnits.length || 1) * 2;
+  const nonIqaUnitsForExpected = scopedUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
+  const expectedSubs = scope === 'unit' ? (isIqaUnit ? 0 : 2) : (nonIqaUnitsForExpected.length || 1) * 2;
   const submissionRate = expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0;
 
   // 2. IQA PROGRESS RATE
@@ -249,7 +253,7 @@ function calculateEomsScore(
 
   // Weighted average
   const metrics = [
-    { value: submissionRate, weight: 0.25, active: true },
+    { value: submissionRate, weight: 0.25, active: isSubmissionActive },
     { value: iqaProgressRate, weight: 0.20, active: yearSchedules.length > 0 },
     { value: carResolutionRate, weight: 0.20, active: yearCars.length > 0 },
     { value: riskRate, weight: 0.15, active: yearRisks.length > 0 },
@@ -518,6 +522,11 @@ export default function HomePage() {
 
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
+
+  const nonIqaUnits = useMemo(() => {
+    if (!allUnits) return [];
+    return allUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
+  }, [allUnits]);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
@@ -962,7 +971,7 @@ export default function HomePage() {
         </div>
 
         <TabsContent value="overview" className="space-y-6">
-          <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
+          {!isIqaUser && <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />}
           
           <ExecutiveOverview
             submissions={submissions}
@@ -1178,17 +1187,17 @@ export default function HomePage() {
             <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
           </div>
           <div className="lg:col-span-3 space-y-6">
-            <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
-            <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+            <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={nonIqaUnits} isLoading={isLoadingSubmissions} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+            <Leaderboard allSubmissions={submissions} allUnits={nonIqaUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
           </div>
         </div>
 
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
-        <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
+        <ComplianceHeatmap units={nonIqaUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={nonIqaUnits} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
       </TabsContent>
@@ -1311,11 +1320,11 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
           <div className="lg:col-span-4 space-y-6">
             <Card className="shadow-md"><CardHeader><CardTitle>Campus Progress</CardTitle></CardHeader><CardContent><Overview submissions={submissions} isLoading={isLoadingSubmissions} /></CardContent></Card>
-            <ComplianceHeatmap units={allUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
+            <ComplianceHeatmap units={nonIqaUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
           </div>
           <div className="lg:col-span-3 space-y-6">
-            <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
-            <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+            <CompletedSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+            <UnitsWithoutSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
             <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
           </div>
         </div>
@@ -1351,19 +1360,19 @@ export default function HomePage() {
             <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
           </div>
           <div className="lg:col-span-3 space-y-6">
-            <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
-            <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
-            <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+            <CompletedSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+            <UnitsWithoutSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+            <Leaderboard allSubmissions={submissions} allUnits={nonIqaUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
           </div>
         </div>
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
-        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
-        <ComplianceHeatmap units={allUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={nonIqaUnits} isLoading={isLoadingSubmissions} isAdmin={false} userProfile={userProfile} selectedYear={selectedYear} />
+        <ComplianceHeatmap units={nonIqaUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
       </TabsContent>
 
       <TabsContent value="strategic" className="space-y-6">
         <MaturityRadar campuses={campuses?.filter(c => c.id === userProfile?.campusId) || []} submissions={submissions || []} risks={risks || []} mrOutputs={campusMrOutputs || []} selectedYear={selectedYear} />
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={nonIqaUnits} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
       </TabsContent>
@@ -1669,8 +1678,6 @@ export default function HomePage() {
             Manage submissions, risk registry, and corrective actions for the Internal Quality Audit office itself
           </p>
         </div>
-
-        <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
         
         <UnitActionCenter 
            risks={risks}
