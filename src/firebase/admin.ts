@@ -47,15 +47,18 @@ export function getAdminFirestore() {
   if (cachedDb) {
     return cachedDb;
   }
+  const isAlreadyInitialized = admin.apps.length > 0;
   const app = initializeAdmin();
   if (!app) {
     return null;
   }
   const db = admin.firestore();
-  try {
-    db.settings({ ignoreUndefinedProperties: true });
-  } catch (e) {
-    // Settings can only be configured once, ignore if already set
+  if (!isAlreadyInitialized) {
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch (e) {
+      // Settings can only be configured once, ignore if already set
+    }
   }
   cachedDb = db;
   return db;
