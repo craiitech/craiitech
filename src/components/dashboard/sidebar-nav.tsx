@@ -111,17 +111,30 @@ export function SidebarNav({
       let tableRows = '';
       logs.forEach((log) => {
         const dateStr = log.createdAt?.toDate 
-          ? format(log.createdAt.toDate(), 'MM/dd/yyyy hh:mm a') 
+          ? format(log.createdAt.toDate(), 'MM/dd/yyyy') 
           : 'N/A';
+        const timeInStr = log.createdAt?.toDate 
+          ? format(log.createdAt.toDate(), 'hh:mm a') 
+          : 'N/A';
+        const timeOutStr = log.loggedOutAt?.toDate 
+          ? format(log.loggedOutAt.toDate(), 'hh:mm a') 
+          : '—';
+
         tableRows += `
           <tr>
-            <td style="border: 1px solid black; padding: 8px; font-family: monospace;">${dateStr}</td>
-            <td style="border: 1px solid black; padding: 8px; font-weight: bold;">${log.name}</td>
-            <td style="border: 1px solid black; padding: 8px;">
-              <div style="font-weight: bold; font-size: 11px;">${log.purpose}</div>
-              <div style="margin-top: 4px; font-size: 10px; color: #555;">To Meet: ${log.lookingFor}</div>
+            <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace; font-size: 11px;">${dateStr}</td>
+            <td style="border: 1px solid black; padding: 8px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${log.name}</td>
+            <td style="border: 1px solid black; padding: 8px; font-size: 11px;">
+              <div style="font-weight: bold;">${log.purpose}</div>
+              <div style="margin-top: 3px; font-size: 10px; color: #555; font-weight: bold;">To Meet: ${log.lookingFor}</div>
             </td>
-            <td style="border: 1px solid black; padding: 8px; text-align: center;">${log.sex || 'N/A'}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace; font-size: 11px;">${timeInStr}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace; font-size: 11px;">${timeOutStr}</td>
+            <td style="border: 1px solid black; padding: 6px; text-align: center;">
+              <div style="font-family: 'Georgia', serif; font-style: italic; font-size: 9.5px; word-break: break-word; line-height: 1; font-weight: normal; color: #111; text-transform: uppercase;">
+                ${log.name}
+              </div>
+            </td>
           </tr>
         `;
       });
@@ -132,34 +145,58 @@ export function SidebarNav({
             <title>Visitor Logbook - ${unitName}</title>
             <style>
               @media print {
-                body { margin: 0.5in; font-family: sans-serif; color: black; }
+                body { margin: 0.4in; font-family: Arial, sans-serif; color: black; }
                 .no-print { display: none !important; }
               }
-              body { font-family: sans-serif; padding: 20px; }
-              table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-              th { background-color: #f2f2f2; border: 1px solid black; padding: 10px; text-align: left; text-transform: uppercase; font-size: 10px; font-weight: bold; }
+              body { font-family: Arial, sans-serif; padding: 20px; color: black; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+              th { background-color: #F9D05A; border: 1px solid black; padding: 8px; text-align: center; text-transform: uppercase; font-size: 10px; font-weight: bold; }
+              td { vertical-align: middle; }
             </style>
           </head>
           <body>
-            <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid black; padding-bottom: 10px;">
-              <h2 style="margin: 0; text-transform: uppercase; letter-spacing: 1px;">ROMBLON STATE UNIVERSITY</h2>
-              <h3 style="margin: 5px 0 0 0; text-transform: uppercase; color: #444;">VISITOR LOGBOOK</h3>
-              <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 12px;">OFFICE: ${unitName.toUpperCase()} &bull; DATE EXPORTED: ${formattedDate}</p>
+            <!-- Official Header matching RSU Document Template -->
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 12px; margin-bottom: 20px;">
+              <div style="width: 70px; text-align: left;">
+                <img src="/rsupage.png" style="height: 60px; object-fit: contain;" />
+              </div>
+              <div style="text-align: center; flex: 1; margin: 0 10px;">
+                <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px;">Republic of the Philippines</p>
+                <h2 style="margin: 3px 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px;">ROMBLON STATE UNIVERSITY</h2>
+                <p style="margin: 0; font-size: 11px; font-weight: normal;">Romblon, Philippines</p>
+              </div>
+              <div style="width: 75px; text-align: right;">
+                <img src="/ISOlogo.jpg" style="height: 60px; object-fit: contain;" />
+              </div>
             </div>
+
+            <div style="text-align: center; margin-bottom: 15px;">
+              <h3 style="margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">CLIENT'S AND VISITOR'S LOGBOOK</h3>
+            </div>
+
+            <div style="margin-bottom: 15px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+              <span>CAMPUS / UNIT: </span>
+              <span style="border-bottom: 1px solid black; padding-bottom: 1px; padding-right: 180px; font-weight: normal; margin-left: 5px;">
+                ${unitName.toUpperCase()}
+              </span>
+            </div>
+
             <table>
               <thead>
                 <tr>
-                  <th style="width: 25%;">Date & Time</th>
-                  <th style="width: 30%;">Visitor Name</th>
-                  <th style="width: 35%;">Purpose of Visit & Person Visited</th>
-                  <th style="width: 10%; text-align: center;">Sex</th>
+                  <th style="width: 12%;">Date</th>
+                  <th style="width: 28%;">Visitor / Client name</th>
+                  <th style="width: 28%;">Reason for Visit</th>
+                  <th style="width: 10%;">Time-in</th>
+                  <th style="width: 10%;">Time-out</th>
+                  <th style="width: 12%;">Signature</th>
                 </tr>
               </thead>
               <tbody>
                 ${tableRows}
               </tbody>
             </table>
-            <div style="margin-top: 40px; text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+            <div style="margin-top: 35px; text-align: right; font-size: 9px; font-weight: bold; text-transform: uppercase; color: #555;">
               Generated via RSU EOMS Portal
             </div>
             <script>

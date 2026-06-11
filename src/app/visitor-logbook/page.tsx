@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, Timestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Campus, Unit, SystemSettings } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -98,6 +98,9 @@ export default function VisitorLogbookPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeVisitors, setActiveVisitors] = useState<any[]>([]);
+  const [activeVisitorsLoading, setActiveVisitorsLoading] = useState(true);
+  const [logoutSuccessVisitorName, setLogoutSuccessVisitorName] = useState<string | null>(null);
 
   // Monitor fullscreen changes
   useEffect(() => {
@@ -169,6 +172,52 @@ export default function VisitorLogbookPage() {
     }
   }, [submitSuccess]);
 
+  // Real-time active visitors subscriber
+  useEffect(() => {
+    if (!firestore || !userProfile?.unitId) {
+      setActiveVisitors([]);
+      setActiveVisitorsLoading(false);
+      return;
+    }
+
+    setActiveVisitorsLoading(true);
+    const q = query(
+      collection(firestore, 'visitorLogs'),
+      where('unitId', '==', userProfile.unitId),
+      where('isLoggedOut', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort in-memory by arrival time (createdAt) ascending
+      list.sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeA - timeB;
+      });
+      setActiveVisitors(list);
+      setActiveVisitorsLoading(false);
+    }, (error) => {
+      console.error("Error fetching active visitors:", error);
+      setActiveVisitorsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, userProfile?.unitId]);
+
+  // Logout Success auto-reset effect
+  useEffect(() => {
+    if (logoutSuccessVisitorName) {
+      const timer = setTimeout(() => {
+        setLogoutSuccessVisitorName(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [logoutSuccessVisitorName]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !userProfile) return;
@@ -192,6 +241,8 @@ export default function VisitorLogbookPage() {
         unitId: userProfile.unitId || 'N/A',
         unitName: isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'),
         createdAt: Timestamp.now(),
+        isLoggedOut: false,
+        loggedOutAt: null,
       };
 
       await addDoc(collection(firestore, 'visitorLogs'), logPayload);
@@ -209,6 +260,28 @@ export default function VisitorLogbookPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLogoutVisitor = async (visitorId: string, visitorName: string) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'visitorLogs', visitorId), {
+        isLoggedOut: true,
+        loggedOutAt: Timestamp.now(),
+      });
+      setLogoutSuccessVisitorName(visitorName);
+      toast({
+        title: 'Visitor Logged Out',
+        description: `${visitorName} has logged out successfully.`,
+      });
+    } catch (error) {
+      console.error('Error logging out visitor:', error);
+      toast({
+        title: 'Error Logging Out',
+        description: 'Failed to record checkout. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -259,10 +332,10 @@ export default function VisitorLogbookPage() {
       </div>
 
       {/* Main layout wrapper */}
-      <div className="flex-1 flex flex-col xl:flex-row items-center justify-center gap-8 xl:gap-16 max-w-6xl w-full mx-auto my-8 z-10">
+      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-8 xl:gap-8 max-w-7xl w-full mx-auto my-8 z-10">
         
         {/* Left column: Welcome, date/time info */}
-        <div className="w-full xl:w-1/2 flex flex-col justify-center text-center xl:text-left space-y-6">
+        <div className="w-full xl:w-[28%] flex flex-col justify-center text-center xl:text-left space-y-6">
           <div className="flex justify-center xl:justify-start">
             <div className="relative h-28 w-28 md:h-36 md:w-36 transition-all hover:scale-105 duration-300">
               <Image 
@@ -312,9 +385,9 @@ export default function VisitorLogbookPage() {
             </div>
           )}
         </div>
-
-        {/* Right column: Form Card */}
-        <div className="w-full xl:w-1/2 max-w-lg">
+ 
+        {/* Middle column: Form Card */}
+        <div className="w-full xl:w-[36%] max-w-md flex flex-col justify-start">
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden">
             <CardHeader className="bg-slate-50 border-b border-slate-100 p-6 md:p-8">
               <div className="flex items-center gap-3">
@@ -444,6 +517,91 @@ export default function VisitorLogbookPage() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Right column: Active Visitors Card */}
+        <div className="w-full xl:w-[36%] max-w-md flex flex-col justify-start">
+          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden h-full flex flex-col">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Users2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800">Active Visitors</CardTitle>
+                  <CardDescription className="text-slate-500 text-xs font-bold uppercase mt-0.5">Currently in the Office</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-6 flex-1 overflow-y-auto max-h-[450px]">
+              {activeVisitorsLoading ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-2">
+                  <div className="h-6 w-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Loading list...</span>
+                </div>
+              ) : activeVisitors.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center py-12 space-y-3">
+                  <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <User className="h-6 w-6 opacity-40" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase text-slate-700">No visitors logged in</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">The visitor queue is currently empty.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {activeVisitors.map((visitor) => {
+                    const timeInStr = visitor.createdAt?.toDate 
+                      ? format(visitor.createdAt.toDate(), 'hh:mm a') 
+                      : 'N/A';
+                    return (
+                      <div 
+                        key={visitor.id} 
+                        className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all text-left"
+                      >
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{visitor.name}</h4>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <span>Time-in: <span className="font-mono text-slate-700">{timeInStr}</span></span>
+                            <span>&bull;</span>
+                            <span className="truncate max-w-[150px]">To Meet: <span className="text-slate-700">{visitor.lookingFor}</span></span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleLogoutVisitor(visitor.id, visitor.name)}
+                          className="h-8 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 rounded-lg shadow-sm shrink-0"
+                        >
+                          Logout
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Logout Success Thank You Overlay */}
+      {logoutSuccessVisitorName && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300">
+            <div className="mx-auto relative flex items-center justify-center h-20 w-20 rounded-full bg-emerald-50 border border-emerald-100">
+              <CheckCircle2 className="h-10 w-10 text-emerald-600 animate-bounce" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-800">Thank You, {logoutSuccessVisitorName}!</h3>
+              <p className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">Logout Successful</p>
+            </div>
+            <p className="text-sm font-medium text-slate-600 leading-relaxed">
+              We hope your visit was productive. Thank you for logging your checkout. Please have a safe journey back, and we hope to welcome you again soon!
+            </p>
+          </div>
         </div>
       </div>
 
