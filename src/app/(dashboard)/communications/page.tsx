@@ -1061,6 +1061,22 @@ export default function CommunicationsPage() {
             </div>
 
             <form onSubmit={handleLogSubmit} className="space-y-4">
+              {/* Log Direction (for Manual Registry Log, moved to top) */}
+              {commsMode === 'manual' && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Log Direction</label>
+                  <Select value={manualType} onValueChange={(val: any) => { setManualType(val); resetForm(); }}>
+                    <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
+                      <SelectValue placeholder="Log Direction" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="incoming" className="text-xs font-medium">Incoming (Received Paper/Mail)</SelectItem>
+                      <SelectItem value="outgoing" className="text-xs font-medium">Outgoing (Sent Paper/External)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* KIND */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Correspondence Type</label>
@@ -1074,6 +1090,9 @@ export default function CommunicationsPage() {
                     </SelectItem>
                     <SelectItem value="Office Order" className="text-xs font-medium">Office Order</SelectItem>
                     <SelectItem value="Office Memorandum" className="text-xs font-medium">Office Memorandum</SelectItem>
+                    <SelectItem value="Communication Letter / Request" className="text-xs font-medium">Communication Letter / Request</SelectItem>
+                    <SelectItem value="Invitation" className="text-xs font-medium">Invitation</SelectItem>
+                    <SelectItem value="Transmittal Document" className="text-xs font-medium">Transmittal Document</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1256,18 +1275,6 @@ export default function CommunicationsPage() {
               ) : (
                 <>
                   {/* MANUAL ENTRY LOG */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Log Direction</label>
-                    <Select value={manualType} onValueChange={(val: any) => { setManualType(val); resetForm(); }}>
-                      <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl">
-                        <SelectValue placeholder="Log Direction" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="incoming" className="text-xs font-medium">Incoming (Received Paper/Mail)</SelectItem>
-                        <SelectItem value="outgoing" className="text-xs font-medium">Outgoing (Sent Paper/External)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
 
                   {manualType === 'incoming' ? (
                     <>
@@ -1390,6 +1397,9 @@ export default function CommunicationsPage() {
                 <SelectItem value="Memorandum Order" className="text-xs font-medium">Memorandum Order</SelectItem>
                 <SelectItem value="Office Order" className="text-xs font-medium">Office Order</SelectItem>
                 <SelectItem value="Office Memorandum" className="text-xs font-medium">Office Memorandum</SelectItem>
+                <SelectItem value="Communication Letter / Request" className="text-xs font-medium">Communication Letter / Request</SelectItem>
+                <SelectItem value="Invitation" className="text-xs font-medium">Invitation</SelectItem>
+                <SelectItem value="Transmittal Document" className="text-xs font-medium">Transmittal Document</SelectItem>
               </SelectContent>
             </Select>
           </div>

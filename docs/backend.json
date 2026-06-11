@@ -134,7 +134,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "kind": { "type": "string", "enum": ["Memorandum Order", "Office Order", "Office Memorandum"] },
+        "kind": { "type": "string", "enum": ["Memorandum Order", "Office Order", "Office Memorandum", "Communication Letter / Request", "Invitation", "Transmittal Document"] },
         "subject": { "type": "string" },
         "driveLink": { "type": "string", "format": "uri" },
         "createdAt": { "type": "string", "format": "date-time" },

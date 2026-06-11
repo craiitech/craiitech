@@ -953,7 +953,7 @@ export type ProcedureRevisionRequest = {
 
 // --- COMMUNICATIONS HUB TYPES ---
 
-export type CommunicationKind = 'Memorandum Order' | 'Office Order' | 'Office Memorandum';
+export type CommunicationKind = 'Memorandum Order' | 'Office Order' | 'Office Memorandum' | 'Communication Letter / Request' | 'Invitation' | 'Transmittal Document';
 export type CommunicationRecipientType = 'unit' | 'campus' | 'individual' | 'all';
 
 export type Communication = {
