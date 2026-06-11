@@ -557,6 +557,48 @@ export const helpContent: Record<string, PageHelp> = {
     ]
   },
 
+  // --- COMMUNICATIONS ---
+  '/communications': {
+    title: 'Communications Logbook',
+    description: 'Central management registry for official digital and physical correspondence.',
+    steps: [
+      { title: 'Log or Send', desc: 'Log hardcopy documents under the "Manual Registry Log" or dispatch digital alerts using "Direct Digital Send".' },
+      { title: 'Track Correspondence', desc: 'Browse incoming and outgoing logs to trace official document routes.' },
+      { title: 'Print Logbooks', desc: 'Generate high-fidelity, printable RSU-standard logbook formats for physical filing.' }
+    ],
+    buttons: [
+      { label: 'Log/Send', labelShort: 'New', action: 'Opens the workspace to register a new communication record.' },
+      { label: 'Print Incoming', labelShort: 'Print', action: 'Generates the print-ready incoming correspondence logbook.' },
+      { label: 'Print Outgoing', labelShort: 'Print', action: 'Generates the print-ready outgoing correspondence logbook.' }
+    ]
+  },
+  '/communications?tab=incoming': {
+    title: 'Incoming Communications',
+    description: 'Register and stamp official correspondences received from other units, campuses, or external agencies.',
+    steps: [
+      { title: 'Review Alerts', desc: 'Unread or newly received communications display a prominent status indicator.' },
+      { title: 'Receive Action', desc: 'For digital correspondence marked as "Pending Receipt", click "Receive" to stamp local receiving codes.' },
+      { title: 'Open Attachment', desc: 'Access the shared Google Drive link to view the official scanned PDF copy.' }
+    ],
+    buttons: [
+      { label: 'Receive & Stamp', labelShort: 'Recv', action: 'Opens the stamp dialog to assign local receipt dates and tracking numbers.' },
+      { label: 'Open Drive', labelShort: 'Drive', action: 'Opens the cloud-hosted document scan file in a new tab.' }
+    ]
+  },
+  '/communications?tab=outgoing': {
+    title: 'Outgoing Communications',
+    description: 'Track all official correspondences dispatched from your office to academic units, campuses, or individual system recipients.',
+    steps: [
+      { title: 'Recipient Scope', desc: 'Verify recipient tags to ensure documents were correctly routed to target departments or individuals.' },
+      { title: 'Origin Trace', desc: 'Use original reference codes (Orig. Ref) to audit and trace the document lifecycle.' },
+      { title: 'Registry Log', desc: 'Direct digital sends show target departments; manual logs show destination text.' }
+    ],
+    buttons: [
+      { label: 'Edit Record', labelShort: 'Edit', action: 'Modifies the metadata, subject, or links of an existing log.' },
+      { label: 'Delete Record', labelShort: 'Del', action: 'Removes the registry entry from the database (restricted to admin/ODIMO).' }
+    ]
+  },
+
   // --- SYSTEM SETTINGS ---
   '/settings': {
     title: 'System Administration',

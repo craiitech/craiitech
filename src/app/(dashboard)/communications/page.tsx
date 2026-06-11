@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from 'firebase/firestore';
 import type { Campus, Unit, Communication, CommunicationKind } from '@/lib/types';
@@ -82,8 +83,17 @@ export default function CommunicationsPage() {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
+  const activeTab = (searchParams.get('tab') as 'incoming' | 'outgoing') || 'incoming';
+
+  const setActiveTab = (tab: 'incoming' | 'outgoing') => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
   const [editingCommId, setEditingCommId] = useState<string | null>(null);
