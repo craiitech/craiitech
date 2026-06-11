@@ -315,15 +315,15 @@ export default function VisitorLogbookPage() {
 
         {/* Right column: Form Card */}
         <div className="w-full xl:w-1/2 max-w-lg">
-          <Card className="bg-[#0b2414]/90 border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden backdrop-blur-lg">
-            <CardHeader className="bg-[#1B6535]/10 border-b border-[#D4AF37]/10 p-6 md:p-8">
+          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 p-6 md:p-8">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37]">
+                <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                   <ClipboardList className="h-5 w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-black uppercase tracking-wider text-white">Sign In</CardTitle>
-                  <CardDescription className="text-slate-400 text-xs font-bold uppercase mt-0.5">Please log your credentials below</CardDescription>
+                  <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800">Sign In</CardTitle>
+                  <CardDescription className="text-slate-500 text-xs font-bold uppercase mt-0.5">Please log your credentials below</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -333,11 +333,11 @@ export default function VisitorLogbookPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Visitor Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-[#D4AF37]">
+                    <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                       Your Full Name
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#D4AF37]/60" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input
                         id="visitorName"
                         type="text"
@@ -345,14 +345,14 @@ export default function VisitorLogbookPage() {
                         value={visitorName}
                         onChange={(e) => setVisitorName(e.target.value)}
                         required
-                        className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder-slate-500 rounded-xl focus-visible:ring-1 focus-visible:ring-[#D4AF37] focus-visible:border-transparent transition-all"
+                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Sex Selection */}
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-[#D4AF37]">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                       Sex
                     </Label>
                     <div className="grid grid-cols-2 gap-4">
@@ -361,8 +361,8 @@ export default function VisitorLogbookPage() {
                         onClick={() => setSex('Male')}
                         className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'Male'
-                            ? 'bg-[#1B6535] text-white border-[#D4AF37] shadow-lg shadow-[#1B6535]/30'
-                            : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                            ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
+                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
                         Male
@@ -372,8 +372,8 @@ export default function VisitorLogbookPage() {
                         onClick={() => setSex('Female')}
                         className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'Female'
-                            ? 'bg-[#1B6535] text-white border-[#D4AF37] shadow-lg shadow-[#1B6535]/30'
-                            : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                            ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
+                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
                         Female
@@ -383,11 +383,11 @@ export default function VisitorLogbookPage() {
 
                   {/* Purpose */}
                   <div className="space-y-2">
-                    <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-[#D4AF37]">
+                    <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                       Purpose of Visit
                     </Label>
                     <div className="relative">
-                      <HelpCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#D4AF37]/60" />
+                      <HelpCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input
                         id="purpose"
                         type="text"
@@ -395,18 +395,18 @@ export default function VisitorLogbookPage() {
                         value={purpose}
                         onChange={(e) => setPurpose(e.target.value)}
                         required
-                        className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder-slate-500 rounded-xl focus-visible:ring-1 focus-visible:ring-[#D4AF37] focus-visible:border-transparent transition-all"
+                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Looking For */}
                   <div className="space-y-2">
-                    <Label htmlFor="lookingFor" className="text-[10px] font-black uppercase tracking-wider text-[#D4AF37]">
+                    <Label htmlFor="lookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                       Who are you looking for?
                     </Label>
                     <div className="relative">
-                      <Users2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#D4AF37]/60" />
+                      <Users2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input
                         id="lookingFor"
                         type="text"
@@ -414,7 +414,7 @@ export default function VisitorLogbookPage() {
                         value={lookingFor}
                         onChange={(e) => setLookingFor(e.target.value)}
                         required
-                        className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder-slate-500 rounded-xl focus-visible:ring-1 focus-visible:ring-[#D4AF37] focus-visible:border-transparent transition-all"
+                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                       />
                     </div>
                   </div>
@@ -430,15 +430,15 @@ export default function VisitorLogbookPage() {
                 </form>
               ) : (
                 <div className="flex flex-col items-center justify-center text-center py-6 space-y-4 animate-in zoom-in duration-300">
-                  <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30">
-                    <CheckCircle2 className="h-10 w-10 text-[#D4AF37] animate-pulse" />
+                  <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-emerald-50 border border-emerald-100">
+                    <CheckCircle2 className="h-10 w-10 text-emerald-600 animate-pulse" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-black uppercase text-white">Thank You!</h3>
-                    <p className="text-xs font-bold text-[#D4AF37] uppercase tracking-widest">Your visit has been logged.</p>
+                    <h3 className="text-xl font-black uppercase text-slate-800">Thank You!</h3>
+                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Your visit has been logged.</p>
                   </div>
-                  <p className="text-sm font-medium text-slate-300 max-w-xs pt-2">
-                    Please take a seat. Staff from <span className="font-bold text-emerald-400">{officeName}</span> will assist you shortly.
+                  <p className="text-sm font-medium text-slate-600 max-w-xs pt-2">
+                    Please take a seat. Staff from <span className="font-bold text-emerald-650">{officeName}</span> will assist you shortly.
                   </p>
                 </div>
               )}
