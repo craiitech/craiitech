@@ -166,7 +166,96 @@ export function AuditResultsView({
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`<html><head><title>Audit Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 13in !important; margin: 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; } .no-print { display: none !important; } .break-before-page { page-break-before: always; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }</style></head><body><div id="print-content" style="padding: 0.1in;">${reportHtml}</div></body></html>`);
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Audit Report - ${cName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } .break-before-page { page-break-before: always; } }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) { console.error(err); } finally { setIsProcessingReport(false); }
+  };
+
+  const handlePrintByUnit = () => {
+    if (!kpis?.activePlan || !isoClauses) return;
+    setIsProcessingReport(true);
+    try {
+        const yearPlans = plans.filter(p => p.year === selectedYear);
+        const planIds = new Set(yearPlans.map(p => p.id));
+        
+        let printSchedules = schedules.filter(s => planIds.has(s.auditPlanId));
+        if (!isAdmin) {
+            printSchedules = printSchedules.filter(s => s.auditorId === user?.uid);
+        }
+        if (unitFilter !== 'all') {
+            printSchedules = printSchedules.filter(s => s.targetId === unitFilter);
+        }
+        if (searchTerm) {
+            const low = searchTerm.toLowerCase();
+            printSchedules = printSchedules.filter(s => 
+                s.targetName.toLowerCase().includes(low) || 
+                (s.auditorName || '').toLowerCase().includes(low)
+            );
+        }
+
+        const scheduleIds = new Set(printSchedules.map(s => s.id));
+        const printFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
+
+        const uName = unitFilter !== 'all' 
+            ? (unitMap.get(unitFilter) || 'UNIT')
+            : 'ALL UNITS';
+
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={kpis.activePlan} 
+                schedules={printSchedules} 
+                findings={printFindings} 
+                clauses={isoClauses} 
+                units={units} 
+                campuses={campuses} 
+                signatories={signatories || undefined} 
+                campusName={uName}
+                byUnit={true}
+                unitFilter={unitFilter}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>IQA Report by Unit - ${uName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @page { size: 8.5in 13in !important; margin: 0.5in !important; }
+                        @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } .break-before-page { page-break-before: always; } }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Report</button>
+                    </div>
+                    <div id="print-content" style="padding: 0.1in;">${reportHtml}</div>
+                </body>
+                </html>
+            `);
             printWindow.document.close();
         }
     } catch (err) { console.error(err); } finally { setIsProcessingReport(false); }
@@ -224,10 +313,16 @@ export function AuditResultsView({
                         </SelectContent>
                     </Select>
                 </div>
-                <Button onClick={handlePrintConsolidated} className="font-black uppercase text-[10px] h-10 shadow-lg shadow-primary/20">
-                    {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 mr-1.5" />} 
-                    {campusFilter === 'all' ? 'Print System Report' : `Print ${campusMap.get(campusFilter)} Report`}
-                </Button>
+                <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row gap-2">
+                    <Button onClick={handlePrintConsolidated} className="flex-1 font-black uppercase text-[10px] h-10 shadow-lg shadow-primary/20">
+                        {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />} 
+                        {campusFilter === 'all' ? 'Print IQA Report' : `Print ${campusMap.get(campusFilter)} Report`}
+                    </Button>
+                    <Button onClick={handlePrintByUnit} variant="outline" className="flex-1 h-10 font-black uppercase text-[10px] border-primary/20 text-primary bg-white hover:bg-slate-50 shadow-sm gap-1.5">
+                        {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
+                        Print IQA Report by Unit
+                    </Button>
+                </div>
             </div>
         </CardContent>
       </Card>

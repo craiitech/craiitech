@@ -18,6 +18,10 @@ interface ConsolidatedAuditReportTemplateProps {
   campusName?: string;
   /** When true, render separate sections per campus instead of one combined section. */
   perCampus?: boolean;
+  /** When true, render findings grouped by Unit across Sites instead of by Campus. */
+  byUnit?: boolean;
+  /** Pass the active unit filter for specific unit filtering. */
+  unitFilter?: string;
 }
 
 // A reusable inner component that renders the findings tables for one campus section
@@ -158,6 +162,205 @@ function CampusFindingsSection({
   );
 }
 
+function UnitFindingsSection({
+  unitName,
+  schedules,
+  findings,
+  campusMap,
+}: {
+  unitName: string;
+  schedules: AuditSchedule[];
+  findings: AuditFinding[];
+  campusMap: Map<string, string>;
+}) {
+  const commendableList = schedules.filter(s => s.summaryCommendable);
+  const ofiList = schedules.filter(s => s.summaryOFI);
+  const ncList = schedules.filter(s => s.summaryNC || findings.some(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance'));
+
+  const getSiteNumber = (name: string): number => {
+    const nameUpper = name.toUpperCase();
+    if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 1;
+    if (nameUpper.includes('ROMBLON')) return 2;
+    if (nameUpper.includes('SAN FERNANDO')) return 3;
+    if (nameUpper.includes('CAJIDIOCAN')) return 4;
+    if (nameUpper.includes('SAN AGUSTIN')) return 5;
+    if (nameUpper.includes('CALATRAVA')) return 6;
+    if (nameUpper.includes('SAN JOSE')) return 7;
+    if (nameUpper.includes('SANTA FE')) return 8;
+    if (nameUpper.includes('SANTA MARIA')) return 9;
+    if (nameUpper.includes('ALCANTARA')) return 10;
+    if (nameUpper.includes('BANTON')) return 11;
+    if (nameUpper.includes('CONCEPCION')) return 12;
+    if (nameUpper.includes('CORCUERA')) return 13;
+    return 10;
+  };
+
+  const getCampusSiteLabel = (name: string): string => {
+    const nameUpper = name.toUpperCase();
+    if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 'SITE 1 - MAIN CAMPUS';
+    if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
+    if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
+    if (nameUpper.includes('CAJIDIOCAN')) return 'SITE 4 - CAJIDIOCAN CAMPUS';
+    if (nameUpper.includes('SAN AGUSTIN')) return 'SITE 5 - SAN AGUSTIN CAMPUS';
+    if (nameUpper.includes('CALATRAVA')) return 'SITE 6 - CALATRAVA CAMPUS';
+    if (nameUpper.includes('SAN JOSE')) return 'SITE 7 - SAN JOSE CAMPUS';
+    if (nameUpper.includes('SANTA FE')) return 'SITE 8 - SANTA FE CAMPUS';
+    if (nameUpper.includes('SANTA MARIA')) return 'SITE 9 - SANTA MARIA CAMPUS';
+    if (nameUpper.includes('ALCANTARA')) return 'SITE 10 - ALCANTARA CAMPUS';
+    if (nameUpper.includes('BANTON')) return 'SITE 11 - BANTON CAMPUS';
+    if (nameUpper.includes('CONCEPCION')) return 'SITE 12 - CONCEPCION CAMPUS';
+    if (nameUpper.includes('CORCUERA')) return 'SITE 13 - CORCUERA CAMPUS';
+    return `SITE 10 - ${nameUpper}`;
+  };
+
+  const sortedCommendable = [...commendableList].sort((a, b) => {
+    const aName = campusMap.get(a.campusId) || '';
+    const bName = campusMap.get(b.campusId) || '';
+    return getSiteNumber(aName) - getSiteNumber(bName);
+  });
+
+  const sortedOfi = [...ofiList].sort((a, b) => {
+    const aName = campusMap.get(a.campusId) || '';
+    const bName = campusMap.get(b.campusId) || '';
+    return getSiteNumber(aName) - getSiteNumber(bName);
+  });
+
+  const sortedNc = [...ncList].sort((a, b) => {
+    const aName = campusMap.get(a.campusId) || '';
+    const bName = campusMap.get(b.campusId) || '';
+    return getSiteNumber(aName) - getSiteNumber(bName);
+  });
+
+  return (
+    <div className="space-y-4 break-before-page pt-8 first:pt-0">
+      <h4 className="font-black text-[11pt] uppercase text-slate-800 tracking-widest border-b pb-1">
+        IQA REPORT BY UNIT - ({unitName.toUpperCase()})
+      </h4>
+
+      {/* TABLE 1: COMMENDABLE FINDINGS */}
+      <table className="w-full border-collapse border-[1.5px] border-black">
+        <thead>
+          <tr className="bg-slate-200">
+            <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
+            <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
+            <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Commendable Findings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedCommendable.map((s, i) => {
+            const campusLabel = getCampusSiteLabel(campusMap.get(s.campusId) || 'Unknown Campus');
+            return (
+              <tr key={s.id}>
+                <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
+                <td className="border border-black p-2 text-center align-top">
+                  <p className="font-black uppercase text-[9pt]">{campusLabel}</p>
+                  <p className="text-[8pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                </td>
+                <td className="border border-black p-2 align-top">
+                  <div className="flex gap-2">
+                    <span className="font-black">•</span>
+                    <p className="whitespace-pre-wrap leading-relaxed">{s.summaryCommendable}</p>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+          {sortedCommendable.length === 0 && (
+            <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">No commendable practices recorded for this unit.</td></tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* TABLE 2: RECOMMENDATIONS & OFI */}
+      <div className="space-y-4 pt-4">
+        <p className="leading-relaxed italic">
+          The following recommendations and opportunities for improvement provided by the auditor are intended to contribute to the continuous improvement of the management system of the University.
+        </p>
+        <table className="w-full border-collapse border-[1.5px] border-black">
+          <thead>
+            <tr className="bg-slate-200">
+              <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
+              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
+              <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Recommendation and Opportunities for Improvement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedOfi.map((s, i) => {
+              const campusLabel = getCampusSiteLabel(campusMap.get(s.campusId) || 'Unknown Campus');
+              return (
+                <tr key={s.id}>
+                  <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
+                  <td className="border border-black p-2 text-center align-top">
+                    <p className="font-black uppercase text-[9pt]">{campusLabel}</p>
+                    <p className="text-[8pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                  </td>
+                  <td className="border border-black p-2 align-top whitespace-pre-wrap leading-relaxed italic">
+                    {s.summaryOFI}
+                  </td>
+                </tr>
+              );
+            })}
+            {sortedOfi.length === 0 && (
+              <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">No opportunities for improvement recorded.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* TABLE 3: NON-CONFORMANCES */}
+      <div className="space-y-4 pt-4">
+        <p className="leading-relaxed">
+          The following Non-Conformances were identified by the auditors that require corrective actions.
+        </p>
+        <table className="w-full border-collapse border-[1.5px] border-black">
+          <thead>
+            <tr className="bg-slate-200">
+              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
+              <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Non-Conformances</th>
+              <th className="border border-black p-2 w-[150px] text-center font-black uppercase text-[9pt] leading-tight">ISO 21001:2018 Clauses</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedNc.map((s) => {
+              const ncFindings = findings.filter(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance');
+              const campusLabel = getCampusSiteLabel(campusMap.get(s.campusId) || 'Unknown Campus');
+              return (
+                <tr key={s.id}>
+                  <td className="border border-black p-2 text-center align-top">
+                    <p className="font-black uppercase text-[9pt]">{campusLabel}</p>
+                    <p className="text-[8pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                  </td>
+                  <td className="border border-black p-2 align-top">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        {ncFindings.map((f, fIdx) => (
+                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200">
+                            <p className="text-[9pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
+                            <p className="text-[10pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
+                          </div>
+                        ))}
+                        {ncFindings.length === 0 && s.summaryNC && (
+                            <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="border border-black p-2 text-center align-top font-black text-primary">
+                    {Array.from(new Set(ncFindings.map(f => f.isoClause))).join(', ') || '--'}
+                  </td>
+                </tr>
+              );
+            })}
+            {sortedNc.length === 0 && (
+              <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">Zero non-conformances identified. Full standard compliance verified.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function ConsolidatedAuditReportTemplate({ 
     plan, 
     schedules, 
@@ -168,9 +371,12 @@ export function ConsolidatedAuditReportTemplate({
     signatories,
     campusName: overrideCampusName,
     perCampus = false,
+    byUnit = false,
+    unitFilter = 'all',
 }: ConsolidatedAuditReportTemplateProps) {
   
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const auditDateRange = useMemo(() => {
     if (schedules.length === 0) return '--';
@@ -182,19 +388,85 @@ export function ConsolidatedAuditReportTemplate({
 
   const qaoDirectorName = signatories?.qaoDirector || '____________________';
 
-  // The display label for the site header when NOT in perCampus mode
-  const displayTarget = overrideCampusName || campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE';
+  const getCampusSiteLabel = (name: string): string => {
+    const nameUpper = name.toUpperCase();
+    if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 'SITE 1 - MAIN CAMPUS';
+    if (nameUpper.includes('ROMBLON')) return 'SITE 2 - ROMBLON CAMPUS';
+    if (nameUpper.includes('SAN FERNANDO')) return 'SITE 3 - SAN FERNANDO CAMPUS';
+    if (nameUpper.includes('CAJIDIOCAN')) return 'SITE 4 - CAJIDIOCAN CAMPUS';
+    if (nameUpper.includes('SAN AGUSTIN')) return 'SITE 5 - SAN AGUSTIN CAMPUS';
+    if (nameUpper.includes('CALATRAVA')) return 'SITE 6 - CALATRAVA CAMPUS';
+    if (nameUpper.includes('SAN JOSE')) return 'SITE 7 - SAN JOSE CAMPUS';
+    if (nameUpper.includes('SANTA FE')) return 'SITE 8 - SANTA FE CAMPUS';
+    if (nameUpper.includes('SANTA MARIA')) return 'SITE 9 - SANTA MARIA CAMPUS';
+    if (nameUpper.includes('ALCANTARA')) return 'SITE 10 - ALCANTARA CAMPUS';
+    if (nameUpper.includes('BANTON')) return 'SITE 11 - BANTON CAMPUS';
+    if (nameUpper.includes('CONCEPCION')) return 'SITE 12 - CONCEPCION CAMPUS';
+    if (nameUpper.includes('CORCUERA')) return 'SITE 13 - CORCUERA CAMPUS';
+    return nameUpper === 'UNIVERSITY-WIDE' ? nameUpper : `SITE 10 - ${nameUpper}`;
+  };
 
-  // For perCampus mode: gather distinct campus IDs from the schedules
+  // The display label for the site header when NOT in perCampus mode
+  const displayTarget = overrideCampusName ? getCampusSiteLabel(overrideCampusName) : getCampusSiteLabel(campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE');
+
+  // For perCampus mode: gather distinct campus IDs from the schedules, sorted by Site
   const campusSections = useMemo(() => {
     if (!perCampus) return [];
     const campusIds = Array.from(new Set(schedules.map(s => s.campusId).filter(Boolean)));
-    return campusIds.map(cId => ({
+    const sections = campusIds.map(cId => ({
       campusId: cId,
       campusLabel: campusMap.get(cId) || 'Unknown Campus',
       schedules: schedules.filter(s => s.campusId === cId),
     }));
+
+    const getSiteNumber = (name: string): number => {
+      const nameUpper = name.toUpperCase();
+      if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 1;
+      if (nameUpper.includes('ROMBLON')) return 2;
+      if (nameUpper.includes('SAN FERNANDO')) return 3;
+      if (nameUpper.includes('CAJIDIOCAN')) return 4;
+      if (nameUpper.includes('SAN AGUSTIN')) return 5;
+      if (nameUpper.includes('CALATRAVA')) return 6;
+      if (nameUpper.includes('SAN JOSE')) return 7;
+      if (nameUpper.includes('SANTA FE')) return 8;
+      if (nameUpper.includes('SANTA MARIA')) return 9;
+      if (nameUpper.includes('ALCANTARA')) return 10;
+      if (nameUpper.includes('BANTON')) return 11;
+      if (nameUpper.includes('CONCEPCION')) return 12;
+      if (nameUpper.includes('CORCUERA')) return 13;
+      return 10;
+    };
+
+    return sections
+      .map(s => ({
+        ...s,
+        campusLabel: getCampusSiteLabel(s.campusLabel)
+      }))
+      .sort((a, b) => getSiteNumber(a.campusLabel) - getSiteNumber(b.campusLabel));
   }, [perCampus, schedules, campusMap]);
+
+  // For byUnit mode: gather distinct units from the schedules
+  const unitSections = useMemo(() => {
+    if (!byUnit) return [];
+    
+    if (unitFilter && unitFilter !== 'all') {
+      const uName = unitMap.get(unitFilter) || 'Unknown Unit';
+      return [{
+        unitId: unitFilter,
+        unitLabel: uName,
+        schedules: schedules.filter(s => s.targetId === unitFilter),
+      }];
+    }
+    
+    const unitIds = Array.from(new Set(schedules.map(s => s.targetId).filter(Boolean)));
+    const sections = unitIds.map(uId => ({
+      unitId: uId,
+      unitLabel: unitMap.get(uId) || 'Unknown Unit',
+      schedules: schedules.filter(s => s.targetId === uId),
+    }));
+    
+    return sections.sort((a, b) => a.unitLabel.localeCompare(b.unitLabel));
+  }, [byUnit, unitFilter, schedules, unitMap]);
 
   return (
     <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
@@ -245,8 +517,18 @@ export function ConsolidatedAuditReportTemplate({
           </p>
         </div>
 
-        {perCampus ? (
-          // Per-campus mode: render one section per campus, each starting on a new page
+        {byUnit ? (
+          unitSections.map(({ unitId, unitLabel, schedules: unitSchedules }) => (
+            <UnitFindingsSection
+              key={unitId}
+              unitName={unitLabel}
+              schedules={unitSchedules}
+              findings={findings}
+              campusMap={campusMap}
+            />
+          ))
+        ) : perCampus ? (
+          // Per-campus mode: render one section per campus, each starting on a new page, sorted by Site
           campusSections.map(({ campusId, campusLabel, schedules: campusSchedules }) => (
             <CampusFindingsSection
               key={campusId}
