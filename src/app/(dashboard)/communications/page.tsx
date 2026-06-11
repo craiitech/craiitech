@@ -142,12 +142,12 @@ export default function CommunicationsPage() {
 
   // Role permissions
   // Coordinators and ODIMOs can both receive and log communications
+  const roleLower = userRole?.toLowerCase() || '';
   const isOdimo = isAdmin ||
-    userRole === 'Unit ODIMO' ||
-    userRole === 'Campus ODIMO' ||
-    userRole?.toLowerCase().includes('coordinator');
-  const isCampusOdimo = userRole === 'Campus ODIMO';
-  const isPresident = userRole?.toLowerCase().includes('president') || isAdmin;
+    roleLower.includes('odimo') ||
+    roleLower.includes('coordinator');
+  const isCampusOdimo = roleLower === 'campus odimo';
+  const isPresident = roleLower.includes('president') || isAdmin;
 
   /**
    * receivingKey: the Firestore field key used inside recipientRefNums.
@@ -1682,7 +1682,7 @@ export default function CommunicationsPage() {
                     )}
                   </div>
 
-                  {activeTab === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[userProfile?.unitId || ''] && (
+                  {activeTab === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[receivingKey] && (
                     <div className="pt-4 border-t space-y-2">
                       <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Incoming Receipt</h5>
                       <Button

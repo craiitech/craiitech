@@ -289,7 +289,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const commNotificationsCount = useMemo(() => {
     if (!commsNotifications || !userProfile) return 0;
     const currentYear = new Date().getFullYear();
-    const isOdimo = isAdmin || userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator');
+    const roleLower = userRole?.toLowerCase() || '';
+    const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
 
     return commsNotifications.filter(c => {
       if (c.senderUnitId === userProfile.unitId) return false;

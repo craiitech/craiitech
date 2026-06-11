@@ -345,11 +345,20 @@ export function SidebarNav({
         const isPresident = roleLower.includes('president');
         const isQmsHead = roleLower.includes('quality management system head') || roleLower.includes('qms head');
         
-        if (route.roles.includes(userRole)) return true;
-        if (isVp && route.roles.includes('Vice President')) return true;
-        if (isPresident && (route.roles.includes('Vice President') || route.roles.includes('Campus Director') || route.roles.includes('Admin'))) return true;
-        if (isQmsHead && (route.roles.includes('Campus Director') || route.roles.includes('Admin'))) return true;
-        if (userRole === 'Faculty' && (route.roles.includes('Unit Coordinator') || route.roles.includes('Unit ODIMO'))) return true;
+        if (route.roles.some(r => r.toLowerCase() === roleLower)) return true;
+        if (isVp && route.roles.some(r => r.toLowerCase() === 'vice president')) return true;
+        if (isPresident && route.roles.some(r => {
+          const rLower = r.toLowerCase();
+          return rLower === 'vice president' || rLower === 'campus director' || rLower === 'admin';
+        })) return true;
+        if (isQmsHead && route.roles.some(r => {
+          const rLower = r.toLowerCase();
+          return rLower === 'campus director' || rLower === 'admin';
+        })) return true;
+        if (roleLower === 'faculty' && route.roles.some(r => {
+          const rLower = r.toLowerCase();
+          return rLower === 'unit coordinator' || rLower === 'unit odimo';
+        })) return true;
     }
     return false;
   });
