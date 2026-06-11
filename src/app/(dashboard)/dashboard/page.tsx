@@ -42,7 +42,10 @@ import {
   GraduationCap,
   ListChecks,
   Zap,
-  TriangleAlert
+  TriangleAlert,
+  Plus,
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 import {
   useUser,
@@ -102,6 +105,10 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
+import { AuditorPortfolioDialog } from '@/components/dashboard/auditor-portfolio-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { AuditAnalytics } from '@/components/audit/audit-analytics';
+import { AuditResultsView } from '@/components/audit/audit-results-view';
 import { ChedProgramsTab } from '@/components/dashboard/executive/ched-programs-tab';
 import { RiskOpportunityTab } from '@/components/dashboard/executive/risk-opportunity-tab';
 import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
@@ -434,10 +441,59 @@ const FullScreenLoader = () => (
 
 export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor } = useUser();
+  const { toast } = useToast();
   const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const handleAddPortfolio = async (values: any) => {
+    if (!firestore || !userProfile) return;
+    const userRef = doc(firestore, 'users', userProfile.id);
+    const currentPortfolios = userProfile.portfolios || [];
+    const newItem = {
+      id: Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(),
+      title: values.title,
+      googleDriveLink: values.googleDriveLink,
+      dateAcquired: values.dateAcquired,
+    };
+    const updatedPortfolios = [...currentPortfolios, newItem];
+    try {
+      await updateDoc(userRef, { portfolios: updatedPortfolios });
+      toast({
+        title: "Portfolio item added",
+        description: `Successfully added "${values.title}" to your portfolio.`,
+      });
+    } catch (error) {
+      console.error('Error adding portfolio item:', error);
+      toast({
+        title: "Error adding item",
+        description: "Failed to save portfolio item to your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePortfolio = async (itemId: string) => {
+    if (!firestore || !userProfile) return;
+    const userRef = doc(firestore, 'users', userProfile.id);
+    const currentPortfolios = userProfile.portfolios || [];
+    const updatedPortfolios = currentPortfolios.filter(item => item.id !== itemId);
+    try {
+      await updateDoc(userRef, { portfolios: updatedPortfolios });
+      toast({
+        title: "Portfolio item deleted",
+        description: "The portfolio item has been removed.",
+      });
+    } catch (error) {
+      console.error('Error deleting portfolio item:', error);
+      toast({
+        title: "Error deleting item",
+        description: "Failed to delete portfolio item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const currentTab = searchParams.get('tab') || 'overview';
 
@@ -445,6 +501,7 @@ export default function HomePage() {
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
+  const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
 
   const roleLower = userRole?.toLowerCase() || '';
   const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
@@ -546,11 +603,13 @@ export default function HomePage() {
   }, [allCompliances, userProfile]);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || (!isUniversityExecutive && !isCampusSupervisor)) return null;
+    if (!firestore) return null;
     const baseRef = collection(firestore, 'users');
-    if (isUniversityExecutive) return baseRef;
-    return query(baseRef, where('campusId', '==', userProfile?.campusId));
-  }, [firestore, isUniversityExecutive, isCampusSupervisor, userProfile]);
+    const isIqaUser = userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
+    if (isUniversityExecutive || isIqaUser) return baseRef;
+    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile?.campusId));
+    return null;
+  }, [firestore, isUniversityExecutive, isCampusSupervisor, userProfile, userRole, allUnits]);
 
   const { data: allUsersData } = useCollection<AppUser>(usersQuery);
 
@@ -560,6 +619,51 @@ export default function HomePage() {
     if (userProfile && !userMap.has(userProfile.id)) userMap.set(userProfile.id, userProfile);
     return userMap;
   }, [allUsersData, userProfile]);
+
+  const auditors = useMemo(() => {
+    if (!allUsersData) return [];
+    return allUsersData.filter(u => u.role?.toLowerCase() === 'auditor' || u.roleId?.toLowerCase() === 'auditor');
+  }, [allUsersData]);
+
+  const getAuditorPerformance = (auditorId: string) => {
+    const auditorSchedules = dashboardSchedules?.filter(s => {
+      if (!s.scheduledDate) return false;
+      const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+      return date.getFullYear() === selectedYear && s.auditorId === auditorId;
+    }) || [];
+
+    const assignedCount = auditorSchedules.length;
+    const completedCount = auditorSchedules.filter(s => s.status === 'Completed').length;
+
+    let totalClauses = 0;
+    let auditedClauses = 0;
+
+    auditorSchedules.forEach(s => {
+      if (!s.isoClausesToAudit) return;
+      totalClauses += s.isoClausesToAudit.length;
+      
+      const scheduleFindings = allAuditFindings?.filter(f => f.auditScheduleId === s.id) || [];
+      const findingClauses = new Set(scheduleFindings.map(f => f.isoClause));
+      
+      s.isoClausesToAudit.forEach(clause => {
+        if (findingClauses.has(clause)) {
+          auditedClauses++;
+        }
+      });
+    });
+
+    const utilizationRate = totalClauses > 0 ? Math.round((auditedClauses / totalClauses) * 100) : 0;
+    const findingsLoggedCount = allAuditFindings?.filter(f => f.authorId === auditorId).length || 0;
+
+    return {
+      assignedCount,
+      completedCount,
+      utilizationRate,
+      findingsLoggedCount,
+      totalClauses,
+      auditedClauses
+    };
+  };
 
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
@@ -610,12 +714,12 @@ export default function HomePage() {
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
-    if (isUniversityExecutive) return baseRef;
-    if (userRole === 'Auditor') return query(baseRef, where('auditorId', '==', userProfile.id));
+    const isIqaUser = userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
+    if (isUniversityExecutive || isIqaUser) return baseRef;
     if (isCampusLevel && userProfile.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
     if (userProfile.unitId) return query(baseRef, where('targetId', '==', userProfile.unitId));
     return null;
-  }, [firestore, userProfile, isUniversityExecutive, isCampusLevel, isUserLoading, userRole]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusLevel, isUserLoading, userRole, allUnits]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
@@ -624,14 +728,14 @@ export default function HomePage() {
     const mySchedules = dashboardSchedules.filter(s => {
       if (!s.scheduledDate) return false;
       const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
-      return date.getFullYear() === selectedYear;
+      return date.getFullYear() === selectedYear && s.auditorId === userProfile?.id;
     });
     return [...mySchedules].sort((a, b) => {
       const aDate = a.scheduledDate?.toDate ? a.scheduledDate.toDate() : new Date(a.scheduledDate);
       const bDate = b.scheduledDate?.toDate ? b.scheduledDate.toDate() : new Date(b.scheduledDate);
       return aDate.getTime() - bDate.getTime();
     });
-  }, [dashboardSchedules, selectedYear]);
+  }, [dashboardSchedules, selectedYear, userProfile]);
 
   const assignedRecommendations = useMemo(() => {
     if (!allCompliances || !userProfile) return [];
@@ -1335,6 +1439,10 @@ export default function HomePage() {
         <ScrollArea className="w-full mt-4">
           <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
             <TabsTrigger value="audit"><ClipboardCheck className="mr-2 h-4 w-4" />Audit Focus</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />IQA Analytics</TabsTrigger>
+            <TabsTrigger value="results"><ListChecks className="mr-2 h-4 w-4" />Audit Results & Findings</TabsTrigger>
+            <TabsTrigger value="portfolio"><Briefcase className="mr-2 h-4 w-4" />Portfolio & Performance</TabsTrigger>
+            <TabsTrigger value="unit-compliance"><HomeIcon className="mr-2 h-4 w-4" />Unit Self-Compliance</TabsTrigger>
             <TabsTrigger value="quality-score"><Award className="mr-2 h-4 w-4" />University EOMS Quality Score</TabsTrigger>
           </TabsList>
         </ScrollArea>
@@ -1366,6 +1474,242 @@ export default function HomePage() {
         />
       </TabsContent>
 
+      <TabsContent value="portfolio" className="space-y-6 animate-in fade-in duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="shadow-md border-primary/10 bg-white animate-in fade-in slide-in-from-bottom duration-300">
+              <CardHeader className="bg-primary/5 pb-4 border-b">
+                <CardTitle className="text-sm font-black uppercase tracking-tight text-[#1B6535]">
+                  Audit Performance Metrics
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
+                  My evaluation statistics for AY {selectedYear}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-slate-500">Checklist Utilization Rate</span>
+                    <span className="text-[#1B6535] text-xs">
+                      {getAuditorPerformance(userProfile?.id || '').utilizationRate}%
+                    </span>
+                  </div>
+                  <Progress 
+                    value={getAuditorPerformance(userProfile?.id || '').utilizationRate} 
+                    className="h-2 bg-slate-100"
+                  />
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                    {getAuditorPerformance(userProfile?.id || '').auditedClauses} of {getAuditorPerformance(userProfile?.id || '').totalClauses} scheduled ISO clauses audited
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                      Assigned Audits
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <ClipboardCheck className="h-4 w-4 text-[#1B6535]" />
+                      <span className="text-xl font-black text-slate-800 tabular-nums">
+                        {getAuditorPerformance(userProfile?.id || '').assignedCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                      Completed Audits
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xl font-black text-slate-800 tabular-nums">
+                        {getAuditorPerformance(userProfile?.id || '').completedCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 col-span-2">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                      Findings Logged
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-amber-500" />
+                      <span className="text-xl font-black text-slate-800 tabular-nums">
+                        {getAuditorPerformance(userProfile?.id || '').findingsLoggedCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2">
+            <Card className="shadow-md border-primary/10 bg-white animate-in fade-in slide-in-from-bottom duration-300 delay-100">
+              <CardHeader className="bg-primary/5 pb-4 border-b flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-black uppercase tracking-tight text-[#1B6535]">
+                    Professional Portfolio & Qualifications
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
+                    Certificates of training, seminar attendances, and competence evidence
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={() => setIsPortfolioDialogOpen(true)}
+                  size="sm"
+                  className="h-8 rounded-xl font-black text-[10px] uppercase tracking-wider px-3"
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Add Portfolio
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {!userProfile?.portfolios || userProfile.portfolios.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-center">
+                    <Award className="h-10 w-10 text-slate-300 stroke-[1.5] mb-3" />
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500">
+                      No credentials registered
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 max-w-[280px]">
+                      Upload your EOMS certificates, ISO training, and seminars to demonstrate competency.
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader className="bg-slate-50/50">
+                      <TableRow>
+                        <TableHead className="pl-6 py-3 text-[9px] font-black uppercase tracking-wider">Title</TableHead>
+                        <TableHead className="py-3 text-[9px] font-black uppercase tracking-wider">Date Acquired</TableHead>
+                        <TableHead className="text-right pr-6 py-3 text-[9px] font-black uppercase tracking-wider">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userProfile.portfolios.map((item) => (
+                        <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                          <TableCell className="pl-6 py-4">
+                            <span className="font-bold text-xs text-slate-800 uppercase block">
+                              {item.title}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 text-xs font-medium text-slate-500 tabular-nums">
+                            {format(new Date(item.dateAcquired), 'MMMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell className="text-right pr-6 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 rounded-lg text-slate-500 border-slate-200 hover:text-slate-800"
+                                asChild
+                              >
+                                <a 
+                                  href={item.googleDriveLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 rounded-lg text-rose-600 border-rose-100 hover:bg-rose-50/50 hover:border-rose-200"
+                                onClick={() => handleDeletePortfolio(item.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="analytics" className="space-y-6 animate-in fade-in duration-500">
+        <AuditAnalytics 
+          plans={allAuditPlans || []}
+          schedules={dashboardSchedules || []}
+          findings={allAuditFindings || []}
+          isoClauses={allIsoClauses || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          users={allUsersData || []}
+          isLoading={isLoadingSchedules}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="results" className="space-y-6 animate-in fade-in duration-500">
+        <AuditResultsView 
+          selectedYear={selectedYear}
+          plans={allAuditPlans || []}
+          schedules={dashboardSchedules || []}
+          findings={allAuditFindings || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          cars={allCars || []}
+          isLoading={isLoadingSchedules}
+        />
+      </TabsContent>
+
+      <TabsContent value="unit-compliance" className="space-y-6 animate-in fade-in duration-500">
+        <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 mb-6">
+          <h3 className="font-black text-sm text-[#1B6535] uppercase flex items-center gap-2">
+            <ClipboardCheck className="h-4.5 w-4.5" /> Unit Self-Audit Compliance
+          </h3>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
+            Manage submissions, risk registry, and corrective actions for the Internal Quality Audit office itself
+          </p>
+        </div>
+
+        <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
+        
+        <UnitActionCenter 
+           risks={risks}
+           unitCars={unitCars}
+           unitMrOutputs={unitMrOutputs}
+           unitRecommendations={unitRecommendations}
+           dashboardSchedules={dashboardSchedules}
+           plans={allAuditPlans || []}
+           findings={allAuditFindings || []}
+           isoClauses={allIsoClauses || []}
+           campuses={campuses || []}
+           units={allUnits || []}
+           signatories={signatories || undefined}
+           isLoading={isLoadingRisks || isLoadingSchedules}
+           unitName={allUnits?.find(u => u.id === userProfile?.unitId)?.name || 'Internal Quality Audit'}
+        />
+
+        <UnitAuditSchedule
+          schedules={dashboardSchedules}
+          isLoading={isLoadingSchedules || isLoadingSubmissions}
+          isSupervisor={false}
+          campusName={campusMap.get(userProfile?.campusId || '')}
+          plans={allAuditPlans || []}
+          findings={allAuditFindings || []}
+          isoClauses={allIsoClauses || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          signatories={signatories || undefined}
+          recommendations={assignedRecommendations}
+          selectedYear={selectedYear}
+          academicPrograms={filteredAcademicPrograms}
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={filteredCompliances}
+          submissions={submissions || []}
+          showDecisionSupport={true}
+        />
+      </TabsContent>
+
       <TabsContent value="quality-score" className="space-y-6 animate-in fade-in duration-500">
         <ExecutiveOverview
           submissions={submissions}
@@ -1384,8 +1728,9 @@ export default function HomePage() {
   );
 
   const renderHomeContent = () => {
+    const isIqaUser = userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
     if (isUniversityExecutive) return renderAdminHome();
-    if (userRole === 'Auditor') return renderAuditorHome();
+    if (isIqaUser) return renderAuditorHome();
     if (isCampusSupervisor) return renderSupervisorHome();
     return renderUnitUserHome();
   };
@@ -1420,6 +1765,12 @@ export default function HomePage() {
 
 
       {renderHomeContent()}
+
+      <AuditorPortfolioDialog
+        open={isPortfolioDialogOpen}
+        onOpenChange={setIsPortfolioDialogOpen}
+        onSave={handleAddPortfolio}
+      />
 
       {selectedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">

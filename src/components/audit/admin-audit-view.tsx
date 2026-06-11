@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck, Printer } from 'lucide-react';
+import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck, Printer, Briefcase, Users, ExternalLink } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -32,6 +32,7 @@ import { seedIsoClausesClient } from '@/lib/iso-seeder';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { format } from 'date-fns';
+import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,6 +103,53 @@ export function AdminAuditView() {
   
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+
+  const auditors = useMemo(() => {
+    if (!users) return [];
+    return users.filter(u => u.role?.toLowerCase() === 'auditor' || u.roleId?.toLowerCase() === 'auditor');
+  }, [users]);
+
+  const getAuditorPerformance = (auditorId: string) => {
+    const auditorSchedules = schedules?.filter(s => {
+      if (!s.scheduledDate) return false;
+      const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
+      return date.getFullYear() === selectedYear && s.auditorId === auditorId;
+    }) || [];
+
+    const assignedCount = auditorSchedules.length;
+    const completedCount = auditorSchedules.filter(s => s.status === 'Completed').length;
+
+    let totalClauses = 0;
+    let auditedClauses = 0;
+
+    auditorSchedules.forEach(s => {
+      if (!s.isoClausesToAudit) return;
+      totalClauses += s.isoClausesToAudit.length;
+      
+      const scheduleFindings = findings?.filter(f => f.auditScheduleId === s.id) || [];
+      const findingClauses = new Set(scheduleFindings.map(f => f.isoClause));
+      
+      s.isoClausesToAudit.forEach(clause => {
+        if (findingClauses.has(clause)) {
+          auditedClauses++;
+        }
+      });
+    });
+
+    const utilizationRate = totalClauses > 0 ? Math.round((auditedClauses / totalClauses) * 100) : 0;
+    const findingsLoggedCount = findings?.filter(f => f.authorId === auditorId).length || 0;
+
+    return {
+      assignedCount,
+      completedCount,
+      utilizationRate,
+      findingsLoggedCount,
+      totalClauses,
+      auditedClauses
+    };
+  };
 
   const [reportCampusFilter, setReportCampusFilter] = useState<string>('all');
   const [reportUnitFilter, setReportUnitFilter] = useState<string>('all');
@@ -417,6 +465,9 @@ export function AdminAuditView() {
                     <TabsTrigger value="reporting" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                         <Printer className="h-3.5 w-3.5" /> Audit Reporting
                     </TabsTrigger>
+                    <TabsTrigger value="portfolios" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-[#1B6535] data-[state=active]:text-white">
+                        <Briefcase className="h-3.5 w-3.5" /> Auditor Portfolios
+                    </TabsTrigger>
                 </TabsList>
             </ScrollArea>
         </div>
@@ -625,6 +676,146 @@ export function AdminAuditView() {
                                     })}
                                 </TableBody>
                             </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+        <TabsContent value="portfolios" className="space-y-6 animate-in fade-in duration-500">
+            <Card className="shadow-md border-primary/10 overflow-hidden">
+                <CardHeader className="bg-primary/5 border-b py-4">
+                    <CardTitle className="text-lg font-black uppercase text-primary tracking-wide">
+                        Auditor Portfolios & Competency Records
+                    </CardTitle>
+                    <CardDescription className="text-xs font-bold uppercase tracking-widest text-primary/70 mt-1">
+                        Oversight of auditor qualifications, certification records, and online checklist utilization.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    {isLoading ? (
+                        <div className="flex flex-col justify-center items-center h-64 gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Loading Portfolios...</p>
+                        </div>
+                    ) : auditors.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center p-12 text-center">
+                            <Users className="h-10 w-10 text-slate-300 stroke-[1.5] mb-3" />
+                            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500">
+                                No Auditors Registered
+                            </h3>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                                There are no users with the Auditor role found in the database.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-100">
+                            {auditors.map((auditor) => {
+                                const performance = getAuditorPerformance(auditor.id);
+                                return (
+                                    <div key={auditor.id} className="p-6 hover:bg-slate-50/30 transition-colors">
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            {/* Auditor Profile Info */}
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <h3 className="font-black text-sm text-[#1B6535] uppercase">
+                                                        {auditor.firstName} {auditor.lastName}
+                                                    </h3>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mt-0.5">
+                                                        {campusMap.get(auditor.campusId) || 'Main'} Campus &bull; {auditor.email}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Performance Mini Grid */}
+                                                <div className="grid grid-cols-3 gap-2 pt-2">
+                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
+                                                            Assigned
+                                                        </span>
+                                                        <span className="text-xs font-black text-slate-800 tabular-nums">
+                                                            {performance.assignedCount}
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
+                                                            Completed
+                                                        </span>
+                                                        <span className="text-xs font-black text-slate-800 tabular-nums">
+                                                            {performance.completedCount}
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
+                                                            Findings
+                                                        </span>
+                                                        <span className="text-xs font-black text-slate-800 tabular-nums">
+                                                            {performance.findingsLoggedCount}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                                        <span>Checklist Utilization</span>
+                                                        <span className="font-black text-[#1B6535]">{performance.utilizationRate}%</span>
+                                                    </div>
+                                                    <Progress value={performance.utilizationRate} className="h-1.5" />
+                                                    <span className="text-[8px] text-slate-400 font-medium tracking-wide block">
+                                                        {performance.auditedClauses} of {performance.totalClauses} scheduled clauses audited
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Auditor Portfolios List */}
+                                            <div className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-3">
+                                                    Qualifications & Portfolio Files ({auditor.portfolios?.length || 0})
+                                                </span>
+
+                                                {!auditor.portfolios || auditor.portfolios.length === 0 ? (
+                                                    <div className="bg-slate-50/50 border border-dashed rounded-xl p-4 text-center">
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                                                            No portfolio items uploaded by this auditor.
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                        {auditor.portfolios.map((portfolio) => (
+                                                            <div 
+                                                                key={portfolio.id} 
+                                                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:border-[#1B6535]/20 hover:shadow-sm transition-all"
+                                                            >
+                                                                <div className="space-y-0.5 truncate mr-2">
+                                                                    <span className="font-bold text-[10px] text-slate-700 uppercase leading-snug truncate block">
+                                                                        {portfolio.title}
+                                                                    </span>
+                                                                    <span className="text-[8px] font-medium text-slate-400 block">
+                                                                        Acquired: {format(new Date(portfolio.dateAcquired), 'MM/dd/yyyy')}
+                                                                    </span>
+                                                                </div>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 rounded-lg text-[#1B6535] hover:text-[#1B6535] hover:bg-[#1B6535]/5 shrink-0"
+                                                                    asChild
+                                                                >
+                                                                    <a 
+                                                                        href={portfolio.googleDriveLink} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                    >
+                                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                                    </a>
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </CardContent>

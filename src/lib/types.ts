@@ -13,6 +13,13 @@ export type UserAccessibility = {
   themeColor?: 'default' | 'blue' | 'green' | 'maroon' | 'gold';
 };
 
+export type PortfolioItem = {
+  id: string;
+  title: string;
+  googleDriveLink: string;
+  dateAcquired: string;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -29,6 +36,7 @@ export type User = {
   lastSeen?: any;
   accessibility?: UserAccessibility;
   lastSeenVersion?: string; // Track the last changelog version seen by the user
+  portfolios?: PortfolioItem[];
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';
