@@ -37,17 +37,27 @@ function initializeAdmin() {
   }
 }
 
+let cachedDb: admin.firestore.Firestore | null = null;
+
 /**
  * Returns an initialized Firestore admin instance.
  * Returns null if initialization fails instead of throwing to prevent crash loops.
  */
 export function getAdminFirestore() {
+  if (cachedDb) {
+    return cachedDb;
+  }
   const app = initializeAdmin();
   if (!app) {
     return null;
   }
   const db = admin.firestore();
-  db.settings({ ignoreUndefinedProperties: true });
+  try {
+    db.settings({ ignoreUndefinedProperties: true });
+  } catch (e) {
+    // Settings can only be configured once, ignore if already set
+  }
+  cachedDb = db;
   return db;
 }
 
