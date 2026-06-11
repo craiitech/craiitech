@@ -516,6 +516,9 @@ export default function HomePage() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
+
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'submissions');
@@ -664,9 +667,6 @@ export default function HomePage() {
       auditedClauses
     };
   };
-
-  const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
   const campusMrOutputs = useMemo(() => {
     if (!mrOutputs || !userProfile?.campusId || !allUnits) return [];
