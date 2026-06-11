@@ -12,21 +12,33 @@ function initializeAdmin() {
   }
 
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
+  let app: admin.app.App;
 
   try {
     if (serviceAccountKey) {
       const serviceAccount = JSON.parse(serviceAccountKey);
-      return admin.initializeApp({
+      app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: firebaseConfig.projectId,
       });
     } else {
       // Fallback: Try initializing with just the project ID
       // This may work in some GCP environments or with ADC
-      return admin.initializeApp({
+      app = admin.initializeApp({
         projectId: firebaseConfig.projectId,
       });
     }
+
+    // Apply settings strictly ONCE right after initialization
+    try {
+      admin.firestore(app).settings({
+        ignoreUndefinedProperties: true,
+      });
+    } catch (settingError) {
+      // Ignore if already set in this environment
+    }
+
+    return app;
   } catch (error) {
     process.stdout.write("Firebase Admin initialization warning: " + String(error) + "\n");
     try {
@@ -47,21 +59,12 @@ export function getAdminFirestore() {
   if (cachedDb) {
     return cachedDb;
   }
-  const isAlreadyInitialized = admin.apps.length > 0;
   const app = initializeAdmin();
   if (!app) {
     return null;
   }
-  const db = admin.firestore();
-  if (!isAlreadyInitialized) {
-    try {
-      db.settings({ ignoreUndefinedProperties: true });
-    } catch (e) {
-      // Settings can only be configured once, ignore if already set
-    }
-  }
-  cachedDb = db;
-  return db;
+  cachedDb = admin.firestore(app);
+  return cachedDb;
 }
 
 /**
