@@ -583,7 +583,7 @@ export function CsmReportDashboard({
           <table class="header-table">
             <tr>
               <td style="width: 70px; text-align: left;">
-                <img src="/rsupage.png" style="height: 60px; object-fit: contain;" onerror="this.style.display='none'" />
+                <img src="/rsulogo.png" style="height: 60px; object-fit: contain;" onerror="this.style.display='none'" />
               </td>
               <td style="text-align: center;">
                 <p style="margin: 0; font-size: 10px; text-transform: uppercase;">Republic of the Philippines</p>

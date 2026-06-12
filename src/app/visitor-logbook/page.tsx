@@ -89,7 +89,7 @@ export default function VisitorLogbookPage() {
 
   const logoSrc = systemSettingsDoc?.logoUrl 
     ? getDirectDriveLink(systemSettingsDoc.logoUrl) 
-    : '/rsupage.png';
+    : '/rsulogo.png';
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [visitorName, setVisitorName] = useState('');

@@ -174,7 +174,7 @@ export default function PublicGadEntryPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4 py-20 overflow-x-hidden">
       <div className="fixed inset-0 -z-10 h-full w-full">
-          <Image src="/rsupage.png" alt="RSU" fill className="object-cover opacity-10" />
+          <Image src="/rsulogo.png" alt="RSU" fill className="object-cover opacity-10" />
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/90 backdrop-blur-[2px]" />
       </div>
 

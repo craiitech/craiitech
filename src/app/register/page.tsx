@@ -15,7 +15,7 @@ export default function RegisterPage() {
       {/* Background Image Layer */}
       <div className="fixed inset-0 -z-10 h-full w-full">
           <Image
-              src="/rsupage.png"
+              src="/rsulogo.png"
               alt="RSU Background"
               fill
               priority

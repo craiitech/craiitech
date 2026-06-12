@@ -96,7 +96,7 @@ export default function Home() {
         {/* Full-Page Fixed Background */}
         <div className="fixed inset-0 -z-10 h-full w-full">
             <Image
-                src="/rsupage.png"
+                src="/rsulogo.png"
                 alt="Romblon State University Background"
                 fill
                 priority

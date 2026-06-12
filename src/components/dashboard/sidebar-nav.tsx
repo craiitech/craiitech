@@ -158,7 +158,7 @@ export function SidebarNav({
             <!-- Official Header matching RSU Document Template -->
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 12px; margin-bottom: 20px;">
               <div style="width: 70px; text-align: left;">
-                <img src="/rsupage.png" style="height: 60px; object-fit: contain;" />
+                <img src="/rsulogo.png" style="height: 60px; object-fit: contain;" />
               </div>
               <div style="text-align: center; flex: 1; margin: 0 10px;">
                 <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px;">Republic of the Philippines</p>

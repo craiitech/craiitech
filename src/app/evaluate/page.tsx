@@ -21,7 +21,7 @@ export default function PublicSoftwareEvaluationPage() {
       {/* RSU Branded Background */}
       <div className="fixed inset-0 -z-10 h-full w-full">
           <Image
-              src="/rsupage.png"
+              src="/rsulogo.png"
               alt="RSU Background"
               fill
               priority
