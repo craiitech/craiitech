@@ -79,7 +79,7 @@ export default function ReportsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const csmSettingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'csmSettings') : null, [firestore]);
-  const { data: csmSettings } = useDoc<CsmSettings>(csmSettingsRef);
+  const { data: csmSettings, isLoading: isLoadingCsmSettings } = useDoc<CsmSettings>(csmSettingsRef);
 
   const isCsmManager = useMemo(() => {
     return !!(userProfile?.unitId && csmSettings?.managingUnitId && userProfile.unitId === csmSettings.managingUnitId);
@@ -99,32 +99,32 @@ export default function ReportsPage() {
 
   const unitsQuery = useMemoFirebase(() => {
     if (!firestore || !hasAllAccess) return null;
-    if (isAdmin) return collection(firestore, 'units');
+    if (isAdmin || isCsmManager) return collection(firestore, 'units');
     if (isSupervisor && userProfile?.campusId) {
         return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, isSupervisor, isCsmManager, userProfile]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !hasAllAccess) return null;
-    if (isAdmin) return collection(firestore, 'submissions');
+    if (isAdmin || isCsmManager) return collection(firestore, 'submissions');
     if (userProfile?.campusId) {
         return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, isCsmManager, userProfile]);
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !hasAllAccess) return null;
-    if (isAdmin) return collection(firestore, 'risks');
+    if (isAdmin || isCsmManager) return collection(firestore, 'risks');
     if (userProfile?.campusId) {
         return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, isCsmManager, userProfile]);
   const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
@@ -135,12 +135,12 @@ export default function ReportsPage() {
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !hasAllAccess || !userProfile) return null;
-    if (isAdmin) return collection(firestore, 'users');
+    if (isAdmin || isCsmManager) return collection(firestore, 'users');
     if (isSupervisor && userProfile.campusId) {
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, isSupervisor, isCsmManager, userProfile]);
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
   
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
@@ -384,7 +384,7 @@ export default function ReportsPage() {
     }) || false;
   }, [csmDeployments, selectedYear, hasAllAccess, userProfile]);
 
-  const isLoading = isUserLoading || isLoadingCampuses || 
+  const isLoading = isUserLoading || isLoadingCampuses || isLoadingCsmSettings || 
     (hasAllAccess && (isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingRisks || isLoadingCompliances)) ||
     isLoadingCsmResponses || isLoadingVisitorLogs || isLoadingCsmDeployments;
 

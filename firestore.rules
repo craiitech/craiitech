@@ -207,10 +207,24 @@ service cloud.firestore {
     match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
 
+    match /system/csmSettings {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     match /system/{docId} {
       allow get: if isSignedIn() || docId == 'settings' || docId == 'logo'; 
       allow list: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    match /csmDeployments/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && hasProfile() && profile().unitId == get(/databases/$(database)/documents/system/csmSettings).data.managingUnitId);
+    }
+
+    match /csmResponses/{id} {
+      allow read, write: if isSignedIn();
     }
 
     match /campusSettings/{id} {
