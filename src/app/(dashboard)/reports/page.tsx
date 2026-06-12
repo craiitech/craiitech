@@ -372,16 +372,16 @@ export default function ReportsPage() {
     }
   };
 
+  const isReportPublished = useMemo(() => {
+    if (hasAllAccess) return true;
+    return csmDeployments?.some(d => d.academicYear === selectedYear && d.isPublished) || false;
+  }, [csmDeployments, selectedYear, hasAllAccess]);
+
   const isLoading = isUserLoading || isLoadingCampuses || 
     (hasAllAccess && (isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingRisks || isLoadingCompliances)) ||
     isLoadingCsmResponses || isLoadingVisitorLogs || isLoadingCsmDeployments;
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-
-  const isReportPublished = useMemo(() => {
-    if (hasAllAccess) return true;
-    return csmDeployments?.some(d => d.academicYear === selectedYear && d.isPublished) || false;
-  }, [csmDeployments, selectedYear, hasAllAccess]);
 
   return (
     <div className="space-y-6">
