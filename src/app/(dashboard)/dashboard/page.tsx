@@ -523,6 +523,10 @@ export default function HomePage() {
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
+  const isIqaUser = useMemo(() => {
+    return userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
+  }, [userRole, allUnits, userProfile]);
+
   const nonIqaUnits = useMemo(() => {
     if (!allUnits) return [];
     return allUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
@@ -617,11 +621,10 @@ export default function HomePage() {
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     const baseRef = collection(firestore, 'users');
-    const isIqaUser = userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
     if (isUniversityExecutive || isIqaUser) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile?.campusId));
     return null;
-  }, [firestore, isUniversityExecutive, isCampusSupervisor, userProfile, userRole, allUnits]);
+  }, [firestore, isUniversityExecutive, isCampusSupervisor, userProfile, isIqaUser]);
 
   const { data: allUsersData } = useCollection<AppUser>(usersQuery);
 
@@ -723,12 +726,11 @@ export default function HomePage() {
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
-    const isIqaUser = userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
     if (isUniversityExecutive || isIqaUser) return baseRef;
     if (isCampusLevel && userProfile.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
     if (userProfile.unitId) return query(baseRef, where('targetId', '==', userProfile.unitId));
     return null;
-  }, [firestore, userProfile, isUniversityExecutive, isCampusLevel, isUserLoading, userRole, allUnits]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusLevel, isUserLoading, isIqaUser]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 
@@ -1735,7 +1737,6 @@ export default function HomePage() {
   );
 
   const renderHomeContent = () => {
-    const isIqaUser = userRole === 'Auditor' || allUnits?.find(u => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit';
     if (isUniversityExecutive) return renderAdminHome();
     if (isIqaUser) return renderAuditorHome();
     if (isCampusSupervisor) return renderSupervisorHome();
