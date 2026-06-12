@@ -113,8 +113,69 @@ export type Risk = {
     auditorRemarks?: string; // New: Granular auditor feedback
     auditorRemarksBy?: string;
     auditorRemarksAt?: any;
+    
+    // NEW: Enhanced monitoring & accountability fields
+    reviewCycle?: 'Monthly' | 'Quarterly' | 'Semi-Annual' | 'Annual'; // Mandatory review frequency
+    lastReviewedAt?: any; // Timestamp of last review
+    nextReviewDue?: any; // Timestamp when next review is due
+    reviewHistory?: ReviewEntry[]; // History of reviews
+    
+    // NEW: Escalation tracking
+    originalRating?: string; // Rating at creation (for escalation detection)
+    escalationHistory?: EscalationEntry[]; // Track rating changes over time
+    isEscalated?: boolean; // Flag if risk has been escalated
+    escalatedFromId?: string; // Reference to original risk if escalated
+    
+    // NEW: Reminder/notification tracking
+    remindersSent?: number; // Count of reminders sent
+    lastReminderSent?: any; // Timestamp of last reminder
+    reminderFrequency?: 'Daily' | 'Weekly' | 'Bi-Weekly' | 'Monthly'; // For overdue risks
+    
+    // NEW: Auto-status progression
+    autoStatusEnabled?: boolean; // Enable automatic status updates based on dates
+    
+    // Low-risk vigilance fields
+    escalationTrigger?: string;
+    reviewInterval?: string;
+    
     createdAt: any; // serverTimestamp()
     updatedAt: any; // serverTimestamp()
+}
+
+// NEW: Supporting types for enhanced monitoring
+export type ReviewEntry = {
+    reviewedAt: any; // Timestamp
+    reviewedBy: string;
+    reviewedByName: string;
+    statusAtReview: 'Open' | 'In Progress' | 'Closed';
+    ratingAtReview: string;
+    comments: string;
+    nextReviewDue: any; // Next review date set by reviewer
+}
+
+export type EscalationEntry = {
+    escalatedAt: any; // Timestamp
+    escalatedBy: string;
+    escalatedByName: string;
+    previousRating: string;
+    newRating: string;
+    reason: string; // 'Automatic' | 'Manual Review' | 'Incident Triggered'
+    previousMagnitude: number;
+    newMagnitude: number;
+}
+
+export type RiskAlert = {
+    id: string;
+    riskId: string;
+    unitId: string;
+    campusId: string;
+    type: 'Deadline_Approaching' | 'Overdue' | 'Review_Due' | 'Escalation_Detected' | 'No_Progress' | 'Low_Risk_Monitoring';
+    severity: 'Info' | 'Warning' | 'Critical';
+    message: string;
+    acknowledged: boolean;
+    acknowledgedBy?: string;
+    acknowledgedAt?: any;
+    createdAt: any;
 }
 
 

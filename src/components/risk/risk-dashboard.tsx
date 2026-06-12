@@ -66,6 +66,16 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
     const highRiskCount = risks.filter(r => r.preTreatment.rating === 'High' && r.status !== 'Closed').length;
     const opportunityCount = risks.filter(r => r.type === 'Opportunity').length;
 
+    const now = new Date();
+    const highActive = risks.filter(r => r.type === 'Risk' && r.status !== 'Closed' && r.preTreatment.rating === 'High').length;
+    const mediumActive = risks.filter(r => r.type === 'Risk' && r.status !== 'Closed' && r.preTreatment.rating === 'Medium').length;
+    const lowActive = risks.filter(r => r.type === 'Risk' && r.status !== 'Closed' && r.preTreatment.rating === 'Low').length;
+    const weightedScore = (highActive * 3) + (mediumActive * 2) + (lowActive * 1);
+
+    const watchlist = risks
+        .filter(r => r.type === 'Risk' && r.preTreatment.rating === 'Low' && r.escalationTrigger)
+        .slice(0, 5);
+
     const priorityCounts = { High: 0, Medium: 0, Low: 0 };
     risks.forEach(r => {
         priorityCounts[r.preTreatment.rating as keyof typeof priorityCounts]++;
@@ -97,7 +107,6 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
         { name: 'Opportunities', value: risks.filter(r => r.type === 'Opportunity').length, fill: 'hsl(142 71% 45%)' }
     ];
 
-    const now = new Date();
     const upcomingDeadlines = risks
         .filter(r => r.status !== 'Closed' && r.targetDate)
         .map(r => {
@@ -111,7 +120,11 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
         .sort((a, b) => a.daysLeft - b.daysLeft)
         .slice(0, 5);
 
-    return { total, openCount, highRiskCount, opportunityCount, priorityData, objectiveData, closureEfficiencyData, ratioData, upcomingDeadlines };
+    const overdueCount = risks
+        .filter(r => r.status !== 'Closed' && r.targetDate && (r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate)) < now)
+        .length;
+
+    return { total, openCount, highRiskCount, opportunityCount, priorityData, objectiveData, closureEfficiencyData, ratioData, upcomingDeadlines, weightedScore, watchlist, overdueCount };
   }, [risks]);
 
   if (isLoading) {
@@ -128,15 +141,59 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
   return (
     <div className="space-y-6">
       {/* 1. KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Strategic Entries</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-primary tabular-nums">{analytics.total}</div></CardContent></Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Open Critical Risks</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.openCount}</div></CardContent></Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">High-Priority Gaps</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-amber-600 tabular-nums">{analytics.highRiskCount}</div></CardContent></Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Growth Gain Ratio</CardTitle></CardHeader><CardContent><div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.opportunityCount}</div></CardContent></Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in duration-500">
+        <Card className="bg-violet-50 border-violet-100 shadow-sm relative overflow-hidden">
+            <CardHeader className="pb-1.5 pt-3 px-4">
+                <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-violet-700">Weighted Exposure</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3 px-4">
+                <div className="text-2xl font-black text-violet-700 tabular-nums">{analytics.weightedScore}</div>
+                <p className="text-[7.5px] font-bold text-violet-500 uppercase tracking-tighter mt-1">High (3pt) + Med (2pt) + Low (1pt)</p>
+            </CardContent>
+        </Card>
+        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden">
+            <CardHeader className="pb-1.5 pt-3 px-4">
+                <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-rose-700">Open Critical Risks</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3 px-4">
+                <div className="text-2xl font-black text-rose-600 tabular-nums">{analytics.openCount}</div>
+                <p className="text-[7.5px] font-bold text-rose-400 uppercase tracking-tighter mt-1">Staged in Active analysis</p>
+            </CardContent>
+        </Card>
+        <Card className={cn(
+            "border shadow-sm relative overflow-hidden transition-all duration-500",
+            analytics.overdueCount > 0 ? "bg-red-50 border-red-200 animate-pulse-slow" : "bg-slate-50 border-slate-200"
+        )}>
+            <CardHeader className="pb-1.5 pt-3 px-4">
+                <CardTitle className={cn("text-[9px] font-black uppercase tracking-[0.15em]", analytics.overdueCount > 0 ? "text-red-700" : "text-slate-600")}>Overdue Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3 px-4">
+                <div className={cn("text-2xl font-black tabular-nums", analytics.overdueCount > 0 ? "text-red-600" : "text-slate-500")}>{analytics.overdueCount}</div>
+                <p className={cn("text-[7.5px] font-bold uppercase tracking-tighter mt-1", analytics.overdueCount > 0 ? "text-red-500" : "text-slate-400")}>Stalled past target date</p>
+            </CardContent>
+        </Card>
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+            <CardHeader className="pb-1.5 pt-3 px-4">
+                <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-700">Growth Gain Ratio</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3 px-4">
+                <div className="text-2xl font-black text-emerald-600 tabular-nums">{analytics.opportunityCount}</div>
+                <p className="text-[7.5px] font-bold text-emerald-500 uppercase tracking-tighter mt-1">Opportunities logged</p>
+            </CardContent>
+        </Card>
+        <Card className="bg-slate-50 border-slate-100 shadow-sm relative overflow-hidden">
+            <CardHeader className="pb-1.5 pt-3 px-4">
+                <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-700">Total Entries</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3 px-4">
+                <div className="text-2xl font-black text-slate-700 tabular-nums">{analytics.total}</div>
+                <p className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Strategic scope count</p>
+            </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col w-full">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-primary" />
@@ -145,7 +202,9 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
             </CardHeader>
             <CardContent className="pt-6 flex-1"><ChartContainer config={{ risks: { label: 'Risks', color: 'hsl(var(--destructive))' }, opportunities: { label: 'Opportunities', color: 'hsl(var(--chart-2))' } }} className="h-[300px] w-full"><ResponsiveContainer><BarChart data={analytics.objectiveData} layout="vertical" margin={{ left: 20, right: 20 }}><CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} /><RechartsTooltip content={<ChartTooltipContent />} /><Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} /><Bar dataKey="risks" stackId="a" fill="hsl(var(--destructive))" /><Bar dataKey="opportunities" stackId="a" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></ChartContainer></CardContent>
         </Card>
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* NEW: Risk Treatment Deadline Countdown */}
         <Card className="shadow-md border-primary/10 flex flex-col">
             <CardHeader className="bg-primary/5 border-b py-4">
@@ -169,7 +228,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                             <div className="ml-4 text-right">
                                 <Badge className={cn(
                                     "h-5 text-[9px] font-black uppercase",
-                                    r.daysLeft < 7 ? "bg-rose-600 text-white animate-pulse" : "bg-blue-600 text-white"
+                                    r.daysLeft < 0 ? "bg-rose-600 text-white animate-pulse" : r.daysLeft < 7 ? "bg-amber-500 text-white animate-pulse" : "bg-blue-600 text-white"
                                 )}>
                                     {r.daysLeft < 0 ? 'OVERDUE' : `${r.daysLeft} DAYS LEFT`}
                                 </Badge>
@@ -180,6 +239,40 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                         <div className="py-20 text-center opacity-20">
                             <CheckCircle2 className="h-10 w-10 mx-auto mb-2" />
                             <p className="text-[10px] font-black uppercase">No active deadlines</p>
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+
+        {/* Low-Risk Watchlist Feed */}
+        <Card className="shadow-md border-blue-100 bg-blue-50/5 flex flex-col">
+            <CardHeader className="bg-blue-50/20 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight text-blue-800">Low-Risk Vigilance Feed</CardTitle>
+                </div>
+                <CardDescription className="text-[10px]">Monitoring triggers to prevent low risks from escalating.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 flex-1">
+                <div className="divide-y">
+                    {analytics.watchlist.map((r, idx) => (
+                        <div key={idx} className="p-4 space-y-2 hover:bg-blue-50/10 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-slate-800 truncate block max-w-[200px]" title={r.description}>{r.description}</span>
+                                <Badge variant="outline" className="h-4 text-[7px] font-black bg-blue-50 border-blue-200 text-blue-700 uppercase tracking-tighter shrink-0">
+                                    Watch: {r.reviewInterval === '6-months' ? '6 Mo' : 'Annual'}
+                                </Badge>
+                            </div>
+                            <div className="p-2 bg-white rounded border border-blue-100 text-[9px] leading-relaxed italic text-blue-800">
+                                <strong>Escalation Trigger:</strong> "{r.escalationTrigger || 'No trigger defined'}"
+                            </div>
+                        </div>
+                    ))}
+                    {analytics.watchlist.length === 0 && (
+                        <div className="py-20 text-center opacity-25">
+                            <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-600" />
+                            <p className="text-[10px] font-black uppercase text-emerald-800">Vigilance Clear - No triggers set</p>
                         </div>
                     )}
                 </div>

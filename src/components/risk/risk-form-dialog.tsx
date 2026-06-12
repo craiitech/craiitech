@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {
   Dialog,
@@ -104,6 +104,34 @@ const formSchema = z.object({
   approvedBy: z.string().optional(),
   adminCampusId: z.string().optional(),
   adminUnitId: z.string().optional(),
+  escalationTrigger: z.string().optional(),
+  reviewInterval: z.string().optional(),
+}).superRefine((data, ctx) => {
+  const magnitude = data.likelihood * data.consequence;
+  const rating = magnitude >= 10 ? 'High' : magnitude >= 5 ? 'Medium' : 'Low';
+  if (rating !== 'Low') {
+    if (!data.treatmentAction || data.treatmentAction.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Mitigation treatment action is mandatory for Medium/High ratings.",
+        path: ["treatmentAction"],
+      });
+    }
+    if (!data.responsiblePersonId || data.responsiblePersonId.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Accountable person is required.",
+        path: ["responsiblePersonId"],
+      });
+    }
+    if (!data.targetYear || !data.targetMonth || !data.targetDay) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Target date is required.",
+        path: ["targetMonth"],
+      });
+    }
+  }
 });
 
 const ASSESSMENT_CRITERIA = {
@@ -177,6 +205,8 @@ export function RiskFormDialog({
       status: 'Open',
       adminCampusId: defaultCampusId || searchParams.get('campusId') || userProfile?.campusId || '',
       adminUnitId: defaultUnitId || searchParams.get('unitId') || userProfile?.unitId || '',
+      escalationTrigger: '',
+      reviewInterval: 'not-applicable',
     },
   });
 
@@ -219,6 +249,8 @@ export function RiskFormDialog({
         approvedBy: r.approvedBy || '',
         adminCampusId: r.campusId || '',
         adminUnitId: r.unitId || '',
+        escalationTrigger: r.escalationTrigger || '',
+        reviewInterval: r.reviewInterval || 'not-applicable',
       });
     } else {
       form.reset({
@@ -234,6 +266,8 @@ export function RiskFormDialog({
         status: 'Open',
         adminCampusId: selectedAdminCampusId || searchParams.get('campusId') || userProfile?.campusId || '',
         adminUnitId: selectedAdminUnitId || searchParams.get('unitId') || userProfile?.unitId || '',
+        escalationTrigger: '',
+        reviewInterval: 'not-applicable',
       });
     }
   };
@@ -370,6 +404,8 @@ export function RiskFormDialog({
           updates: values.updates || '',
           preparedBy: values.preparedBy || '',
           approvedBy: values.approvedBy || '',
+          escalationTrigger: values.escalationTrigger || '',
+          reviewInterval: values.reviewInterval || 'not-applicable',
           updatedAt: serverTimestamp(),
         };
 
@@ -517,6 +553,7 @@ export function RiskFormDialog({
                                         <FormControl>
                                           <Input {...field} value={field.value || ''} placeholder="What goal is being assessed?" />
                                         </FormControl>
+                                        <FormMessage />
                                       </FormItem>
                                     )} />
                                     <FormField control={form.control} name="description" render={({ field }) => (
@@ -536,6 +573,7 @@ export function RiskFormDialog({
                                         <FormControl>
                                           <Textarea {...field} value={field.value || ''} placeholder="Explain the potential risk or opportunity in detail." />
                                         </FormControl>
+                                        <FormMessage />
                                       </FormItem>
                                     )} />
                                     <FormField control={form.control} name="currentControls" render={({ field }) => (
@@ -544,6 +582,7 @@ export function RiskFormDialog({
                                         <FormControl>
                                           <Textarea {...field} value={field.value || ''} placeholder="What is currently in place to manage this?" />
                                         </FormControl>
+                                        <FormMessage />
                                       </FormItem>
                                     )} />
                                 </CardContent>
@@ -645,6 +684,7 @@ export function RiskFormDialog({
                                                 <FormControl>
                                                   <Textarea {...field} value={field.value || ''} rows={6} placeholder="How will you mitigate this risk or enhance this opportunity?" />
                                                 </FormControl>
+                                                <FormMessage />
                                               </FormItem>
                                             )} />
                                             <div className="grid grid-cols-2 gap-4">
@@ -661,6 +701,7 @@ export function RiskFormDialog({
                                                         {filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}
                                                       </SelectContent>
                                                     </Select>
+                                                    <FormMessage />
                                                   </FormItem>
                                                 )} />
                                                 <div className="space-y-2">
@@ -709,8 +750,61 @@ export function RiskFormDialog({
                                                       </FormItem>
                                                     )} />
                                                   </div>
+                                                  <FormField control={form.control} name="targetMonth" render={() => (
+                                                    <FormItem className="mt-1">
+                                                      <FormMessage />
+                                                    </FormItem>
+                                                  )} />
                                                 </div>
                                             </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {!showActionPlan && (
+                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-500">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <div className="bg-emerald-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">3</div>
+                                        Precautionary Watchlist Controls (Low Risk)
+                                    </h3>
+                                    <Card className="border-emerald-200 bg-emerald-50/5 shadow-md">
+                                        <CardHeader className="py-4 bg-emerald-50/20 border-b">
+                                            <CardTitle className="text-sm font-black uppercase text-emerald-800 flex items-center gap-2">
+                                                <Activity className="h-4 w-4 text-emerald-600" />
+                                                Low-Risk Vigilance & Escalation Triggers
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4 pt-6">
+                                            <FormField control={form.control} name="escalationTrigger" render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel className="font-bold text-emerald-800">Escalation Trigger Condition</FormLabel>
+                                                <FormControl>
+                                                  <Input {...field} value={field.value || ''} placeholder="What condition or threshold would escalate this risk? (e.g. key personnel leave, delay > 5 days)" />
+                                                </FormControl>
+                                                <FormDescription className="text-[9px]">Define warning signs that could indicate this risk is escalating.</FormDescription>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="reviewInterval" render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel className="font-bold text-emerald-800">Periodic Review Interval</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || 'not-applicable'}>
+                                                  <FormControl>
+                                                    <SelectTrigger className="bg-white">
+                                                      <SelectValue placeholder="Select review frequency" />
+                                                    </SelectTrigger>
+                                                  </FormControl>
+                                                  <SelectContent modal={false}>
+                                                    <SelectItem value="not-applicable">Not Applicable (Review on audit cycle)</SelectItem>
+                                                    <SelectItem value="6-months">Every 6 Months (Recommended)</SelectItem>
+                                                    <SelectItem value="1-year">Annually</SelectItem>
+                                                  </SelectContent>
+                                                </Select>
+                                                <FormDescription className="text-[9px]">Schedule proactive checks to ensure trigger conditions aren't met.</FormDescription>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )} />
                                         </CardContent>
                                     </Card>
                                 </div>

@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch, Edit, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +46,50 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Open': 'destructive',
   'In Progress': 'secondary',
   'Closed': 'default',
+};
+
+const getTargetDateBadge = (risk: Risk) => {
+  if (risk.status === 'Closed') {
+    return <Badge className="bg-emerald-100 text-emerald-800 border-none text-[8px] font-black uppercase">Completed</Badge>;
+  }
+  if (!risk.targetDate) {
+    if (risk.preTreatment.rating === 'Low' && risk.reviewInterval && risk.reviewInterval !== 'not-applicable') {
+      return (
+        <Badge className="bg-blue-50 text-blue-700 border border-blue-200 text-[8px] font-black uppercase flex items-center gap-1">
+          <Clock className="h-2.5 w-2.5" />
+          Watch: {risk.reviewInterval === '6-months' ? '6 Mo' : 'Annual'}
+        </Badge>
+      );
+    }
+    return <span className="text-[10px] font-bold text-slate-400">No Target</span>;
+  }
+
+  const now = new Date();
+  const target = risk.targetDate instanceof Timestamp ? risk.targetDate.toDate() : new Date(risk.targetDate);
+  const daysDiff = differenceInDays(target, now);
+
+  if (daysDiff < 0) {
+    return (
+      <Badge className="bg-rose-100 text-rose-700 border border-rose-300 animate-pulse text-[8px] font-black uppercase flex items-center gap-1">
+        <AlertCircle className="h-2.5 w-2.5" />
+        Overdue ({Math.abs(daysDiff)}d)
+      </Badge>
+    );
+  }
+  if (daysDiff <= 14) {
+    return (
+      <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-[8px] font-black uppercase flex items-center gap-1">
+        <Clock className="h-2.5 w-2.5" />
+        Due ({daysDiff}d)
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-slate-100 text-slate-700 border border-slate-300 text-[8px] font-black uppercase flex items-center gap-1">
+      <Clock className="h-2.5 w-2.5" />
+      {format(target, 'MMM dd, yyyy')}
+    </Badge>
+  );
 };
 
 export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
@@ -194,6 +238,11 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
               Status {getSortIndicator('status')}
             </Button>
           </TableHead>
+          <TableHead>
+            <Button variant="ghost" onClick={() => requestSort('targetDate')} className="-ml-4 text-[10px] font-black uppercase">
+              Target / Timeline {getSortIndicator('targetDate')}
+            </Button>
+          </TableHead>
            <TableHead>
             <Button variant="ghost" onClick={() => requestSort('responsiblePersonName')} className="-ml-4 text-[10px] font-black uppercase">
               Accountable {getSortIndicator('responsiblePersonName')}
@@ -233,7 +282,14 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
                 </div>
             </TableCell>
             <TableCell className="max-w-xs font-bold text-xs">
-                <p className="truncate" title={risk.description}>{risk.description}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="truncate" title={risk.description}>{risk.description}</span>
+                    {risk.preTreatment.rating === 'Low' && risk.escalationTrigger && (
+                        <Badge variant="outline" className="h-4 text-[7px] font-black bg-blue-50 border-blue-200 text-blue-700 uppercase tracking-tighter shrink-0" title={`Escalation Trigger: ${risk.escalationTrigger}`}>
+                            Watchlist
+                        </Badge>
+                    )}
+                </div>
                 <p className="text-[9px] text-muted-foreground truncate font-medium mt-0.5" title={risk.objective}>Obj: {risk.objective}</p>
             </TableCell>
             <TableCell>
@@ -246,6 +302,9 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
                     {getStatusIcon(risk.status)}
                     {risk.status}
                 </Badge>
+            </TableCell>
+            <TableCell>
+                {getTargetDateBadge(risk)}
             </TableCell>
             <TableCell className="text-[10px] font-bold text-slate-600">{risk.responsiblePersonName}</TableCell>
             <TableCell className="text-[10px] font-bold text-muted-foreground tabular-nums">{formatDate(risk.updatedAt)}</TableCell>
