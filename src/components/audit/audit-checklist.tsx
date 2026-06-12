@@ -12,11 +12,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission } from '@/lib/types';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk } from '@/lib/types';
+import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -35,6 +35,9 @@ interface AuditChecklistProps {
   unitCars: CorrectiveActionRequest[];
   unitSubmissions: Submission[];
   isIqaUnit?: boolean;
+  previousYearOfis?: AuditFinding[];
+  scheduleTargetId?: string;
+  scheduleCampusId?: string;
 }
 
 const CLAUSE_EOMS_MAPPING: Record<string, string[]> = {
@@ -59,7 +62,10 @@ function ClauseForm({
   onSave,
   clauseCars,
   clauseSubmissions,
-  isIqaUnit = false
+  isIqaUnit = false,
+  previousYearOfis = [],
+  scheduleTargetId,
+  scheduleCampusId
 }: { 
   scheduleId: string; 
   clause: ISOClause; 
@@ -68,6 +74,9 @@ function ClauseForm({
   clauseCars: CorrectiveActionRequest[],
   clauseSubmissions: Submission[],
   isIqaUnit?: boolean;
+  previousYearOfis?: AuditFinding[];
+  scheduleTargetId?: string;
+  scheduleCampusId?: string;
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -178,6 +187,134 @@ function ClauseForm({
   const onSubmit = (values: ClauseFormData) => {
       performSave(values);
       toast({ title: isOnline ? "Record Verified" : "Stored Locally", description: `Audit results for Clause ${clause.id} have been registered.`});
+  };
+
+  const handleVerifyImplemented = async (ofi: AuditFinding) => {
+    if (!firestore || !user) return;
+    
+    try {
+      // 1. Update the previous OFI finding with verification status
+      const ofiRef = doc(firestore, 'auditFindings', ofi.id);
+      await updateDoc(ofiRef, {
+        verification: {
+          status: 'Implemented',
+          verifiedBy: user.uid,
+          verifiedAt: serverTimestamp(),
+          evidence: `Verified during current audit (${new Date().toLocaleDateString()})`,
+        },
+        updatedAt: serverTimestamp(),
+      });
+
+      // 2. Create a new Compliance finding for current audit linking to this OFI
+      const currentFindingId = `${scheduleId}-${clause.id}-ofi-${ofi.id}`;
+      const currentFindingRef = doc(firestore, 'auditFindings', currentFindingId);
+      await setDoc(currentFindingRef, {
+        id: currentFindingId,
+        auditScheduleId: scheduleId,
+        isoClause: clause.id,
+        type: 'Compliance',
+        description: `Previous OFI Implemented: ${ofi.description || ofi.evidence || 'N/A'}`,
+        evidence: `Verified implementation of previous year OFI (${ofi.id}). ${ofi.description || ofi.evidence || ''}`,
+        authorId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        linkedPreviousOFI: ofi.id,
+      });
+
+      // 3. Trigger sync to update the form
+      onSave({
+        type: 'Compliance',
+        description: `Previous OFI Implemented: ${ofi.description || ofi.evidence || 'N/A'}`,
+        evidence: `Verified implementation of previous year OFI (${ofi.id}).`,
+        isoClause: clause.id,
+      });
+
+      toast({ 
+        title: "OFI Verified Implemented", 
+        description: `Previous OFI ${ofi.id} marked as implemented and linked to current audit.`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error verifying OFI:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to verify OFI implementation.", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleCarryForward = async (ofi: AuditFinding) => {
+    if (!firestore || !user || !scheduleTargetId || !scheduleCampusId) return;
+    
+    try {
+      // 1. Update the previous OFI finding with verification status
+      const ofiRef = doc(firestore, 'auditFindings', ofi.id);
+      await updateDoc(ofiRef, {
+        verification: {
+          status: 'Carried Forward',
+          verifiedBy: user.uid,
+          verifiedAt: serverTimestamp(),
+        },
+        updatedAt: serverTimestamp(),
+      });
+
+      // 2. Create a Risk entry (Opportunity) for tracking
+      const riskId = `risk-${scheduleId}-ofi-${ofi.id}`;
+      const riskRef = doc(firestore, 'risks', riskId);
+      
+      // Get unit and campus info from passed props
+      const unitId = scheduleTargetId;
+      const campusId = scheduleCampusId;
+      const year = new Date().getFullYear();
+      
+      await setDoc(riskRef, {
+        id: riskId,
+        userId: user.uid,
+        unitId,
+        campusId,
+        year,
+        objective: `Address previous audit OFI: ${ofi.description || ofi.evidence || 'N/A'}`,
+        type: 'Opportunity',
+        description: `Carried forward from previous year audit (Clause 10.3). Original OFI: ${ofi.id}. ${ofi.description || ofi.evidence || ''}`,
+        currentControls: 'Previous audit identified this as an Opportunity for Improvement.',
+        preTreatment: {
+          likelihood: 3,
+          consequence: 3,
+          magnitude: 9,
+          rating: 'Medium',
+        },
+        treatmentAction: `Implement improvements to address OFI from previous audit: ${ofi.description || ofi.evidence || 'N/A'}`,
+        responsiblePersonId: user.uid,
+        responsiblePersonName: `${user.displayName || 'Current User'}`,
+        targetDate: Timestamp.fromDate(new Date(year + 1, 0, 1)), // Next year
+        status: 'Open',
+        oapNo: `OAP-${riskId}`,
+        resourcesNeeded: 'To be determined during implementation planning',
+        updates: `Created from carried-forward OFI ${ofi.id} on ${new Date().toLocaleDateString()}`,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        linkedPreviousOFI: ofi.id,
+      });
+
+      // Update the OFI with the risk ID
+      await updateDoc(ofiRef, {
+        'verification.carriedToRiskId': riskId,
+      });
+
+      toast({ 
+        title: "OFI Carried Forward", 
+        description: `Previous OFI ${ofi.id} added to Risk Register as Opportunity for tracking.`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error carrying forward OFI:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to carry forward OFI.", 
+        variant: "destructive" 
+      });
+    }
   };
 
   const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
@@ -322,6 +459,76 @@ function ClauseForm({
             )}
         </div>
 
+        {/* Previous Year OFIs for Clause 10.3 */}
+        {clause.id === '10.3' && previousYearOfis.length > 0 && (
+          <div className="space-y-3 p-5 rounded-2xl border-amber-200 bg-amber-50/40 animate-in slide-in-from-top-2 duration-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-700">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Previous Year OFIs (Clause 10.3) - {previousYearOfis.length} Found
+                </span>
+              </div>
+              <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-amber-200 text-amber-700">ISO 10.3 REQUIREMENT</Badge>
+            </div>
+            <p className="text-[9px] text-amber-600 font-medium italic mt-2">
+              Verify if previous year Opportunities for Improvement have been implemented or carried forward.
+            </p>
+            <div className="space-y-2 mt-3">
+              {previousYearOfis.map((ofi) => (
+                <div key={ofi.id} className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-black text-amber-800 uppercase tracking-wide">OFI Reference: {ofi.id}</p>
+                      <p className="text-[9px] text-slate-700 italic leading-relaxed mt-1">"{ofi.description || ofi.evidence || 'No description available'}"</p>
+                      {ofi.verification && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline" className="h-4 text-[7px] font-black bg-amber-50 border-amber-200 text-amber-700">
+                            Status: {ofi.verification.status}
+                          </Badge>
+                          {ofi.verification.evidence && (
+                            <span className="text-[8px] text-amber-600 font-medium">Evidence: {ofi.verification.evidence}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      {!ofi.verification || ofi.verification.status !== 'Implemented' ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                          onClick={() => handleVerifyImplemented(ofi)}
+                        >
+                          <CheckCircle className="h-3 w-3" /> Verified Implemented
+                        </Button>
+                      ) : (
+                        <div className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                          <CheckCircle className="h-3 w-3" /> Implemented
+                        </div>
+                      )}
+                      {!ofi.verification || ofi.verification.status !== 'Carried Forward' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-[8px] font-black uppercase gap-1 border-amber-300 text-amber-700 hover:bg-amber-50"
+                          onClick={() => handleCarryForward(ofi)}
+                        >
+                          <ArrowRight className="h-3 w-3" /> Open for Implementation
+                        </Button>
+                      ) : (
+                        <div className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
+                          <TrendingUp className="h-3 w-3" /> Carried Forward
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div>
@@ -455,7 +662,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                 </AccordionTrigger>
                 <AccordionContent className="pb-8">
                   <div className="rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50">
-                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} clauseSubmissions={relevantSubmissions} isIqaUnit={isIqaUnit} />
+                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} clauseSubmissions={relevantSubmissions} isIqaUnit={isIqaUnit} previousYearOfis={previousYearOfis} scheduleTargetId={scheduleTargetId} scheduleCampusId={scheduleCampusId} />
                   </div>
                 </AccordionContent>
               </AccordionItem>

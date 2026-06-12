@@ -104,9 +104,11 @@ export type Risk = {
     preparedBy?: string; // Unit Head
     approvedBy?: string; // VPAA/VPAF/VPREDI
     verification?: {
-        status: 'Correct' | 'Incorrect' | 'Updated' | 'Not Updated';
+        status: 'Correct' | 'Incorrect' | 'Updated' | 'Not Updated' | 'Implemented' | 'Carried Forward';
         verifiedBy: string;
         verifiedAt: any;
+        evidence?: string;
+        carriedToRiskId?: string;
     };
     auditorRemarks?: string; // New: Granular auditor feedback
     auditorRemarksBy?: string;
