@@ -19,7 +19,8 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell 
+  Cell,
+  LabelList
 } from 'recharts';
 import { 
   Users, 
