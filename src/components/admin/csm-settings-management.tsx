@@ -82,19 +82,7 @@ export function CsmSettingsManagement() {
   );
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  // Fetch Cycles (to allow deploying CSM for specific cycles)
-  const cyclesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'cycles') : null),
-    [firestore]
-  );
-  const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
-  // Fetch CSM Deployments
-  const deploymentsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'csmDeployments') : null),
-    [firestore]
-  );
-  const { data: deployments, isLoading: isLoadingDeployments } = useCollection<CsmDeployment>(deploymentsQuery);
 
   const form = useForm<z.infer<typeof csmSettingsSchema>>({
     resolver: zodResolver(csmSettingsSchema),
@@ -152,49 +140,7 @@ export function CsmSettingsManagement() {
     }
   };
 
-  // Toggle Publish / Unpublish Report for a Cycle
-  const handleTogglePublish = async (cycle: Cycle, currentlyPublished: boolean) => {
-    if (!firestore || !userProfile) return;
-    const deploymentId = `${cycle.year}-${cycle.name}`;
-    setDeployingIds(prev => ({ ...prev, [deploymentId]: true }));
-    try {
-      await setDoc(doc(firestore, 'csmDeployments', deploymentId), {
-        id: deploymentId,
-        academicYear: Number(cycle.year),
-        cycleId: cycle.name,
-        isPublished: !currentlyPublished,
-        deployedAt: serverTimestamp(),
-        deployedBy: userProfile.id,
-      }, { merge: true });
-
-      toast({
-        title: currentlyPublished ? 'Report Recalled' : 'Report Deployed',
-        description: currentlyPublished 
-          ? `CSM Reports for AY ${cycle.year} (${cycle.name} cycle) are now restricted.`
-          : `CSM Reports for AY ${cycle.year} (${cycle.name} cycle) have been published to all units.`,
-      });
-    } catch (error) {
-      console.error('Error toggling CSM deployment:', error);
-      toast({
-        title: 'Deployment Action Failed',
-        description: 'Could not update the deployment state.',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeployingIds(prev => ({ ...prev, [deploymentId]: false }));
-    }
-  };
-
-  // Create lookup map of deployments
-  const deploymentsMap = useMemo(() => {
-    const dMap = new Map<string, boolean>();
-    deployments?.forEach(d => {
-      dMap.set(d.id, d.isPublished);
-    });
-    return dMap;
-  }, [deployments]);
-
-  const isLoading = isLoadingSettings || isLoadingUnits || isLoadingCampuses || isLoadingCycles || isLoadingDeployments;
+  const isLoading = isLoadingSettings || isLoadingUnits || isLoadingCampuses;
 
   if (isLoading) {
     return (
@@ -294,79 +240,6 @@ export function CsmSettingsManagement() {
         </Form>
       </Card>
 
-      <Card className="max-w-2xl border-primary/20 shadow-md">
-        <CardHeader className="bg-primary/5 border-b">
-          <div className="flex items-center gap-2 mb-1">
-            <Globe className="h-5 w-5 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Report Deployments</span>
-          </div>
-          <CardTitle>CSM Unit Deployment Center</CardTitle>
-          <CardDescription>
-            Publish or recall Client Satisfaction Monitoring reports. Published periods become visible for all units to view and print.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {cycles && cycles.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-[10px] font-black uppercase">Academic Period</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase">Cycle</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cycles.sort((a,b) => b.year - a.year || b.name.localeCompare(a.name)).map(cycle => {
-                  const dId = `${cycle.year}-${cycle.name}`;
-                  const isPublished = deploymentsMap.get(dId) || false;
-                  const isDeploying = deployingIds[dId] || false;
-
-                  return (
-                    <TableRow key={dId} className="hover:bg-slate-50">
-                      <TableCell className="font-bold text-xs">AY {cycle.year}</TableCell>
-                      <TableCell className="font-bold text-xs uppercase text-slate-600">{cycle.name} Cycle</TableCell>
-                      <TableCell className="text-center">
-                        {isPublished ? (
-                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-250 text-[9px] uppercase font-black">
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Deployed
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[9px] uppercase font-black text-slate-500">
-                            <Radio className="h-3 w-3 mr-1" /> Draft / Hidden
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant={isPublished ? "destructive" : "default"}
-                          disabled={isDeploying}
-                          onClick={() => handleTogglePublish(cycle, isPublished)}
-                          className="text-[9px] font-black uppercase tracking-wider h-8"
-                        >
-                          {isDeploying ? (
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                          ) : isPublished ? (
-                            <XCircle className="h-3 w-3 mr-1" />
-                          ) : (
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                          )}
-                          {isPublished ? "Recall" : "Deploy"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="py-6 text-center text-xs font-bold text-muted-foreground uppercase">
-              No academic cycles defined in the system.
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

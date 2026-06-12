@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Campus, Unit, User as AppUser } from '@/lib/types';
+import type { Campus, Unit, User as AppUser, Cycle, CsmDeployment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,7 +38,8 @@ import {
   ShieldCheck,
   Percent,
   XCircle,
-  Loader2
+  Loader2,
+  Radio
 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +51,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { CsmDeployment } from '@/lib/types';
 
 interface CsmReportDashboardProps {
   csmResponses: any[];
@@ -63,6 +63,7 @@ interface CsmReportDashboardProps {
   isAdmin: boolean;
   isCsmManager: boolean;
   csmDeployments: CsmDeployment[];
+  cycles: Cycle[];
 }
 
 export function CsmReportDashboard({
@@ -76,14 +77,60 @@ export function CsmReportDashboard({
   isAdmin,
   isCsmManager,
   csmDeployments,
+  cycles,
 }: CsmReportDashboardProps) {
 
   const hasAccessToAll = isAdmin || isCsmManager;
 
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
   const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
+  const [deployingCycleIds, setDeployingCycleIds] = useState<Record<string, boolean>>({});
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const deploymentsMap = useMemo(() => {
+    const dMap = new Map<string, boolean>();
+    csmDeployments?.forEach(d => {
+      dMap.set(d.id, d.isPublished);
+    });
+    return dMap;
+  }, [csmDeployments]);
+
+  const handleTogglePublishCycle = async (cycle: Cycle, isCurrentlyPublished: boolean) => {
+    if (!firestore || !userProfile) return;
+    const dId = `${cycle.year}-${cycle.name}`;
+    setDeployingCycleIds(prev => ({ ...prev, [dId]: true }));
+    try {
+      const docRef = doc(firestore, 'csmDeployments', dId);
+      const existing = csmDeployments.find(d => d.id === dId);
+      
+      await setDoc(docRef, {
+        id: dId,
+        academicYear: Number(cycle.year),
+        cycleId: cycle.name,
+        isPublished: !isCurrentlyPublished,
+        publishedUnitIds: existing?.publishedUnitIds || [],
+        deployedAt: serverTimestamp(),
+        deployedBy: userProfile.id,
+      }, { merge: true });
+
+      toast({
+        title: !isCurrentlyPublished ? 'CSM Report Deployed' : 'CSM Report Recalled',
+        description: !isCurrentlyPublished 
+          ? `The CSM report for AY ${cycle.year} ${cycle.name} cycle has been successfully deployed.`
+          : `The CSM report for AY ${cycle.year} ${cycle.name} cycle has been recalled and is now hidden.`,
+      });
+    } catch (error) {
+      console.error('Error toggling CSM cycle deployment:', error);
+      toast({
+        title: 'Action Failed',
+        description: 'Could not update the deployment state.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeployingCycleIds(prev => ({ ...prev, [dId]: false }));
+    }
+  };
 
   // Filter units based on selected campus
   const dropdownUnits = useMemo(() => {
@@ -1069,6 +1116,83 @@ export function CsmReportDashboard({
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* 7. REPORT DEPLOYMENTS CENTER (Admin/IPDU only) */}
+      {hasAccessToAll && (
+        <Card className="border-primary/15 shadow-sm">
+          <CardHeader className="bg-primary/5 border-b py-3.5">
+            <div className="flex items-center gap-2 mb-1">
+              <Radio className="h-5 w-5 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Report Deployments</span>
+            </div>
+            <CardTitle className="text-sm font-black uppercase flex items-center gap-2">CSM Unit Deployment Center</CardTitle>
+            <CardDescription className="text-xs">
+              Publish or recall Client Satisfaction Monitoring reports. Deployed periods become visible for all units to view and print.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {cycles && cycles.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px] font-black uppercase pl-4">Academic Period</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Cycle</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-right pr-4">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...cycles].sort((a,b) => b.year - a.year || b.name.localeCompare(a.name)).map(cycle => {
+                    const dId = `${cycle.year}-${cycle.name}`;
+                    const isPublished = deploymentsMap.get(dId) || false;
+                    const isDeploying = deployingCycleIds[dId] || false;
+
+                    return (
+                      <TableRow key={dId} className="hover:bg-slate-50">
+                        <TableCell className="font-bold text-xs pl-4">AY {cycle.year}</TableCell>
+                        <TableCell className="font-bold text-xs uppercase text-slate-600">{cycle.name} Cycle</TableCell>
+                        <TableCell className="text-center font-bold text-xs">
+                          {isPublished ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-250 text-[9px] uppercase font-black">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Deployed
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[9px] uppercase font-black text-slate-500">
+                              <Radio className="h-3 w-3 mr-1" /> Draft / Hidden
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right pr-4">
+                          <Button
+                            size="sm"
+                            variant={isPublished ? "destructive" : "default"}
+                            disabled={isDeploying}
+                            onClick={() => handleTogglePublishCycle(cycle, isPublished)}
+                            className="text-[9px] font-black uppercase tracking-wider h-8 px-4"
+                          >
+                            {isDeploying ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                            ) : isPublished ? (
+                              <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                            )}
+                            {isPublished ? "Recall" : "Deploy"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="py-6 text-center text-xs font-bold text-muted-foreground uppercase">
+                No academic cycles defined in the system.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

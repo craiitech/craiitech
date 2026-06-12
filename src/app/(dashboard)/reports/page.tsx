@@ -387,7 +387,7 @@ export default function ReportsPage() {
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingCsmSettings || 
     (hasFullReportsAccess && (isLoadingSubmissions || isLoadingRisks || isLoadingCompliances)) ||
-    (hasAllAccess && (isLoadingUnits || isLoadingUsers)) ||
+    (hasAllAccess && (isLoadingUnits || isLoadingUsers || isLoadingCycles)) ||
     isLoadingCsmResponses || isLoadingVisitorLogs || isLoadingCsmDeployments;
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -754,6 +754,7 @@ export default function ReportsPage() {
               isAdmin={isAdmin}
               isCsmManager={isCsmManager}
               csmDeployments={csmDeployments || []}
+              cycles={allCycles || []}
             />
           ) : (
             <Card className="border-primary/10 shadow-md">
