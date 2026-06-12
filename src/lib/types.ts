@@ -232,6 +232,53 @@ export type BackupSettings = {
     lastConfiguredBy?: string;
 }
 
+export type CsmSettings = {
+    managingUnitId?: string;
+    updatedAt?: any;
+    updatedBy?: string;
+}
+
+export type CsmResponse = {
+    id?: string;
+    visitorLogId: string;
+    visitorName: string;
+    sex: 'Male' | 'Female' | string;
+    ageGroup: '19-under' | '20-34' | '35-49' | '50-64' | '65-over' | string;
+    clientType: 'Citizen' | 'Business' | 'Government' | string;
+    campusId: string;
+    unitId: string;
+    unitName: string;
+    purpose: string;
+    
+    // Citizen's Charter Questions
+    cc1: number; // 1-4 scale
+    cc2: number; // 1-5 scale (or N/A)
+    cc3: number; // 1-4 scale (or N/A)
+    
+    // Service Quality Dimensions (SQD) - ratings 1-5, or 0 for N/A
+    sqd1: number; // Responsiveness
+    sqd2: number; // Reliability
+    sqd3: number; // Access & Facilities
+    sqd4: number; // Communication
+    sqd5: number; // Costs
+    sqd6: number; // Integrity
+    sqd7: number; // Assurance
+    sqd8: number; // Outcome
+    
+    comments?: string;
+    createdAt: any;
+}
+
+export type CsmDeployment = {
+    id: string;
+    academicYear: number;
+    cycleId: 'first' | 'final';
+    isPublished: boolean;
+    deployedAt: any;
+    deployedBy: string;
+}
+
+
 export type ActivityLog = {
     id: string;
     userId: string;

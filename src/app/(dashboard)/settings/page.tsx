@@ -25,6 +25,7 @@ import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer'
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
+import { CsmSettingsManagement } from '@/components/admin/csm-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -75,10 +76,12 @@ export default function SettingsPage() {
                     <TabsTrigger value="logo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">System Logo</TabsTrigger>
                     <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Signatories</TabsTrigger>
                     <TabsTrigger value="gad" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">GAD Corner</TabsTrigger>
+                    <TabsTrigger value="csm" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">CSM Settings</TabsTrigger>
                     <TabsTrigger value="campuses" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Campuses</TabsTrigger>
                     <TabsTrigger value="units" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Units</TabsTrigger>
                     <TabsTrigger value="unit-grouping" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Explorer</TabsTrigger>
                     <TabsTrigger value="roles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Roles</TabsTrigger>
+
 
                     <TabsTrigger value="procedure-manuals" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Procedure Manuals</TabsTrigger>
                     <TabsTrigger value="eoms-policy-manual" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">RSU EOMS Manual</TabsTrigger>
@@ -101,6 +104,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="gad" className="space-y-4 animate-in fade-in duration-500">
             <GadSettingsManagement />
+          </TabsContent>
+          <TabsContent value="csm" className="space-y-4 animate-in fade-in duration-500">
+            <CsmSettingsManagement />
           </TabsContent>
           <TabsContent value="campuses" className="space-y-4 animate-in fade-in duration-500">
             <CampusManagement />

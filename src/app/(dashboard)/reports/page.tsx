@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Campus, Unit, Submission, User as AppUser, Cycle, Risk, ProgramComplianceRecord } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import type { Campus, Unit, Submission, User as AppUser, Cycle, Risk, ProgramComplianceRecord, CsmSettings, CsmDeployment } from '@/lib/types';
 import { collection, query, where, doc } from 'firebase/firestore';
+import { CsmReportDashboard } from '@/components/reports/csm-report-dashboard';
+import { Smile, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   Table,
@@ -76,7 +78,15 @@ export default function ReportsPage() {
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  const canViewReports = isAdmin || isSupervisor;
+  const csmSettingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'csmSettings') : null, [firestore]);
+  const { data: csmSettings } = useDoc<CsmSettings>(csmSettingsRef);
+
+  const isCsmManager = useMemo(() => {
+    return !!(userProfile?.unitId && csmSettings?.managingUnitId && userProfile.unitId === csmSettings.managingUnitId);
+  }, [userProfile, csmSettings]);
+
+  const hasAllAccess = isAdmin || isSupervisor || isCsmManager;
+  const canViewReports = hasAllAccess || !!userProfile?.unitId;
 
   useEffect(() => {
     if (!isAdmin && userProfile?.campusId) {
@@ -88,53 +98,80 @@ export default function ReportsPage() {
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => {
-    if (!firestore || !canViewReports) return null;
+    if (!firestore || !hasAllAccess) return null;
     if (isAdmin) return collection(firestore, 'units');
     if (isSupervisor && userProfile?.campusId) {
         return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
     }
     return null;
-  }, [firestore, canViewReports, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, isSupervisor, userProfile]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !canViewReports) return null;
+    if (!firestore || !hasAllAccess) return null;
     if (isAdmin) return collection(firestore, 'submissions');
     if (userProfile?.campusId) {
         return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, canViewReports, isAdmin, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, userProfile]);
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const risksQuery = useMemoFirebase(() => {
-    if (!firestore || !canViewReports) return null;
+    if (!firestore || !hasAllAccess) return null;
     if (isAdmin) return collection(firestore, 'risks');
     if (userProfile?.campusId) {
         return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, canViewReports, isAdmin, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, userProfile]);
   const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !canViewReports || !selectedYear) return null;
+    if (!firestore || !hasAllAccess || !selectedYear) return null;
     return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
-  }, [firestore, canViewReports, selectedYear]);
+  }, [firestore, hasAllAccess, selectedYear]);
   const { data: allCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !canViewReports || !userProfile) return null;
+    if (!firestore || !hasAllAccess || !userProfile) return null;
     if (isAdmin) return collection(firestore, 'users');
     if (isSupervisor && userProfile.campusId) {
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, canViewReports, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, hasAllAccess, isAdmin, isSupervisor, userProfile]);
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
   
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
+
+  // CSM queries
+  const csmResponsesQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || !canViewReports) return null;
+    const base = collection(firestore, 'csmResponses');
+    if (hasAllAccess || isSupervisor) {
+      return base;
+    }
+    return query(base, where('unitId', '==', userProfile.unitId));
+  }, [firestore, hasAllAccess, isSupervisor, userProfile, canViewReports]);
+  const { data: rawCsmResponses, isLoading: isLoadingCsmResponses } = useCollection<any>(csmResponsesQuery);
+
+  const visitorLogsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || !canViewReports) return null;
+    const base = collection(firestore, 'visitorLogs');
+    if (hasAllAccess || isSupervisor) {
+      return base;
+    }
+    return query(base, where('unitId', '==', userProfile.unitId));
+  }, [firestore, hasAllAccess, isSupervisor, userProfile, canViewReports]);
+  const { data: rawVisitorLogs, isLoading: isLoadingVisitorLogs } = useCollection<any>(visitorLogsQuery);
+
+  const csmDeploymentsQuery = useMemoFirebase(() => {
+    if (!firestore || !canViewReports) return null;
+    return collection(firestore, 'csmDeployments');
+  }, [firestore, canViewReports]);
+  const { data: csmDeployments, isLoading: isLoadingCsmDeployments } = useCollection<CsmDeployment>(csmDeploymentsQuery);
 
   /**
    * ACADEMIC YEAR GENERATION
@@ -335,13 +372,20 @@ export default function ReportsPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingRisks || isLoadingCompliances;
+  const isLoading = isUserLoading || isLoadingCampuses || 
+    (hasAllAccess && (isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingRisks || isLoadingCompliances)) ||
+    isLoadingCsmResponses || isLoadingVisitorLogs || isLoadingCsmDeployments;
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
+  const isReportPublished = useMemo(() => {
+    if (hasAllAccess) return true;
+    return csmDeployments?.some(d => d.academicYear === selectedYear && d.isPublished) || false;
+  }, [csmDeployments, selectedYear, hasAllAccess]);
+
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="visuals" className="space-y-6">
+      <Tabs defaultValue={hasAllAccess ? "visuals" : "csm"} className="space-y-6">
         {/* Sticky Header Enforced */}
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header print:hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -376,11 +420,18 @@ export default function ReportsPage() {
 
             <ScrollArea className="w-full">
                 <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                    <TabsTrigger value="visuals" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <BarChart3 className="h-4 w-4" /> Strategic Insights
-                    </TabsTrigger>
-                    <TabsTrigger value="directory" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <LayoutGrid className="h-4 w-4" /> System Directory
+                    {hasAllAccess && (
+                      <>
+                        <TabsTrigger value="visuals" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <BarChart3 className="h-4 w-4" /> Strategic Insights
+                        </TabsTrigger>
+                        <TabsTrigger value="directory" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <LayoutGrid className="h-4 w-4" /> System Directory
+                        </TabsTrigger>
+                      </>
+                    )}
+                    <TabsTrigger value="csm" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Smile className="h-4 w-4" /> CSM Feedback
                     </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -679,6 +730,37 @@ export default function ReportsPage() {
                     onYearChange={setSelectedYear}
                 />
             </div>
+        </TabsContent>
+
+        <TabsContent value="csm" className="space-y-6 animate-in fade-in duration-500">
+          {isReportPublished ? (
+            <CsmReportDashboard
+              csmResponses={rawCsmResponses || []}
+              visitorLogs={rawVisitorLogs || []}
+              campuses={allCampuses || []}
+              units={allUnits || []}
+              selectedYear={selectedYear}
+              selectedCampusId={selectedCampusId}
+              userProfile={userProfile}
+              isAdmin={isAdmin}
+              isCsmManager={isCsmManager}
+            />
+          ) : (
+            <Card className="border-primary/10 shadow-md">
+              <CardContent className="flex flex-col items-center justify-center p-12 text-center space-y-4">
+                <AlertTriangle className="h-12 w-12 text-amber-500 animate-pulse" />
+                <div>
+                  <h3 className="text-lg font-black uppercase text-slate-800">CSM Report Awaiting Deployment</h3>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                    The Client Satisfaction Measurement report for AY {selectedYear} has not been deployed to units yet.
+                  </p>
+                </div>
+                <p className="text-xs font-medium text-slate-500 max-w-md">
+                  Once the Admin or IPDU office reviews and publishes the reports, you will be able to view and print your scorecard here.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

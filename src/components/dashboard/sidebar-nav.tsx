@@ -347,7 +347,7 @@ export function SidebarNav({
       href: '/reports',
       label: 'Reports',
       active: pathname.startsWith('/reports'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO'],
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <BarChart />,
     },
     {
