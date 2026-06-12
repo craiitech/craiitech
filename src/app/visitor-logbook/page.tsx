@@ -104,6 +104,8 @@ export default function VisitorLogbookPage() {
   const [logoutSuccessVisitorName, setLogoutSuccessVisitorName] = useState<string | null>(null);
 
   // ARTA CSM survey kiosk states
+  const [csmLanguage, setCsmLanguage] = useState<'EN' | 'FIL'>('EN');
+  const [csmSubmitted, setCsmSubmitted] = useState<boolean>(false);
   const [activeSurveyVisitor, setActiveSurveyVisitor] = useState<any | null>(null);
   const [csmAgeGroup, setCsmAgeGroup] = useState<string>('');
   const [csmClientType, setCsmClientType] = useState<string>('');
@@ -120,6 +122,128 @@ export default function VisitorLogbookPage() {
   const [csmSQD8, setCsmSQD8] = useState<number>(5);
   const [csmComments, setCsmComments] = useState<string>('');
   const [isSubmittingCsm, setIsSubmittingCsm] = useState<boolean>(false);
+
+  const t: Record<'EN' | 'FIL', any> = {
+    EN: {
+      profile: "1. Client Profile",
+      ageGroup: "Age Group",
+      clientType: "Client Type",
+      charter: "2. Citizen's Charter (CC)",
+      cc1Q: "CC1. Which of the following best describes your awareness of a Citizen's Charter?",
+      cc1Opts: [
+        "I know what a Citizen's Charter is and I saw this office's charter.",
+        "I know what a Citizen's Charter is but I did NOT see this office's charter.",
+        "I learned of the Citizen's Charter only when I saw this office's charter.",
+        "I do not know what a Citizen's Charter is and I did not see one."
+      ],
+      cc2Q: "CC2. How visible was the Citizen's Charter in this office?",
+      cc2Opts: [
+        "Easy to see",
+        "Somewhat easy to see",
+        "Difficult to see",
+        "Not visible at all"
+      ],
+      cc3Q: "CC3. How much did the Citizen's Charter help you?",
+      cc3Opts: [
+        "Helped very much",
+        "Somewhat helped",
+        "Did not help"
+      ],
+      sqdTitle: "3. Service Quality Dimensions (SQD)",
+      sqd1: "SQD1. Responsiveness",
+      sqd1D: "I spent a reasonable amount of time for my transaction.",
+      sqd2: "SQD2. Reliability",
+      sqd2D: "The office followed the transaction's requirements and steps.",
+      sqd3: "SQD3. Access & Facilities",
+      sqd3D: "The office location was convenient, clean, and comfortable.",
+      sqd4: "SQD4. Communication",
+      sqd4D: "The staff explained the requirements and steps clearly.",
+      sqd5: "SQD5. Costs",
+      sqd5D: "The fees paid were just and reasonable (select N/A if transaction was free).",
+      sqd6: "SQD6. Integrity",
+      sqd6D: "The transaction was clean (no extra payment/corruption experienced).",
+      sqd7: "SQD7. Assurance",
+      sqd7D: "I felt safe and secure, and the staff was professional/courteous.",
+      sqd8: "SQD8. Outcome",
+      sqd8D: "I got what I needed from the office (or got a clear explanation).",
+      na: "Not Applicable",
+      comments: "4. Comments / Suggestions (Optional)",
+      commentsPlaceholder: "Share details of your experience or suggestions to improve our service...",
+      skip: "Skip Feedback & Logout",
+      submit: "Submit Feedback & Logout",
+      submitting: "Submitting...",
+      incompleteTitle: "Incomplete Survey",
+      incompleteDesc: "Please answer the profile and Citizen's Charter questions, or click Skip.",
+      thankYouTitle: "Thank You, {name}!",
+      thankYouDesc: "We appreciate your feedback!",
+      thankYouMessage: "Your satisfaction rating helps us continuously improve our services. Have a safe journey back!",
+      helpUs: "Help us improve our service, {name}!"
+    },
+    FIL: {
+      profile: "1. Profile ng Kliyente",
+      ageGroup: "Grupo ng Edad",
+      clientType: "Uri ng Kliyente",
+      charter: "2. Karta ng Mamamayan (Citizen's Charter)",
+      cc1Q: "CC1. Alin sa mga sumusunod ang pinakamahusay na naglalarawan sa iyong kaalaman sa Citizen's Charter?",
+      cc1Opts: [
+        "Alam ko kung ano ang Citizen's Charter at nakita ko ang karta ng tanggapang ito.",
+        "Alam ko kung ano ang Citizen's Charter ngunit HINDI ko nakita ang karta ng tanggapang ito.",
+        "Nalaman ko ang tungkol sa Citizen's Charter nang makita ko ang karta ng tanggapang ito.",
+        "Hindi ko alam kung ano ang Citizen's Charter at wala akong nakitang ganoon."
+      ],
+      cc2Q: "CC2. Gaano kadaling makita ang Citizen's Charter sa tanggapang ito?",
+      cc2Opts: [
+        "Madaling makita",
+        "Medyo madaling makita",
+        "Mahirap makita",
+        "Hindi makita kahit kailan"
+      ],
+      cc3Q: "CC3. Gaano kalaki ang naitulong sa iyo ng Citizen's Charter?",
+      cc3Opts: [
+        "Napakalaki ng naitulong",
+        "Medyo nakatulong",
+        "Hindi nakatulong"
+      ],
+      sqdTitle: "3. Mga Dimensyon ng Kalidad ng Serbisyo (SQD)",
+      sqd1: "SQD1. Pagtugon (Responsiveness)",
+      sqd1D: "Naglaan ako ng makatwirang oras para sa aking transaksyon.",
+      sqd2: "SQD2. Maaasahan (Reliability)",
+      sqd2D: "Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon.",
+      sqd3: "SQD3. Pag-access at Pasilidad (Access & Facilities)",
+      sqd3D: "Ang lokasyon ng tanggapan ay maginhawa, malinis, at komportable.",
+      sqd4: "SQD4. Komunikasyon (Communication)",
+      sqd4D: "Malinaw na ipinaliwanag ng mga kawani ang mga kinakailangan at hakbang.",
+      sqd5: "SQD5. Gastos (Costs)",
+      sqd5D: "Ang mga binayarang bayarin ay makatarungan at makatwiran (piliin ang N/A kung libre).",
+      sqd6: "SQD6. Integridad (Integrity)",
+      sqd6D: "Malinis ang transaksyon (walang labis na bayad/korapsyon na naranasan).",
+      sqd7: "SQD7. Pagtitiyak (Assurance)",
+      sqd7D: "Naramdaman kong ligtas ako, at ang mga kawani ay propesyonal at magalang.",
+      sqd8: "SQD8. Kinalabasan (Outcome)",
+      sqd8D: "Nakuha ko ang kailangan ko mula sa tanggapan (o binigyan ng malinaw na paliwanag).",
+      na: "Hindi Angkop (N/A)",
+      comments: "4. Mga Komento / Mungkahi (Opsyonal)",
+      commentsPlaceholder: "Ibahagi ang mga detalye ng iyong karanasan o mga mungkahi upang mapabuti ang aming serbisyo...",
+      skip: "Laktawan at Mag-logout",
+      submit: "Isumite ang Feedback at Mag-logout",
+      submitting: "Ipinapadala...",
+      incompleteTitle: "Hindi Kumpletong Survey",
+      incompleteDesc: "Mangyaring sagutin ang profile at mga tanong sa Citizen's Charter, o i-click ang Laktawan.",
+      thankYouTitle: "Maraming Salamat, {name}!",
+      thankYouDesc: "Pinahahalagahan namin ang iyong feedback!",
+      thankYouMessage: "Ang iyong rating sa kasiyahan ay nagtutulong sa amin na patuloy na mapabuti ang aming mga serbisyo. Mag-ingat sa iyong pag-uwi!",
+      helpUs: "Tulungan kaming mapabuti ang aming serbisyo, {name}!"
+    }
+  };
+
+  const getBlinkingField = () => {
+    if (!csmAgeGroup) return 'ageGroup';
+    if (!csmClientType) return 'clientType';
+    if (csmCC1 === null) return 'cc1';
+    if ((csmCC1 === 1 || csmCC1 === 3) && csmCC2 === null) return 'cc2';
+    if ((csmCC1 === 1 || csmCC1 === 3) && csmCC3 === null) return 'cc3';
+    return null;
+  };
 
 
   // Monitor fullscreen changes
@@ -233,7 +357,7 @@ export default function VisitorLogbookPage() {
     if (logoutSuccessVisitorName) {
       const timer = setTimeout(() => {
         setLogoutSuccessVisitorName(null);
-      }, 4000);
+      }, 6000);
       return () => clearTimeout(timer);
     }
   }, [logoutSuccessVisitorName]);
@@ -286,6 +410,8 @@ export default function VisitorLogbookPage() {
 
   const handleLogoutVisitor = (visitor: any) => {
     setActiveSurveyVisitor(visitor);
+    setCsmLanguage('EN');
+    setCsmSubmitted(false);
     setCsmAgeGroup('');
     setCsmClientType('');
     setCsmCC1(null);
@@ -312,8 +438,8 @@ export default function VisitorLogbookPage() {
       if (!skip) {
         if (!csmAgeGroup || !csmClientType || csmCC1 === null) {
           toast({
-            title: 'Incomplete Survey',
-            description: 'Please answer the profile and Citizen\'s Charter questions, or click Skip.',
+            title: t[csmLanguage].incompleteTitle,
+            description: t[csmLanguage].incompleteDesc,
             variant: 'destructive',
           });
           setIsSubmittingCsm(false);
@@ -356,6 +482,7 @@ export default function VisitorLogbookPage() {
         loggedOutAt: Timestamp.now(),
       });
 
+      setCsmSubmitted(!skip);
       setLogoutSuccessVisitorName(visitorName);
       setActiveSurveyVisitor(null);
       toast({
@@ -683,21 +810,55 @@ export default function VisitorLogbookPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-300">
           <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto text-left space-y-6 animate-in zoom-in-95 duration-300">
             
-            {/* Header */}
-            <div className="border-b pb-4 space-y-1">
-              <h2 className="text-xl font-black uppercase tracking-tight text-[#1B6535]">Client Satisfaction Measurement (CSM)</h2>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest leading-tight">
-                Help us improve our service, <span className="text-emerald-700 font-extrabold">{activeSurveyVisitor.name}</span>!
-              </p>
+            {/* Header with Language Toggle */}
+            <div className="border-b pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="space-y-1">
+                <h2 className="text-xl font-black uppercase tracking-tight text-[#1B6535]">
+                  {csmLanguage === 'EN' ? 'Client Satisfaction Measurement (CSM)' : 'Pagsukat ng Kasiyahan ng Kliyente (CSM)'}
+                </h2>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest leading-tight">
+                  {t[csmLanguage].helpUs.replace('{name}', activeSurveyVisitor.name)}
+                </p>
+              </div>
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCsmLanguage('EN')}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                    csmLanguage === 'EN'
+                      ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCsmLanguage('FIL')}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                    csmLanguage === 'FIL'
+                      ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Tagalog
+                </button>
+              </div>
             </div>
 
             {/* Profile Info */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">1. Client Profile</h3>
+              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
+                {t[csmLanguage].profile}
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Age Group */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Age Group</label>
+                <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                  getBlinkingField() === 'ageGroup' ? 'animate-blink-border' : 'border-transparent'
+                }`}>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                    {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {['19-under', '20-34', '35-49', '50-64', '65-over'].map(age => (
                       <button
@@ -710,15 +871,19 @@ export default function VisitorLogbookPage() {
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        {age === '19-under' ? '19 & Under' : age === '65-over' ? '65 & Over' : age}
+                        {age === '19-under' ? t[csmLanguage].ageUnder : age === '65-over' ? t[csmLanguage].ageOver : age}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Client Type */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Client Type</label>
+                <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                  getBlinkingField() === 'clientType' ? 'animate-blink-border' : 'border-transparent'
+                }`}>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                    {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {['Citizen', 'Business', 'Government'].map(type => (
                       <button
@@ -741,17 +906,23 @@ export default function VisitorLogbookPage() {
 
             {/* Citizen's Charter */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">2. Citizen's Charter (CC)</h3>
+              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
+                {t[csmLanguage].charter}
+              </h3>
               
               {/* CC1 */}
-              <div className="space-y-2">
-                <p className="text-xs font-black text-slate-800">CC1. Which of the following best describes your awareness of a Citizen's Charter?</p>
+              <div className={`space-y-2 p-4 rounded-2xl border transition-all ${
+                getBlinkingField() === 'cc1' ? 'animate-blink-border' : 'border-transparent'
+              }`}>
+                <p className="text-xs font-black text-slate-800">
+                  {t[csmLanguage].cc1Q} <span className="text-rose-500">*</span>
+                </p>
                 <div className="grid grid-cols-1 gap-2">
                   {[
-                    { val: 1, label: "I know what a Citizen's Charter is and I saw this office's charter." },
-                    { val: 2, label: "I know what a Citizen's Charter is but I did NOT see this office's charter." },
-                    { val: 3, label: "I learned of the Citizen's Charter only when I saw this office's charter." },
-                    { val: 4, label: "I do not know what a Citizen's Charter is and I did not see one." }
+                    { val: 1, label: t[csmLanguage].cc1Opts[0] },
+                    { val: 2, label: t[csmLanguage].cc1Opts[1] },
+                    { val: 3, label: t[csmLanguage].cc1Opts[2] },
+                    { val: 4, label: t[csmLanguage].cc1Opts[3] }
                   ].map(opt => (
                     <button
                       key={opt.val}
@@ -782,14 +953,18 @@ export default function VisitorLogbookPage() {
               {(csmCC1 === 1 || csmCC1 === 3) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   {/* CC2 */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-black text-slate-800">CC2. How visible was the Citizen's Charter in this office?</p>
+                  <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                    getBlinkingField() === 'cc2' ? 'animate-blink-border' : 'border-transparent'
+                  }`}>
+                    <p className="text-xs font-black text-slate-800">
+                      {t[csmLanguage].cc2Q} <span className="text-rose-500">*</span>
+                    </p>
                     <div className="grid grid-cols-1 gap-1.5">
                       {[
-                        { val: 1, label: "Easy to see" },
-                        { val: 2, label: "Somewhat easy to see" },
-                        { val: 3, label: "Difficult to see" },
-                        { val: 4, label: "Not visible at all" }
+                        { val: 1, label: t[csmLanguage].cc2Opts[0] },
+                        { val: 2, label: t[csmLanguage].cc2Opts[1] },
+                        { val: 3, label: t[csmLanguage].cc2Opts[2] },
+                        { val: 4, label: t[csmLanguage].cc2Opts[3] }
                       ].map(opt => (
                         <button
                           key={opt.val}
@@ -808,13 +983,17 @@ export default function VisitorLogbookPage() {
                   </div>
 
                   {/* CC3 */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-black text-slate-800">CC3. How much did the Citizen's Charter help you?</p>
+                  <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                    getBlinkingField() === 'cc3' ? 'animate-blink-border' : 'border-transparent'
+                  }`}>
+                    <p className="text-xs font-black text-slate-800">
+                      {t[csmLanguage].cc3Q} <span className="text-rose-500">*</span>
+                    </p>
                     <div className="grid grid-cols-1 gap-1.5">
                       {[
-                        { val: 1, label: "Helped very much" },
-                        { val: 2, label: "Somewhat helped" },
-                        { val: 3, label: "Did not help" }
+                        { val: 1, label: t[csmLanguage].cc3Opts[0] },
+                        { val: 2, label: t[csmLanguage].cc3Opts[1] },
+                        { val: 3, label: t[csmLanguage].cc3Opts[2] }
                       ].map(opt => (
                         <button
                           key={opt.val}
@@ -837,25 +1016,27 @@ export default function VisitorLogbookPage() {
 
             {/* SQD Section */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">3. Service Quality Dimensions (SQD)</h3>
+              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
+                {t[csmLanguage].sqdTitle}
+              </h3>
               
               <div className="space-y-4">
                 {[
-                  { id: 1, label: "SQD1. Responsiveness", desc: "I spent a reasonable amount of time for my transaction.", val: csmSQD1, setVal: setCsmSQD1 },
-                  { id: 2, label: "SQD2. Reliability", desc: "The office followed the transaction's requirements and steps.", val: csmSQD2, setVal: setCsmSQD2 },
-                  { id: 3, label: "SQD3. Access & Facilities", desc: "The office location was convenient, clean, and comfortable.", val: csmSQD3, setVal: setCsmSQD3 },
-                  { id: 4, label: "SQD4. Communication", desc: "The staff explained the requirements and steps clearly.", val: csmSQD4, setVal: setCsmSQD4 },
-                  { id: 5, label: "SQD5. Costs", desc: "The fees paid were just and reasonable (select N/A if transaction was free).", val: csmSQD5, setVal: setCsmSQD5, showNa: true },
-                  { id: 6, label: "SQD6. Integrity", desc: "The transaction was clean (no extra payment/corruption experienced).", val: csmSQD6, setVal: setCsmSQD6 },
-                  { id: 7, label: "SQD7. Assurance", desc: "I felt safe and secure, and the staff was professional/courteous.", val: csmSQD7, setVal: setCsmSQD7 },
-                  { id: 8, label: "SQD8. Outcome", desc: "I got what I needed from the office (or got a clear explanation).", val: csmSQD8, setVal: setCsmSQD8 }
+                  { id: 1, label: t[csmLanguage].sqd1, desc: t[csmLanguage].sqd1D, val: csmSQD1, setVal: setCsmSQD1 },
+                  { id: 2, label: t[csmLanguage].sqd2, desc: t[csmLanguage].sqd2D, val: csmSQD2, setVal: setCsmSQD2 },
+                  { id: 3, label: t[csmLanguage].sqd3, desc: t[csmLanguage].sqd3D, val: csmSQD3, setVal: setCsmSQD3 },
+                  { id: 4, label: t[csmLanguage].sqd4, desc: t[csmLanguage].sqd4D, val: csmSQD4, setVal: setCsmSQD4 },
+                  { id: 5, label: t[csmLanguage].sqd5, desc: t[csmLanguage].sqd5D, val: csmSQD5, setVal: setCsmSQD5, showNa: true },
+                  { id: 6, label: t[csmLanguage].sqd6, desc: t[csmLanguage].sqd6D, val: csmSQD6, setVal: setCsmSQD6 },
+                  { id: 7, label: t[csmLanguage].sqd7, desc: t[csmLanguage].sqd7D, val: csmSQD7, setVal: setCsmSQD7 },
+                  { id: 8, label: t[csmLanguage].sqd8, desc: t[csmLanguage].sqd8D, val: csmSQD8, setVal: setCsmSQD8 }
                 ].map(sqd => {
                   const ratingOptions = [
-                    { rating: 1, emoji: "😠", label: "Strongly Disagree" },
-                    { rating: 2, emoji: "🙁", label: "Disagree" },
-                    { rating: 3, emoji: "😐", label: "Neutral" },
-                    { rating: 4, emoji: "🙂", label: "Agree" },
-                    { rating: 5, emoji: "😍", label: "Strongly Agree" }
+                    { rating: 1, emoji: "😠", label: csmLanguage === 'EN' ? "Strongly Disagree" : "Lubos na Sumasalungat" },
+                    { rating: 2, emoji: "🙁", label: csmLanguage === 'EN' ? "Disagree" : "Sumasalungat" },
+                    { rating: 3, emoji: "😐", label: csmLanguage === 'EN' ? "Neutral" : "Walang Pinapanigan" },
+                    { rating: 4, emoji: "🙂", label: csmLanguage === 'EN' ? "Agree" : "Sumasang-ayon" },
+                    { rating: 5, emoji: "😍", label: csmLanguage === 'EN' ? "Strongly Agree" : "Lubos na Sumasang-ayon" }
                   ];
 
                   return (
@@ -895,7 +1076,7 @@ export default function VisitorLogbookPage() {
                                 : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-100'
                             }`}
                           >
-                            Not Applicable
+                            {t[csmLanguage].na}
                           </button>
                         )}
                       </div>
@@ -907,11 +1088,13 @@ export default function VisitorLogbookPage() {
 
             {/* Comments */}
             <div className="space-y-2">
-              <label htmlFor="csmComments" className="text-[10px] font-black uppercase tracking-wider text-slate-700">4. Comments / Suggestions (Optional)</label>
+              <label htmlFor="csmComments" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                {t[csmLanguage].comments}
+              </label>
               <textarea
                 id="csmComments"
                 rows={3}
-                placeholder="Share details of your experience or suggestions to improve our service..."
+                placeholder={t[csmLanguage].commentsPlaceholder}
                 value={csmComments}
                 onChange={(e) => setCsmComments(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
@@ -927,7 +1110,7 @@ export default function VisitorLogbookPage() {
                 onClick={() => submitCsmCheckout(true)}
                 className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-750 hover:bg-slate-100 rounded-xl"
               >
-                Skip Feedback & Logout
+                {t[csmLanguage].skip}
               </Button>
               <Button
                 type="button"
@@ -937,10 +1120,10 @@ export default function VisitorLogbookPage() {
               >
                 {isSubmittingCsm ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting...
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> {t[csmLanguage].submitting}
                   </>
                 ) : (
-                  "Submit Feedback & Logout"
+                  t[csmLanguage].submit
                 )}
               </Button>
             </div>
@@ -951,17 +1134,49 @@ export default function VisitorLogbookPage() {
       {/* Logout Success Thank You Overlay */}
       {logoutSuccessVisitorName && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300">
+          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-8 max-w-lg w-full text-center space-y-6 animate-in zoom-in-95 duration-300">
             <div className="mx-auto relative flex items-center justify-center h-20 w-20 rounded-full bg-emerald-50 border border-emerald-100">
               <CheckCircle2 className="h-10 w-10 text-emerald-600 animate-bounce" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-800">Thank You, {logoutSuccessVisitorName}!</h3>
-              <p className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">Logout Successful</p>
+            
+            {csmSubmitted ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black uppercase tracking-tight text-[#1B6535]">
+                    {t[csmLanguage].thankYouTitle.replace('{name}', logoutSuccessVisitorName)}
+                  </h3>
+                  <p className="text-xs font-black text-[#D4AF37] uppercase tracking-[0.2em]">
+                    {t[csmLanguage].thankYouDesc}
+                  </p>
+                </div>
+                <p className="text-base font-semibold text-slate-755 leading-relaxed">
+                  {t[csmLanguage].thankYouMessage}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black uppercase tracking-tight text-[#1B6535]">
+                    Thank You, {logoutSuccessVisitorName}!
+                  </h3>
+                  <p className="text-xs font-black text-emerald-650 uppercase tracking-[0.2em]">
+                    Logout Successful
+                  </p>
+                </div>
+                <p className="text-base font-semibold text-slate-755 leading-relaxed">
+                  We hope your visit was productive. Thank you for logging your checkout. Have a safe journey back, and we hope to welcome you again soon!
+                </p>
+              </div>
+            )}
+            
+            <div className="pt-2">
+              <Button
+                onClick={() => setLogoutSuccessVisitorName(null)}
+                className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 hover:border-[#D4AF37]/50 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all duration-150"
+              >
+                {csmLanguage === 'FIL' ? 'MABUHAY / OK' : 'OK / CLOSE'}
+              </Button>
             </div>
-            <p className="text-sm font-medium text-slate-600 leading-relaxed">
-              We hope your visit was productive. Thank you for logging your checkout. Please have a safe journey back, and we hope to welcome you again soon!
-            </p>
           </div>
         </div>
       )}
@@ -976,6 +1191,21 @@ export default function VisitorLogbookPage() {
       <style jsx global>{`
         .bg-radial-gradient {
           background-image: radial-gradient(circle at center, #0e301b 0%, #08170e 100%);
+        }
+        @keyframes border-blink {
+          0%, 100% {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.4);
+          }
+          50% {
+            border-color: #e2e8f0;
+            box-shadow: 0 0 0 4px transparent;
+          }
+        }
+        .animate-blink-border {
+          animation: border-blink 1.2s infinite;
+          border-width: 2px !important;
+          border-style: solid !important;
         }
       `}</style>
     </div>
