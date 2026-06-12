@@ -85,7 +85,8 @@ export default function ReportsPage() {
     return !!(userProfile?.unitId && csmSettings?.managingUnitId && userProfile.unitId === csmSettings.managingUnitId);
   }, [userProfile, csmSettings]);
 
-  const hasAllAccess = isAdmin || isSupervisor || isCsmManager;
+  const hasFullReportsAccess = isAdmin || isSupervisor;
+  const hasAllAccess = hasFullReportsAccess || isCsmManager;
   const canViewReports = hasAllAccess || !!userProfile?.unitId;
 
   useEffect(() => {
@@ -108,29 +109,29 @@ export default function ReportsPage() {
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !hasAllAccess) return null;
-    if (isAdmin || isCsmManager) return collection(firestore, 'submissions');
+    if (!firestore || !hasFullReportsAccess) return null;
+    if (isAdmin) return collection(firestore, 'submissions');
     if (userProfile?.campusId) {
         return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, isCsmManager, userProfile]);
+  }, [firestore, hasFullReportsAccess, isAdmin, userProfile]);
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const risksQuery = useMemoFirebase(() => {
-    if (!firestore || !hasAllAccess) return null;
-    if (isAdmin || isCsmManager) return collection(firestore, 'risks');
+    if (!firestore || !hasFullReportsAccess) return null;
+    if (isAdmin) return collection(firestore, 'risks');
     if (userProfile?.campusId) {
         return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, isCsmManager, userProfile]);
+  }, [firestore, hasFullReportsAccess, isAdmin, userProfile]);
   const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || !hasAllAccess || !selectedYear) return null;
+    if (!firestore || !hasFullReportsAccess || !selectedYear) return null;
     return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
-  }, [firestore, hasAllAccess, selectedYear]);
+  }, [firestore, hasFullReportsAccess, selectedYear]);
   const { data: allCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const usersQuery = useMemoFirebase(() => {
@@ -385,14 +386,15 @@ export default function ReportsPage() {
   }, [csmDeployments, selectedYear, hasAllAccess, userProfile]);
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingCsmSettings || 
-    (hasAllAccess && (isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingRisks || isLoadingCompliances)) ||
+    (hasFullReportsAccess && (isLoadingSubmissions || isLoadingRisks || isLoadingCompliances)) ||
+    (hasAllAccess && (isLoadingUnits || isLoadingUsers)) ||
     isLoadingCsmResponses || isLoadingVisitorLogs || isLoadingCsmDeployments;
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue={hasAllAccess ? "visuals" : "csm"} className="space-y-6">
+      <Tabs defaultValue={hasFullReportsAccess ? "visuals" : "csm"} className="space-y-6">
         {/* Sticky Header Enforced */}
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header print:hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -427,7 +429,7 @@ export default function ReportsPage() {
 
             <ScrollArea className="w-full">
                 <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                    {hasAllAccess && (
+                    {hasFullReportsAccess && (
                       <>
                         <TabsTrigger value="visuals" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                             <BarChart3 className="h-4 w-4" /> Strategic Insights
