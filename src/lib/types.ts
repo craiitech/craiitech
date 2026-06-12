@@ -243,8 +243,8 @@ export type CsmResponse = {
     visitorLogId: string;
     visitorName: string;
     sex: 'Male' | 'Female' | string;
-    ageGroup: '19-under' | '20-34' | '35-49' | '50-64' | '65-over' | string;
-    clientType: 'Citizen' | 'Business' | 'Government' | string;
+    ageGroup: 'Below 20' | '19-under' | '20-34' | '35-49' | '50-64' | '65 and above' | '65-over' | string;
+    clientType: 'Citizen' | 'Business' | 'Government' | 'STUDENT' | string;
     campusId: string;
     unitId: string;
     unitName: string;

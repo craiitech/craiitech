@@ -122,11 +122,14 @@ export default function VisitorLogbookPage() {
   const [csmSQD8, setCsmSQD8] = useState<number>(5);
   const [csmComments, setCsmComments] = useState<string>('');
   const [isSubmittingCsm, setIsSubmittingCsm] = useState<boolean>(false);
+  const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
 
   const t: Record<'EN' | 'FIL', any> = {
     EN: {
       profile: "1. Client Profile",
       ageGroup: "Age Group",
+      ageUnder: "Below 20",
+      ageOver: "65 and above",
       clientType: "Client Type",
       charter: "2. Citizen's Charter (CC)",
       cc1Q: "CC1. Which of the following best describes your awareness of a Citizen's Charter?",
@@ -182,6 +185,8 @@ export default function VisitorLogbookPage() {
     FIL: {
       profile: "1. Profile ng Kliyente",
       ageGroup: "Grupo ng Edad",
+      ageUnder: "Mababa sa 20",
+      ageOver: "65 at pataas",
       clientType: "Uri ng Kliyente",
       charter: "2. Karta ng Mamamayan (Citizen's Charter)",
       cc1Q: "CC1. Alin sa mga sumusunod ang pinakamahusay na naglalarawan sa iyong kaalaman sa Citizen's Charter?",
@@ -255,11 +260,26 @@ export default function VisitorLogbookPage() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Intercept and prevent Escape key from exiting fullscreen (e.g. in Electron/supported wrappers)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (document.fullscreenElement) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, []);
+
   // Enter fullscreen automatically on first user gesture if requested via query param
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const shouldAutoFullscreen = searchParams.get('fullscreen') === 'true';
+      setIsKioskMode(shouldAutoFullscreen);
 
       if (shouldAutoFullscreen) {
         const enterFS = () => {
@@ -860,7 +880,7 @@ export default function VisitorLogbookPage() {
                     {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {['19-under', '20-34', '35-49', '50-64', '65-over'].map(age => (
+                    {['Below 20', '20-34', '35-49', '50-64', '65 and above'].map(age => (
                       <button
                         key={age}
                         type="button"
@@ -871,7 +891,7 @@ export default function VisitorLogbookPage() {
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        {age === '19-under' ? t[csmLanguage].ageUnder : age === '65-over' ? t[csmLanguage].ageOver : age}
+                        {age === 'Below 20' ? t[csmLanguage].ageUnder : age === '65 and above' ? t[csmLanguage].ageOver : age}
                       </button>
                     ))}
                   </div>
@@ -885,7 +905,7 @@ export default function VisitorLogbookPage() {
                     {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {['Citizen', 'Business', 'Government'].map(type => (
+                    {['Citizen', 'Business', 'Government', 'STUDENT'].map(type => (
                       <button
                         key={type}
                         type="button"
@@ -1053,15 +1073,15 @@ export default function VisitorLogbookPage() {
                               type="button"
                               disabled={sqd.val === 0}
                               onClick={() => sqd.setVal(opt.rating)}
-                              className={`flex flex-col items-center justify-center h-12 w-12 rounded-xl border transition-all active:scale-95 ${
+                              className={`flex flex-col items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl border transition-all active:scale-95 ${
                                 sqd.val === opt.rating
                                   ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md scale-105'
                                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-30'
                               }`}
                               title={opt.label}
                             >
-                              <span className="text-lg leading-none">{opt.emoji}</span>
-                              <span className="text-[7px] font-black uppercase mt-1 leading-none">{opt.rating}</span>
+                              <span className="text-3xl sm:text-4xl leading-none">{opt.emoji}</span>
+                              <span className="text-[8px] sm:text-[10px] font-black uppercase mt-1.5 leading-none">{opt.rating}</span>
                             </button>
                           ))}
                         </div>
@@ -1070,7 +1090,7 @@ export default function VisitorLogbookPage() {
                           <button
                             type="button"
                             onClick={() => sqd.setVal(sqd.val === 0 ? 5 : 0)}
-                            className={`px-3 h-12 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                            className={`px-4 h-16 sm:h-20 rounded-2xl border text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all ${
                               sqd.val === 0
                                 ? 'bg-amber-500 text-white border-amber-500 shadow-md'
                                 : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-100'
@@ -1177,6 +1197,40 @@ export default function VisitorLogbookPage() {
                 {csmLanguage === 'FIL' ? 'MABUHAY / OK' : 'OK / CLOSE'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kiosk Mode Paused Overlay */}
+      {isKioskMode && !isFullscreen && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 animate-pulse">
+            <Maximize2 className="h-10 w-10" />
+          </div>
+          <div className="space-y-2 max-w-md">
+            <h3 className="text-2xl font-black uppercase tracking-tight text-white">
+              Kiosk Terminal Paused
+            </h3>
+            <p className="text-xs font-black text-[#D4AF37] uppercase tracking-[0.2em]">
+              Fullscreen Mode Inactive
+            </p>
+            <p className="text-sm font-medium text-slate-300 pt-2 leading-relaxed">
+              For security and to prevent unauthorized access to the device, the visitor logbook must run in fullscreen mode.
+            </p>
+          </div>
+          <div className="pt-2 w-full max-w-xs">
+            <Button
+              onClick={async () => {
+                try {
+                  await document.documentElement.requestFullscreen();
+                } catch (err) {
+                  console.warn('Failed to resume fullscreen:', err);
+                }
+              }}
+              className="w-full h-12 bg-gradient-to-r from-[#D4AF37] to-[#bfa032] hover:from-[#e5bd3c] hover:to-[#d4af37] text-slate-950 font-black uppercase tracking-widest shadow-lg shadow-[#D4AF37]/20 active:scale-95 transition-all duration-150 border-none rounded-xl"
+            >
+              Resume Kiosk Mode
+            </Button>
           </div>
         </div>
       )}
