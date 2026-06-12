@@ -276,6 +276,7 @@ export type CsmDeployment = {
     isPublished: boolean;
     deployedAt: any;
     deployedBy: string;
+    publishedUnitIds?: string[];
 }
 
 

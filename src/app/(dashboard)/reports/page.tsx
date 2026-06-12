@@ -374,8 +374,15 @@ export default function ReportsPage() {
 
   const isReportPublished = useMemo(() => {
     if (hasAllAccess) return true;
-    return csmDeployments?.some(d => d.academicYear === selectedYear && d.isPublished) || false;
-  }, [csmDeployments, selectedYear, hasAllAccess]);
+    return csmDeployments?.some(d => {
+      if (d.academicYear !== selectedYear) return false;
+      if (!d.isPublished) return false;
+      if (d.publishedUnitIds) {
+        return d.publishedUnitIds.includes(userProfile?.unitId || '');
+      }
+      return true; // Backward compatibility for global deployments
+    }) || false;
+  }, [csmDeployments, selectedYear, hasAllAccess, userProfile]);
 
   const isLoading = isUserLoading || isLoadingCampuses || 
     (hasAllAccess && (isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingRisks || isLoadingCompliances)) ||
@@ -744,6 +751,7 @@ export default function ReportsPage() {
               userProfile={userProfile}
               isAdmin={isAdmin}
               isCsmManager={isCsmManager}
+              csmDeployments={csmDeployments || []}
             />
           ) : (
             <Card className="border-primary/10 shadow-md">

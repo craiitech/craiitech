@@ -36,8 +36,21 @@ import {
   Calendar,
   Smile,
   ShieldCheck,
-  Percent
+  Percent,
+  XCircle,
+  Loader2
 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { CsmDeployment } from '@/lib/types';
 
 interface CsmReportDashboardProps {
   csmResponses: any[];
@@ -49,6 +62,7 @@ interface CsmReportDashboardProps {
   userProfile: AppUser | null;
   isAdmin: boolean;
   isCsmManager: boolean;
+  csmDeployments: CsmDeployment[];
 }
 
 export function CsmReportDashboard({
@@ -61,9 +75,96 @@ export function CsmReportDashboard({
   userProfile,
   isAdmin,
   isCsmManager,
+  csmDeployments,
 }: CsmReportDashboardProps) {
 
   const hasAccessToAll = isAdmin || isCsmManager;
+
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
+  const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  // Filter units based on selected campus
+  const dropdownUnits = useMemo(() => {
+    if (!units) return [];
+    if (!selectedCampusId || selectedCampusId === 'all') return units.sort((a,b) => a.name.localeCompare(b.name));
+    return units.filter(u => u.campusIds?.includes(selectedCampusId)).sort((a,b) => a.name.localeCompare(b.name));
+  }, [units, selectedCampusId]);
+
+  // Reset selected unit if campus changes and it's no longer in the list
+  useMemo(() => {
+    if (selectedUnitId !== 'all') {
+      const belongs = dropdownUnits.some(u => u.id === selectedUnitId);
+      if (!belongs) {
+        setSelectedUnitId('all');
+      }
+    }
+  }, [dropdownUnits, selectedUnitId]);
+
+  // Check if the selected unit's report is approved/deployed for the selected year
+  const isUnitApproved = useMemo(() => {
+    if (selectedUnitId === 'all') return false;
+    return csmDeployments?.some(d => 
+      d.academicYear === selectedYear && 
+      d.isPublished && 
+      d.publishedUnitIds?.includes(selectedUnitId)
+    ) || false;
+  }, [csmDeployments, selectedYear, selectedUnitId]);
+
+  const handleToggleUnitApproval = async () => {
+    if (!firestore || !userProfile || selectedUnitId === 'all') return;
+    setIsUpdatingApproval(true);
+    try {
+      const yearDeployments = csmDeployments.filter(d => d.academicYear === selectedYear);
+      const targetDocIds: string[] = [];
+      if (yearDeployments.length > 0) {
+        yearDeployments.forEach(d => targetDocIds.push(d.id));
+      } else {
+        targetDocIds.push(`${selectedYear}-first`, `${selectedYear}-final`);
+      }
+
+      for (const docId of targetDocIds) {
+        const docRef = doc(firestore, 'csmDeployments', docId);
+        const existing = csmDeployments.find(d => d.id === docId);
+        const currentList = existing?.publishedUnitIds || [];
+        
+        let newList: string[];
+        if (isUnitApproved) {
+          newList = currentList.filter(id => id !== selectedUnitId);
+        } else {
+          newList = [...new Set([...currentList, selectedUnitId])];
+        }
+
+        await setDoc(docRef, {
+          id: docId,
+          academicYear: selectedYear,
+          cycleId: docId.endsWith('-final') ? 'final' : 'first',
+          isPublished: existing ? existing.isPublished : true,
+          publishedUnitIds: newList,
+          deployedAt: serverTimestamp(),
+          deployedBy: userProfile.id,
+        }, { merge: true });
+      }
+
+      const unitName = units.find(u => u.id === selectedUnitId)?.name || 'Unit';
+      toast({
+        title: isUnitApproved ? 'Approval Recalled' : 'Report Approved & Deployed',
+        description: isUnitApproved 
+          ? `CSM Reports for ${unitName} are now hidden from their coordinators.`
+          : `CSM Reports for ${unitName} have been approved and published for their viewing.`,
+      });
+    } catch (error) {
+      console.error('Error toggling unit approval:', error);
+      toast({
+        title: 'Action Failed',
+        description: 'Could not update the unit approval state.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdatingApproval(false);
+    }
+  };
 
   // 1. FILTER RESPONSES
   const filteredResponses = useMemo(() => {
@@ -74,11 +175,14 @@ export function CsmReportDashboard({
       
       const matchesYear = resYear === selectedYear;
       const matchesCampus = !selectedCampusId || selectedCampusId === 'all' || res.campusId === selectedCampusId;
-      const matchesUnit = hasAccessToAll ? true : res.unitId === userProfile?.unitId;
+      
+      const matchesUnit = hasAccessToAll
+        ? (selectedUnitId === 'all' ? true : res.unitId === selectedUnitId)
+        : res.unitId === userProfile?.unitId;
       
       return matchesYear && matchesCampus && matchesUnit;
     });
-  }, [csmResponses, selectedYear, selectedCampusId, hasAccessToAll, userProfile]);
+  }, [csmResponses, selectedYear, selectedCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
   // 2. FILTER VISITOR LOGS
   const filteredVisitorLogs = useMemo(() => {
@@ -89,11 +193,14 @@ export function CsmReportDashboard({
       
       const matchesYear = logYear === selectedYear;
       const matchesCampus = !selectedCampusId || selectedCampusId === 'all' || log.campusId === selectedCampusId;
-      const matchesUnit = hasAccessToAll ? true : log.unitId === userProfile?.unitId;
+      
+      const matchesUnit = hasAccessToAll
+        ? (selectedUnitId === 'all' ? true : log.unitId === selectedUnitId)
+        : log.unitId === userProfile?.unitId;
       
       return matchesYear && matchesCampus && matchesUnit;
     });
-  }, [visitorLogs, selectedYear, selectedCampusId, hasAccessToAll, userProfile]);
+  }, [visitorLogs, selectedYear, selectedCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
   // 3. STATS CALCULATIONS
   const totalResponses = filteredResponses.length;
@@ -532,6 +639,70 @@ export function CsmReportDashboard({
   return (
     <div className="space-y-6">
       
+      {/* Admin/IPDU Drill-down & Unit Publication Panel */}
+      {hasAccessToAll && (
+        <Card className="border-primary/15 shadow-sm bg-slate-50/50">
+          <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Drill Down Unit / Office</span>
+                <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                  <SelectTrigger className="w-[280px] h-9 bg-white font-bold text-xs shadow-sm">
+                    <SelectValue placeholder="System-Wide Overview" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🏢 System-Wide Overview</SelectItem>
+                    {dropdownUnits.map(unit => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        📄 {unit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedUnitId !== 'all' && (
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Approval Status</span>
+                  <div className="flex items-center gap-2 h-9">
+                    {isUnitApproved ? (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-250 text-[10px] font-black uppercase h-7 px-2">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Approved for Unit
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] font-black uppercase text-slate-500 h-7 px-2">
+                        <Info className="h-3 w-3 mr-1" /> Pending Approval
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {selectedUnitId !== 'all' && (
+              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                <Button
+                  size="sm"
+                  variant={isUnitApproved ? "destructive" : "default"}
+                  disabled={isUpdatingApproval}
+                  onClick={handleToggleUnitApproval}
+                  className="h-9 text-[10px] font-black uppercase tracking-wider px-4 shadow-sm"
+                >
+                  {isUpdatingApproval ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  ) : isUnitApproved ? (
+                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                  ) : (
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {isUnitApproved ? "Recall Report" : "Approve & Deploy"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* 1. TOP CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         
