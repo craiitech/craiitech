@@ -833,18 +833,18 @@ export default function VisitorLogbookPage() {
             {/* Header with Language Toggle */}
             <div className="border-b pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="space-y-1">
-                <h2 className="text-xl font-black uppercase tracking-tight text-[#1B6535]">
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#1B6535]">
                   {csmLanguage === 'EN' ? 'Client Satisfaction Measurement (CSM)' : 'Pagsukat ng Kasiyahan ng Kliyente (CSM)'}
                 </h2>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest leading-tight">
+                <p className="text-slate-500 text-sm sm:text-base font-bold uppercase tracking-widest leading-tight">
                   {t[csmLanguage].helpUs.replace('{name}', activeSurveyVisitor.name)}
                 </p>
               </div>
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+              <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0">
                 <button
                   type="button"
                   onClick={() => setCsmLanguage('EN')}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                  className={`px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
                     csmLanguage === 'EN'
                       ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50'
                       : 'text-slate-500 hover:text-slate-800'
@@ -855,7 +855,7 @@ export default function VisitorLogbookPage() {
                 <button
                   type="button"
                   onClick={() => setCsmLanguage('FIL')}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                  className={`px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
                     csmLanguage === 'FIL'
                       ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50'
                       : 'text-slate-500 hover:text-slate-800'
@@ -868,7 +868,7 @@ export default function VisitorLogbookPage() {
 
             {/* Profile Info */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
+              <h3 className="text-sm sm:text-base font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
                 {t[csmLanguage].profile}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -876,7 +876,7 @@ export default function VisitorLogbookPage() {
                 <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                   getBlinkingField() === 'ageGroup' ? 'animate-blink-border' : 'border-transparent'
                 }`}>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                  <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
                     {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -885,7 +885,7 @@ export default function VisitorLogbookPage() {
                         key={age}
                         type="button"
                         onClick={() => setCsmAgeGroup(age)}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wide transition-all ${
+                        className={`px-4 py-2 rounded-xl border text-sm sm:text-base font-bold uppercase tracking-wide transition-all ${
                           csmAgeGroup === age
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-sm'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -901,7 +901,7 @@ export default function VisitorLogbookPage() {
                 <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                   getBlinkingField() === 'clientType' ? 'animate-blink-border' : 'border-transparent'
                 }`}>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                  <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
                     {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -910,7 +910,7 @@ export default function VisitorLogbookPage() {
                         key={type}
                         type="button"
                         onClick={() => setCsmClientType(type)}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wide transition-all ${
+                        className={`px-4 py-2 rounded-xl border text-sm sm:text-base font-bold uppercase tracking-wide transition-all ${
                           csmClientType === type
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-sm'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -926,7 +926,7 @@ export default function VisitorLogbookPage() {
 
             {/* Citizen's Charter */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
+              <h3 className="text-sm sm:text-base font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
                 {t[csmLanguage].charter}
               </h3>
               
@@ -934,7 +934,7 @@ export default function VisitorLogbookPage() {
               <div className={`space-y-2 p-4 rounded-2xl border transition-all ${
                 getBlinkingField() === 'cc1' ? 'animate-blink-border' : 'border-transparent'
               }`}>
-                <p className="text-xs font-black text-slate-800">
+                <p className="text-sm sm:text-base font-black text-slate-800">
                   {t[csmLanguage].cc1Q} <span className="text-rose-500">*</span>
                 </p>
                 <div className="grid grid-cols-1 gap-2">
@@ -957,7 +957,7 @@ export default function VisitorLogbookPage() {
                           setCsmCC3(null);
                         }
                       }}
-                      className={`text-left p-3 rounded-xl border text-xs font-bold transition-all ${
+                      className={`text-left p-3.5 rounded-xl border text-sm sm:text-base font-bold transition-all ${
                         csmCC1 === opt.val
                           ? 'bg-[#1B6535]/10 text-[#1B6535] border-[#1B6535] font-black'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -976,7 +976,7 @@ export default function VisitorLogbookPage() {
                   <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                     getBlinkingField() === 'cc2' ? 'animate-blink-border' : 'border-transparent'
                   }`}>
-                    <p className="text-xs font-black text-slate-800">
+                    <p className="text-sm sm:text-base font-black text-slate-800">
                       {t[csmLanguage].cc2Q} <span className="text-rose-500">*</span>
                     </p>
                     <div className="grid grid-cols-1 gap-1.5">
@@ -990,7 +990,7 @@ export default function VisitorLogbookPage() {
                           key={opt.val}
                           type="button"
                           onClick={() => setCsmCC2(opt.val)}
-                          className={`text-left px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
+                          className={`text-left px-4 py-2.5 rounded-xl border text-sm sm:text-base font-bold transition-all ${
                             csmCC2 === opt.val
                               ? 'bg-[#1B6535]/15 text-[#1B6535] border-[#1B6535]'
                               : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -1006,7 +1006,7 @@ export default function VisitorLogbookPage() {
                   <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                     getBlinkingField() === 'cc3' ? 'animate-blink-border' : 'border-transparent'
                   }`}>
-                    <p className="text-xs font-black text-slate-800">
+                    <p className="text-sm sm:text-base font-black text-slate-800">
                       {t[csmLanguage].cc3Q} <span className="text-rose-500">*</span>
                     </p>
                     <div className="grid grid-cols-1 gap-1.5">
@@ -1019,7 +1019,7 @@ export default function VisitorLogbookPage() {
                           key={opt.val}
                           type="button"
                           onClick={() => setCsmCC3(opt.val)}
-                          className={`text-left px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
+                          className={`text-left px-4 py-2.5 rounded-xl border text-sm sm:text-base font-bold transition-all ${
                             csmCC3 === opt.val
                               ? 'bg-[#1B6535]/15 text-[#1B6535] border-[#1B6535]'
                               : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -1036,7 +1036,7 @@ export default function VisitorLogbookPage() {
 
             {/* SQD Section */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
+              <h3 className="text-sm sm:text-base font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
                 {t[csmLanguage].sqdTitle}
               </h3>
               
@@ -1062,8 +1062,8 @@ export default function VisitorLogbookPage() {
                   return (
                     <div key={sqd.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
                       <div>
-                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{sqd.label}</p>
-                        <p className="text-[11px] font-bold text-slate-500 mt-0.5">{sqd.desc}</p>
+                        <p className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-tight">{sqd.label}</p>
+                        <p className="text-xs sm:text-sm font-bold text-slate-500 mt-0.5">{sqd.desc}</p>
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-1.5 sm:gap-2.5">
@@ -1108,7 +1108,7 @@ export default function VisitorLogbookPage() {
 
             {/* Comments */}
             <div className="space-y-2">
-              <label htmlFor="csmComments" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+              <label htmlFor="csmComments" className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700">
                 {t[csmLanguage].comments}
               </label>
               <textarea
@@ -1117,7 +1117,7 @@ export default function VisitorLogbookPage() {
                 placeholder={t[csmLanguage].commentsPlaceholder}
                 value={csmComments}
                 onChange={(e) => setCsmComments(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
+                className="w-full p-3.5 bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm sm:text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
               />
             </div>
 
@@ -1128,7 +1128,7 @@ export default function VisitorLogbookPage() {
                 variant="ghost"
                 disabled={isSubmittingCsm}
                 onClick={() => submitCsmCheckout(true)}
-                className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-750 hover:bg-slate-100 rounded-xl"
+                className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-500 hover:text-slate-750 hover:bg-slate-100 rounded-xl px-4 py-2"
               >
                 {t[csmLanguage].skip}
               </Button>
@@ -1136,7 +1136,7 @@ export default function VisitorLogbookPage() {
                 type="button"
                 disabled={isSubmittingCsm || !csmAgeGroup || !csmClientType || csmCC1 === null}
                 onClick={() => submitCsmCheckout(false)}
-                className="w-full sm:w-auto h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-[10px] px-8 rounded-xl shadow-lg transition-all"
+                className="w-full sm:w-auto h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-sm sm:text-base px-8 rounded-xl shadow-lg transition-all"
               >
                 {isSubmittingCsm ? (
                   <>
