@@ -94,7 +94,7 @@ function UnitActivityScannerTerminal() {
   // Load html5-qrcode library from CDN dynamically
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if ((window as any).Html5QrcodeScanner) {
+    if ((window as any).Html5Qrcode) {
       setIsScannerLibLoaded(true);
       return;
     }
@@ -113,7 +113,7 @@ function UnitActivityScannerTerminal() {
   }, []);
 
   const startScanning = () => {
-    if (!isScannerLibLoaded || !(window as any).Html5QrcodeScanner) return;
+    if (!isScannerLibLoaded || !(window as any).Html5Qrcode) return;
     if (!paramActivityId) return;
 
     setScannerActive(true);
@@ -121,17 +121,31 @@ function UnitActivityScannerTerminal() {
 
     setTimeout(() => {
       try {
-        const scanner = new (window as any).Html5QrcodeScanner("reader-container", {
-          fps: 10,
-          qrbox: { width: 220, height: 220 },
-          aspectRatio: 1.0
-        });
+        const scanner = new (window as any).Html5Qrcode("reader-container");
 
-        scanner.render(handleScanSuccess, handleScanError);
-        html5QrCodeScannerRef.current = scanner;
+        scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            aspectRatio: 1.0
+          },
+          (decodedText: string) => {
+            handleScanSuccess(decodedText);
+          },
+          (errorMessage: string) => {
+            // standard polling camera logs can be ignored
+          }
+        ).then(() => {
+          html5QrCodeScannerRef.current = scanner;
+        }).catch((err: any) => {
+          console.error("Camera Start Error:", err);
+          setScanResult({ status: 'error', message: `Camera access failed: ${err.message || err}. Please ensure camera permission is granted and you are using a secure connection (HTTPS).` });
+          setScannerActive(false);
+        });
       } catch (err: any) {
         console.error("Camera Init Error:", err);
-        setScanResult({ status: 'error', message: `Camera access failed: ${err.message}` });
+        setScanResult({ status: 'error', message: `Camera initialization failed: ${err.message || err}` });
         setScannerActive(false);
       }
     }, 100);
@@ -139,19 +153,18 @@ function UnitActivityScannerTerminal() {
 
   const stopScanning = () => {
     if (html5QrCodeScannerRef.current) {
-      try {
-        html5QrCodeScannerRef.current.clear();
-      } catch (e) {
-        console.error(e);
-      }
+      const scanner = html5QrCodeScannerRef.current;
       html5QrCodeScannerRef.current = null;
+      try {
+        scanner.stop().catch((e: any) => {
+          console.warn("Scanner stop promise catch:", e);
+        });
+      } catch (e) {
+        console.error("Scanner stop error:", e);
+      }
     }
     setScannerActive(false);
     setScanResult({ status: 'none', message: 'Camera stream disconnected.' });
-  };
-
-  const handleScanError = (err: any) => {
-    // Silent errors: standard polling camera logs can be ignored
   };
 
   const handleScanSuccess = async (decodedText: string) => {
@@ -665,6 +678,11 @@ function UnitActivityScannerTerminal() {
       <style jsx global>{`
         .bg-radial-gradient {
           background-image: radial-gradient(circle at center, #0e301b 0%, #08170e 100%);
+        }
+        #reader-container video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
         }
       `}</style>
 
