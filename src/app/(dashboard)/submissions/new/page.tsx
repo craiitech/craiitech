@@ -137,6 +137,88 @@ export default function NewSubmissionPage() {
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
   const { data: digitalRisks } = useCollection<Risk>(digitalRisksQuery);
 
+  // --- PREVIOUS YEAR COMPLIANCE CHECK QUERIES ---
+  const prevYearSubmissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
+    return query(
+      collection(firestore, 'submissions'),
+      where('unitId', '==', userProfile.unitId),
+      where('campusId', '==', userProfile.campusId),
+      where('year', '==', selectedYear - 1)
+    );
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
+  const { data: prevYearSubmissions } = useCollection<Submission>(prevYearSubmissionsQuery);
+
+  const prevYearRisksQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
+    return query(
+      collection(firestore, 'risks'),
+      where('unitId', '==', userProfile.unitId),
+      where('campusId', '==', userProfile.campusId),
+      where('year', '==', selectedYear - 1)
+    );
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
+  const { data: prevYearRisks } = useCollection<Risk>(prevYearRisksQuery);
+
+  const hasPrevYearConfig = useMemo(() => {
+    if (!selectedYear) return false;
+    return years.includes(selectedYear - 1);
+  }, [years, selectedYear]);
+
+  const missingPrevYearSubmissions = useMemo(() => {
+    if (!prevYearSubmissions || !selectedYear || !hasPrevYearConfig) return [];
+
+    const missing: string[] = [];
+    const normalizedPrevSubmissions = prevYearSubmissions.map(s => {
+      let rType = String(s.reportType || '').trim();
+      const lowerType = rType.toLowerCase();
+      
+      if (lowerType.includes('risk and opportunity registry')) {
+          rType = 'Risk and Opportunity Registry';
+      } else if (lowerType.includes('operational plan')) {
+          rType = 'Operational Plan';
+      } else if (lowerType.includes('objectives monitoring')) {
+          rType = 'Quality Objectives Monitoring';
+      } else if (lowerType.includes('needs and expectation')) {
+          rType = 'Needs and Expectation of Interested Parties';
+      } else if (lowerType.includes('swot')) {
+          rType = 'SWOT Analysis';
+      } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+          rType = 'Risk and Opportunity Action Plan';
+      }
+      return { ...s, reportType: rType };
+    });
+
+    const submittedSet = new Set(
+      normalizedPrevSubmissions
+        .filter(s => (s.statusId === 'approved' || s.statusId === 'submitted') && s.isDraft !== true)
+        .map(s => `${s.reportType}_${s.cycleId}`)
+    );
+
+    const prevRegistry = normalizedPrevSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
+    const isActionPlanExempt = prevRegistry?.riskRating === 'low';
+
+    submissionTypes.forEach(reportType => {
+      ['first', 'final'].forEach(cycleId => {
+        if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanExempt) {
+          return;
+        }
+        
+        const key = `${reportType}_${cycleId}`;
+        if (!submittedSet.has(key)) {
+          missing.push(`${reportType} (${cycleId === 'first' ? 'First' : 'Final'} Cycle)`);
+        }
+      });
+    });
+
+    return missing;
+  }, [prevYearSubmissions, selectedYear, hasPrevYearConfig]);
+
+  const openPrevYearRisks = useMemo(() => {
+    if (!prevYearRisks || !selectedYear || !hasPrevYearConfig) return [];
+    return prevYearRisks.filter(r => r.status !== 'Closed');
+  }, [prevYearRisks, selectedYear, hasPrevYearConfig]);
+
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!rawSubmissions) {
       return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
@@ -345,6 +427,46 @@ export default function NewSubmissionPage() {
           <AlertTitle>Final Cycle Submission</AlertTitle>
           <AlertDescription>
             For {selectedReport}, if there are no changes from your First Cycle submission, you can choose to carry it over instead of re-uploading.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Previous Year Compliance Warnings */}
+      {selectedYear && hasPrevYearConfig && (missingPrevYearSubmissions.length > 0 || openPrevYearRisks.length > 0) && (
+        <Alert variant="destructive" className="bg-destructive/5 border-destructive/30 border-2">
+          <ShieldAlert className="h-5 w-5 text-destructive" />
+          <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-destructive">
+            Previous Year ({selectedYear - 1}) Compliance Warning
+          </AlertTitle>
+          <AlertDescription className="mt-2 text-xs space-y-2 text-slate-800">
+            <p className="font-bold">
+              Our records show that your unit has pending requirements for the academic/calendar year {selectedYear - 1}. Please resolve these to ensure continuous quality compliance:
+            </p>
+            {missingPrevYearSubmissions.length > 0 && (
+              <div className="space-y-1 pl-4">
+                <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Unsubmitted EOMS Documents ({missingPrevYearSubmissions.length}):</p>
+                <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
+                  {missingPrevYearSubmissions.map((docName, idx) => (
+                    <li key={idx} className="text-slate-700">{docName}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {openPrevYearRisks.length > 0 && (
+              <div className="space-y-1 pl-4 pt-1">
+                <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Open Risks / Opportunities in Digital ROR ({openPrevYearRisks.length}):</p>
+                <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
+                  {openPrevYearRisks.map((risk, idx) => (
+                    <li key={idx} className="text-slate-700">
+                      <span className="font-bold">[{risk.type}]</span> {risk.description.substring(0, 80)}... ({risk.status})
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[10px] font-bold text-rose-600 mt-1 italic pl-1">
+                  All risks and opportunities must be closed (post-treatment rating and implementation details finalized) before initiating new submissions.
+                </p>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}
