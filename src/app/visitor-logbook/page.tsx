@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Campus, Unit, SystemSettings } from '@/lib/types';
@@ -33,6 +34,7 @@ export default function VisitorLogbookPage() {
   const { userProfile, isUserLoading, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const isOnline = useNetworkStatus();
 
   const unitRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId) return null;
@@ -423,7 +425,9 @@ export default function VisitorLogbookPage() {
       setSubmitSuccess(true);
       toast({
         title: 'Entry Recorded',
-        description: `Welcome to our office, ${visitorName}!`,
+        description: isOnline 
+          ? `Welcome to our office, ${visitorName}!`
+          : `Welcome, ${visitorName}! Saved locally (will sync when online).`,
       });
     } catch (error) {
       console.error('Error logging visitor:', error);
@@ -517,8 +521,8 @@ export default function VisitorLogbookPage() {
       toast({
         title: skip ? 'Visitor Logged Out' : 'Feedback Submitted & Checked Out',
         description: skip 
-          ? `${visitorName} has logged out successfully.` 
-          : `Thank you for completing the survey, ${visitorName}!`,
+          ? (isOnline ? `${visitorName} has logged out successfully.` : `${visitorName} logged out locally (will sync when online).`)
+          : (isOnline ? `Thank you for completing the survey, ${visitorName}!` : `Thank you, ${visitorName}! Feedback saved locally.`),
       });
     } catch (error) {
       console.error('Error logging out and saving CSM:', error);
@@ -570,6 +574,17 @@ export default function VisitorLogbookPage() {
             {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
           </button>
+
+          <div className={`flex items-center gap-2 border px-4 py-1.5 rounded-full shadow-lg transition-all duration-300 ${
+            isOnline 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+          }`}>
+            <div className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`} />
+            <span className="text-[9px] font-black uppercase tracking-widest">
+              {isOnline ? 'Online' : 'Offline (Saves Locally)'}
+            </span>
+          </div>
 
           <div className="flex items-center gap-2 bg-[#1B6535]/30 border border-[#D4AF37]/20 px-4 py-1.5 rounded-full shadow-lg">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />

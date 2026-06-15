@@ -229,7 +229,8 @@ export function SidebarNav({
   const ALLOWED_OFFLINE_ROUTES = [
     '/dashboard',
     '/audit',
-    '/activity-log'
+    '/activity-log',
+    '/visitor-logbook'
   ];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
