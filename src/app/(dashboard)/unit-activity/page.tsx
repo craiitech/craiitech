@@ -587,162 +587,106 @@ export default function UnitActivityPage() {
 
     const logs = sortedLogs || [];
     const isLogoutMode = activeActivity.requiresLogout === true;
+    const ROWS_PER_PAGE = 25;
 
-    // Compile rows (up to a minimum of 35)
-    let tableRowsHtml = '';
-    const totalRows = Math.max(35, logs.length);
-    for (let i = 0; i < totalRows; i++) {
-      const log = logs[i];
-      if (log) {
-        const checkInTime = log.scannedAt?.toDate 
-          ? format(log.scannedAt.toDate(), 'hh:mm a') 
-          : 'N/A';
-        
-        if (isLogoutMode) {
-          const checkOutTime = log.logoutAt?.toDate
-            ? format(log.logoutAt.toDate(), 'hh:mm a')
-            : log.logoutAt ? format(new Date(log.logoutAt), 'hh:mm a') : 'Not logged out';
-          
-          tableRowsHtml += `
-            <tr>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${i + 1}</td>
-              <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 10px; font-weight: bold;">${checkInTime}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 10px; font-weight: bold;">${checkOutTime}</td>
-            </tr>
-          `;
-        } else {
-          tableRowsHtml += `
-            <tr>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${i + 1}</td>
-              <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: center;">
-                <span style="font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: normal; color: #111;">
-                  ${log.userName}
-                </span>
-                <span style="font-size: 8px; color: #666; display: block; margin-top: 2px;">
-                  ✓ Verified (${checkInTime})
-                </span>
-              </td>
-            </tr>
-          `;
-        }
-      } else {
-        tableRowsHtml += `
-          <tr>
-            <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px; color: #ccc;">${i + 1}</td>
-            <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
-            <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
-            <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
-            <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
-            ${isLogoutMode ? '<td style="border: 1px solid black; padding: 6px;">&nbsp;</td>' : ''}
-          </tr>
-        `;
+    // Chunk logs into pages of ROWS_PER_PAGE
+    const pages: ActivityAttendanceLog[][] = [];
+    if (logs.length === 0) {
+      pages.push([]);
+    } else {
+      for (let i = 0; i < logs.length; i += ROWS_PER_PAGE) {
+        pages.push(logs.slice(i, i + ROWS_PER_PAGE));
       }
     }
 
-    const tableHeaderHtml = isLogoutMode ? `
-      <thead>
-        <tr>
-          <th style="width: 6%;">No.</th>
-          <th style="width: 34%;">Name</th>
-          <th style="width: 20%;">Contact Number</th>
-          <th style="width: 10%;">Sex</th>
-          <th style="width: 15%;">Login Time</th>
-          <th style="width: 15%;">Logout Time</th>
-        </tr>
-      </thead>
-    ` : `
-      <thead>
-        <tr>
-          <th style="width: 6%;">No.</th>
-          <th style="width: 40%;">Name</th>
-          <th style="width: 22%;">Contact Number</th>
-          <th style="width: 12%;">Sex</th>
-          <th style="width: 20%;">Signature</th>
-        </tr>
-      </thead>
-    `;
+    let htmlContent = '';
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Attendance Sheet - ${activityName}</title>
-          <style>
-            @media print {
-              body { margin: 0; font-family: Arial, sans-serif; color: black; background-color: white; }
-              .no-print { display: none !important; }
-              @page {
-                size: A4 portrait;
-                margin: 0.3in 0.4in 0.3in 0.4in;
-              }
-            }
-            body { font-family: Arial, sans-serif; padding: 20px; color: black; background-color: white; line-height: 1.2; }
-            .header-container { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 8px; margin-bottom: 15px; }
-            .header-logo-left { width: 65px; text-align: left; }
-            .header-logo-left img { height: 55px; object-fit: contain; }
-            .header-text { text-align: center; flex: 1; margin: 0 10px; }
-            .header-text p { margin: 0; font-size: 10px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px; }
-            .header-text h2 { margin: 2px 0; font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
-            .header-logo-right { width: 95px; text-align: right; }
-            .header-logo-right img { height: 55px; object-fit: contain; }
-            
-            .title-box { text-align: center; margin-bottom: 12px; }
-            .title-box h3 { margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+    pages.forEach((pageLogs, pageIdx) => {
+      let tableRowsHtml = '';
 
-            .metadata-container { margin-bottom: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-            .metadata-row { margin-bottom: 6px; display: flex; align-items: flex-end; }
-            .metadata-line { border-bottom: 1px solid black; flex: 1; padding-bottom: 2px; padding-left: 8px; font-weight: normal; text-transform: uppercase; }
-            
-            .privacy-box { 
-              border: 1px solid black; 
-              padding: 8px; 
-              font-size: 8.5px; 
-              text-align: justify; 
-              margin-bottom: 12px; 
-              background-color: #fcfcfc;
-              line-height: 1.3;
-            }
-            .privacy-title {
-              font-weight: bold;
-              text-align: center;
-              margin-bottom: 3px;
-              text-transform: uppercase;
-            }
+      for (let i = 0; i < ROWS_PER_PAGE; i++) {
+        const log = pageLogs[i];
+        const overallIndex = pageIdx * ROWS_PER_PAGE + i + 1;
 
-            table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 11px; }
-            th { 
-              background-color: #e5e7eb; 
-              border: 1px solid black; 
-              padding: 6px; 
-              text-align: center; 
-              text-transform: uppercase; 
-              font-size: 10px; 
-              font-weight: bold; 
-            }
-            td { vertical-align: middle; height: 22px; }
-            
-            .footer-container { 
-              margin-top: 15px; 
-              display: flex; 
-              justify-content: space-between; 
-              align-items: flex-start;
-              font-size: 8.5px; 
-              text-transform: uppercase; 
-              font-weight: bold;
-              line-height: 1.3;
-            }
-            .footer-left { text-align: left; }
-            .footer-left .creation-date { font-weight: normal; text-transform: none; }
-            .footer-left .revision-date { font-weight: normal; text-transform: none; }
-            .footer-right { text-align: right; font-size: 9.5px; }
-          </style>
-        </head>
-        <body>
+        if (log) {
+          const checkInTime = log.scannedAt?.toDate 
+            ? format(log.scannedAt.toDate(), 'hh:mm a') 
+            : 'N/A';
+
+          if (isLogoutMode) {
+            const checkOutTime = log.logoutAt?.toDate
+              ? format(log.logoutAt.toDate(), 'hh:mm a')
+              : log.logoutAt ? format(new Date(log.logoutAt), 'hh:mm a') : 'Not logged out';
+
+            tableRowsHtml += `
+              <tr>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${overallIndex}</td>
+                <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 10px; font-weight: bold;">${checkInTime}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 10px; font-weight: bold;">${checkOutTime}</td>
+              </tr>
+            `;
+          } else {
+            tableRowsHtml += `
+              <tr>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${overallIndex}</td>
+                <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">
+                  <span style="font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: normal; color: #111;">
+                    ${log.userName}
+                  </span>
+                  <span style="font-size: 8px; color: #666; display: block; margin-top: 2px;">
+                    ✓ Verified (${checkInTime})
+                  </span>
+                </td>
+              </tr>
+            `;
+          }
+        } else {
+          tableRowsHtml += `
+            <tr>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px; color: #ccc;">${overallIndex}</td>
+              <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
+              <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
+              <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
+              <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
+              ${isLogoutMode ? '<td style="border: 1px solid black; padding: 6px;">&nbsp;</td>' : ''}
+            </tr>
+          `;
+        }
+      }
+
+      const tableHeaderHtml = isLogoutMode ? `
+        <thead>
+          <tr>
+            <th style="width: 6%;">No.</th>
+            <th style="width: 34%;">Name</th>
+            <th style="width: 20%;">Contact Number</th>
+            <th style="width: 10%;">Sex</th>
+            <th style="width: 15%;">Login Time</th>
+            <th style="width: 15%;">Logout Time</th>
+          </tr>
+        </thead>
+      ` : `
+        <thead>
+          <tr>
+            <th style="width: 6%;">No.</th>
+            <th style="width: 40%;">Name</th>
+            <th style="width: 22%;">Contact Number</th>
+            <th style="width: 12%;">Sex</th>
+            <th style="width: 20%;">Signature</th>
+          </tr>
+        </thead>
+      `;
+
+      const pageBreakHtml = pageIdx < pages.length - 1 ? '<div class="page-break"></div>' : '';
+
+      htmlContent += `
+        <div class="print-page">
           <!-- Header -->
           <div class="header-container">
             <div class="header-logo-left">
@@ -806,11 +750,103 @@ export default function UnitActivityPage() {
               <div class="creation-date">Creation Date: 2021-02-14</div>
               <div class="revision-date">Revision Date: 2022-01-24</div>
             </div>
+            <div style="flex: 1; text-align: center; font-size: 8.5px; font-weight: bold; color: #555;">
+              Page ${pageIdx + 1} of ${pages.length}
+            </div>
             <div class="footer-right">
               AT No. _________________
             </div>
           </div>
+        </div>
+        ${pageBreakHtml}
+      `;
+    });
 
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Attendance Sheet - ${activityName}</title>
+          <style>
+            @media print {
+              body { margin: 0; font-family: Arial, sans-serif; color: black; background-color: white; }
+              .no-print { display: none !important; }
+              @page {
+                size: 8.5in 13in portrait;
+                margin: 0.3in 0.4in 0.3in 0.4in;
+              }
+              .page-break {
+                page-break-before: always;
+                break-before: page;
+              }
+            }
+            body { font-family: Arial, sans-serif; padding: 20px; color: black; background-color: white; line-height: 1.2; }
+            .print-page {
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+            }
+            .header-container { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 8px; margin-bottom: 15px; }
+            .header-logo-left { width: 65px; text-align: left; }
+            .header-logo-left img { height: 55px; object-fit: contain; }
+            .header-text { text-align: center; flex: 1; margin: 0 10px; }
+            .header-text p { margin: 0; font-size: 10px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px; }
+            .header-text h2 { margin: 2px 0; font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
+            .header-logo-right { width: 95px; text-align: right; }
+            .header-logo-right img { height: 55px; object-fit: contain; }
+            
+            .title-box { text-align: center; margin-bottom: 12px; }
+            .title-box h3 { margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+
+            .metadata-container { margin-bottom: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+            .metadata-row { margin-bottom: 6px; display: flex; align-items: flex-end; }
+            .metadata-line { border-bottom: 1px solid black; flex: 1; padding-bottom: 2px; padding-left: 8px; font-weight: normal; text-transform: uppercase; }
+            
+            .privacy-box { 
+              border: 1px solid black; 
+              padding: 8px; 
+              font-size: 8.5px; 
+              text-align: justify; 
+              margin-bottom: 12px; 
+              background-color: #fcfcfc;
+              line-height: 1.3;
+            }
+            .privacy-title {
+              font-weight: bold;
+              text-align: center;
+              margin-bottom: 3px;
+              text-transform: uppercase;
+            }
+
+            table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 11px; }
+            th { 
+              background-color: #e5e7eb; 
+              border: 1px solid black; 
+              padding: 6px; 
+              text-align: center; 
+              text-transform: uppercase; 
+              font-size: 10px; 
+              font-weight: bold; 
+            }
+            td { vertical-align: middle; height: 22px; }
+            
+            .footer-container { 
+              margin-top: 15px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: flex-start;
+              font-size: 8.5px; 
+              text-transform: uppercase; 
+              font-weight: bold;
+              line-height: 1.3;
+            }
+            .footer-left { text-align: left; }
+            .footer-left .creation-date { font-weight: normal; text-transform: none; }
+            .footer-left .revision-date { font-weight: normal; text-transform: none; }
+            .footer-right { text-align: right; font-size: 9.5px; }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
           <script>
             window.onload = function() {
               window.print();
