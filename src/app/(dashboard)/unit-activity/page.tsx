@@ -58,22 +58,30 @@ export default function UnitActivityPage() {
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
-  // Activities queries
+  // Activities queries - Sort in memory to bypass composite index constraints for non-admin filters
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const base = collection(firestore, 'unitActivities');
     if (hasAccessToAll) {
-      return query(base, orderBy('startDateTime', 'desc'));
+      return base;
     }
-    return query(base, where('unitId', '==', userProfile.unitId), orderBy('startDateTime', 'desc'));
+    return query(base, where('unitId', '==', userProfile.unitId));
   }, [firestore, userProfile, hasAccessToAll]);
   const { data: activities, isLoading: isLoadingActivities } = useCollection<AttendanceActivity>(activitiesQuery);
 
-  // Device bindings query
+  const sortedActivities = useMemo(() => {
+    if (!activities) return [];
+    return [...activities].sort((a, b) => {
+      const timeA = a.startDateTime?.toDate ? a.startDateTime.toDate().getTime() : (a.startDateTime?.seconds ? a.startDateTime.seconds * 1000 : new Date(a.startDateTime).getTime());
+      const timeB = b.startDateTime?.toDate ? b.startDateTime.toDate().getTime() : (b.startDateTime?.seconds ? b.startDateTime.seconds * 1000 : new Date(b.startDateTime).getTime());
+      return timeB - timeA;
+    });
+  }, [activities]);
+
+  // Device bindings query - Sort in memory
   const bindingsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-    const base = collection(firestore, 'attendanceDeviceBindings');
-    return query(base, orderBy('boundAt', 'desc'));
+    return collection(firestore, 'attendanceDeviceBindings');
   }, [firestore, userProfile]);
   const { data: deviceBindings, isLoading: isLoadingBindings } = useCollection<DeviceBinding>(bindingsQuery);
 
@@ -132,18 +140,27 @@ export default function UnitActivityPage() {
   // --- 2. ATTENDANCE LOGS CORRELATION ---
   const [selectedActivityId, setSelectedActivityId] = useState<string>('all');
   const activeActivity = useMemo(() => {
-    return activities?.find(a => a.id === selectedActivityId) || null;
-  }, [activities, selectedActivityId]);
+    return sortedActivities?.find(a => a.id === selectedActivityId) || null;
+  }, [sortedActivities, selectedActivityId]);
 
   const logsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     const base = collection(firestore, 'unitActivityAttendanceLogs');
     if (selectedActivityId === 'all') {
-      return query(base, orderBy('scannedAt', 'desc'));
+      return base;
     }
-    return query(base, where('activityId', '==', selectedActivityId), orderBy('scannedAt', 'desc'));
+    return query(base, where('activityId', '==', selectedActivityId));
   }, [firestore, selectedActivityId]);
   const { data: attendanceLogs } = useCollection<ActivityAttendanceLog>(logsQuery);
+
+  const sortedLogs = useMemo(() => {
+    if (!attendanceLogs) return [];
+    return [...attendanceLogs].sort((a, b) => {
+      const timeA = a.scannedAt?.toDate ? a.scannedAt.toDate().getTime() : (a.scannedAt?.seconds ? a.scannedAt.seconds * 1000 : new Date(a.scannedAt).getTime());
+      const timeB = b.scannedAt?.toDate ? b.scannedAt.toDate().getTime() : (b.scannedAt?.seconds ? b.scannedAt.seconds * 1000 : new Date(b.scannedAt).getTime());
+      return timeB - timeA;
+    });
+  }, [attendanceLogs]);
 
   // --- 3. CAMERA QR SCANNING MODULE (CDN LOADED) ---
   const [isScannerLibLoaded, setIsScannerLibLoaded] = useState(false);
@@ -366,7 +383,7 @@ export default function UnitActivityPage() {
   };
 
   const handleExportCSV = () => {
-    if (!attendanceLogs || attendanceLogs.length === 0) {
+    if (!sortedLogs || sortedLogs.length === 0) {
       toast({ title: 'No Data', description: 'There are no attendance records to export.', variant: 'destructive' });
       return;
     }
@@ -374,7 +391,7 @@ export default function UnitActivityPage() {
     const activityName = activeActivity?.name || 'All-Sessions';
     const csvContent = [
       ['Name', 'Unit/Office', 'Contact Number', 'Sex', 'Scanned Time', 'Attendance Status', 'Device Fingerprint'],
-      ...attendanceLogs.map(log => {
+      ...sortedLogs.map(log => {
         const timeStr = log.scannedAt?.toDate 
           ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') 
           : 'N/A';
@@ -421,7 +438,7 @@ export default function UnitActivityPage() {
       ? `${format(activeActivity.startDateTime.toDate(), 'hh:mm a')} - ${format(activeActivity.endDateTime.toDate(), 'hh:mm a')}`
       : 'N/A';
 
-    const logs = attendanceLogs || [];
+    const logs = sortedLogs || [];
 
     // Compile rows (up to a minimum of 35)
     let tableRowsHtml = '';
@@ -661,7 +678,7 @@ export default function UnitActivityPage() {
             className="h-9 px-3 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md rounded-xl outline-none"
           >
             <option value="all">📁 All activities / logs</option>
-            {activities?.map(act => (
+            {sortedActivities?.map(act => (
               <option key={act.id} value={act.id}>📍 {act.name}</option>
             ))}
           </select>
@@ -782,14 +799,14 @@ export default function UnitActivityPage() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2 block">Loading activities...</span>
                         </TableCell>
                       </TableRow>
-                    ) : !activities || activities.length === 0 ? (
+                    ) : !sortedActivities || sortedActivities.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
                           No activities generated yet.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      activities.map(act => (
+                      sortedActivities.map(act => (
                         <TableRow key={act.id} className="hover:bg-slate-50/50">
                           <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800">{act.name}</TableCell>
                           <TableCell className="text-xs font-semibold text-slate-500">
@@ -1012,14 +1029,14 @@ export default function UnitActivityPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!attendanceLogs || attendanceLogs.length === 0 ? (
+                  {!sortedLogs || sortedLogs.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
                         No attendance entries logged for this period.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    attendanceLogs.map((log) => (
+                    sortedLogs.map((log) => (
                       <TableRow key={log.id} className="hover:bg-slate-50/50">
                         <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 uppercase">
                           {log.userName}
