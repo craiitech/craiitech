@@ -461,10 +461,10 @@ export default function UnitActivityPage() {
       }
     }
 
-    printWindow.document.write(\`
+    printWindow.document.write(`
       <html>
         <head>
-          <title>Attendance Sheet - \${activityName}</title>
+          <title>Attendance Sheet - ${activityName}</title>
           <style>
             @media print {
               body { margin: 0; font-family: Arial, sans-serif; color: black; background-color: white; }
@@ -560,20 +560,20 @@ export default function UnitActivityPage() {
           <div class="metadata-container">
             <div class="metadata-row">
               <span>Unit:</span>
-              <div class="metadata-line">\${unitName}</div>
+              <div class="metadata-line">${unitName}</div>
             </div>
             <div class="metadata-row">
               <span>Title of Activity:</span>
-              <div class="metadata-line">\${activityName}</div>
+              <div class="metadata-line">${activityName}</div>
             </div>
             <div style="display: flex; gap: 20px;">
               <div class="metadata-row" style="flex: 2;">
                 <span>Date of Activity:</span>
-                <div class="metadata-line">\${startStr}</div>
+                <div class="metadata-line">${startStr}</div>
               </div>
               <div class="metadata-row" style="flex: 1.5;">
                 <span>Time of Activity:</span>
-                <div class="metadata-line">\${timeStr}</div>
+                <div class="metadata-line">${timeStr}</div>
               </div>
             </div>
           </div>
@@ -596,7 +596,7 @@ export default function UnitActivityPage() {
               </tr>
             </thead>
             <tbody>
-              \${tableRowsHtml}
+              ${tableRowsHtml}
             </tbody>
           </table>
 
@@ -620,7 +620,7 @@ export default function UnitActivityPage() {
           </script>
         </body>
       </html>
-    \`);
+    `);
     printWindow.document.close();
   };
 
