@@ -7,7 +7,7 @@ import {
   useUser,
   useFirestore,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2 } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -350,6 +350,13 @@ export function SidebarNav({
       active: pathname.startsWith('/reports'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <BarChart />,
+    },
+    {
+      href: '/unit-activity',
+      label: 'Unit Activity',
+      active: pathname.startsWith('/unit-activity'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO'],
+      icon: <Calendar />,
     },
     {
         href: '/settings',
