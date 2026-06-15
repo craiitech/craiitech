@@ -154,14 +154,14 @@ const BASELINE_2025 = {
     { name: "Issuance of Student ID Card", campus: "Agpudlos", count: 50, satisfactionRate: 98, avgRating: 4.90 },
   ],
   qualitativeComments: [
-    { comments: "Mabagal ang release ng TOR", category: "Responsiveness (SQD1)", campus: "Main Campus", type: "Student" },
-    { comments: "Sobrang init po", category: "Access & Facilities (SQD3)", campus: "Main Campus", type: "Student" },
-    { comments: "Wait time for clearance processing is too long", category: "Responsiveness (SQD1)", campus: "Romblon", type: "Student" },
-    { comments: "No ventilation in the waiting lobby", category: "Access & Facilities (SQD3)", campus: "Cajidiocan", type: "Student" },
-    { comments: "Lack of directional signs inside the building", category: "Communication (SQD4)", campus: "San Fernando", type: "Student" },
-    { comments: "Convenience fee for online payments is too high", category: "Costs (SQD5)", campus: "Main Campus", type: "Government Employees" },
-    { comments: "Accommodating and very polite frontline staff", category: "Assurance (SQD7)", campus: "San Agustin", type: "Other Stakeholders" },
-    { comments: "Got my service record in less than 30 minutes, thank you!", category: "Outcome (SQD8)", campus: "Main Campus", type: "Government Employees" },
+    { visitorName: "Juan Dela Cruz", comments: "Mabagal ang release ng TOR", category: "Responsiveness (SQD1)", campus: "Main Campus", type: "Student" },
+    { visitorName: "Maria Santos", comments: "Sobrang init po", category: "Access & Facilities (SQD3)", campus: "Main Campus", type: "Student" },
+    { visitorName: "Jose Rizal", comments: "Wait time for clearance processing is too long", category: "Responsiveness (SQD1)", campus: "Romblon", type: "Student" },
+    { visitorName: "Andres Bonifacio", comments: "No ventilation in the waiting lobby", category: "Access & Facilities (SQD3)", campus: "Cajidiocan", type: "Student" },
+    { visitorName: "Apolinario Mabini", comments: "Lack of directional signs inside the building", category: "Communication (SQD4)", campus: "San Fernando", type: "Student" },
+    { visitorName: "Emilio Aguinaldo", comments: "Convenience fee for online payments is too high", category: "Costs (SQD5)", campus: "Main Campus", type: "Government Employees" },
+    { visitorName: "Gabriela Silang", comments: "Accommodating and very polite frontline staff", category: "Assurance (SQD7)", campus: "San Agustin", type: "Other Stakeholders" },
+    { visitorName: "Melchora Aquino", comments: "Got my service record in less than 30 minutes, thank you!", category: "Outcome (SQD8)", campus: "Main Campus", type: "Government Employees" },
   ],
   pareto: [
     { theme: "Responsiveness (SQD1)", count: 42, cumulativePercent: 38 },
@@ -206,7 +206,7 @@ export function CsmReportDashboard({
   const hasAccessToAll = isAdmin || isCsmManager;
 
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
-  const [dataSource, setDataSource] = useState<'live' | 'baseline25'>('baseline25');
+  const [dataSource, setDataSource] = useState<'live' | 'baseline25'>('live');
   const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
   const [deployingCycleIds, setDeployingCycleIds] = useState<Record<string, boolean>>({});
   const [serviceSearch, setServiceSearch] = useState('');
@@ -726,6 +726,7 @@ export function CsmReportDashboard({
           }
 
           return {
+            visitorName: r.visitorName || 'Anonymous',
             comments: r.comments,
             category,
             campus: cName,
@@ -1240,6 +1241,7 @@ export function CsmReportDashboard({
       commentRows += `
         <tr>
           <td style="border: 1px solid black; padding: 6px;">${idx + 1}</td>
+          <td style="border: 1px solid black; padding: 6px; font-weight: bold; text-transform: uppercase;">${maskName(c.visitorName)}</td>
           <td style="border: 1px solid black; padding: 6px;">"${c.comments}"</td>
           <td style="border: 1px solid black; padding: 6px; font-weight: bold;">${c.category}</td>
           <td style="border: 1px solid black; padding: 6px; text-transform: uppercase;">${c.type}</td>
@@ -1285,13 +1287,14 @@ export function CsmReportDashboard({
             <thead>
               <tr>
                 <th style="width: 5%;">#</th>
-                <th style="width: 50%;">Client Comments / Suggestions</th>
-                <th style="width: 25%;">SQD Theme</th>
-                <th style="width: 20%;">Client Type</th>
+                <th style="width: 20%;">Client Name</th>
+                <th style="width: 45%;">Client Comments / Suggestions</th>
+                <th style="width: 18%;">SQD Theme</th>
+                <th style="width: 12%;">Client Type</th>
               </tr>
             </thead>
             <tbody>
-              ${commentRows || '<tr><td colspan="4" style="text-align:center;">No comments recorded for this campus</td></tr>'}
+              ${commentRows || '<tr><td colspan="5" style="text-align:center;">No comments recorded for this campus</td></tr>'}
             </tbody>
           </table>
 
@@ -2044,12 +2047,17 @@ export function CsmReportDashboard({
                       {displayStats.comments.map((comment, idx) => (
                         <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-1.5">
                           <div className="flex justify-between items-start border-b pb-1">
-                            <span className="text-[9.5px] font-extrabold uppercase text-[#1B6535]">{comment.campus} &bull; {comment.type}</span>
+                            <span className="text-xs font-black text-[#1B6535] uppercase">
+                              {maskName(comment.visitorName)}
+                            </span>
                             <Badge className="bg-slate-100 text-slate-800 border-none text-[8.5px] font-black uppercase">
                               {comment.category.split(' ')[0]}
                             </Badge>
                           </div>
                           <p className="text-[11px] text-slate-700 italic font-semibold">"{comment.comments}"</p>
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
+                            {comment.campus} &bull; {comment.type}
+                          </div>
                         </div>
                       ))}
                     </div>
