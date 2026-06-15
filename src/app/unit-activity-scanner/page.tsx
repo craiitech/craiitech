@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { 
   collection, 
@@ -31,7 +31,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-export default function UnitActivityScannerPage() {
+function UnitActivityScannerTerminal() {
   const { userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -702,5 +702,20 @@ export default function UnitActivityScannerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function UnitActivityScannerPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-[#0d2a18]">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Loader2 className="h-12 w-12 text-[#D4AF37] animate-spin" />
+          <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Loading Terminal...</p>
+        </div>
+      </div>
+    }>
+      <UnitActivityScannerTerminal />
+    </Suspense>
   );
 }

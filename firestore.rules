@@ -267,6 +267,21 @@ service cloud.firestore {
         allow list: if isSignedIn();
     }
 
+    // --------------------------------------------------------------------------
+    // UNIT ACTIVITY & ATTENDANCE SYSTEM
+    // --------------------------------------------------------------------------
+    match /unitActivities/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /attendanceDeviceBindings/{id} {
+      allow read, write: if true; // Public access to allow mobile device binding
+    }
+
+    match /unitActivityAttendanceLogs/{id} {
+      allow read, write: if isSignedIn();
+    }
+
     // Final catch-all for anything else
     match /{path=**} {
       allow read: if isSignedIn();
