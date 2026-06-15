@@ -405,11 +405,18 @@ export default function VisitorLogbookPage() {
       ? JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]')
       : [];
     
+    const localLogouts = typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]')
+      : [];
+
+    const loggedOutIds = new Set(localLogouts.map((l: any) => l.visitorId));
+    
+    const filteredOnlineActive = activeVisitors.filter(v => !loggedOutIds.has(v.id));
     const localActive = localLogs.filter((log: any) => !log.isLoggedOut);
 
-    const merged = [...activeVisitors];
+    const merged = [...filteredOnlineActive];
     localActive.forEach((localLog: any) => {
-      if (!merged.some(v => v.id === localLog.id)) {
+      if (!merged.some(v => v.id === localLog.id) && !loggedOutIds.has(localLog.id)) {
         merged.push(localLog);
       }
     });
@@ -420,6 +427,29 @@ export default function VisitorLogbookPage() {
       return timeA - timeB;
     });
   }, [activeVisitors, localUpdateTrigger]);
+
+  const offlineLogoutsList = useMemo(() => {
+    if (typeof window === 'undefined') return [];
+    
+    const localLogouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]');
+    const localLogs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]');
+    const localCheckedOut = localLogs.filter((l: any) => l.isLoggedOut && !l.synced);
+    
+    const combined = [
+      ...localLogouts.map((l: any) => ({
+        visitorId: l.visitorId,
+        visitorName: l.visitorName,
+        loggedOutAt: l.loggedOutAt
+      })),
+      ...localCheckedOut.map((l: any) => ({
+        visitorId: l.id,
+        visitorName: l.name,
+        loggedOutAt: l.loggedOutAt
+      }))
+    ];
+    
+    return combined.sort((a, b) => b.loggedOutAt - a.loggedOutAt);
+  }, [localUpdateTrigger]);
 
   // Recalculate pending sync count
   useEffect(() => {
@@ -766,7 +796,7 @@ export default function VisitorLogbookPage() {
           }
         } else {
           const localLogouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]');
-          localLogouts.push({ visitorId, loggedOutAt: Date.now() });
+          localLogouts.push({ visitorId, visitorName, loggedOutAt: Date.now() });
           localStorage.setItem('rsu_offline_visitor_logouts', JSON.stringify(localLogouts));
         }
 
@@ -831,7 +861,7 @@ export default function VisitorLogbookPage() {
         }
       } else {
         const localLogouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]');
-        localLogouts.push({ visitorId, loggedOutAt: Date.now() });
+        localLogouts.push({ visitorId, visitorName, loggedOutAt: Date.now() });
         localStorage.setItem('rsu_offline_visitor_logouts', JSON.stringify(localLogouts));
       }
 
@@ -1001,6 +1031,16 @@ export default function VisitorLogbookPage() {
                   <p className="text-xs font-black uppercase tracking-wide text-white">Sign In on your device</p>
                   <p className="text-[10px] text-slate-355 font-medium leading-relaxed">
                     Scan the QR code to sign in, check out, and complete the CSM satisfaction survey on your own phone.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex items-start gap-2.5 text-left">
+                <span className="text-amber-400 text-xs mt-0.5">⚠️</span>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wide text-amber-400">Internet Required</p>
+                  <p className="text-[9px] text-slate-300 font-bold uppercase tracking-wider leading-normal mt-0.5">
+                    Scanning requires an active internet connection (mobile data or office Wi-Fi) to load the page on your device.
                   </p>
                 </div>
               </div>
@@ -1186,7 +1226,7 @@ export default function VisitorLogbookPage() {
                     <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Your visit has been logged.</p>
                   </div>
                   <p className="text-sm font-medium text-slate-600 max-w-xs pt-2">
-                    Please take a seat. Staff from <span className="font-bold text-emerald-650">{officeName}</span> will assist you shortly.
+                    Please take a seat. Staff from <span className="font-bold text-emerald-600">{officeName}</span> will assist you shortly.
                   </p>
                 </div>
               )}
@@ -1261,6 +1301,53 @@ export default function VisitorLogbookPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Offline Checked Out Card (Sync Pending) */}
+          {offlineLogoutsList.length > 0 && (
+            <Card className="mt-6 bg-[#fffdf5] border border-amber-200/60 shadow-xl rounded-3xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+              <CardHeader className="bg-amber-500/5 border-b border-amber-100 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                      <Clock className="h-4.5 w-4.5 animate-pulse" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-800">Checked Out</CardTitle>
+                      <CardDescription className="text-amber-600 text-[9px] font-bold uppercase leading-none mt-0.5">Sync Pending (Offline)</CardDescription>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700">
+                    {offlineLogoutsList.length} Pending
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="p-5 max-h-[220px] overflow-y-auto space-y-3">
+                {offlineLogoutsList.map((logout: any, index: number) => {
+                  const timeOutStr = logout.loggedOutAt 
+                    ? format(new Date(logout.loggedOutAt), 'hh:mm a')
+                    : 'N/A';
+                  return (
+                    <div 
+                      key={logout.visitorId || index} 
+                      className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-amber-100/70"
+                    >
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-black text-slate-700 uppercase tracking-tight">
+                          {logout.visitorName || 'Registered Visitor'}
+                        </h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                          Checked out at: <span className="font-mono text-slate-600">{timeOutStr}</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 text-amber-700 text-[8px] font-black uppercase tracking-widest">
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" /> Syncing
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
