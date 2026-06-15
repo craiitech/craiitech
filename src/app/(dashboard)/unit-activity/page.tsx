@@ -1256,7 +1256,7 @@ export default function UnitActivityPage() {
                   onClick={handlePrintAttendanceSheet}
                   disabled={!activeActivity || activeActivity.status !== 'COMPLETED'}
                   className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-white border border-[#1B6535]/25 hover:bg-slate-50 text-[#1B6535] shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40"
-                  title={activeActivity?.status !== 'COMPLETED' ? "Print attendance sheet is locked until the activity has ended." : "Print attendance sheet"}
+                  title={!activeActivity ? "Please select a specific completed activity from the dropdown above to print." : activeActivity.status !== 'COMPLETED' ? "Print attendance sheet is locked until the activity has ended." : "Print attendance sheet"}
                 >
                   <Calendar className="h-3.5 w-3.5 mr-1 text-amber-500" /> Print Official Sheet
                 </Button>
