@@ -622,7 +622,18 @@ function ClauseForm({
   );
 }
 
-export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved, unitCars, unitSubmissions = [], isIqaUnit = false }: AuditChecklistProps) {
+export function AuditChecklist({ 
+  scheduleId, 
+  clausesToAudit, 
+  existingFindings, 
+  onFindingSaved, 
+  unitCars, 
+  unitSubmissions = [], 
+  isIqaUnit = false,
+  previousYearOfis = [],
+  scheduleTargetId,
+  scheduleCampusId
+}: AuditChecklistProps) {
   const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
   const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
 
