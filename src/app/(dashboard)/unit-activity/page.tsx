@@ -659,8 +659,10 @@ export default function UnitActivityPage() {
       b.unitName.toLowerCase().includes(q) || 
       b.id.toLowerCase().includes(q)
     );
-  }, [deviceBindings, bindingSearch]);  return (">
-      
+  }, [deviceBindings, bindingSearch]);
+
+  return (
+    <div className="space-y-6">
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
         <div>
