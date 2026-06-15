@@ -206,7 +206,29 @@ export function CsmReportDashboard({
   const hasAccessToAll = isAdmin || isCsmManager;
 
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
+  const [localCampusId, setLocalCampusId] = useState<string>(selectedCampusId || 'all');
   const [dataSource, setDataSource] = useState<'live' | 'baseline25'>('live');
+  const [unitSearchQuery, setUnitSearchQuery] = useState('');
+  const [commentSearch, setCommentSearch] = useState('');
+
+  useMemo(() => {
+    if (selectedCampusId) {
+      setLocalCampusId(selectedCampusId);
+    }
+  }, [selectedCampusId]);
+
+  // Pre-fill and restrict selectors for unit coordinators/supervisors
+  useMemo(() => {
+    if (!hasAccessToAll && userProfile) {
+      if (userProfile.campusId) {
+        setLocalCampusId(userProfile.campusId);
+      }
+      if (userProfile.unitId) {
+        setSelectedUnitId(userProfile.unitId);
+      }
+    }
+  }, [hasAccessToAll, userProfile]);
+
   const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
   const [deployingCycleIds, setDeployingCycleIds] = useState<Record<string, boolean>>({});
   const [serviceSearch, setServiceSearch] = useState('');
@@ -261,22 +283,33 @@ export function CsmReportDashboard({
     }
   };
 
-  // Filter units based on selected campus
+  // Filter units based on selected campus and search query
   const dropdownUnits = useMemo(() => {
     if (!units) return [];
-    if (!selectedCampusId || selectedCampusId === 'all') return units.sort((a,b) => a.name.localeCompare(b.name));
-    return units.filter(u => u.campusIds?.includes(selectedCampusId)).sort((a,b) => a.name.localeCompare(b.name));
-  }, [units, selectedCampusId]);
+    let list = units;
+    if (localCampusId && localCampusId !== 'all') {
+      list = list.filter(u => u.campusIds?.includes(localCampusId));
+    }
+    if (unitSearchQuery.trim()) {
+      const q = unitSearchQuery.toLowerCase();
+      list = list.filter(u => u.name.toLowerCase().includes(q));
+    }
+    return list.sort((a,b) => a.name.localeCompare(b.name));
+  }, [units, localCampusId, unitSearchQuery]);
 
-  // Reset selected unit if campus changes and it's no longer in the list
+  // Reset selected unit if campus changes and it's no longer in the list of units belonging to that campus
   useMemo(() => {
     if (selectedUnitId !== 'all') {
-      const belongs = dropdownUnits.some(u => u.id === selectedUnitId);
-      if (!belongs) {
-        setSelectedUnitId('all');
+      const selectedUnit = units?.find(u => u.id === selectedUnitId);
+      if (selectedUnit && localCampusId && localCampusId !== 'all') {
+        const belongsToCampus = selectedUnit.campusIds?.includes(localCampusId);
+        if (!belongsToCampus) {
+          setSelectedUnitId('all');
+        }
       }
     }
-  }, [dropdownUnits, selectedUnitId]);
+  }, [localCampusId, selectedUnitId, units]);
+
 
   // Check if the selected unit's report is approved/deployed for the selected year
   const isUnitApproved = useMemo(() => {
@@ -350,7 +383,7 @@ export function CsmReportDashboard({
       const resYear = date.getFullYear();
       
       const matchesYear = resYear === selectedYear;
-      const matchesCampus = !selectedCampusId || selectedCampusId === 'all' || res.campusId === selectedCampusId;
+      const matchesCampus = !localCampusId || localCampusId === 'all' || res.campusId === localCampusId;
       
       const matchesUnit = hasAccessToAll
         ? (selectedUnitId === 'all' ? true : res.unitId === selectedUnitId)
@@ -358,7 +391,7 @@ export function CsmReportDashboard({
       
       return matchesYear && matchesCampus && matchesUnit;
     });
-  }, [csmResponses, selectedYear, selectedCampusId, hasAccessToAll, selectedUnitId, userProfile]);
+  }, [csmResponses, selectedYear, localCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
   const filteredVisitorLogs = useMemo(() => {
     if (!visitorLogs) return [];
@@ -367,7 +400,7 @@ export function CsmReportDashboard({
       const logYear = date.getFullYear();
       
       const matchesYear = logYear === selectedYear;
-      const matchesCampus = !selectedCampusId || selectedCampusId === 'all' || log.campusId === selectedCampusId;
+      const matchesCampus = !localCampusId || localCampusId === 'all' || log.campusId === localCampusId;
       
       const matchesUnit = hasAccessToAll
         ? (selectedUnitId === 'all' ? true : log.unitId === selectedUnitId)
@@ -375,13 +408,18 @@ export function CsmReportDashboard({
       
       return matchesYear && matchesCampus && matchesUnit;
     });
-  }, [visitorLogs, selectedYear, selectedCampusId, hasAccessToAll, selectedUnitId, userProfile]);
+  }, [visitorLogs, selectedYear, localCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
   // Unified stats calculator based on selected source (live vs baseline)
   const activeCampusName = useMemo(() => {
-    if (!selectedCampusId || selectedCampusId === 'all') return 'all';
-    return campuses.find(c => c.id === selectedCampusId)?.name || 'all';
-  }, [selectedCampusId, campuses]);
+    if (!localCampusId || localCampusId === 'all') return 'all';
+    return campuses.find(c => c.id === localCampusId)?.name || 'all';
+  }, [localCampusId, campuses]);
+
+  const selectedUnitName = useMemo(() => {
+    if (selectedUnitId === 'all') return 'all';
+    return units?.find(u => u.id === selectedUnitId)?.name || 'all';
+  }, [selectedUnitId, units]);
 
   const displayStats = useMemo(() => {
     if (dataSource === 'baseline25') {
@@ -400,6 +438,44 @@ export function CsmReportDashboard({
         totalVisitors = Math.round(BASELINE_2025.totalVisitors * ratio);
         services = BASELINE_2025.services.filter(s => s.campus.toLowerCase().includes(activeCampusName.toLowerCase()));
         comments = BASELINE_2025.qualitativeComments.filter(s => s.campus.toLowerCase().includes(activeCampusName.toLowerCase()));
+      }
+
+      // Simulate filtering by selected unit in baseline mode
+      if (selectedUnitId !== 'all') {
+        const uName = selectedUnitName.toLowerCase();
+        if (uName.includes('registrar') || uName.includes('admission') || uName.includes('records')) {
+          services = services.filter(s => 
+            s.name.includes('Leave of Absence') || 
+            s.name.includes('Enrollees') || 
+            s.name.includes('Transcript') || 
+            s.name.includes('Re-admission') || 
+            s.name.includes('Verification') || 
+            s.name.includes('Grades') || 
+            s.name.includes('Clearance') || 
+            s.name.includes('Evaluation') || 
+            s.name.includes('Dismissal') || 
+            s.name.includes('Graduation')
+          );
+        } else if (uName.includes('hr') || uName.includes('human resource') || uName.includes('admin') || uName.includes('personnel')) {
+          services = services.filter(s => s.name.includes('Service Record'));
+        } else if (uName.includes('student affairs') || uName.includes('osa') || uName.includes('scholarship') || uName.includes('kiosk')) {
+          services = services.filter(s => s.name.includes('Scholarship') || s.name.includes('ID Card'));
+        } else {
+          const charCodeSum = uName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          services = services.filter((_, idx) => (idx + charCodeSum) % 3 === 0);
+        }
+
+        totalResponses = services.reduce((sum, s) => sum + s.count, 0) || 15;
+        totalVisitors = Math.round(totalResponses * 1.15);
+
+        comments = comments.filter(c => {
+          if (uName.includes('registrar') && (c.category.includes('Responsiveness') || c.category.includes('Reliability'))) return true;
+          if (uName.includes('hr') && c.visitorName.includes('Melchora')) return true;
+          return false;
+        });
+        if (comments.length === 0 && services.length > 0) {
+          comments = BASELINE_2025.qualitativeComments.slice(0, 2);
+        }
       }
 
       // Demographic distribution for charts
@@ -835,6 +911,20 @@ export function CsmReportDashboard({
     const start = servicePage * servicePageSize;
     return filteredServices.slice(start, start + servicePageSize);
   }, [filteredServices, servicePage]);
+
+  // Filter comments based on text search
+  const filteredComments = useMemo(() => {
+    if (!displayStats.comments) return [];
+    if (!commentSearch.trim()) return displayStats.comments;
+    const q = commentSearch.toLowerCase();
+    return displayStats.comments.filter(c => 
+      c.visitorName.toLowerCase().includes(q) ||
+      c.comments.toLowerCase().includes(q) ||
+      c.category.toLowerCase().includes(q) ||
+      c.campus.toLowerCase().includes(q) ||
+      c.type.toLowerCase().includes(q)
+    );
+  }, [displayStats.comments, commentSearch]);
 
   // Decision Support System alerts
   const dssInsights = useMemo(() => {
@@ -1392,31 +1482,432 @@ export function CsmReportDashboard({
     printWindow.document.close();
   };
 
+  // ==================== TAB-SPECIFIC PRINT TEMPLATES ====================
+
+  const getReportHeaderHtml = (tabTitle: string) => {
+    const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
+    const campusText = localCampusId === 'all' ? "UNIVERSITY-WIDE" : (campuses.find(c => c.id === localCampusId)?.name || "RSU");
+    const unitText = selectedUnitId === 'all' ? "ALL OFFICES / UNITS" : (units.find(u => u.id === selectedUnitId)?.name || "Office");
+    
+    return `
+      <table style="width: 100%; border: none; border-bottom: 2px solid black; margin-bottom: 20px;">
+        <tr>
+          <td style="width: 70px; text-align: left; border: none; padding: 0;"><img src="/rsulogo.png" style="height: 50px; object-fit: contain;" /></td>
+          <td style="text-align: center; border: none; padding: 0;">
+            <p style="margin: 0; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;">Republic of the Philippines</p>
+            <h2 style="margin: 2px 0; font-size: 13px; font-weight: bold; color: #1b6535;">ROMBLON STATE UNIVERSITY</h2>
+            <p style="margin: 0; font-size: 9px;">Odiongan, Romblon</p>
+          </td>
+          <td style="width: 70px; text-align: right; border: none; padding: 0;"><img src="/ISOlogo.jpg" style="height: 50px; object-fit: contain;" /></td>
+        </tr>
+      </table>
+      <div style="text-align: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; font-size: 13px; font-weight: bold; text-transform: uppercase;">CSM COMPLIANCE AUDIT REPORT - ${tabTitle.toUpperCase()}</h3>
+        <p style="margin: 2px 0; font-size: 9px; font-weight: bold; color: #555;">DATA STREAM: ${titleLabel}</p>
+      </div>
+      <div style="margin-bottom: 15px; font-size: 10px; background-color: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+        <table style="width: 100%; border: none; font-size: 10px; margin: 0;">
+          <tr style="border: none;"><td style="border: none; padding: 2px;"><strong>CAMPUS:</strong> ${campusText.toUpperCase()}</td><td style="border: none; padding: 2px;"><strong>OFFICE/UNIT:</strong> ${unitText.toUpperCase()}</td></tr>
+          <tr style="border: none;"><td style="border: none; padding: 2px;"><strong>REPORT PERIOD:</strong> Calendar Year ${selectedYear}</td><td style="border: none; padding: 2px;"><strong>TOTAL RESPONSES:</strong> ${displayStats.totalResponses}</td></tr>
+        </table>
+      </div>
+    `;
+  };
+
+  const handlePrintOverviewTab = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let sexRows = '';
+    displayStats.demographics.sexData.forEach(d => {
+      sexRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
+    });
+
+    let customerRows = '';
+    displayStats.demographics.clientTypeData.forEach(d => {
+      customerRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
+    });
+
+    let stakeholderRows = '';
+    displayStats.demographics.stakeholderData.forEach(d => {
+      stakeholderRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
+    });
+
+    let ageRows = '';
+    displayStats.demographics.ageData.forEach(d => {
+      ageRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
+    });
+
+    let ccRows = `
+      <tr><td><strong>CC1 (Awareness)</strong></td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 1']}%</td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 2']}%</td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 3']}%</td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 4']}%</td><td style="text-align:center;">—</td></tr>
+      <tr><td><strong>CC2 (Visibility)</strong></td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 1']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 2']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 3']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 4']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 5']}%</td></tr>
+      <tr><td><strong>CC3 (Helpfulness)</strong></td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 1']}%</td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 2']}%</td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 3']}%</td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 4']}%</td><td style="text-align:center;">—</td></tr>
+    `;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>CSM Executive Overview & Demographics</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 30px; color: black; line-height: 1.4; font-size: 11px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+            th { background-color: #f2f2f2; border: 1px solid black; padding: 6px; text-align: center; text-transform: uppercase; font-size: 9px; font-weight: bold; }
+            td { border: 1px solid black; padding: 6px; }
+            h4 { color: #1b6535; border-bottom: 1px solid black; padding-bottom: 3px; margin-top: 20px; text-transform: uppercase; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          ${getReportHeaderHtml("Executive Overview & Demographics")}
+          
+           <h4>I. Executive Satisfaction Indicators</h4>
+           <table>
+             <thead>
+               <tr>
+                 <th>Satisfaction Indicator</th>
+                 <th>Score Rating %</th>
+                 <th>Meaning</th>
+               </tr>
+             </thead>
+             <tbody>
+               <tr><td><strong>Overall Client Satisfaction Rate</strong></td><td style="text-align:center;font-weight:bold;">${displayStats.overallSatisfactionRate}%</td><td>Clients who rated Agree/Strongly Agree across SQDs</td></tr>
+               <tr><td><strong>CSM Participation Rate</strong></td><td style="text-align:center;font-weight:bold;">${displayStats.participationRate}%</td><td>Ratio of evaluations per logged visit</td></tr>
+               <tr><td><strong>Citizen's Charter Awareness</strong></td><td style="text-align:center;font-weight:bold;">${displayStats.cc1AwarePercent}%</td><td>Clients aware of the Citizen's Charter</td></tr>
+               <tr><td><strong>Citizen's Charter Visibility</strong></td><td style="text-align:center;font-weight:bold;">${displayStats.cc2VisibilityPercent}%</td><td>Clients who found the Charter easy to locate</td></tr>
+               <tr><td><strong>Citizen's Charter Helpfulness</strong></td><td style="text-align:center;font-weight:bold;">${displayStats.cc3HelpfulnessPercent}%</td><td>Clients who found it helpful for service delivery</td></tr>
+             </tbody>
+           </table>
+
+           <h4>II. Client Demographic Distributions</h4>
+           <div style="display: flex; gap: 20px;">
+             <div style="flex: 1;">
+               <table style="margin: 0;">
+                 <thead><tr><th>Sex Category</th><th style="width: 25%;">Count</th><th style="width: 25%;">Ratio</th></tr></thead>
+                 <tbody>${sexRows}</tbody>
+               </table>
+             </div>
+             <div style="flex: 1;">
+               <table style="margin: 0;">
+                 <thead><tr><th>Customer Type</th><th style="width: 25%;">Count</th><th style="width: 25%;">Ratio</th></tr></thead>
+                 <tbody>${customerRows}</tbody>
+               </table>
+             </div>
+           </div>
+
+           <div style="display: flex; gap: 20px; margin-top: 15px;">
+             <div style="flex: 1;">
+               <table style="margin: 0;">
+                 <thead><tr><th>Stakeholder Class</th><th style="width: 25%;">Count</th><th style="width: 25%;">Ratio</th></tr></thead>
+                 <tbody>${stakeholderRows}</tbody>
+               </table>
+             </div>
+             <div style="flex: 1;">
+               <table style="margin: 0;">
+                 <thead><tr><th>Age Bracket</th><th style="width: 25%;">Count</th><th style="width: 25%;">Ratio</th></tr></thead>
+                 <tbody>${ageRows}</tbody>
+               </table>
+             </div>
+           </div>
+
+           <h4>III. Citizen's Charter Option Distributions</h4>
+           <table>
+             <thead>
+               <tr>
+                 <th>Citizen's Charter Metric</th>
+                 <th>Option 1</th>
+                 <th>Option 2</th>
+                 <th>Option 3</th>
+                 <th>Option 4</th>
+                 <th>Option 5</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${ccRows}
+             </tbody>
+           </table>
+
+           <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
+         </body>
+       </html>
+     `);
+    printWindow.document.close();
+  };
+
+  const handlePrintSqdTab = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let sqdRows = '';
+    displayStats.sqdData.forEach(sqd => {
+      sqdRows += `
+        <tr>
+          <td><strong>${sqd.name}</strong><br/><small style="color:#666;">${sqd.desc}</small></td>
+          <td style="text-align:center;font-weight:bold;">${sqd.avg} / 5.0</td>
+          <td style="text-align:center;font-weight:bold;color:${sqd.positivePercent >= 85 ? 'green' : 'red'};">${sqd.positivePercent}%</td>
+          <td style="text-align:center;">${sqd.counts[5]}</td>
+          <td style="text-align:center;">${sqd.counts[4]}</td>
+          <td style="text-align:center;">${sqd.counts[3]}</td>
+          <td style="text-align:center;">${sqd.counts[2]}</td>
+          <td style="text-align:center;">${sqd.counts[1]}</td>
+          <td style="text-align:center;">${sqd.counts[0]}</td>
+        </tr>
+      `;
+    });
+
+    let serviceRows = '';
+    filteredServices.forEach(s => {
+      let heatBg = '#e6f4ea';
+      let heatFg = '#137333';
+      if (s.satisfactionRate < 89) {
+        heatBg = '#fce8e6';
+        heatFg = '#c5221f';
+      } else if (s.satisfactionRate >= 90 && s.satisfactionRate <= 94) {
+        heatBg = '#fef7e0';
+        heatFg = '#b06000';
+      }
+      serviceRows += `
+        <tr>
+          <td style="font-weight:bold;">${s.name.toUpperCase()}</td>
+          <td>${s.campus}</td>
+          <td style="text-align:center;">${s.count}</td>
+          <td style="text-align:center;font-weight:bold;background-color:${heatBg};color:${heatFg};">${s.satisfactionRate}%</td>
+          <td style="text-align:center;">${s.avgRating} / 5.0</td>
+        </tr>
+      `;
+    });
+
+    let dssList = '';
+    dssInsights.forEach(i => {
+      if (i.id !== 99) {
+        dssList += `
+          <div style="border: 1px solid #f5c2c2; background-color: #fdf3f3; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+            <strong>${i.name} GAPS ALERT (${i.positivePercent}% Positive Satisfaction)</strong>
+            <p style="margin: 4px 0; font-style: italic; font-size: 10px;">"${i.recommendation}"</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 9.5px;">
+              ${i.checklist.map((item: string) => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+    });
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>CSM Service Quality (SQD) & Services Report</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 30px; color: black; line-height: 1.4; font-size: 11px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+            th { background-color: #f2f2f2; border: 1px solid black; padding: 6px; text-align: center; text-transform: uppercase; font-size: 9px; font-weight: bold; }
+            td { border: 1px solid black; padding: 6px; }
+            h4 { color: #1b6535; border-bottom: 1px solid black; padding-bottom: 3px; margin-top: 25px; text-transform: uppercase; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          ${getReportHeaderHtml("Service Quality & Performance Scorecard")}
+
+           <h4>I. ARTA Service Quality Dimensions (SQD) Scorecard</h4>
+           <table>
+             <thead>
+               <tr>
+                 <th>SQD Dimension</th>
+                 <th style="width: 8%;">Avg Score</th>
+                 <th style="width: 8%;">Satisfaction</th>
+                 <th style="width: 7%;">SA (5)</th>
+                 <th style="width: 7%;">A (4)</th>
+                 <th style="width: 7%;">N (3)</th>
+                 <th style="width: 7%;">D (2)</th>
+                 <th style="width: 7%;">SD (1)</th>
+                 <th style="width: 7%;">N/A (0)</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${sqdRows}
+             </tbody>
+           </table>
+
+           ${dssList ? `
+             <h4>II. Corrective Action Improvement Directives (DSS Alerts)</h4>
+             <div>${dssList}</div>
+           ` : ''}
+
+           <h4 style="page-break-before: always;">III. Service-Level Satisfaction Heatmap Matrix</h4>
+           <table>
+             <thead>
+               <tr>
+                 <th>Service Provided</th>
+                 <th>Campus Site</th>
+                 <th style="width: 10%;">Transactions</th>
+                 <th style="width: 15%;">Satisfaction %</th>
+                 <th style="width: 15%;">Avg SQD Rating</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${serviceRows || '<tr><td colspan="5" style="text-align:center;">No services recorded for this period.</td></tr>'}
+             </tbody>
+           </table>
+
+           <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
+         </body>
+       </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handlePrintQualitativeTab = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let paretoRows = '';
+    displayStats.paretoData.forEach(p => {
+      paretoRows += `
+        <tr>
+          <td><strong>${p.theme}</strong></td>
+          <td style="text-align:center;">${p.count}</td>
+          <td style="text-align:center;font-weight:bold;">${p.cumulativePercent}%</td>
+        </tr>
+      `;
+    });
+
+    let commentRows = '';
+    filteredComments.forEach((c, idx) => {
+      commentRows += `
+        <tr>
+          <td style="text-align:center;">${idx + 1}</td>
+          <td style="font-weight:bold;text-transform:uppercase;">${maskName(c.visitorName)}</td>
+          <td>"${c.comments}"</td>
+          <td style="font-weight:bold;">${c.category}</td>
+          <td>${c.campus} &bull; <small style="text-transform:uppercase;color:#555;">${c.type}</small></td>
+        </tr>
+      `;
+    });
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>CSM Qualitative Feedback & Pareto Analysis</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 30px; color: black; line-height: 1.4; font-size: 11px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+            th { background-color: #f2f2f2; border: 1px solid black; padding: 6px; text-align: center; text-transform: uppercase; font-size: 9px; font-weight: bold; }
+            td { border: 1px solid black; padding: 6px; }
+            h4 { color: #1b6535; border-bottom: 1px solid black; padding-bottom: 3px; margin-top: 20px; text-transform: uppercase; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          ${getReportHeaderHtml("Qualitative Feedbacks & Pareto theme analysis")}
+
+           <h4>I. Pareto Complaint Frequency Theme Analysis</h4>
+           <table>
+             <thead>
+               <tr>
+                 <th>Friction Theme / Mapped Dimension</th>
+                 <th style="width: 25%;">Frequency count</th>
+                 <th style="width: 25%;">Cumulative Percentage</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${paretoRows}
+             </tbody>
+           </table>
+
+           <h4 style="page-break-before: always;">II. Client Feedback Matrix Log</h4>
+           <table>
+             <thead>
+               <tr>
+                 <th style="width: 5%;">#</th>
+                 <th style="width: 15%;">Client Name</th>
+                 <th>Direct Suggestions / Feedbacks</th>
+                 <th style="width: 22%;">SQD Theme</th>
+                 <th style="width: 22%;">Campus / Client Type</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${commentRows || '<tr><td colspan="5" style="text-align:center;">No qualitative comments logged.</td></tr>'}
+             </tbody>
+           </table>
+
+           <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
+         </body>
+       </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-6">
       
-      {/* HEADER CONTROLS (Live vs Baseline Data Toggle) */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
+      {/* HEADER CONTROLS (Live vs Baseline Data Toggle & Campus / Unit Filters) */}
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
         <div>
           <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-amber-400" />
+            <ShieldCheck className="h-5 w-5 text-amber-400 animate-pulse" />
             CSM COMPLIANCE CORE ENGINE
           </h2>
-          <p className="text-[11px] text-emerald-100 font-bold uppercase tracking-widest mt-0.5">
+          <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-widest mt-0.5">
             ARTA Harmonized Reporting & Analytics
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-black text-white uppercase tracking-widest">Data Stream Source:</span>
-          <Select value={dataSource} onValueChange={(v: any) => setDataSource(v)}>
-            <SelectTrigger className="w-[220px] h-9 bg-white font-extrabold text-slate-800 border-none shadow-md">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="baseline25">📋 FY 2025 Baseline Report</SelectItem>
-              <SelectItem value="live">⚡ Live System Logs (Real-time)</SelectItem>
-            </SelectContent>
-          </Select>
+        
+        {/* Dynamic Filters Grid */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Data Source Toggle */}
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Data Stream</span>
+            <Select value={dataSource} onValueChange={(v: any) => setDataSource(v)}>
+              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="baseline25">📋 FY 2025 Baseline Report</SelectItem>
+                <SelectItem value="live">⚡ Live System Logs (Real-time)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Campus Selector */}
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Campus Site</span>
+            <Select value={localCampusId} onValueChange={(v) => { setLocalCampusId(v); setSelectedUnitId('all'); }} disabled={!hasAccessToAll}>
+              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md">
+                <SelectValue placeholder="University-Wide" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">🏢 University-Wide (All)</SelectItem>
+                {campuses.map(c => (
+                  <SelectItem key={c.id} value={c.id}>📍 {c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Unit Selector */}
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Office / Unit</span>
+            <div className="flex items-center gap-1.5">
+              <Select value={selectedUnitId} onValueChange={setSelectedUnitId} disabled={!hasAccessToAll}>
+                <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md">
+                  <SelectValue placeholder="All Units/Offices" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">📁 All Units / Offices</SelectItem>
+                  {dropdownUnits.map(u => (
+                    <SelectItem key={u.id} value={u.id}>📄 {u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {hasAccessToAll && (
+                <div className="relative">
+                  <Input
+                    placeholder="Search office..."
+                    value={unitSearchQuery}
+                    onChange={(e) => setUnitSearchQuery(e.target.value)}
+                    className="w-[120px] h-9 bg-white text-[11px] font-extrabold text-slate-800 border-none shadow-md pl-7 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1598,13 +2089,18 @@ export function CsmReportDashboard({
           <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-[#D4AF37]" />
-              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                Standard ARTA CSM satisfaction scorecard is formatted.
+              <span className="text-xs font-semibold text-slate-650 uppercase tracking-wider">
+                CSM Overview & Demographics metrics. Generate reports for the current filters.
               </span>
             </div>
-            <Button size="sm" onClick={handlePrintScorecard} className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
-              <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Scorecard
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handlePrintScorecard} variant="outline" className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Scorecard
+              </Button>
+              <Button size="sm" onClick={handlePrintOverviewTab} className="h-8 text-[9px] font-black uppercase tracking-widest px-4 bg-emerald-700 hover:bg-emerald-800 border-none text-white">
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Overview Report
+              </Button>
+            </div>
           </div>
 
           {/* Demographics Donuts & Stacked Charts grid */}
@@ -1797,6 +2293,19 @@ export function CsmReportDashboard({
 
         {/* ==================== TAB 2: SERVICE QUALITY (SQD) & SERVICES ==================== */}
         <TabsContent value="sqd" className="space-y-6 animate-in fade-in duration-500">
+          
+          {/* Print SQD Report bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-semibold text-slate-650 uppercase tracking-wider">
+                Format and print the SQD dimensions audit and services performance heatmap list.
+              </span>
+            </div>
+            <Button size="sm" onClick={handlePrintSqdTab} className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+              <Printer className="h-3.5 w-3.5 mr-1.5" /> Print SQD Audit
+            </Button>
+          </div>
           
           {/* Charts grid: Diverging Stacked Bar & Radar Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2002,6 +2511,19 @@ export function CsmReportDashboard({
         {/* ==================== TAB 3: QUALITATIVE INSIGHTS ==================== */}
         <TabsContent value="qualitative" className="space-y-6 animate-in fade-in duration-500">
           
+          {/* Print Qualitative Feedback bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-semibold text-slate-650 uppercase tracking-wider">
+                Format and print the Pareto complaints analytics and qualitative suggestions logs.
+              </span>
+            </div>
+            <Button size="sm" onClick={handlePrintQualitativeTab} className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+              <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Feedback Logs
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Pareto Chart for comments count */}
@@ -2032,19 +2554,30 @@ export function CsmReportDashboard({
 
             {/* Categorized Matrix Feed */}
             <Card className="shadow-md border-slate-200/80 lg:col-span-1 flex flex-col justify-between">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">
-                  Qualitative Matrix Feed
-                </CardTitle>
-                <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
-                  Client comments mapped to SQD dimensions.
-                </CardDescription>
+              <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-xs font-black uppercase text-slate-700">
+                    Qualitative Matrix Feed
+                  </CardTitle>
+                  <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                    Client comments mapped to SQD dimensions.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search comments..."
+                    value={commentSearch}
+                    onChange={(e) => setCommentSearch(e.target.value)}
+                    className="h-8 text-xs font-bold w-[160px] bg-white border-slate-200"
+                  />
+                </div>
               </CardHeader>
               <CardContent className="pt-4 flex-1 p-0">
                 <ScrollArea className="h-[320px] bg-slate-50/20 p-4">
-                  {displayStats.comments.length > 0 ? (
+                  {filteredComments.length > 0 ? (
                     <div className="space-y-3">
-                      {displayStats.comments.map((comment, idx) => (
+                      {filteredComments.map((comment, idx) => (
                         <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-1.5">
                           <div className="flex justify-between items-start border-b pb-1">
                             <span className="text-xs font-black text-[#1B6535] uppercase">
@@ -2063,7 +2596,7 @@ export function CsmReportDashboard({
                     </div>
                   ) : (
                     <div className="text-center py-10 opacity-30 text-xs font-bold uppercase italic">
-                      No customer comments logged for this period.
+                      No customer comments logged matching criteria.
                     </div>
                   )}
                 </ScrollArea>
