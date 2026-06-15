@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { 
   collection, 
   doc, 
@@ -52,14 +52,14 @@ export default function UnitActivityPage() {
   const [activeTab, setActiveTab] = useState('activities');
 
   // DB queries
-  const campusesQuery = useMemo(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemo(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
   // Activities queries
-  const activitiesQuery = useMemo(() => {
+  const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const base = collection(firestore, 'unitActivities');
     if (hasAccessToAll) {
@@ -70,7 +70,7 @@ export default function UnitActivityPage() {
   const { data: activities, isLoading: isLoadingActivities } = useCollection<AttendanceActivity>(activitiesQuery);
 
   // Device bindings query
-  const bindingsQuery = useMemo(() => {
+  const bindingsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const base = collection(firestore, 'attendanceDeviceBindings');
     return query(base, orderBy('boundAt', 'desc'));
@@ -135,7 +135,7 @@ export default function UnitActivityPage() {
     return activities?.find(a => a.id === selectedActivityId) || null;
   }, [activities, selectedActivityId]);
 
-  const logsQuery = useMemo(() => {
+  const logsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     const base = collection(firestore, 'unitActivityAttendanceLogs');
     if (selectedActivityId === 'all') {
