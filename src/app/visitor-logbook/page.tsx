@@ -1436,7 +1436,7 @@ export default function VisitorLogbookPage() {
                     {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {['Citizen', 'Business', 'Government', 'STUDENT'].map(type => (
+                    {['Student', 'Parents', 'Government Employees', 'Internal Employees', 'Citizens', 'Others'].map(type => (
                       <button
                         key={type}
                         type="button"

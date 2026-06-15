@@ -576,7 +576,7 @@ function MobileVisitorLogbookContent() {
                       {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {['Citizen', 'Business', 'Government', 'STUDENT'].map(type => (
+                      {['Student', 'Parents', 'Government Employees', 'Internal Employees', 'Citizens', 'Others'].map(type => (
                         <button
                           key={type}
                           type="button"

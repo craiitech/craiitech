@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { 
   BarChart, 
@@ -20,7 +21,15 @@ import {
   PieChart, 
   Pie, 
   Cell,
-  LabelList
+  LabelList,
+  Radar, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis,
+  Legend,
+  ComposedChart,
+  Line
 } from 'recharts';
 import { 
   Users, 
@@ -39,7 +48,11 @@ import {
   Percent,
   XCircle,
   Loader2,
-  Radio
+  Radio,
+  Download,
+  Filter,
+  Search,
+  ExternalLink
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +64,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const maskName = (name: string) => {
   if (!name) return 'Anonymous';
@@ -60,6 +74,105 @@ const maskName = (name: string) => {
     if (part.length === 2) return part.charAt(0) + '*';
     return part.charAt(0) + '*'.repeat(part.length - 2) + part.charAt(part.length - 1);
   }).join(' ');
+};
+
+// FY 2025 Baseline Report Constants
+const BASELINE_2025 = {
+  overallSatisfactionRate: 92,
+  participationRate: 92,
+  cc1AwarePercent: 75,
+  cc2VisibilityPercent: 95,
+  cc3HelpfulnessPercent: 100,
+  totalResponses: 1000,
+  totalVisitors: 1086,
+  demographics: {
+    sex: [
+      { name: 'Female', value: 540, fill: 'hsl(var(--chart-2))' },
+      { name: 'Male', value: 400, fill: 'hsl(var(--chart-1))' },
+      { name: 'LGBTQ+', value: 40, fill: 'hsl(var(--chart-3))' },
+      { name: 'Did not specify', value: 20, fill: 'hsl(var(--chart-4))' },
+    ],
+    customerType: [
+      { name: 'Student', value: 750, fill: 'hsl(var(--chart-2))' },
+      { name: 'Government Employees', value: 40, fill: 'hsl(var(--chart-1))' },
+      { name: 'Business', value: 0, fill: 'hsl(var(--chart-3))' },
+      { name: 'Other Stakeholders', value: 50, fill: 'hsl(var(--chart-4))' },
+      { name: 'No Response', value: 160, fill: 'hsl(var(--chart-5))' },
+    ],
+    stakeholders: [
+      { name: 'Internal Stakeholders', value: 750, fill: '#1b6535' },
+      { name: 'External Stakeholders', value: 250, fill: '#fb923c' }
+    ],
+    age: [
+      { name: '19 or lower', value: 250 },
+      { name: '20-34', value: 450 },
+      { name: '35-49', value: 150 },
+      { name: '50-64', value: 120 },
+      { name: '65 or higher', value: 30 },
+    ],
+    campus: [
+      { name: 'Main Campus', value: 620 },
+      { name: 'San Andres', value: 80 },
+      { name: 'Calatrava', value: 50 },
+      { name: 'San Agustin', value: 60 },
+      { name: 'Sta. Maria', value: 40 },
+      { name: 'Sta. Fe', value: 30 },
+      { name: 'Romblon', value: 50 },
+      { name: 'Cajidiocan', value: 30 },
+      { name: 'San Fernando', value: 30 },
+      { name: 'Agpudlos', value: 10 },
+    ],
+  },
+  ccResults: {
+    cc1: [0, 550, 120, 80, 250], // counts for option 1 to 4
+    cc2: [0, 750, 200, 30, 20, 0], // counts for option 1 to 5
+    cc3: [0, 850, 150, 0, 0], // counts for option 1 to 4
+  },
+  sqd: [
+    { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time", avg: 4.40, positivePercent: 88, counts: [0, 10, 30, 80, 130, 750] },
+    { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements", avg: 4.50, positivePercent: 90, counts: [0, 15, 25, 60, 120, 780] },
+    { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office", avg: 4.35, positivePercent: 87, counts: [0, 20, 40, 70, 150, 720] },
+    { id: 4, name: "SQD4. Communication", key: "sqd4", desc: "Clear guidelines and friendly explanations", avg: 4.70, positivePercent: 94, counts: [0, 5, 15, 40, 120, 820] },
+    { id: 5, name: "SQD5. Costs", key: "sqd5", desc: "Fees paid were just and reasonable", avg: 4.55, positivePercent: 91, counts: [0, 10, 20, 60, 120, 790] },
+    { id: 6, name: "SQD6. Integrity", key: "sqd6", desc: "Free from corruption and under-the-table actions", avg: 4.90, positivePercent: 98, counts: [0, 2, 3, 15, 60, 920] },
+    { id: 7, name: "SQD7. Assurance", key: "sqd7", desc: "Felt safe, staff was professional and courteous", avg: 4.75, positivePercent: 95, counts: [0, 5, 10, 35, 80, 870] },
+    { id: 8, name: "SQD8. Outcome", key: "sqd8", desc: "Office delivered the requested service/result", avg: 4.65, positivePercent: 93, counts: [0, 7, 18, 45, 100, 830] },
+  ],
+  services: [
+    { name: "Issuance of Service Record", campus: "Main Campus", count: 120, satisfactionRate: 96, avgRating: 4.80 },
+    { name: "Filing of Leave of Absence of Students", campus: "Main Campus", count: 80, satisfactionRate: 50, avgRating: 2.50 },
+    { name: "Cross Enrollees", campus: "Cajidiocan", count: 15, satisfactionRate: 47, avgRating: 2.35 },
+    { name: "Issuance of Transcript of Records", campus: "Main Campus", count: 350, satisfactionRate: 94, avgRating: 4.70 },
+    { name: "Re-admission of Returning Students", campus: "San Andres", count: 45, satisfactionRate: 92, avgRating: 4.60 },
+    { name: "Enrollment Verification", campus: "Calatrava", count: 60, satisfactionRate: 97, avgRating: 4.85 },
+    { name: "Issuance of Certificate of Grades", campus: "San Agustin", count: 110, satisfactionRate: 91, avgRating: 4.55 },
+    { name: "Processing of Student Clearance", campus: "Romblon", count: 250, satisfactionRate: 93, avgRating: 4.65 },
+    { name: "Scholarship Application Processing", campus: "Main Campus", count: 180, satisfactionRate: 88, avgRating: 4.40 },
+    { name: "Evaluation of Student Records", campus: "Sta. Fe", count: 35, satisfactionRate: 94, avgRating: 4.70 },
+    { name: "Issuance of Certificate of Honorable Dismissal", campus: "Sta. Maria", count: 25, satisfactionRate: 96, avgRating: 4.80 },
+    { name: "Processing of Graduation Application", campus: "San Fernando", count: 40, satisfactionRate: 95, avgRating: 4.75 },
+    { name: "Issuance of Student ID Card", campus: "Agpudlos", count: 50, satisfactionRate: 98, avgRating: 4.90 },
+  ],
+  qualitativeComments: [
+    { comments: "Mabagal ang release ng TOR", category: "Responsiveness (SQD1)", campus: "Main Campus", type: "Student" },
+    { comments: "Sobrang init po", category: "Access & Facilities (SQD3)", campus: "Main Campus", type: "Student" },
+    { comments: "Wait time for clearance processing is too long", category: "Responsiveness (SQD1)", campus: "Romblon", type: "Student" },
+    { comments: "No ventilation in the waiting lobby", category: "Access & Facilities (SQD3)", campus: "Cajidiocan", type: "Student" },
+    { comments: "Lack of directional signs inside the building", category: "Communication (SQD4)", campus: "San Fernando", type: "Student" },
+    { comments: "Convenience fee for online payments is too high", category: "Costs (SQD5)", campus: "Main Campus", type: "Government Employees" },
+    { comments: "Accommodating and very polite frontline staff", category: "Assurance (SQD7)", campus: "San Agustin", type: "Other Stakeholders" },
+    { comments: "Got my service record in less than 30 minutes, thank you!", category: "Outcome (SQD8)", campus: "Main Campus", type: "Government Employees" },
+  ],
+  pareto: [
+    { theme: "Responsiveness (SQD1)", count: 42, cumulativePercent: 38 },
+    { theme: "Access & Facilities (SQD3)", count: 28, cumulativePercent: 64 },
+    { theme: "Reliability (SQD2)", count: 15, cumulativePercent: 77 },
+    { theme: "Communication (SQD4)", count: 10, cumulativePercent: 86 },
+    { theme: "Assurance (SQD7)", count: 8, cumulativePercent: 94 },
+    { theme: "Costs (SQD5)", count: 5, cumulativePercent: 98 },
+    { theme: "Outcome (SQD8)", count: 3, cumulativePercent: 100 },
+    { theme: "Integrity (SQD6)", count: 0, cumulativePercent: 100 },
+  ]
 };
 
 interface CsmReportDashboardProps {
@@ -93,8 +206,13 @@ export function CsmReportDashboard({
   const hasAccessToAll = isAdmin || isCsmManager;
 
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
+  const [dataSource, setDataSource] = useState<'live' | 'baseline25'>('baseline25');
   const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
   const [deployingCycleIds, setDeployingCycleIds] = useState<Record<string, boolean>>({});
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [servicePage, setServicePage] = useState(0);
+  const servicePageSize = 5;
+
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -106,6 +224,7 @@ export function CsmReportDashboard({
     return dMap;
   }, [csmDeployments]);
 
+  // Handle deployments publish toggles
   const handleTogglePublishCycle = async (cycle: Cycle, isCurrentlyPublished: boolean) => {
     if (!firestore || !userProfile) return;
     const dId = `${cycle.year}-${cycle.name}`;
@@ -223,7 +342,7 @@ export function CsmReportDashboard({
     }
   };
 
-  // 1. FILTER RESPONSES
+  // Filter dynamic responses from DB
   const filteredResponses = useMemo(() => {
     if (!csmResponses) return [];
     return csmResponses.filter(res => {
@@ -241,7 +360,6 @@ export function CsmReportDashboard({
     });
   }, [csmResponses, selectedYear, selectedCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
-  // 2. FILTER VISITOR LOGS
   const filteredVisitorLogs = useMemo(() => {
     if (!visitorLogs) return [];
     return visitorLogs.filter(log => {
@@ -259,180 +377,535 @@ export function CsmReportDashboard({
     });
   }, [visitorLogs, selectedYear, selectedCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
-  // 3. STATS CALCULATIONS
-  const totalResponses = filteredResponses.length;
-  const totalVisitors = filteredVisitorLogs.length;
+  // Unified stats calculator based on selected source (live vs baseline)
+  const activeCampusName = useMemo(() => {
+    if (!selectedCampusId || selectedCampusId === 'all') return 'all';
+    return campuses.find(c => c.id === selectedCampusId)?.name || 'all';
+  }, [selectedCampusId, campuses]);
 
-  const participationRate = useMemo(() => {
-    if (totalVisitors === 0) return 0;
-    return Math.round((totalResponses / totalVisitors) * 100);
-  }, [totalResponses, totalVisitors]);
+  const displayStats = useMemo(() => {
+    if (dataSource === 'baseline25') {
+      const isFiltered = activeCampusName !== 'all';
+      
+      // If a specific campus is filtered, scale down baseline values logically
+      let totalResponses = BASELINE_2025.totalResponses;
+      let totalVisitors = BASELINE_2025.totalVisitors;
+      let services = BASELINE_2025.services;
+      let comments = BASELINE_2025.qualitativeComments;
 
-  // Calculate Overall Satisfaction (Agree or Strongly Agree count / Total Ratings)
-  const overallSatisfactionRate = useMemo(() => {
-    if (totalResponses === 0) return 0;
-    let totalSqdRatingsCount = 0;
-    let positiveRatingsCount = 0;
-
-    filteredResponses.forEach(res => {
-      for (let i = 1; i <= 8; i++) {
-        const rating = res[`sqd${i}`];
-        if (rating > 0 && rating <= 5) {
-          totalSqdRatingsCount++;
-          if (rating >= 4) {
-            positiveRatingsCount++;
-          }
-        }
+      if (isFiltered) {
+        const campusInfo = BASELINE_2025.demographics.campus.find(c => c.name.toLowerCase().includes(activeCampusName.toLowerCase()));
+        const ratio = campusInfo ? campusInfo.value / 1000 : 0.1;
+        totalResponses = Math.round(BASELINE_2025.totalResponses * ratio);
+        totalVisitors = Math.round(BASELINE_2025.totalVisitors * ratio);
+        services = BASELINE_2025.services.filter(s => s.campus.toLowerCase().includes(activeCampusName.toLowerCase()));
+        comments = BASELINE_2025.qualitativeComments.filter(s => s.campus.toLowerCase().includes(activeCampusName.toLowerCase()));
       }
-    });
 
-    if (totalSqdRatingsCount === 0) return 0;
-    return Math.round((positiveRatingsCount / totalSqdRatingsCount) * 100);
-  }, [filteredResponses, totalResponses]);
+      // Demographic distribution for charts
+      const sexData = BASELINE_2025.demographics.sex.map(s => ({
+        ...s,
+        value: Math.round(s.value * (totalResponses / BASELINE_2025.totalResponses))
+      })).filter(x => x.value > 0);
 
-  // Citizen's Charter Stats
-  const ccStats = useMemo(() => {
-    const counts = { cc1: [0, 0, 0, 0, 0], cc2: [0, 0, 0, 0, 0, 0], cc3: [0, 0, 0, 0, 0] };
-    filteredResponses.forEach(res => {
-      const c1 = Number(res.cc1 || 0);
-      const c2 = Number(res.cc2 || 0);
-      const c3 = Number(res.cc3 || 0);
+      const clientTypeData = BASELINE_2025.demographics.customerType.map(c => ({
+        ...c,
+        value: Math.round(c.value * (totalResponses / BASELINE_2025.totalResponses))
+      })).filter(x => x.value > 0);
 
-      if (c1 >= 1 && c1 <= 4) counts.cc1[c1]++;
-      if (c2 >= 1 && c2 <= 5) counts.cc2[c2]++;
-      if (c3 >= 1 && c3 <= 4) counts.cc3[c3]++;
-    });
+      const internalCount = clientTypeData
+        .filter(c => c.name === 'Student' || c.name === 'Internal Employees')
+        .reduce((sum, item) => sum + item.value, 0);
 
-    const cc1Total = filteredResponses.length;
-    const cc1AwareCount = counts.cc1[1] + counts.cc1[2] + counts.cc1[3];
-    const cc1AwarePercent = cc1Total > 0 ? Math.round((cc1AwareCount / cc1Total) * 100) : 0;
+      const externalCount = clientTypeData
+        .filter(c => c.name !== 'Student' && c.name !== 'Internal Employees')
+        .reduce((sum, item) => sum + item.value, 0);
 
-    return {
-      cc1: counts.cc1,
-      cc2: counts.cc2,
-      cc3: counts.cc3,
-      cc1AwarePercent,
-    };
-  }, [filteredResponses]);
+      const stakeholderData = [
+        { name: 'Internal Stakeholders', value: internalCount, fill: '#1b6535' },
+        { name: 'External Stakeholders', value: externalCount, fill: '#fb923c' }
+      ].filter(x => x.value > 0);
 
-  // 4. SQD DETAILED PERFORMANCE
-  const sqdData = useMemo(() => {
-    const dims = [
-      { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time" },
-      { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements" },
-      { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office" },
-      { id: 4, name: "SQD4. Communication", desc: "Clear guidelines and friendly explanations", key: "sqd4" },
-      { id: 5, name: "SQD5. Costs", key: "sqd5", desc: "Fees paid were just and reasonable" },
-      { id: 6, name: "SQD6. Integrity", key: "sqd6", desc: "Free from corruption and under-the-table actions" },
-      { id: 7, name: "SQD7. Assurance", key: "sqd7", desc: "Felt safe, staff was professional and courteous" },
-      { id: 8, name: "SQD8. Outcome", key: "sqd8", desc: "Office delivered the requested service/result" }
-    ];
+      const ageData = BASELINE_2025.demographics.age.map(a => ({
+        ...a,
+        value: Math.round(a.value * (totalResponses / BASELINE_2025.totalResponses))
+      }));
 
-    return dims.map(dim => {
-      let sum = 0;
-      let count = 0;
-      let posCount = 0; // rating 4 or 5
-      const counts = [0, 0, 0, 0, 0, 0]; // index 0=N/A, 1=SD, 2=D, 3=N, 4=A, 5=SA
+      const campusData = BASELINE_2025.demographics.campus;
 
+      // Citizen's charter percentages
+      const cc1 = BASELINE_2025.ccResults.cc1.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
+      const cc2 = BASELINE_2025.ccResults.cc2.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
+      const cc3 = BASELINE_2025.ccResults.cc3.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
+
+      const totalCC1 = cc1[1] + cc1[2] + cc1[3] + cc1[4] || 1;
+      const totalCC2 = cc2[1] + cc2[2] + cc2[3] + cc2[4] + cc2[5] || 1;
+      const totalCC3 = cc3[1] + cc3[2] + cc3[3] + cc3[4] || 1;
+
+      const ccStackedData = [
+        {
+          dimension: 'CC1 (Awareness)',
+          'Option 1': Math.round((cc1[1] / totalCC1) * 100),
+          'Option 2': Math.round((cc1[2] / totalCC1) * 100),
+          'Option 3': Math.round((cc1[3] / totalCC1) * 100),
+          'Option 4': Math.round((cc1[4] / totalCC1) * 100),
+          'Option 5': 0
+        },
+        {
+          dimension: 'CC2 (Visibility)',
+          'Option 1': Math.round((cc2[1] / totalCC2) * 100),
+          'Option 2': Math.round((cc2[2] / totalCC2) * 100),
+          'Option 3': Math.round((cc2[3] / totalCC2) * 100),
+          'Option 4': Math.round((cc2[4] / totalCC2) * 100),
+          'Option 5': Math.round((cc2[5] / totalCC2) * 100)
+        },
+        {
+          dimension: 'CC3 (Helpfulness)',
+          'Option 1': Math.round((cc3[1] / totalCC3) * 100),
+          'Option 2': Math.round((cc3[2] / totalCC3) * 100),
+          'Option 3': Math.round((cc3[3] / totalCC3) * 100),
+          'Option 4': Math.round((cc3[4] / totalCC3) * 100),
+          'Option 5': 0
+        }
+      ];
+
+      // SQD dimension stats
+      const sqdData = BASELINE_2025.sqd.map(s => {
+        const countsScaled = s.counts.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
+        return {
+          ...s,
+          counts: countsScaled
+        };
+      });
+
+      // Pareto complaints analysis
+      const paretoData = BASELINE_2025.pareto;
+
+      return {
+        overallSatisfactionRate: BASELINE_2025.overallSatisfactionRate,
+        participationRate: BASELINE_2025.participationRate,
+        cc1AwarePercent: BASELINE_2025.cc1AwarePercent,
+        cc2VisibilityPercent: BASELINE_2025.cc2VisibilityPercent,
+        cc3HelpfulnessPercent: BASELINE_2025.cc3HelpfulnessPercent,
+        totalResponses,
+        totalVisitors,
+        demographics: { sexData, clientTypeData, stakeholderData, ageData, campusData },
+        ccStats: { cc1, cc2, cc3, cc1AwarePercent: BASELINE_2025.cc1AwarePercent },
+        ccStackedData,
+        sqdData,
+        services,
+        comments,
+        paretoData
+      };
+    } else {
+      // LIVE SYSTEM LOGS CALCULATION
+      const totalResponses = filteredResponses.length;
+      const totalVisitors = filteredVisitorLogs.length;
+      const participationRate = totalVisitors === 0 ? 0 : Math.round((totalResponses / totalVisitors) * 100);
+
+      // Overall Satisfaction Index
+      let totalSqdRatingsCount = 0;
+      let positiveRatingsCount = 0;
       filteredResponses.forEach(res => {
-        const rating = Number(res[dim.key] || 0);
-        if (rating === 0) {
-          counts[0]++;
-        } else if (rating >= 1 && rating <= 5) {
-          counts[rating]++;
-          sum += rating;
-          count++;
-          if (rating >= 4) {
-            posCount++;
+        for (let i = 1; i <= 8; i++) {
+          const rating = res[`sqd${i}`];
+          if (rating > 0 && rating <= 5) {
+            totalSqdRatingsCount++;
+            if (rating >= 4) positiveRatingsCount++;
           }
         }
       });
+      const overallSatisfactionRate = totalSqdRatingsCount === 0 ? 0 : Math.round((positiveRatingsCount / totalSqdRatingsCount) * 100);
 
-      const avg = count > 0 ? Number((sum / count).toFixed(2)) : 0;
-      const positivePercent = count > 0 ? Math.round((posCount / count) * 100) : 0;
+      // Citizen's Charter count distributions
+      const cc1 = [0, 0, 0, 0, 0];
+      const cc2 = [0, 0, 0, 0, 0, 0];
+      const cc3 = [0, 0, 0, 0, 0];
+      filteredResponses.forEach(res => {
+        const c1 = Number(res.cc1 || 0);
+        const c2 = Number(res.cc2 || 0);
+        const c3 = Number(res.cc3 || 0);
+        if (c1 >= 1 && c1 <= 4) cc1[c1]++;
+        if (c2 >= 1 && c2 <= 5) cc2[c2]++;
+        if (c3 >= 1 && c3 <= 4) cc3[c3]++;
+      });
+
+      const cc1Total = filteredResponses.length;
+      const cc1AwareCount = cc1[1] + cc1[2] + cc1[3];
+      const cc1AwarePercent = cc1Total > 0 ? Math.round((cc1AwareCount / cc1Total) * 100) : 0;
+      const cc2VisibilityPercent = cc1Total > 0 ? Math.round(((cc2[1] + cc2[2]) / cc1Total) * 100) : 0;
+      const cc3HelpfulnessPercent = cc1Total > 0 ? Math.round(((cc3[1] + cc3[2]) / cc1Total) * 100) : 0;
+
+      // CC Stacked option values
+      const totalCC1 = cc1[1] + cc1[2] + cc1[3] + cc1[4] || 1;
+      const totalCC2 = cc2[1] + cc2[2] + cc2[3] + cc2[4] + cc2[5] || 1;
+      const totalCC3 = cc3[1] + cc3[2] + cc3[3] + cc3[4] || 1;
+
+      const ccStackedData = [
+        {
+          dimension: 'CC1 (Awareness)',
+          'Option 1': Math.round((cc1[1] / totalCC1) * 100),
+          'Option 2': Math.round((cc1[2] / totalCC1) * 100),
+          'Option 3': Math.round((cc1[3] / totalCC1) * 100),
+          'Option 4': Math.round((cc1[4] / totalCC1) * 100),
+          'Option 5': 0
+        },
+        {
+          dimension: 'CC2 (Visibility)',
+          'Option 1': Math.round((cc2[1] / totalCC2) * 100),
+          'Option 2': Math.round((cc2[2] / totalCC2) * 100),
+          'Option 3': Math.round((cc2[3] / totalCC2) * 100),
+          'Option 4': Math.round((cc2[4] / totalCC2) * 100),
+          'Option 5': Math.round((cc2[5] / totalCC2) * 100)
+        },
+        {
+          dimension: 'CC3 (Helpfulness)',
+          'Option 1': Math.round((cc3[1] / totalCC3) * 100),
+          'Option 2': Math.round((cc3[2] / totalCC3) * 100),
+          'Option 3': Math.round((cc3[3] / totalCC3) * 100),
+          'Option 4': Math.round((cc3[4] / totalCC3) * 100),
+          'Option 5': 0
+        }
+      ];
+
+      // Live demographics calculation
+      const sexCounts: Record<string, number> = { Male: 0, Female: 0, 'LGBTQ+': 0, 'Did not specify': 0 };
+      const clientTypeCounts: Record<string, number> = { Student: 0, Parents: 0, 'Government Employees': 0, 'Internal Employees': 0, Citizens: 0, Others: 0 };
+      const ageCounts: Record<string, number> = { '19 or lower': 0, '20-34': 0, '35-49': 0, '50-64': 0, '65 or higher': 0 };
+      const campusCounts: Record<string, number> = {};
+
+      campuses.forEach(c => {
+        campusCounts[c.name] = 0;
+      });
+
+      filteredResponses.forEach(res => {
+        // Sex
+        const sexVal = res.sex || 'Did not specify';
+        if (sexVal in sexCounts) sexCounts[sexVal]++;
+        else sexCounts['Did not specify']++;
+
+        // Client Type
+        let typeVal = res.clientType || 'Others';
+        if (typeVal === 'STUDENT') typeVal = 'Student';
+        if (typeVal === 'Government') typeVal = 'Government Employees';
+        if (typeVal === 'Citizen') typeVal = 'Citizens';
+        if (typeVal === 'Business') typeVal = 'Others';
+        
+        if (typeVal in clientTypeCounts) clientTypeCounts[typeVal]++;
+        else clientTypeCounts['Others']++;
+
+        // Age
+        let ageVal = res.ageGroup || '20-34';
+        if (ageVal === 'Below 20' || ageVal === '19 or lower') ageVal = '19 or lower';
+        if (ageVal === '65 and above' || ageVal === '65 or higher') ageVal = '65 or higher';
+        if (ageVal in ageCounts) ageCounts[ageVal]++;
+        else ageCounts['20-34']++;
+
+        // Campus
+        const cName = campuses.find(c => c.id === res.campusId)?.name || 'Main Campus';
+        campusCounts[cName] = (campusCounts[cName] || 0) + 1;
+      });
+
+      const sexData = Object.entries(sexCounts).map(([name, value], i) => ({
+        name,
+        value,
+        fill: i === 0 ? 'hsl(var(--chart-2))' : i === 1 ? 'hsl(var(--chart-1))' : i === 2 ? 'hsl(var(--chart-3))' : 'hsl(var(--chart-4))'
+      })).filter(d => d.value > 0);
+
+      const clientTypeData = Object.entries(clientTypeCounts).map(([name, value], i) => ({
+        name,
+        value,
+        fill: `hsl(var(--chart-${(i % 5) + 1}))`
+      })).filter(d => d.value > 0);
+
+      const internalCount = clientTypeCounts['Student'] + clientTypeCounts['Internal Employees'];
+      const externalCount = clientTypeCounts['Parents'] + clientTypeCounts['Government Employees'] + clientTypeCounts['Citizens'] + clientTypeCounts['Others'];
+      const stakeholderData = [
+        { name: 'Internal Stakeholders', value: internalCount, fill: '#1b6535' },
+        { name: 'External Stakeholders', value: externalCount, fill: '#fb923c' }
+      ].filter(d => d.value > 0);
+
+      const ageData = Object.entries(ageCounts).map(([name, value]) => ({ name, value }));
+      const campusData = Object.entries(campusCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
+
+      // SQD performance
+      const dims = [
+        { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time" },
+        { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements" },
+        { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office" },
+        { id: 4, name: "SQD4. Communication", key: "sqd4", desc: "Clear guidelines and friendly explanations" },
+        { id: 5, name: "SQD5. Costs", key: "sqd5", desc: "Fees paid were just and reasonable" },
+        { id: 6, name: "SQD6. Integrity", key: "sqd6", desc: "Free from corruption and under-the-table actions" },
+        { id: 7, name: "SQD7. Assurance", key: "sqd7", desc: "Felt safe, staff was professional and courteous" },
+        { id: 8, name: "SQD8. Outcome", key: "sqd8", desc: "Office delivered the requested service/result" }
+      ];
+
+      const sqdData = dims.map(dim => {
+        let sum = 0;
+        let count = 0;
+        let posCount = 0;
+        const counts = [0, 0, 0, 0, 0, 0];
+
+        filteredResponses.forEach(res => {
+          const rating = Number(res[dim.key] || 0);
+          if (rating === 0) counts[0]++;
+          else if (rating >= 1 && rating <= 5) {
+            counts[rating]++;
+            sum += rating;
+            count++;
+            if (rating >= 4) posCount++;
+          }
+        });
+
+        const avg = count > 0 ? Number((sum / count).toFixed(2)) : 0;
+        const positivePercent = count > 0 ? Math.round((posCount / count) * 100) : 0;
+
+        return {
+          ...dim,
+          avg,
+          positivePercent,
+          totalValid: count,
+          counts
+        };
+      });
+
+      // Service Performance table calculation
+      const serviceStats = new Map<string, { count: number; ratingSum: number; ratingCount: number; positiveCount: number }>();
+      filteredResponses.forEach(res => {
+        const purposeVal = res.purpose || 'General Assistance';
+        const stats = serviceStats.get(purposeVal) || { count: 0, ratingSum: 0, ratingCount: 0, positiveCount: 0 };
+        stats.count++;
+
+        for (let i = 1; i <= 8; i++) {
+          const rating = res[`sqd${i}`];
+          if (rating > 0 && rating <= 5) {
+            stats.ratingCount++;
+            stats.ratingSum += rating;
+            if (rating >= 4) stats.positiveCount++;
+          }
+        }
+        serviceStats.set(purposeVal, stats);
+      });
+
+      const services = Array.from(serviceStats.entries()).map(([serviceName, stats]) => {
+        const avgRating = stats.ratingCount > 0 ? Number((stats.ratingSum / stats.ratingCount).toFixed(2)) : 0;
+        const satisfactionRate = stats.ratingCount > 0 ? Math.min(100, Math.round((stats.positiveCount / stats.ratingCount) * 100)) : 0;
+        const cName = activeCampusName === 'all' ? 'Main Campus' : activeCampusName;
+        return {
+          name: serviceName,
+          campus: cName,
+          count: stats.count,
+          avgRating,
+          satisfactionRate
+        };
+      }).sort((a,b) => b.count - a.count);
+
+      // Comments list
+      const comments = filteredResponses
+        .filter(r => r.comments && r.comments.trim().length > 0)
+        .map(r => {
+          let typeVal = r.clientType || 'Student';
+          if (typeVal === 'STUDENT') typeVal = 'Student';
+          if (typeVal === 'Government') typeVal = 'Government Employees';
+          if (typeVal === 'Citizen') typeVal = 'Citizens';
+          const cName = campuses.find(c => c.id === r.campusId)?.name || 'Main Campus';
+          
+          // Heuristic theme mapping
+          let category = "Outcome (SQD8)";
+          for (let i = 1; i <= 8; i++) {
+            if (r[`sqd${i}`] > 0 && r[`sqd${i}`] <= 2) {
+              category = i === 1 ? "Responsiveness (SQD1)" :
+                         i === 2 ? "Reliability (SQD2)" :
+                         i === 3 ? "Access & Facilities (SQD3)" :
+                         i === 4 ? "Communication (SQD4)" :
+                         i === 5 ? "Costs (SQD5)" :
+                         i === 6 ? "Integrity (SQD6)" :
+                         i === 7 ? "Assurance (SQD7)" : "Outcome (SQD8)";
+              break;
+            }
+          }
+
+          return {
+            comments: r.comments,
+            category,
+            campus: cName,
+            type: typeVal
+          };
+        });
+
+      // Pareto live count
+      const liveParetoCounts: Record<string, number> = {
+        "Responsiveness (SQD1)": 0,
+        "Reliability (SQD2)": 0,
+        "Access & Facilities (SQD3)": 0,
+        "Communication (SQD4)": 0,
+        "Costs (SQD5)": 0,
+        "Integrity (SQD6)": 0,
+        "Assurance (SQD7)": 0,
+        "Outcome (SQD8)": 0,
+      };
+
+      comments.forEach(c => {
+        if (c.category in liveParetoCounts) {
+          liveParetoCounts[c.category]++;
+        }
+      });
+
+      const sortedPareto = Object.entries(liveParetoCounts)
+        .map(([theme, count]) => ({ theme, count }))
+        .sort((a, b) => b.count - a.count);
+
+      const totalParetoCount = sortedPareto.reduce((sum, item) => sum + item.count, 0) || 1;
+      let runningSum = 0;
+      const paretoData = sortedPareto.map(item => {
+        runningSum += item.count;
+        return {
+          theme: item.theme,
+          count: item.count,
+          cumulativePercent: Math.round((runningSum / totalParetoCount) * 100)
+        };
+      });
 
       return {
-        ...dim,
-        avg,
-        positivePercent,
-        totalValid: count,
-        counts,
+        overallSatisfactionRate,
+        participationRate,
+        cc1AwarePercent,
+        cc2VisibilityPercent,
+        cc3HelpfulnessPercent,
+        totalResponses,
+        totalVisitors,
+        demographics: { sexData, clientTypeData, stakeholderData, ageData, campusData },
+        ccStats: { cc1, cc2, cc3, cc1AwarePercent },
+        ccStackedData,
+        sqdData,
+        services,
+        comments,
+        paretoData
+      };
+    }
+  }, [dataSource, filteredResponses, filteredVisitorLogs, campuses, activeCampusName]);
+
+  // SQD Diverging Likert dataset constructor
+  const divergingData = useMemo(() => {
+    return displayStats.sqdData.map(sqd => {
+      const total = sqd.counts[1] + sqd.counts[2] + sqd.counts[3] + sqd.counts[4] + sqd.counts[5] || 1;
+      const sd = (sqd.counts[1] / total) * 100;
+      const d = (sqd.counts[2] / total) * 100;
+      const n = (sqd.counts[3] / total) * 100;
+      const a = (sqd.counts[4] / total) * 100;
+      const sa = (sqd.counts[5] / total) * 100;
+
+      return {
+        name: `SQD${sqd.id}`,
+        fullName: sqd.name,
+        "Strongly Disagree": -sd,
+        "Disagree": -d,
+        "Neutral (Neg)": -n / 2,
+        "Neutral (Pos)": n / 2,
+        "Agree": a,
+        "Strongly Agree": sa,
       };
     });
-  }, [filteredResponses]);
+  }, [displayStats]);
 
-  // 5. DECISION SUPPORT ENGINE (DSS)
+  // Radar Spider chart dataset constructor
+  const radarData = useMemo(() => {
+    const list = displayStats.sqdData.map(s => ({
+      subject: `SQD${s.id}`,
+      name: s.name,
+      Score: s.positivePercent,
+      fullMark: 100
+    }));
+    return [
+      { subject: 'Overall', name: 'Overall Satisfaction', Score: displayStats.overallSatisfactionRate, fullMark: 100 },
+      ...list
+    ];
+  }, [displayStats]);
+
+  // Paginated/Filtered Services performance
+  const filteredServices = useMemo(() => {
+    return displayStats.services.filter(s => 
+      s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+      s.campus.toLowerCase().includes(serviceSearch.toLowerCase())
+    );
+  }, [displayStats.services, serviceSearch]);
+
+  const paginatedServices = useMemo(() => {
+    const start = servicePage * servicePageSize;
+    return filteredServices.slice(start, start + servicePageSize);
+  }, [filteredServices, servicePage]);
+
+  // Decision Support System alerts
   const dssInsights = useMemo(() => {
     const alerts: any[] = [];
-
-    sqdData.forEach(sqd => {
-      if (sqd.totalValid > 3 && sqd.positivePercent < 85) {
+    displayStats.sqdData.forEach(sqd => {
+      if (sqd.avg > 0 && sqd.positivePercent < 85) {
         let recommendation = "";
         let checklist: string[] = [];
 
         switch(sqd.id) {
-          case 1: // Responsiveness
-            recommendation = "Low speed of transaction identified. Immediate staff rescheduling and queue reviews are recommended.";
+          case 1:
+            recommendation = "Responsiveness Alert: Transaction time is sub-optimal. Review counter queue management.";
             checklist = [
-              "Audit typical transaction duration and identify bottlenecks.",
-              "Adjust workforce shifts to increase counters during peak hours (e.g. 10 AM - 2 PM).",
-              "Review documentation checklists to avoid repeated client queueing."
+              "Audit typical service time per client counter.",
+              "Adjust personnel allocation to increase count during peak hours (10 AM - 2 PM).",
+              "Implement pre-screening checkers to avoid queue recycling."
             ];
             break;
-          case 2: // Reliability
-            recommendation = "Process reliability issue. The office procedures may not be matching the Citizen's Charter.";
+          case 2:
+            recommendation = "Reliability Gap: Service delivery is not complying strictly with charter timelines.";
             checklist = [
-              "Review the physical Citizen's Charter board and compare it with the active steps frontline staff enforce.",
-              "Conduct workflow refresher training for frontline personnel.",
-              "Establish a checklist validator tool to ensure all steps are followed strictly."
+              "Standardize compliance review periods for documents.",
+              "Track process deviations using digitised logs.",
+              "Schedule workflow orientation refreshers for administrative assistants."
             ];
             break;
-          case 3: // Access & Facilities
-            recommendation = "Office environment, cleanliness, or layout needs improvement.";
+          case 3:
+            recommendation = "Facilities Alert: Customer lounge comfort levels are below standard.";
             checklist = [
-              "Conduct restroom cleanliness audits and establish regular janitorial cleaning logs.",
-              "Inspect airconditioning units and lobby seating capacities.",
-              "Ensure directional signs are placed at major lobby entry points."
+              "Provide additional ventilation, seating, and clean restrooms.",
+              "Ensure directional signs are placed at all floor entrances.",
+              "Review lobby seating capacity and implement priority seats."
             ];
             break;
-          case 4: // Communication
-            recommendation = "Communication gaps identified. Guidelines are not clear to visitors.";
+          case 4:
+            recommendation = "Communication Issue: Instructions or prerequisites are ambiguous to visitors.";
             checklist = [
-              "Prepare and distribute visual one-page brochures outlining transaction requirements.",
-              "Designate a public assistance officer or information desk guide in the lobby.",
-              "Standardize language in rejection messages or deficiency letters."
+              "Upload and post visual 1-page guides for all services.",
+              "Ensure information helpdesks are manned by trained frontline agents.",
+              "Review document requirements checklists to eliminate obsolete certificates."
             ];
             break;
-          case 5: // Costs
-            recommendation = "Transaction cost dissatisfaction. Verify fee visibility and justification.";
+          case 5:
+            recommendation = "Cost Dissatisfaction: Fees charged are not clearly visible.";
             checklist = [
-              "Ensure official fee schedules matching the Citizen's Charter are posted conspicuously near the cashier.",
-              "Provide detailed receipts breaking down all charges.",
-              "Review whether payment channels can be digitalized to lower convenience fees."
+              "Post certified schedules of fees directly at payment counters.",
+              "Issue itemsized breakdowns on official receipts.",
+              "Review electronic transaction fees to minimize convenience surcharges."
             ];
             break;
-          case 6: // Integrity
-            recommendation = "WARNING: Safety or integrity indicators flagged by clients.";
+          case 6:
+            recommendation = "Integrity Risk: Standard processes are bypassed or not transparent.";
             checklist = [
-              "Mandate ARTA Ease of Doing Business (R.A. 11032) seminar refreshers for all unit staff.",
-              "Review the unit's document routing trails to ensure transparency.",
-              "Ensure feedback boxes for confidential integrity logs are visible and lockable."
+              "Enforce RA 11032 anti-graft training schedules.",
+              "Implement transparent queue monitoring display screens.",
+              "Deploy locked Suggestion chests that bypass direct office staff."
             ];
             break;
-          case 7: // Assurance
-            recommendation = "Staff professional courtesy or service sensitivity requires attention.";
+          case 7:
+            recommendation = "Assurance Gaps: Professional courtesy standards require training.";
             checklist = [
-              "Schedule customer service excellence or values orientation training for frontline workers.",
-              "Implement standard greeting scripts and guidelines.",
-              "Review administrative logs for customer complaints."
+              "Schedule Customer Relations & Values Training workshops.",
+              "Enforce strict frontline uniform and identification code of conduct.",
+              "Establish standard client reception greetings."
             ];
             break;
-          case 8: // Outcome
-            recommendation = "Transaction outcome failure or rejection explanation is unsatisfactory.";
+          case 8:
+            recommendation = "Outcome Issue: High rejection rate or inadequate rejection explanations.";
             checklist = [
-              "Establish a transparent 'deficiency explanation form' that outlines why request was denied and how to resolve it.",
-              "Audit success rate ratios of submitted service applications.",
-              "Review application requirements list to ensure they are not unnecessarily burdensome."
+              "Provide written checklists detailing specific deficiencies for denied documents.",
+              "Examine reject reasons to optimize requirements listing.",
+              "Establish a clear appeals channel."
             ];
             break;
         }
@@ -448,28 +921,25 @@ export function CsmReportDashboard({
       }
     });
 
-    // Low Participation warning
-    if (totalVisitors > 20 && participationRate < 30) {
+    if (displayStats.totalVisitors > 20 && displayStats.participationRate < 30) {
       alerts.push({
         id: 99,
         name: "Low Survey Participation",
-        recommendation: `Only ${participationRate}% of checked-out visitors submitted feedback. The unit's kiosk may be being bypassed.`,
+        recommendation: `Participation is at ${displayStats.participationRate}%. Bypasses might be occurring.`,
         checklist: [
-          "Ensure the logbook computer/tablet screen is directly in front of visitors checking out.",
-          "Train reception personnel to politely request feedback completion upon checking visitors out.",
-          "Check if the logbook checkout kiosk is operating in fullscreen kiosk mode."
+          "Ensure kiosk checkout prompts are activated in fullscreen mode.",
+          "Train desk clerks to polite invite visitors to complete evaluation prior to exit.",
+          "Verify QR code signages are visible on exit walls."
         ]
       });
     }
 
     return alerts;
-  }, [sqdData, totalVisitors, participationRate]);
+  }, [displayStats]);
 
-  // 6. UNIT BENCHMARKING (For Admin/IPDU only)
+  // Unit Rankings table
   const unitBenchmarks = useMemo(() => {
     if (!hasAccessToAll || !units) return [];
-
-    // Group CSM Responses by Unit
     const resByUnit = new Map<string, any[]>();
     filteredResponses.forEach(res => {
       const list = resByUnit.get(res.unitId) || [];
@@ -477,7 +947,6 @@ export function CsmReportDashboard({
       resByUnit.set(res.unitId, list);
     });
 
-    // Group logs by Unit
     const logsByUnit = new Map<string, any[]>();
     filteredVisitorLogs.forEach(log => {
       const list = logsByUnit.get(log.unitId) || [];
@@ -489,7 +958,6 @@ export function CsmReportDashboard({
       const uResponses = resByUnit.get(unit.id) || [];
       const uLogs = logsByUnit.get(unit.id) || [];
 
-      // Calculate unit satisfaction
       let ratingCount = 0;
       let posCount = 0;
       let ratingSum = 0;
@@ -500,9 +968,7 @@ export function CsmReportDashboard({
           if (rating > 0 && rating <= 5) {
             ratingCount++;
             ratingSum += rating;
-            if (rating >= 4) {
-              posCount++;
-            }
+            if (rating >= 4) posCount++;
           }
         }
       });
@@ -512,8 +978,6 @@ export function CsmReportDashboard({
       const uParticipationRate = totalULogs > 0 ? Math.round((totalUResponses / totalULogs) * 100) : 0;
       const uSatisfactionRate = ratingCount > 0 ? Math.round((posCount / ratingCount) * 100) : 0;
       const uAvgRating = ratingCount > 0 ? Number((ratingSum / ratingCount).toFixed(2)) : 0;
-
-      // Find campus
       const campusNames = unit.campusIds?.map(cId => campuses.find(c => c.id === cId)?.name || 'N/A') || [];
 
       return {
@@ -530,143 +994,18 @@ export function CsmReportDashboard({
       .sort((a, b) => b.satisfactionRate - a.satisfactionRate);
   }, [filteredResponses, filteredVisitorLogs, units, campuses, hasAccessToAll]);
 
-  // Fetch all unit csm settings
-  const unitSettingsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'unitCsmSettings') : null),
-    [firestore]
-  );
-  const { data: allUnitSettings } = useCollection<any>(unitSettingsQuery);
 
-  // SERVICE PERFORMANCE BREAKDOWN
-  const serviceBreakdown = useMemo(() => {
-    if (!filteredResponses) return [];
-    
-    // Get the services lists for the active unit or all units
-    const servicesMap = new Map<string, string[]>(); // unitId -> services[]
-    allUnitSettings?.forEach(setting => {
-      if (setting.services) {
-        servicesMap.set(setting.id, setting.services);
-      }
-    });
+  // ==================== REPORT GENERATION & PRINT TRIGGERS ====================
 
-    // Let's gather the active services to track
-    let targetServices: string[] = [];
-    if (selectedUnitId !== 'all') {
-      targetServices = servicesMap.get(selectedUnitId) || [];
-    } else {
-      // For system-wide, gather all services
-      const allSvc = new Set<string>();
-      allUnitSettings?.forEach(setting => {
-        setting.services?.forEach((s: string) => allSvc.add(s.trim().toLowerCase()));
-      });
-      targetServices = Array.from(allSvc);
-    }
-
-    // Now, group responses by purpose/service
-    const serviceStats = new Map<string, { count: number; ratingSum: number; ratingCount: number; positiveCount: number }>();
-    
-    // Helper to find match
-    const getServiceKey = (purposeStr: string) => {
-      if (!purposeStr) return null;
-      const cleanPurpose = purposeStr.trim().toLowerCase();
-      
-      // If we are looking at a specific unit, we match against its configured services
-      if (selectedUnitId !== 'all') {
-        const found = targetServices.find(s => s.trim().toLowerCase() === cleanPurpose);
-        if (found) return found;
-      } else {
-        // Find any service in all settings that matches
-        for (const setting of allUnitSettings || []) {
-          const found = setting.services?.find((s: string) => s.trim().toLowerCase() === cleanPurpose);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    filteredResponses.forEach(res => {
-      const purposeVal = res.purpose || '';
-      const serviceKey = getServiceKey(purposeVal) || 'Others / Custom';
-      
-      const stats = serviceStats.get(serviceKey) || { count: 0, ratingSum: 0, ratingCount: 0, positiveCount: 0 };
-      stats.count++;
-
-      // Calculate rating for this response
-      for (let i = 1; i <= 8; i++) {
-        const rating = res[`sqd${i}`];
-        if (rating > 0 && rating <= 5) {
-          stats.ratingCount++;
-          stats.ratingSum += rating;
-          if (rating >= 4) {
-            stats.positiveCount++;
-          }
-        }
-      }
-      serviceStats.set(serviceKey, stats);
-    });
-
-    // Convert map to array and compute averages/percentages
-    const breakdownList = Array.from(serviceStats.entries()).map(([serviceName, stats]) => {
-      const avgRating = stats.ratingCount > 0 ? Number((stats.ratingSum / stats.ratingCount).toFixed(2)) : 0;
-      const satisfactionRate = stats.ratingCount > 0 ? Math.round((stats.positiveCount / stats.ratingCount) * 100) : 0;
-      // Cap at 100% just in case of any formula anomalies
-      const normalizedSatisfaction = satisfactionRate > 100 ? 100 : satisfactionRate;
-      return {
-        name: serviceName,
-        count: stats.count,
-        avgRating,
-        satisfactionRate: normalizedSatisfaction
-      };
-    });
-
-    // If a unit is selected, add any configured services that have 0 client count
-    if (selectedUnitId !== 'all') {
-      targetServices.forEach(svc => {
-        if (!serviceStats.has(svc)) {
-          breakdownList.push({
-            name: svc,
-            count: 0,
-            avgRating: 0,
-            satisfactionRate: 0
-          });
-        }
-      });
-    }
-
-    return breakdownList.sort((a, b) => b.count - a.count);
-  }, [filteredResponses, allUnitSettings, selectedUnitId]);
-
-  // 7. PRINT FUNCTION FOR OFFICIAL ARTA CSM SCORECARD
   const handlePrintScorecard = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const unitNameLabel = hasAccessToAll
-      ? (selectedCampusId === 'all' ? "RSU SYSTEM-WIDE" : (campuses.find(c => c.id === selectedCampusId)?.name || "RSU"))
-      : (userProfile?.unitName || "Office");
-
-    const ccRows = `
-      <tr>
-        <td style="border: 1px solid black; padding: 8px; font-weight: bold;">CC1. Awareness of Citizen's Charter</td>
-        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ccStats.cc1AwarePercent}% Aware</td>
-        <td style="border: 1px solid black; padding: 8px; text-align: center;">${100 - ccStats.cc1AwarePercent}% Unaware</td>
-      </tr>
-      <tr>
-        <td style="border: 1px solid black; padding: 8px; font-weight: bold;">CC2. Visibility of Citizen's Charter</td>
-        <td style="border: 1px solid black; padding: 8px; text-align: center;" colspan="2">
-          Easy/Somewhat Easy: ${Math.round(((ccStats.cc2[1] + ccStats.cc2[2]) / (totalResponses || 1)) * 100)}%
-        </td>
-      </tr>
-      <tr>
-        <td style="border: 1px solid black; padding: 8px; font-weight: bold;">CC3. Helpfulness of Citizen's Charter</td>
-        <td style="border: 1px solid black; padding: 8px; text-align: center;" colspan="2">
-          Helped Very Much/Somewhat: ${Math.round(((ccStats.cc3[1] + ccStats.cc3[2]) / (totalResponses || 1)) * 100)}%
-        </td>
-      </tr>
-    `;
+    const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
+    const campusLabel = activeCampusName === 'all' ? "RSU SYSTEM-WIDE" : activeCampusName;
 
     let sqdRows = '';
-    sqdData.forEach(sqd => {
+    displayStats.sqdData.forEach(sqd => {
       sqdRows += `
         <tr>
           <td style="border: 1px solid black; padding: 8px; font-weight: bold;">${sqd.name}</td>
@@ -685,7 +1024,7 @@ export function CsmReportDashboard({
     printWindow.document.write(`
       <html>
         <head>
-          <title>ARTA CSM Scorecard - ${unitNameLabel}</title>
+          <title>ARTA CSM Scorecard - ${campusLabel}</title>
           <style>
             body { font-family: 'Arial', sans-serif; padding: 30px; color: black; line-height: 1.4; }
             table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
@@ -698,681 +1037,1329 @@ export function CsmReportDashboard({
         <body>
           <table class="header-table">
             <tr>
-              <td style="width: 70px; text-align: left;">
-                <img src="/rsulogo.png" style="height: 60px; object-fit: contain;" onerror="this.style.display='none'" />
-              </td>
+              <td style="width: 70px; text-align: left;"><img src="/rsulogo.png" style="height: 60px; object-fit: contain;" /></td>
               <td style="text-align: center;">
                 <p style="margin: 0; font-size: 10px; text-transform: uppercase;">Republic of the Philippines</p>
                 <h2 style="margin: 3px 0; font-size: 14px; font-weight: bold;">ROMBLON STATE UNIVERSITY</h2>
                 <p style="margin: 0; font-size: 10px;">Odiongan, Romblon</p>
               </td>
-              <td style="width: 70px; text-align: right;">
-                <img src="/ISOlogo.jpg" style="height: 60px; object-fit: contain;" onerror="this.style.display='none'" />
-              </td>
+              <td style="width: 70px; text-align: right;"><img src="/ISOlogo.jpg" style="height: 60px; object-fit: contain;" /></td>
             </tr>
           </table>
-
           <div style="text-align: center; margin-bottom: 20px;">
-            <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">CLIENT SATISFACTION MEASUREMENT (CSM) REPORT</h3>
-            <p style="margin: 3px 0; font-size: 11px; font-weight: bold; color: #555;">HARMONIZED ARTA MC 2022-05 COMPLIANT SCORECARD</p>
+            <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">CLIENT SATISFACTION MEASUREMENT SCORECARD</h3>
+            <p style="margin: 3px 0; font-size: 11px; font-weight: bold; color: #555;">SOURCE: ${titleLabel}</p>
           </div>
-
           <div style="margin-bottom: 15px; font-size: 11px;">
-            <div><strong>CAMPUS/OFFICE:</strong> ${unitNameLabel.toUpperCase()}</div>
+            <div><strong>CAMPUS:</strong> ${campusLabel.toUpperCase()}</div>
             <div><strong>REPORT PERIOD:</strong> Calendar Year ${selectedYear}</div>
-            <div><strong>TOTAL CUSTOMER RESPONSES:</strong> ${totalResponses} (Logged Visitors: ${totalVisitors})</div>
-            <div><strong>OVERALL CLIENT SATISFACTION INDEX:</strong> <strong style="font-size: 12px; color: ${overallSatisfactionRate >= 85 ? 'green' : 'red'};">${overallSatisfactionRate}%</strong></div>
+            <div><strong>TOTAL CUSTOMER RESPONSES:</strong> ${displayStats.totalResponses} (Logged Visitors: ${displayStats.totalVisitors})</div>
+            <div><strong>OVERALL CLIENT SATISFACTION INDEX:</strong> <strong style="font-size: 12px; color: green;">${displayStats.overallSatisfactionRate}%</strong></div>
           </div>
-
-          <h4 style="margin: 15px 0 5px 0; text-transform: uppercase; font-size: 11px; border-bottom: 1px solid black; padding-bottom: 2px;">I. Citizen's Charter (CC) Metric Summary</h4>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 50%;">CC Dimension</th>
-                <th style="width: 25%;">Positive Rating</th>
-                <th style="width: 25%;">Negative Rating</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${ccRows}
-            </tbody>
-          </table>
-
-          <h4 style="margin: 20px 0 5px 0; text-transform: uppercase; font-size: 11px; border-bottom: 1px solid black; padding-bottom: 2px;">II. Service Quality Dimensions (SQD) Scorecard</h4>
+          <h4 style="margin: 15px 0 5px 0; text-transform: uppercase; font-size: 11px; border-bottom: 1px solid black;">SQD Performance Breakdown</h4>
           <table>
             <thead>
               <tr>
                 <th>Service Quality Dimension</th>
-                <th style="width: 10%;">Avg Rating</th>
-                <th style="width: 10%;">Positive %</th>
-                <th style="width: 8%;">Strongly Agree (5)</th>
-                <th style="width: 8%;">Agree (4)</th>
-                <th style="width: 8%;">Neutral (3)</th>
-                <th style="width: 8%;">Disagree (2)</th>
-                <th style="width: 8%;">Strongly Disagree (1)</th>
-                <th style="width: 8%;">N/A (0)</th>
+                <th>Avg Rating</th>
+                <th>Positive %</th>
+                <th>SA (5)</th>
+                <th>A (4)</th>
+                <th>N (3)</th>
+                <th>D (2)</th>
+                <th>SD (1)</th>
+                <th>N/A (0)</th>
               </tr>
             </thead>
-            <tbody>
-              ${sqdRows}
-            </tbody>
+            <tbody>${sqdRows}</tbody>
           </table>
-
-          <div style="margin-top: 50px; display: flex; justify-content: space-between; font-size: 10px;">
-            <div style="text-align: center; width: 45%;">
-              <p style="margin-bottom: 40px;">Prepared By:</p>
-              <div style="border-bottom: 1px solid black; font-weight: bold; text-transform: uppercase; padding-bottom: 3px;">
-                ${userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "CSM Staff"}
-              </div>
-              <p style="margin-top: 3px; color: #555;">${userProfile?.role || "Unit Officer"}</p>
-            </div>
-
-            <div style="text-align: center; width: 45%;">
-              <p style="margin-bottom: 40px;">Noted By:</p>
-              <div style="border-bottom: 1px solid black; font-weight: bold; text-transform: uppercase; padding-bottom: 3px; height: 16px;"></div>
-              <p style="margin-top: 3px; color: #555;">Designated CSM Authority Head / IPDU Director</p>
-            </div>
-          </div>
-
-          <div style="margin-top: 40px; text-align: center; font-size: 8px; color: #777; text-transform: uppercase;">
-            Report generated via Romblon State University EOMS Portal on ${format(new Date(), 'MM/dd/yyyy hh:mm a')}
-          </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            }
-          </script>
+          <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
         </body>
       </html>
     `);
     printWindow.document.close();
   };
 
-  // Pie chart dataset for CC1
-  const cc1PieData = useMemo(() => {
-    return [
-      { name: 'CC1.1 Saw Charter', value: ccStats.cc1[1] + ccStats.cc1[3], fill: 'hsl(var(--chart-2))' },
-      { name: 'CC1.2 Aware but did not see', value: ccStats.cc1[2], fill: 'hsl(var(--chart-1))' },
-      { name: 'CC1.3 Completely Unaware', value: ccStats.cc1[4], fill: 'hsl(var(--destructive))' }
-    ].filter(d => d.value > 0);
-  }, [ccStats]);
+  // Printable Harmonized CSM Agency Report
+  const handlePrintHarmonizedReport = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const campusText = activeCampusName === 'all' ? "RSU SYSTEM-WIDE" : activeCampusName;
+    const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
+
+    let serviceRows = '';
+    displayStats.services.forEach(s => {
+      serviceRows += `
+        <tr>
+          <td style="border: 1px solid black; padding: 6px;">${s.name.toUpperCase()}</td>
+          <td style="border: 1px solid black; padding: 6px; text-align: center;">${s.count}</td>
+          <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold;">${s.satisfactionRate}%</td>
+          <td style="border: 1px solid black; padding: 6px; text-align: center;">${s.avgRating} / 5.0</td>
+        </tr>
+      `;
+    });
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Harmonized CSM Agency Report - ${campusText}</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: black; line-height: 1.5; font-size: 12px; }
+            h1, h2, h3, h4 { color: #1b6535; font-weight: bold; page-break-after: avoid; }
+            h1 { font-size: 18px; text-align: center; text-transform: uppercase; }
+            h2 { font-size: 14px; border-bottom: 2px solid #1b6535; padding-bottom: 4px; margin-top: 25px; }
+            h3 { font-size: 12px; margin-top: 15px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th { background-color: #f2f2f2; border: 1px solid black; padding: 6px; text-align: center; text-transform: uppercase; font-weight: bold; }
+            td { border: 1px solid black; padding: 5px; }
+            .header-block { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; }
+            .meta-info { margin-bottom: 20px; font-size: 11px; background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; }
+          </style>
+        </head>
+        <body>
+          <div class="header-block">
+            <h2 style="margin: 0; color: black;">ROMBLON STATE UNIVERSITY</h2>
+            <p style="margin: 2px 0; font-size: 10px; font-style: italic;">Odiongan, Romblon</p>
+            <h1 style="margin: 5px 0;">HARMONIZED CLIENT SATISFACTION MEASUREMENT (CSM) AGENCY REPORT</h1>
+            <p style="margin: 2px 0; font-weight: bold;">COMPLIANT WITH ARTA MC NO. 2022-05 & RESOLUTION NO. 2023-01</p>
+          </div>
+
+          <div class="meta-info">
+            <div><strong>REPORTING CYCLE:</strong> Calendar Year ${selectedYear} (Annual)</div>
+            <div><strong>SCOPE:</strong> ${campusText.toUpperCase()}</div>
+            <div><strong>DATA SOURCE:</strong> ${titleLabel}</div>
+            <div><strong>TOTAL CUSTOMER EVALUATIONS:</strong> ${displayStats.totalResponses}</div>
+            <div><strong>OVERALL CUSTOMER SATISFACTION SCORE:</strong> ${displayStats.overallSatisfactionRate}%</div>
+          </div>
+
+          <h2>I. EXECUTIVE SUMMARY & OVERVIEW</h2>
+          <p>
+            In compliance with the mandate of the Anti-Red Tape Authority (ARTA) and Republic Act No. 11032, otherwise known as the 
+            <em>Ease of Doing Business and Efficient Government Service Delivery Act of 2018</em>, Romblon State University presents the 
+            Annual Client Satisfaction Measurement (CSM) Report for the year ${selectedYear}.
+          </p>
+          <p>
+            This agency report highlights the feedback retrieved from clients across campuses using both onsite digital kiosk logbooks and QR-code enabled mobile devices. 
+            For this period, ${campusText} registered a total of <strong>${displayStats.totalResponses}</strong> responses from <strong>${displayStats.totalVisitors}</strong> total visitors, 
+            resulting in a <strong>${displayStats.participationRate}%</strong> participation rate. The institution garnered an overall client satisfaction index of 
+            <strong>${displayStats.overallSatisfactionRate}%</strong>, showing a high standard of compliance across frontline counters.
+          </p>
+
+          <h2>II. METHODOLOGY</h2>
+          <p>
+            Feedback collection was digitized using the EOMS Visitor Logbook and Customer Satisfaction system. The process operates as follows:
+          </p>
+          <ol>
+            <li><strong>Visitor Logging:</strong> Visitors register their entry at designated kiosk terminals or via scanning unit-specific QR codes on their mobile devices.</li>
+            <li><strong>Checkout Prompt:</strong> Upon completing the service transaction, the client registers checkout which automatically opens the standardized ARTA CSM evaluation form.</li>
+            <li><strong>ARTA Dimensions:</strong> The survey records the 3 Citizen's Charter (CC) awareness indicators and evaluates 8 Service Quality Dimensions (SQD) on a 5-point Likert scale.</li>
+            <li><strong>Consolidation:</strong> Submissions are secured in the Firestore database, allowing real-time audit mapping, unit tracking, and automated performance reviews by the IPDO.</li>
+          </ol>
+
+          <h2>III. CITIZEN'S CHARTER COMPLIANCE RATINGS</h2>
+          <p>
+            The Citizen's Charter (CC) results evaluate client awareness, charter visibility, and charter helpfulness:
+          </p>
+          <ul>
+            <li><strong>CC1 Awareness:</strong> ${displayStats.cc1AwarePercent}% of clients knew about the Citizen's Charter and saw the physical or digital postings.</li>
+            <li><strong>CC2 Visibility:</strong> ${displayStats.cc2VisibilityPercent}% reported that the Charter was easy to see and consult.</li>
+            <li><strong>CC3 Helpfulness:</strong> ${displayStats.cc3HelpfulnessPercent}% confirmed that the Charter served as a helpful guide for their transaction.</li>
+          </ul>
+
+          <h2>IV. SERVICE-LEVEL PERFORMANCE SCORECARD</h2>
+          <p>
+            The table below compiles transactions and satisfaction index ratings grouped by service classification for this campus/unit:
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Service Name / Transaction Type</th>
+                <th>Total Transactions</th>
+                <th>Satisfaction index</th>
+                <th>Average Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${serviceRows}
+            </tbody>
+          </table>
+
+          <h2>V. INTERPRETATION & CONTINUOUS IMPROVEMENT</h2>
+          <p>
+            With an overall rating of ${displayStats.overallSatisfactionRate}%, Romblon State University demonstrates compliance with ARTA requirements. 
+            However, critical friction points were identified in specific service categories. Corrective actions will include deploying queue scheduling algorithms, regular air-conditioning maintenance for visitor lounges, and customer relations seminars for counter coordinators to maintain standard professional service quality.
+          </p>
+
+          <div style="margin-top: 50px; display: flex; justify-content: space-between; font-size: 11px;">
+            <div style="width: 45%; text-align: center;">
+              <p>Compiled By:</p>
+              <div style="border-bottom: 1px solid black; font-weight: bold; margin-top: 30px; padding-bottom: 2px;">
+                ${userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "CSM Officer"}
+              </div>
+              <p>${userProfile?.role || "Unit Coordinator"}</p>
+            </div>
+            <div style="width: 45%; text-align: center;">
+              <p>Noted By:</p>
+              <div style="border-bottom: 1px solid black; font-weight: bold; margin-top: 30px; padding-bottom: 2px; height: 16px;"></div>
+              <p>IPDO Director / Quality Assurance Head</p>
+            </div>
+          </div>
+
+          <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // Campus-Specific Report
+  const handlePrintCampusReport = (campusName: string) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    // Filter services and comments by campus name
+    const campusServices = displayStats.services.filter(s => s.campus.toLowerCase().includes(campusName.toLowerCase()));
+    const campusComments = displayStats.comments.filter(c => c.campus.toLowerCase().includes(campusName.toLowerCase()));
+
+    let serviceRows = '';
+    campusServices.forEach(s => {
+      serviceRows += `
+        <tr>
+          <td style="border: 1px solid black; padding: 6px;">${s.name}</td>
+          <td style="border: 1px solid black; padding: 6px; text-align: center;">${s.count}</td>
+          <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold;">${s.satisfactionRate}%</td>
+          <td style="border: 1px solid black; padding: 6px; text-align: center;">${s.avgRating}</td>
+        </tr>
+      `;
+    });
+
+    let commentRows = '';
+    campusComments.slice(0, 15).forEach((c, idx) => {
+      commentRows += `
+        <tr>
+          <td style="border: 1px solid black; padding: 6px;">${idx + 1}</td>
+          <td style="border: 1px solid black; padding: 6px;">"${c.comments}"</td>
+          <td style="border: 1px solid black; padding: 6px; font-weight: bold;">${c.category}</td>
+          <td style="border: 1px solid black; padding: 6px; text-transform: uppercase;">${c.type}</td>
+        </tr>
+      `;
+    });
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Campus Satisfaction Report - ${campusName}</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 30px; color: black; line-height: 1.4; font-size: 11px; }
+            h1, h2, h3 { color: #1b6535; font-weight: bold; }
+            h1 { font-size: 16px; text-align: center; margin: 0 0 10px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { background-color: #f2f2f2; border: 1px solid black; padding: 6px; text-align: center; text-transform: uppercase; font-weight: bold; }
+            td { border: 1px solid black; padding: 5px; }
+          </style>
+        </head>
+        <body>
+          <h2 style="text-align: center; margin: 0;">ROMBLON STATE UNIVERSITY</h2>
+          <h1>CAMPUS SATISFACTION AUDIT REPORT - ${campusName.toUpperCase()}</h1>
+          <p><strong>REPORT PERIOD:</strong> Academic Year ${selectedYear} &bull; <strong>SOURCE:</strong> ${dataSource === 'baseline25' ? "FY 2025 baseline" : "Live logs"}</p>
+          
+          <h3>I. CAMPUS SERVICE RATINGS</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Service Transaction</th>
+                <th>Total Transactions</th>
+                <th>Satisfaction Rate</th>
+                <th>Avg SQD Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${serviceRows || '<tr><td colspan="4" style="text-align:center;">No services recorded for this campus</td></tr>'}
+            </tbody>
+          </table>
+
+          <h3>II. QUALITATIVE FEEDBACK FEED</h3>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 50%;">Client Comments / Suggestions</th>
+                <th style="width: 25%;">SQD Theme</th>
+                <th style="width: 20%;">Client Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${commentRows || '<tr><td colspan="4" style="text-align:center;">No comments recorded for this campus</td></tr>'}
+            </tbody>
+          </table>
+
+          <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // CAIP Matrix Report
+  const handlePrintCaipReport = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Continuous Agency Improvement Plan (CAIP) Matrix</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: black; line-height: 1.5; font-size: 11px; }
+            h1, h2 { color: #1b6535; font-weight: bold; text-align: center; }
+            h1 { font-size: 16px; margin: 0 0 5px 0; }
+            h2 { font-size: 12px; margin: 0 0 20px 0; color: #555; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background-color: #e6f4ea; border: 1px solid black; padding: 8px; text-transform: uppercase; font-weight: bold; color: #1b6535; font-size: 10px; }
+            td { border: 1px solid black; padding: 8px; vertical-align: top; }
+          </style>
+        </head>
+        <body>
+          <h2>ROMBLON STATE UNIVERSITY</h2>
+          <h1>CONTINUOUS AGENCY IMPROVEMENT PLAN (CAIP) TRACKING MATRIX</h1>
+          <h2>TARGET FY 2026 EASE OF DOING BUSINESS (ARTA COMPLIANT ACTION PLAN)</h2>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 20%;">Area of Evaluation</th>
+                <th style="width: 20%;">Corrective Program</th>
+                <th style="width: 25%;">Actionable Target (2026)</th>
+                <th style="width: 20%;">Status / QR Deployment</th>
+                <th style="width: 15%;">Schedule</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Client Satisfaction Index</strong></td>
+                <td>DSS Automated Audit Trigger</td>
+                <td>Increase Overall Satisfaction Index to 95% minimum (Baseline FY 2025: 92%)</td>
+                <td>Active tracking deployed on EOMS Portal</td>
+                <td>Q1-Q4 2026</td>
+              </tr>
+              <tr>
+                <td><strong>Citizen's Charter Visibility</strong></td>
+                <td>Dual-Format Charter deployment</td>
+                <td>Display 100% compliant physical signages and digitised QR codes inside lobby checkpoints.</td>
+                <td>Main: 100% Deployed<br/>Satellite: 80% Deployed</td>
+                <td>Q2 2026</td>
+              </tr>
+              <tr>
+                <td><strong>Low Kiosk Participation</strong></td>
+                <td>QR Mobile CSM evaluations</td>
+                <td>Implement visitor evaluations on personal devices to increase participation rate by 20%.</td>
+                <td>Kiosk QR Code Generator Online</td>
+                <td>Q1 2026 (Completed)</td>
+              </tr>
+              <tr>
+                <td><strong>Filing of Leave of Absence (Student satisfaction at 50%)</strong></td>
+                <td>Self-Service Request portal</td>
+                <td>Digitise filing and approval pipeline of Leaves to reduce manual processing time to 15 mins.</td>
+                <td>Beta testing under Registrar</td>
+                <td>Q3 2026</td>
+              </tr>
+              <tr>
+                <td><strong>Cross Enrollees (Satisfaction at 47%)</strong></td>
+                <td>Inter-Campus Verification pipeline</td>
+                <td>Establish digital grade validation system to eliminate physical travel requirements for students.</td>
+                <td>Planning phase under Admissions</td>
+                <td>Q3 2026</td>
+              </tr>
+              <tr>
+                <td><strong>Frontline Personnel Assurance</strong></td>
+                <td>Customer Service Excellence</td>
+                <td>Train 100% of registry assistants and coordinators in customer service sensitivity.</td>
+                <td>3 batches scheduled</td>
+                <td>Q3-Q4 2026</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className="space-y-6">
       
-      {/* Admin/IPDU Drill-down & Unit Publication Panel */}
-      {hasAccessToAll && (
-        <Card className="border-primary/15 shadow-sm bg-slate-50/50">
-          <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Drill Down Unit / Office</span>
-                <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
-                  <SelectTrigger className="w-[280px] h-9 bg-white font-bold text-xs shadow-sm">
-                    <SelectValue placeholder="System-Wide Overview" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">🏢 System-Wide Overview</SelectItem>
-                    {dropdownUnits.map(unit => (
-                      <SelectItem key={unit.id} value={unit.id}>
-                        📄 {unit.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedUnitId !== 'all' && (
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Approval Status</span>
-                  <div className="flex items-center gap-2 h-9">
-                    {isUnitApproved ? (
-                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-250 text-[10px] font-black uppercase h-7 px-2">
-                        <CheckCircle2 className="h-3 w-3 mr-1" /> Approved for Unit
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-[10px] font-black uppercase text-slate-500 h-7 px-2">
-                        <Info className="h-3 w-3 mr-1" /> Pending Approval
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {selectedUnitId !== 'all' && (
-              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                <Button
-                  size="sm"
-                  variant={isUnitApproved ? "destructive" : "default"}
-                  disabled={isUpdatingApproval}
-                  onClick={handleToggleUnitApproval}
-                  className="h-9 text-[10px] font-black uppercase tracking-wider px-4 shadow-sm"
-                >
-                  {isUpdatingApproval ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : isUnitApproved ? (
-                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  {isUnitApproved ? "Recall Report" : "Approve & Deploy"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 1. TOP CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        
-        {/* Total Responses */}
-        <Card className="shadow-sm border-primary/15 hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Total Responses</span>
-            <Users className="h-4 w-4 text-[#D4AF37]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-800 tabular-nums">{totalResponses}</div>
-            <p className="text-[9px] text-muted-foreground font-bold mt-1 uppercase">Across {totalVisitors} logged visits</p>
-          </CardContent>
-        </Card>
-
-        {/* Participation Rate */}
-        <Card className="shadow-sm border-primary/15 hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Participation Rate</span>
-            <Percent className="h-4 w-4 text-[#D4AF37]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-800 tabular-nums">{participationRate}%</div>
-            <Progress value={participationRate} className="h-1.5 mt-2" />
-          </CardContent>
-        </Card>
-
-        {/* Overall Satisfaction */}
-        <Card className="shadow-sm border-primary/15 hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Overall Satisfaction</span>
-            <ThumbsUp className="h-4 w-4 text-emerald-600 animate-pulse" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-800 tabular-nums">{overallSatisfactionRate}%</div>
-            <p className="text-[9px] text-emerald-600 font-black mt-1 uppercase">Satisfied & Very Satisfied</p>
-          </CardContent>
-        </Card>
-
-        {/* CC Awareness */}
-        <Card className="shadow-sm border-primary/15 hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Charter Awareness</span>
-            <HelpCircle className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-800 tabular-nums">{ccStats.cc1AwarePercent}%</div>
-            <p className="text-[9px] text-blue-605 font-bold mt-1 uppercase">Know about Citizen's Charter</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Print Scorecard Bar */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border shadow-sm">
-        <div className="flex items-center gap-2">
-          <Info className="h-4 w-4 text-[#D4AF37]" />
-          <span className="text-xs font-bold text-slate-700">Official ARTA-Harmonized CSM Scorecard is ready for printing.</span>
+      {/* HEADER CONTROLS (Live vs Baseline Data Toggle) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
+        <div>
+          <h2 className="text-lg font-black text-white flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-amber-400" />
+            CSM COMPLIANCE CORE ENGINE
+          </h2>
+          <p className="text-[11px] text-emerald-100 font-bold uppercase tracking-widest mt-0.5">
+            ARTA Harmonized Reporting & Analytics
+          </p>
         </div>
-        <Button size="sm" onClick={handlePrintScorecard} className="h-8 text-[9.5px] font-black uppercase tracking-wider">
-          <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Scorecard
-        </Button>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black text-white uppercase tracking-widest">Data Stream Source:</span>
+          <Select value={dataSource} onValueChange={(v: any) => setDataSource(v)}>
+            <SelectTrigger className="w-[220px] h-9 bg-white font-extrabold text-slate-800 border-none shadow-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="baseline25">📋 FY 2025 Baseline Report</SelectItem>
+              <SelectItem value="live">⚡ Live System Logs (Real-time)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* 2. DECISION SUPPORT SYSTEM (DSS) PANEL */}
-      {hasAccessToAll && (
-        <Card className="border-amber-200 bg-amber-50/20 shadow-md">
-          <CardHeader className="bg-amber-100/50 border-b py-3.5">
-            <CardTitle className="text-sm font-black uppercase flex items-center gap-2 text-amber-800">
-              <ShieldCheck className="h-4.5 w-4.5 text-amber-700" />
-              CSM Decision Support System (DSS)
-            </CardTitle>
-            <CardDescription className="text-amber-700/80 text-[11px] font-bold uppercase">
-              Automated service analysis and institutional corrective recommendations.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4 space-y-4">
-            {dssInsights.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {dssInsights.map(insight => (
-                  <div key={insight.id} className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between border-b pb-1.5">
-                      <span className="text-xs font-black uppercase text-slate-800 tracking-tight">{insight.name}</span>
-                      {insight.id !== 99 ? (
-                        <Badge variant="destructive" className="text-[8.5px] uppercase font-black px-2 py-0.5">
-                          Alert: {insight.positivePercent}% Positive
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-rose-500 text-white text-[8.5px] uppercase font-black px-2 py-0.5 border-none">
-                          Kiosk Audit
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-700 italic leading-relaxed">
-                      "{insight.recommendation}"
-                    </p>
-                    <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                      <p className="text-[9.5px] font-black text-amber-800 uppercase tracking-wider">Corrective Action Checklist:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {insight.checklist.map((item: string, i: number) => (
-                          <li key={i} className="text-[9.5px] font-medium text-slate-650 leading-tight">
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 text-center bg-white border border-emerald-200 rounded-xl space-y-2">
-                <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
-                <div>
-                  <h4 className="text-sm font-black text-emerald-800 uppercase">Excellent Service Performance</h4>
-                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mt-1">
-                    All Service Quality Dimensions meet or exceed the 85% satisfaction threshold.
-                  </p>
+      {/* DASHBOARD GRID TABS */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="bg-slate-100/80 p-1 border shadow-inner rounded-xl w-max flex gap-1 h-10">
+          <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
+            <Users className="h-3.5 w-3.5" /> Executive Overview
+          </TabsTrigger>
+          <TabsTrigger value="sqd" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
+            <TrendingUp className="h-3.5 w-3.5" /> Service Quality (SQD)
+          </TabsTrigger>
+          <TabsTrigger value="qualitative" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
+            <Smile className="h-3.5 w-3.5" /> Qualitative Insights
+          </TabsTrigger>
+          <TabsTrigger value="exporter" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
+            <FileText className="h-3.5 w-3.5" /> Official Exporter
+          </TabsTrigger>
+          {hasAccessToAll && (
+            <TabsTrigger value="deployment" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8 bg-amber-50 text-amber-800 hover:bg-amber-100/50">
+              <Radio className="h-3.5 w-3.5" /> Deployment Center
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* ==================== TAB 1: EXECUTIVE OVERVIEW ==================== */}
+        <TabsContent value="overview" className="space-y-6 animate-in fade-in duration-500">
+          
+          {/* Executive Scorecard Gauge charts */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            
+            {/* Satisfaction Gauge */}
+            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
+              <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Overall Score</span>
+                <ThumbsUp className="h-3.5 w-3.5 text-emerald-600" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center pb-3 pt-1">
+                <div className="h-[75px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height={80}>
+                    <PieChart>
+                      <Pie
+                        data={[{ value: displayStats.overallSatisfactionRate }, { value: 100 - displayStats.overallSatisfactionRate }]}
+                        cx="50%" cy="100%"
+                        startAngle={180} endAngle={0}
+                        innerRadius={30} outerRadius={42}
+                        dataKey="value" stroke="none"
+                      >
+                        <Cell fill="#1b6535" />
+                        <Cell fill="#e2e8f0" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.overallSatisfactionRate}%</span>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                <p className="text-[8.5px] text-emerald-600 font-bold uppercase mt-1">Satisfied & Very Satisfied</p>
+              </CardContent>
+            </Card>
 
-      {/* 3. CHARTS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* CC1 Chart */}
-        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/10 border-b py-3">
-            <CardTitle className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
-              <HelpCircle className="h-4 w-4 text-slate-500" /> CC1: Charter Awareness
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 flex-1 flex flex-col justify-center">
-            {cc1PieData.length > 0 ? (
-              <ChartContainer config={{}} className="h-[180px] w-full mx-auto">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={cc1PieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
-                      {cc1PieData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
-                    </Pie>
-                    <RechartsTooltip />
-                  </PieChart>
+            {/* Participation Gauge */}
+            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#D4AF37]" />
+              <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Response Rate</span>
+                <Percent className="h-3.5 w-3.5 text-[#D4AF37]" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center pb-3 pt-1">
+                <div className="h-[75px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height={80}>
+                    <PieChart>
+                      <Pie
+                        data={[{ value: displayStats.participationRate }, { value: 100 - displayStats.participationRate }]}
+                        cx="50%" cy="100%"
+                        startAngle={180} endAngle={0}
+                        innerRadius={30} outerRadius={42}
+                        dataKey="value" stroke="none"
+                      >
+                        <Cell fill="#D4AF37" />
+                        <Cell fill="#e2e8f0" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.participationRate}%</span>
+                </div>
+                <p className="text-[8.5px] text-slate-500 font-bold uppercase mt-1">Evaluations per Logged visit</p>
+              </CardContent>
+            </Card>
+
+            {/* CC1 Gauge */}
+            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500" />
+              <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Awareness</span>
+                <HelpCircle className="h-3.5 w-3.5 text-blue-600" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center pb-3 pt-1">
+                <div className="h-[75px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height={80}>
+                    <PieChart>
+                      <Pie
+                        data={[{ value: displayStats.cc1AwarePercent }, { value: 100 - displayStats.cc1AwarePercent }]}
+                        cx="50%" cy="100%"
+                        startAngle={180} endAngle={0}
+                        innerRadius={30} outerRadius={42}
+                        dataKey="value" stroke="none"
+                      >
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#e2e8f0" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.cc1AwarePercent}%</span>
+                </div>
+                <p className="text-[8.5px] text-blue-600 font-bold uppercase mt-1">Charter Awareness</p>
+              </CardContent>
+            </Card>
+
+            {/* CC2 Gauge */}
+            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-purple-500" />
+              <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Visibility</span>
+                <Info className="h-3.5 w-3.5 text-purple-600" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center pb-3 pt-1">
+                <div className="h-[75px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height={80}>
+                    <PieChart>
+                      <Pie
+                        data={[{ value: displayStats.cc2VisibilityPercent }, { value: 100 - displayStats.cc2VisibilityPercent }]}
+                        cx="50%" cy="100%"
+                        startAngle={180} endAngle={0}
+                        innerRadius={30} outerRadius={42}
+                        dataKey="value" stroke="none"
+                      >
+                        <Cell fill="#a855f7" />
+                        <Cell fill="#e2e8f0" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.cc2VisibilityPercent}%</span>
+                </div>
+                <p className="text-[8.5px] text-purple-600 font-bold uppercase mt-1">Easy / Somewhat Easy to see</p>
+              </CardContent>
+            </Card>
+
+            {/* CC3 Gauge */}
+            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
+              <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Helpfulness</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-rose-600" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center pb-3 pt-1">
+                <div className="h-[75px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height={80}>
+                    <PieChart>
+                      <Pie
+                        data={[{ value: displayStats.cc3HelpfulnessPercent }, { value: 100 - displayStats.cc3HelpfulnessPercent }]}
+                        cx="50%" cy="100%"
+                        startAngle={180} endAngle={0}
+                        innerRadius={30} outerRadius={42}
+                        dataKey="value" stroke="none"
+                      >
+                        <Cell fill="#ec4899" />
+                        <Cell fill="#e2e8f0" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.cc3HelpfulnessPercent}%</span>
+                </div>
+                <p className="text-[8.5px] text-rose-600 font-bold uppercase mt-1">Helped Transaction</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Print score card bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-[#D4AF37]" />
+              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                Standard ARTA CSM satisfaction scorecard is formatted.
+              </span>
+            </div>
+            <Button size="sm" onClick={handlePrintScorecard} className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+              <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Scorecard
+            </Button>
+          </div>
+
+          {/* Demographics Donuts & Stacked Charts grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Sex Donut */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">Sex Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="h-[180px] w-full flex items-center justify-center">
+                  {displayStats.demographics.sexData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={displayStats.demographics.sexData}
+                          cx="50%" cy="50%"
+                          innerRadius={50} outerRadius={70}
+                          paddingAngle={3} dataKey="value"
+                        >
+                          {displayStats.demographics.sexData.map((e, i) => (
+                            <Cell key={i} fill={e.fill} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No demographics logged</span>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] border-t pt-3 font-semibold text-slate-600">
+                  {displayStats.demographics.sexData.map((e, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
+                      <span className="font-bold">{e.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Customer Type Donut */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">Customer Types</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="h-[180px] w-full flex items-center justify-center">
+                  {displayStats.demographics.clientTypeData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={displayStats.demographics.clientTypeData}
+                          cx="50%" cy="50%"
+                          innerRadius={50} outerRadius={70}
+                          paddingAngle={3} dataKey="value"
+                        >
+                          {displayStats.demographics.clientTypeData.map((e, i) => (
+                            <Cell key={i} fill={e.fill} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No demographics logged</span>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[9px] border-t pt-3 font-semibold text-slate-650">
+                  {displayStats.demographics.clientTypeData.map((e, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
+                      <span className="font-bold">{e.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Internal vs External Stakeholders */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">Stakeholder Classification</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="h-[180px] w-full flex items-center justify-center">
+                  {displayStats.demographics.stakeholderData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={displayStats.demographics.stakeholderData}
+                          cx="50%" cy="50%"
+                          innerRadius={50} outerRadius={70}
+                          paddingAngle={3} dataKey="value"
+                        >
+                          {displayStats.demographics.stakeholderData.map((e, i) => (
+                            <Cell key={i} fill={e.fill} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No demographics logged</span>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] border-t pt-3 font-semibold text-slate-650">
+                  {displayStats.demographics.stakeholderData.map((e, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
+                      <span className="font-bold">{e.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Age & Campus Distributions horizontal bars */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Age Distribution */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">Age Bracket Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={displayStats.demographics.age} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                    <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" style={{ fontSize: '9px', fontWeight: 'bold' }} />
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <div className="text-center py-10 opacity-30 text-xs font-bold">No Data</div>
-            )}
-            <div className="mt-2 space-y-1">
-              <div className="flex justify-between items-center text-[10px]">
-                <span className="font-bold text-slate-650">CC1.1/3 Saw Charter:</span>
-                <span className="font-mono font-black">{ccStats.cc1[1] + ccStats.cc1[3]}</span>
-              </div>
-              <div className="flex justify-between items-center text-[10px]">
-                <span className="font-bold text-slate-655">CC1.2 Aware but did not see:</span>
-                <span className="font-mono font-black">{ccStats.cc1[2]}</span>
-              </div>
-              <div className="flex justify-between items-center text-[10px]">
-                <span className="font-bold text-slate-655">CC1.4 Completely Unaware:</span>
-                <span className="font-mono font-black">{ccStats.cc1[4]}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {/* CC2/3 Visibility Progress */}
-        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/10 border-b py-3">
-            <CardTitle className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
-              <HelpCircle className="h-4 w-4 text-slate-500" /> CC2 & CC3: Visibility & Helpfulness
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 flex-1 space-y-4">
-            {/* CC2 */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-700">
-                <span>CC2. Charter Visibility (Easy to see)</span>
-                <span>{totalResponses > 0 ? Math.round(((ccStats.cc2[1] + ccStats.cc2[2]) / totalResponses) * 100) : 0}%</span>
-              </div>
-              <Progress value={totalResponses > 0 ? Math.round(((ccStats.cc2[1] + ccStats.cc2[2]) / totalResponses) * 100) : 0} className="h-2" />
-            </div>
+            {/* Campus distribution */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">Campus distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={displayStats.demographics.campusData} layout="vertical" margin={{ left: 40, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={80} />
+                    <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" style={{ fontSize: '8px', fontWeight: 'bold' }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* CC3 */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-700">
-                <span>CC3. Charter Helpfulness (Helped)</span>
-                <span>{totalResponses > 0 ? Math.round(((ccStats.cc3[1] + ccStats.cc3[2]) / totalResponses) * 100) : 0}%</span>
-              </div>
-              <Progress value={totalResponses > 0 ? Math.round(((ccStats.cc3[1] + ccStats.cc3[2]) / totalResponses) * 100) : 0} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* SQD Average Rating Chart */}
-        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/10 border-b py-3">
-            <CardTitle className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-slate-500" /> SQD Satisfaction Benchmarks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 flex-1">
-            <ChartContainer config={{}} className="h-[200px] w-full">
-              <ResponsiveContainer>
-                <BarChart data={sqdData} layout="vertical" margin={{ left: -10, right: 10, top: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 2" strokeOpacity={0.1} horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9 }} />
-                  <YAxis dataKey="key" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={35} />
-                  <Bar dataKey="positivePercent" fill="hsl(var(--chart-2))" radius={[0, 3, 3, 0]}>
-                    <LabelList dataKey="positivePercent" position="right" style={{ fontSize: '8px', fontWeight: 'bold' }} formatter={(v: any) => `${v}%`} />
-                  </Bar>
+          {/* Citizen's Charter 100% Stacked Bar chart */}
+          <Card className="shadow-md border-slate-200/80">
+            <CardHeader className="bg-slate-50/50 border-b py-3">
+              <CardTitle className="text-xs font-black uppercase text-slate-700">
+                Citizen's Charter (CC) Option Stack Distribution (100% Stacked)
+              </CardTitle>
+              <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                Compliance ratios mapped by positive, compliant, neutral, and unaware options.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={displayStats.ccStackedData} layout="vertical" margin={{ left: 60, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                  <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} />
+                  <YAxis dataKey="dimension" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                  <Bar dataKey="Option 1" stackId="a" fill="#1b6535" name="Excellent compliance (5/4)" />
+                  <Bar dataKey="Option 2" stackId="a" fill="#4ade80" name="Good compliance (3)" />
+                  <Bar dataKey="Option 3" stackId="a" fill="#e2e8f0" name="Neutral (2)" />
+                  <Bar dataKey="Option 4" stackId="a" fill="#fb923c" name="Under-performing / Unaware (1)" />
+                  <Bar dataKey="Option 5" stackId="a" fill="#e11d48" name="N/A" />
+                  <Legend wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '10px' }} />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* 4. SQD SCORECARD TABLE */}
-      <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardHeader className="bg-muted/10 border-b py-3.5">
-          <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-705">
-            <FileText className="h-4 w-4 text-primary" />
-            ARTA Service Quality Dimensions (SQD) Scorecard
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead className="font-black text-[10px] uppercase pl-4">Dimension</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Avg Rating (5.0)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Positive % (S/VS)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Strongly Agree (5)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Agree (4)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Neutral (3)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Disagree (2)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Strongly Disagree (1)</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">N/A (0)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sqdData.map(sqd => (
-                <TableRow key={sqd.id} className="hover:bg-slate-50/50">
-                  <TableCell className="pl-4 py-3">
-                    <div className="font-bold text-xs text-slate-800">{sqd.name}</div>
-                    <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">{sqd.desc}</div>
-                  </TableCell>
-                  <TableCell className="text-center font-bold text-xs">{sqd.avg}</TableCell>
-                  <TableCell className="text-center font-bold text-xs">
-                    <span className={sqd.positivePercent >= 85 ? 'text-emerald-600' : 'text-rose-600'}>
-                      {sqd.positivePercent}%
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center text-xs text-slate-600">{sqd.counts[5]}</TableCell>
-                  <TableCell className="text-center text-xs text-slate-600">{sqd.counts[4]}</TableCell>
-                  <TableCell className="text-center text-xs text-slate-600">{sqd.counts[3]}</TableCell>
-                  <TableCell className="text-center text-xs text-slate-600">{sqd.counts[2]}</TableCell>
-                  <TableCell className="text-center text-xs text-slate-600">{sqd.counts[1]}</TableCell>
-                  <TableCell className="text-center text-xs text-slate-600">{sqd.counts[0]}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        {/* ==================== TAB 2: SERVICE QUALITY (SQD) & SERVICES ==================== */}
+        <TabsContent value="sqd" className="space-y-6 animate-in fade-in duration-500">
+          
+          {/* Charts grid: Diverging Stacked Bar & Radar Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Diverging Stacked Bar Chart */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">
+                  Diverging Stacked Likert Sentiment Distribution
+                </CardTitle>
+                <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                  Centers around Neutral sentiment (X = 0) with negative ratings left and positive ratings right.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ResponsiveContainer width="100%" height={380}>
+                  <BarChart data={divergingData} layout="vertical" stackOffset="sign" margin={{ left: 30, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                    <XAxis type="number" tickFormatter={(v) => `${Math.abs(v)}%`} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={45} />
+                    <RechartsTooltip formatter={(v: any) => `${Math.abs(Math.round(v))}%`} />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '10px' }}
+                      formatter={(value) => value.replace(' (Neg)', '').replace(' (Pos)', '')}
+                    />
+                    <Bar dataKey="Strongly Disagree" stackId="a" fill="#e11d48" name="Strongly Disagree" />
+                    <Bar dataKey="Disagree" stackId="a" fill="#fb923c" name="Disagree" />
+                    <Bar dataKey="Neutral (Neg)" stackId="a" fill="#94a3b8" name="Neutral" />
+                    <Bar dataKey="Neutral (Pos)" stackId="a" fill="#64748b" name="Neutral" />
+                    <Bar dataKey="Agree" stackId="a" fill="#4ade80" name="Agree" />
+                    <Bar dataKey="Strongly Agree" stackId="a" fill="#1b6535" name="Strongly Agree" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-      {/* CSM SERVICES PERFORMANCE BREAKDOWN */}
-      <Card className="shadow-md border-primary/10 overflow-hidden animate-in fade-in duration-500">
-        <CardHeader className="bg-muted/10 border-b py-3.5">
-          <div>
-            <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-705">
-              <FileText className="h-4 w-4 text-primary" />
-              CSM Services Performance Breakdown
-            </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase mt-0.5">
-              Client volumes, average ratings, and satisfaction index grouped by unit services.
-            </CardDescription>
+            {/* Radar Spider Chart */}
+            <Card className="shadow-md border-slate-200/80">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">
+                  SQD dimension satisfaction profile
+                </CardTitle>
+                <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                  Spider chart mapping final calculated satisfaction rates per dimension.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 flex justify-center items-center">
+                <ResponsiveContainer width="100%" height={320}>
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                    <PolarGrid strokeOpacity={0.2} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                    <Radar name="Satisfaction Index %" dataKey="Score" stroke="#1b6535" fill="#1b6535" fillOpacity={0.3}>
+                      <LabelList dataKey="Score" position="top" style={{ fontSize: '8px', fontWeight: 'bold', fill: '#1b6535' }} formatter={(v: any) => `${v}%`} />
+                    </Radar>
+                    <RechartsTooltip />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead className="font-black text-[10px] uppercase pl-4">Service Provided</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Clients Served</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Satisfaction Index</TableHead>
-                <TableHead className="font-black text-[10px] uppercase text-center">Average SQD Score</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {serviceBreakdown.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-xs font-bold text-slate-400 uppercase italic">
-                    No service transactions logged for this period.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                serviceBreakdown.map((svc, idx) => (
-                  <TableRow key={idx} className="hover:bg-slate-50/50">
-                    <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800">
-                      {svc.name.toUpperCase()}
-                    </TableCell>
-                    <TableCell className="text-center text-xs font-bold text-slate-600">
-                      {svc.count}
-                    </TableCell>
-                    <TableCell className="text-center font-black text-xs">
-                      {svc.count > 0 ? (
-                        <span className={svc.satisfactionRate >= 85 ? 'text-emerald-600' : 'text-rose-600'}>
-                          {svc.satisfactionRate}%
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center text-xs font-bold text-slate-600">
-                      {svc.count > 0 ? `${svc.avgRating} / 5.0` : <span className="text-slate-400">—</span>}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
-      {/* 5. UNIT BENCHMARKS TABLE */}
-      {hasAccessToAll && unitBenchmarks.length > 0 && (
-        <Card className="shadow-md border-primary/10 overflow-hidden">
-          <CardHeader className="bg-muted/10 border-b py-3.5">
-            <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-705">
-              <Building2 className="h-4 w-4 text-primary" />
-              Unit Client Satisfaction Benchmarks & Rankings
-            </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase">
-              Compare satisfaction indices and compliance levels across university sectors.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="font-black text-[10px] uppercase pl-4">Unit / Office</TableHead>
-                  <TableHead className="font-black text-[10px] uppercase">Campus Site</TableHead>
-                  <TableHead className="font-black text-[10px] uppercase text-center">Logged Visitors</TableHead>
-                  <TableHead className="font-black text-[10px] uppercase text-center">CSM Responses</TableHead>
-                  <TableHead className="font-black text-[10px] uppercase text-center">Kiosk Engagement</TableHead>
-                  <TableHead className="font-black text-[10px] uppercase text-center">CSM Index %</TableHead>
-                  <TableHead className="font-black text-[10px] uppercase text-center">Avg SQD</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {unitBenchmarks.map(u => (
-                  <TableRow key={u.id} className="hover:bg-slate-50/50">
-                    <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800">{u.name}</TableCell>
-                    <TableCell className="text-xs font-bold text-slate-500 uppercase">{u.campuses}</TableCell>
-                    <TableCell className="text-center font-bold text-xs text-slate-600">{u.totalVisitors}</TableCell>
-                    <TableCell className="text-center font-bold text-xs text-slate-600">{u.totalResponses}</TableCell>
-                    <TableCell className="text-center font-bold text-xs">
-                      <span className={u.participationRate >= 30 ? 'text-slate-800 font-bold' : 'text-amber-600 font-black'}>
-                        {u.participationRate}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center font-black text-xs">
-                      <span className={u.satisfactionRate >= 85 ? 'text-emerald-600' : 'text-rose-600'}>
-                        {u.satisfactionRate}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-xs">{u.avgRating}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 6. COMMENTS AND SUGGESTIONS FEED */}
-      <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardHeader className="bg-muted/10 border-b py-3.5">
-          <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-705">
-            <Smile className="h-4 w-4 text-primary" />
-            Client Qualitative Suggestions & Feedbacks
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[250px] bg-slate-50/40 p-4">
-            {filteredResponses.filter(r => r.comments && r.comments.trim().length > 0).length > 0 ? (
-              <div className="space-y-4">
-                {filteredResponses
-                  .filter(r => r.comments && r.comments.trim().length > 0)
-                  .sort((a,b) => {
-                    const timeA = a.createdAt?.seconds || 0;
-                    const timeB = b.createdAt?.seconds || 0;
-                    return timeB - timeA; // descending
-                  })
-                  .map((r, idx) => {
-                    const dateStr = r.createdAt?.toDate 
-                      ? format(r.createdAt.toDate(), 'MM/dd/yyyy hh:mm a') 
-                      : 'N/A';
-                    return (
-                      <div key={idx} className="bg-white border rounded-xl p-4 shadow-sm space-y-2">
-                        <div className="flex justify-between items-start border-b pb-1.5">
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-black text-[#1B6535] uppercase">{maskName(r.visitorName)}</span>
-                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
-                              Visitted: <span className="text-slate-600">{r.unitName}</span> &bull; Purpose: <span className="text-slate-600">{r.purpose}</span>
-                            </div>
-                          </div>
-                          <span className="text-[9px] font-mono text-slate-400 font-bold">{dateStr}</span>
-                        </div>
-                        <p className="text-xs font-semibold text-slate-750 italic leading-relaxed">
-                          "{r.comments}"
-                        </p>
+          {/* Decision Support System triggers */}
+          {dssInsights.length > 0 && (
+            <Card className="border-amber-200 bg-amber-50/10 shadow-sm">
+              <CardHeader className="bg-amber-100/40 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-amber-800 flex items-center gap-2">
+                  <ShieldCheck className="h-4.5 w-4.5 text-amber-700" />
+                  Corrective DSS Recommendations (Alerts under 85% satisfaction)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {dssInsights.map(insight => (
+                    <div key={insight.id} className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-2.5">
+                      <div className="flex items-center justify-between border-b pb-1.5">
+                        <span className="text-[10px] font-black uppercase text-slate-800 tracking-tight">{insight.name}</span>
+                        {insight.id !== 99 ? (
+                          <Badge variant="destructive" className="text-[8px] uppercase font-black px-1.5 py-0.5">
+                            {insight.positivePercent}% Positive
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-rose-500 text-white text-[8px] uppercase font-black px-1.5 py-0.5 border-none">
+                            Warning
+                          </Badge>
+                        )}
                       </div>
-                    );
-                  })}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-xs font-bold text-muted-foreground uppercase italic opacity-40">
-                No qualitative suggestions recorded for this period.
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+                      <p className="text-[10.5px] font-bold text-slate-600 italic">"{insight.recommendation}"</p>
+                      <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
+                        <span className="text-[9px] font-black uppercase text-amber-800 tracking-wider">Corrective Action Plan Checklist:</span>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          {insight.checklist.map((item: string, idx: number) => (
+                            <li key={idx} className="text-[9.5px] font-medium text-slate-700 leading-tight">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* 7. REPORT DEPLOYMENTS CENTER (Admin/IPDU only) */}
-      {hasAccessToAll && (
-        <Card className="border-primary/15 shadow-sm">
-          <CardHeader className="bg-primary/5 border-b py-3.5">
-            <div className="flex items-center gap-2 mb-1">
-              <Radio className="h-5 w-5 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Report Deployments</span>
-            </div>
-            <CardTitle className="text-sm font-black uppercase flex items-center gap-2">CSM Unit Deployment Center</CardTitle>
-            <CardDescription className="text-xs">
-              Publish or recall Client Satisfaction Monitoring reports. Deployed periods become visible for all units to view and print.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {cycles && cycles.length > 0 ? (
+          {/* Service Quality score tables & heatmap */}
+          <Card className="shadow-md border-slate-200/80">
+            <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-xs font-black uppercase text-slate-700">
+                  Service-Level Satisfaction Index Matrix (Heatmap)
+                </CardTitle>
+                <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                  Heatmap formatting alerts administrators immediately to underperforming services.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search service name or campus..."
+                  value={serviceSearch}
+                  onChange={(e) => {
+                    setServiceSearch(e.target.value);
+                    setServicePage(0);
+                  }}
+                  className="h-8 text-xs font-bold w-[250px] bg-white border-slate-200"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-slate-50">
                   <TableRow>
-                    <TableHead className="text-[10px] font-black uppercase pl-4">Academic Period</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase">Cycle</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-right pr-4">Actions</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase pl-4">Service Provided</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase">Campus site</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase text-center">Transactions</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase text-center">Satisfaction Rate</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase text-center">Average Rating</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...cycles].sort((a,b) => b.year - a.year || b.name.localeCompare(a.name)).map(cycle => {
-                    const dId = `${cycle.year}-${cycle.name}`;
-                    const isPublished = deploymentsMap.get(dId) || false;
-                    const isDeploying = deployingCycleIds[dId] || false;
+                  {paginatedServices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-xs font-bold text-slate-400 uppercase italic">
+                        No service transactions logged matching criteria.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedServices.map((svc, idx) => {
+                      // Heatmap color code rules: green for >=95, yellow for 90-94, red for <89
+                      let heatClass = "bg-emerald-50 text-emerald-800 border-emerald-200";
+                      if (svc.satisfactionRate < 89) {
+                        heatClass = "bg-rose-50 text-rose-800 border-rose-200";
+                      } else if (svc.satisfactionRate >= 90 && svc.satisfactionRate <= 94) {
+                        heatClass = "bg-amber-50 text-amber-800 border-amber-250";
+                      }
 
-                    return (
-                      <TableRow key={dId} className="hover:bg-slate-50">
-                        <TableCell className="font-bold text-xs pl-4">AY {cycle.year}</TableCell>
-                        <TableCell className="font-bold text-xs uppercase text-slate-600">{cycle.name} Cycle</TableCell>
-                        <TableCell className="text-center font-bold text-xs">
-                          {isPublished ? (
-                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-250 text-[9px] uppercase font-black">
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> Deployed
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[9px] uppercase font-black text-slate-500">
-                              <Radio className="h-3 w-3 mr-1" /> Draft / Hidden
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right pr-4">
-                          <Button
-                            size="sm"
-                            variant={isPublished ? "destructive" : "default"}
-                            disabled={isDeploying}
-                            onClick={() => handleTogglePublishCycle(cycle, isPublished)}
-                            className="text-[9px] font-black uppercase tracking-wider h-8 px-4"
-                          >
-                            {isDeploying ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-                            ) : isPublished ? (
-                              <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                            ) : (
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                            )}
-                            {isPublished ? "Recall" : "Deploy"}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                      return (
+                        <TableRow key={idx} className="hover:bg-slate-50/50">
+                          <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-700">
+                            {svc.name.toUpperCase()}
+                          </TableCell>
+                          <TableCell className="text-xs font-bold text-slate-500 uppercase">{svc.campus}</TableCell>
+                          <TableCell className="text-center text-xs font-bold text-slate-650">{svc.count}</TableCell>
+                          <TableCell className="text-center py-3">
+                            <span className={`px-2.5 py-1 rounded-full border text-[10px] font-black uppercase ${heatClass}`}>
+                              {svc.satisfactionRate}%
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center text-xs font-bold text-slate-650">{svc.avgRating} / 5.0</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
-            ) : (
-              <div className="py-6 text-center text-xs font-bold text-muted-foreground uppercase">
-                No academic cycles defined in the system.
-              </div>
+              {filteredServices.length > servicePageSize && (
+                <div className="flex justify-end items-center gap-2 p-3 border-t bg-slate-50/40">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    disabled={servicePage === 0} 
+                    onClick={() => setServicePage(p => p - 1)}
+                    className="h-8 text-[9.5px] font-black uppercase"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-[10px] font-bold text-slate-500">
+                    Page {servicePage + 1} of {Math.ceil(filteredServices.length / servicePageSize)}
+                  </span>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    disabled={(servicePage + 1) * servicePageSize >= filteredServices.length} 
+                    onClick={() => setServicePage(p => p + 1)}
+                    className="h-8 text-[9.5px] font-black uppercase"
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ==================== TAB 3: QUALITATIVE INSIGHTS ==================== */}
+        <TabsContent value="qualitative" className="space-y-6 animate-in fade-in duration-500">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Pareto Chart for comments count */}
+            <Card className="shadow-md border-slate-200/80 lg:col-span-2">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">
+                  Pareto Analysis of Qualitative Friction Themes
+                </CardTitle>
+                <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                  Shows frequency of complaints per theme (bars, left axis) and cumulative percentage (line, right axis).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={320}>
+                  <ComposedChart data={displayStats.paretoData} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.2} />
+                    <XAxis dataKey="theme" tick={{ fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 9 }} label={{ value: 'Complaints count', angle: -90, position: 'insideLeft', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} domain={[0, 100]} label={{ value: 'Cumulative %', angle: 90, position: 'insideRight', fontSize: 9, fontWeight: 'bold' }} />
+                    <RechartsTooltip />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" yAxisId="left" name="Count of Complaints" radius={[3, 3, 0, 0]} barSize={40} />
+                    <Line dataKey="cumulativePercent" stroke="hsl(var(--destructive))" strokeWidth={2.5} yAxisId="right" name="Cumulative Percentage" dot={{ fill: 'hsl(var(--destructive))' }} />
+                    <Legend wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '15px' }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Categorized Matrix Feed */}
+            <Card className="shadow-md border-slate-200/80 lg:col-span-1 flex flex-col justify-between">
+              <CardHeader className="bg-slate-50/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700">
+                  Qualitative Matrix Feed
+                </CardTitle>
+                <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
+                  Client comments mapped to SQD dimensions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 flex-1 p-0">
+                <ScrollArea className="h-[320px] bg-slate-50/20 p-4">
+                  {displayStats.comments.length > 0 ? (
+                    <div className="space-y-3">
+                      {displayStats.comments.map((comment, idx) => (
+                        <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-1.5">
+                          <div className="flex justify-between items-start border-b pb-1">
+                            <span className="text-[9.5px] font-extrabold uppercase text-[#1B6535]">{comment.campus} &bull; {comment.type}</span>
+                            <Badge className="bg-slate-100 text-slate-800 border-none text-[8.5px] font-black uppercase">
+                              {comment.category.split(' ')[0]}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-slate-700 italic font-semibold">"{comment.comments}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 opacity-30 text-xs font-bold uppercase italic">
+                      No customer comments logged for this period.
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ==================== TAB 4: OFFICIAL EXPORTER ==================== */}
+        <TabsContent value="exporter" className="space-y-6 animate-in fade-in duration-500">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Harmonized Agency Report Card */}
+            <Card className="shadow-md border-slate-200/85 overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-600" />
+              <CardHeader className="pb-2 pt-5">
+                <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">Mandated ARTA Output</span>
+                <CardTitle className="text-sm font-black uppercase text-slate-800 mt-1">
+                  Harmonized CSM Agency Report
+                </CardTitle>
+                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                  Annual agency scorecard with Methodology, CC Awareness analysis, and overall service scoring.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                Compiles the consolidated survey evaluations into the layout required for submissions to the Anti-Red Tape Authority (ARTA). Includes structured Methodology, CC tables, and SQD interpretations.
+              </CardContent>
+              <CardFooter className="border-t bg-slate-50/50 p-4 flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase text-slate-400">PDF / Print-ready</span>
+                <Button size="sm" onClick={handlePrintHarmonizedReport} className="h-8 text-[9px] font-black uppercase tracking-wider">
+                  <Printer className="h-3.5 w-3.5 mr-1" /> Print / Export
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Campus specific performance Card */}
+            <Card className="shadow-md border-slate-200/85 overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600" />
+              <CardHeader className="pb-2 pt-5">
+                <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">Regional breakdown</span>
+                <CardTitle className="text-sm font-black uppercase text-slate-800 mt-1">
+                  Campus Performance Export
+                </CardTitle>
+                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                  Targeted evaluations details filtered specifically for Campus Directors.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                Generates a report isolation specifically for local campuses. Extracts only the transactions, satisfaction rate indices, and qualitative suggestions scoped to Campus Directors (e.g. Cajidiocan).
+              </CardContent>
+              <CardFooter className="border-t bg-slate-50/50 p-4 flex flex-col items-stretch gap-2.5">
+                <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase">
+                  <span>Target Campus</span>
+                  <span>Isolation Print</span>
+                </div>
+                <div className="flex gap-2">
+                  <Select defaultValue="Main Campus" id="campus-specific-select">
+                    <SelectTrigger className="h-8 bg-white text-[10px] font-bold w-full">
+                      <SelectValue placeholder="Select Campus" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {campuses.map(c => (
+                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      const selectEl = document.getElementById('campus-specific-select');
+                      const selectedVal = selectEl?.getAttribute('data-value') || activeCampusName === 'all' ? 'Main Campus' : activeCampusName;
+                      // Fallback selection finder: we can just grab from selector or active campus
+                      handlePrintCampusReport(selectedVal);
+                    }} 
+                    className="h-8 text-[9px] font-black uppercase tracking-wider px-3 bg-blue-600 hover:bg-blue-700 border-none"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+
+            {/* CAIP matrix Card */}
+            <Card className="shadow-md border-slate-200/85 overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-[#D4AF37]" />
+              <CardHeader className="pb-2 pt-5">
+                <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">Quality improvement</span>
+                <CardTitle className="text-sm font-black uppercase text-slate-800 mt-1">
+                  Improvement Plan (CAIP) Matrix
+                </CardTitle>
+                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                  Action plans matrix matching RSU CSM findings to target schedules.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                Compiles the Continuous Agency Improvement Plan tracking matrix containing targeted satisfaction goals, QR kiosk system deployment status, and customer service seminars schedules.
+              </CardContent>
+              <CardFooter className="border-t bg-slate-50/50 p-4 flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase text-slate-400">Target Year: 2026</span>
+                <Button size="sm" onClick={handlePrintCaipReport} className="h-8 text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 border-none">
+                  <Printer className="h-3.5 w-3.5 mr-1" /> Print Matrix
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ==================== TAB 5: DEPLOYMENT CENTER (Admin/IPDO only) ==================== */}
+        {hasAccessToAll && (
+          <TabsContent value="deployment" className="space-y-6 animate-in fade-in duration-500">
+            
+            {/* Admin Drilldown selectors */}
+            <Card className="border-slate-200/85 shadow-sm bg-slate-50/40">
+              <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Drill Down Unit / Office</span>
+                    <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                      <SelectTrigger className="w-[280px] h-9 bg-white font-extrabold text-xs shadow-sm">
+                        <SelectValue placeholder="System-Wide Overview" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">🏢 System-Wide Overview</SelectItem>
+                        {dropdownUnits.map(unit => (
+                          <SelectItem key={unit.id} value={unit.id}>
+                            📄 {unit.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedUnitId !== 'all' && (
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Approval Status</span>
+                      <div className="flex items-center gap-2 h-9">
+                        {isUnitApproved ? (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black uppercase h-7 px-2">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Approved for Unit
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[9px] font-black uppercase text-slate-500 h-7 px-2">
+                            <Info className="h-3 w-3 mr-1" /> Pending Approval
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {selectedUnitId !== 'all' && (
+                  <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <Button
+                      size="sm"
+                      variant={isUnitApproved ? "destructive" : "default"}
+                      disabled={isUpdatingApproval}
+                      onClick={handleToggleUnitApproval}
+                      className="h-9 text-[10px] font-black uppercase tracking-wider px-4 shadow-sm"
+                    >
+                      {isUpdatingApproval ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : isUnitApproved ? (
+                        <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      {isUnitApproved ? "Recall Report" : "Approve & Deploy"}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Rankings Benchmarks Table */}
+            {unitBenchmarks.length > 0 && (
+              <Card className="shadow-md border-slate-200/80 overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b py-3.5">
+                  <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-700">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    Unit Client Satisfaction Benchmarks & Rankings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead className="font-black text-[10px] uppercase pl-4">Unit / Office</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase">Campus Site</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase text-center">Logged Visitors</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase text-center">CSM Responses</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase text-center">Engagement</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase text-center">Satisfaction Rate</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase text-center">Avg SQD Score</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {unitBenchmarks.map(u => (
+                        <TableRow key={u.id} className="hover:bg-slate-50/50">
+                          <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800">{u.name}</TableCell>
+                          <TableCell className="text-xs font-bold text-slate-500 uppercase">{u.campuses}</TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-600">{u.totalVisitors}</TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-600">{u.totalResponses}</TableCell>
+                          <TableCell className="text-center font-bold text-xs">
+                            <span className={u.participationRate >= 30 ? 'text-slate-800 font-bold' : 'text-amber-600 font-black'}>
+                              {u.participationRate}%
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center font-black text-xs">
+                            <span className={u.satisfactionRate >= 85 ? 'text-emerald-600' : 'text-rose-600'}>
+                              {u.satisfactionRate}%
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-650">{u.avgRating}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
-      )}
+
+            {/* Deployments Center publish cycle controls */}
+            <Card className="border-slate-200/80 shadow-md">
+              <CardHeader className="bg-slate-50/40 border-b py-3.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Radio className="h-4.5 w-4.5 text-primary" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Cycle deployment Manager</span>
+                </div>
+                <CardTitle className="text-sm font-black uppercase text-slate-800">CSM Unit Deployment Center</CardTitle>
+                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                  Publish or recall Client Satisfaction Monitoring reports. Deployed periods become visible for all units to view and print.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 p-0">
+                {cycles && cycles.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[10px] font-black uppercase pl-4">Academic Period</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Cycle</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-right pr-4">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...cycles].sort((a,b) => b.year - a.year || b.name.localeCompare(a.name)).map(cycle => {
+                        const dId = `${cycle.year}-${cycle.name}`;
+                        const isPublished = deploymentsMap.get(dId) || false;
+                        const isDeploying = deployingCycleIds[dId] || false;
+
+                        return (
+                          <TableRow key={dId} className="hover:bg-slate-50">
+                            <TableCell className="font-bold text-xs pl-4">AY {cycle.year}</TableCell>
+                            <TableCell className="font-bold text-xs uppercase text-slate-600">{cycle.name} Cycle</TableCell>
+                            <TableCell className="text-center font-bold text-xs">
+                              {isPublished ? (
+                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[8.5px] uppercase font-black">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Deployed
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-[8.5px] uppercase font-black text-slate-500">
+                                  <Radio className="h-3 w-3 mr-1" /> Draft / Hidden
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right pr-4">
+                              <Button
+                                size="sm"
+                                variant={isPublished ? "destructive" : "default"}
+                                disabled={isDeploying}
+                                onClick={() => handleTogglePublishCycle(cycle, isPublished)}
+                                className="text-[8.5px] font-black uppercase tracking-widest h-8 px-4"
+                              >
+                                {isDeploying ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                                ) : isPublished ? (
+                                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                                ) : (
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                                )}
+                                {isPublished ? "Recall" : "Deploy"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="py-6 text-center text-xs font-bold text-muted-foreground uppercase">
+                    No academic cycles defined in the system.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
 
-// Helper stub for ChartContainer if needed. Next template has it matching components/ui/chart.tsx
+// Chart container component wrapper
 function ChartContainer({ children, className }: any) {
   return <div className={className}>{children}</div>;
 }
