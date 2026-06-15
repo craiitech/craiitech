@@ -1085,3 +1085,45 @@ export type Communication = {
   manualType?: 'incoming' | 'outgoing';
   senderName?: string;
 };
+
+// --- UNIT ACTIVITY ATTENDANCE & DEVICE BINDING TYPES ---
+
+export type AttendanceActivity = {
+  id: string;
+  name: string;
+  startDateTime: any; // Timestamp
+  endDateTime: any; // Timestamp
+  lateThresholdMinutes: number;
+  status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  unitId: string;
+  campusId: string;
+  createdAt: any; // Timestamp
+  createdBy: string;
+};
+
+export type DeviceBinding = {
+  id: string; // deviceFingerprint
+  userId: string;
+  userName: string;
+  unitId: string;
+  unitName: string;
+  boundAt: any; // Timestamp
+  userAgent: string;
+  contactNumber?: string;
+  sex?: string;
+};
+
+export type ActivityAttendanceLog = {
+  id: string; // activityId_userId
+  activityId: string;
+  userId: string;
+  userName: string;
+  unitId: string;
+  unitName: string;
+  deviceFingerprint: string;
+  scannedAt: any; // Timestamp
+  status: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' | 'REJECTED';
+  remarks?: string;
+  contactNumber?: string;
+  sex?: string;
+};
