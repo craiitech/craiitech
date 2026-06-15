@@ -159,8 +159,8 @@ export default function Home() {
                                 Create Account
                             </Link>
                         </Button>
-                        {/* My Attendance — device-bound QR shortcut */}
-                        <Button asChild size="lg" className="h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white transition-all hover:scale-105 active:scale-95">
+                        {/* My Attendance — device-bound QR shortcut (Mobile/Tablet only) */}
+                        <Button asChild size="lg" className="lg:hidden h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white transition-all hover:scale-105 active:scale-95">
                             <Link href="/attendance-app" className="flex items-center gap-2.5">
                                 <QrCode className="h-5 w-5" />
                                 My Attendance
