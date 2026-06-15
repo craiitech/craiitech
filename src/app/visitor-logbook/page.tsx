@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
@@ -112,6 +112,8 @@ export default function VisitorLogbookPage() {
   const [activeVisitors, setActiveVisitors] = useState<any[]>([]);
   const [activeVisitorsLoading, setActiveVisitorsLoading] = useState(true);
   const [logoutSuccessVisitorName, setLogoutSuccessVisitorName] = useState<string | null>(null);
+  const [localUpdateTrigger, setLocalUpdateTrigger] = useState<number>(0);
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
 
   // ARTA CSM survey kiosk states
   const [csmLanguage, setCsmLanguage] = useState<'EN' | 'FIL'>('EN');
@@ -383,6 +385,159 @@ export default function VisitorLogbookPage() {
     return () => unsubscribe();
   }, [firestore, userProfile?.unitId]);
 
+  // Merge Firestore active visitors with local offline pending ones
+  const displayedActiveVisitors = useMemo(() => {
+    const localLogs = typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]')
+      : [];
+    
+    const localActive = localLogs.filter((log: any) => !log.isLoggedOut);
+
+    const merged = [...activeVisitors];
+    localActive.forEach((localLog: any) => {
+      if (!merged.some(v => v.id === localLog.id)) {
+        merged.push(localLog);
+      }
+    });
+
+    return merged.sort((a, b) => {
+      const timeA = a.createdAt?.seconds || (typeof a.createdAt === 'number' ? a.createdAt / 1000 : 0);
+      const timeB = b.createdAt?.seconds || (typeof b.createdAt === 'number' ? b.createdAt / 1000 : 0);
+      return timeA - timeB;
+    });
+  }, [activeVisitors, localUpdateTrigger]);
+
+  // Recalculate pending sync count
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const logs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]').filter((l: any) => !l.synced).length;
+      const csms = JSON.parse(localStorage.getItem('rsu_offline_csm_responses') || '[]').filter((c: any) => !c.synced).length;
+      const logouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]').length;
+      setPendingSyncCount(logs + csms + logouts);
+    }
+  }, [localUpdateTrigger, isOnline]);
+
+  // Sync offline data to Firestore when online
+  const syncOfflineData = async () => {
+    if (!firestore || !isOnline) return;
+
+    const localLogs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]');
+    const localCsms = JSON.parse(localStorage.getItem('rsu_offline_csm_responses') || '[]');
+    const localLogouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]');
+
+    if (localLogs.length === 0 && localCsms.length === 0 && localLogouts.length === 0) return;
+
+    console.log(`Syncing offline data: ${localLogs.length} logs, ${localCsms.length} CSMs, ${localLogouts.length} logouts`);
+
+    const idMap: Record<string, string> = {};
+    const updatedLogs = [...localLogs];
+
+    // 1. Sync Visitor Logs
+    for (let i = 0; i < localLogs.length; i++) {
+      const log = localLogs[i];
+      if (log.synced) continue;
+
+      try {
+        const { id, synced, firestoreId, ...payload } = log;
+        
+        // Convert Milliseconds back to Timestamp
+        if (payload.createdAt) {
+          payload.createdAt = Timestamp.fromMillis(Number(payload.createdAt));
+        }
+        if (payload.loggedOutAt) {
+          payload.loggedOutAt = Timestamp.fromMillis(Number(payload.loggedOutAt));
+        }
+
+        const docRef = await addDoc(collection(firestore, 'visitorLogs'), payload);
+        idMap[id] = docRef.id;
+        log.synced = true;
+        log.firestoreId = docRef.id;
+      } catch (err) {
+        console.error("Failed to sync log:", log, err);
+      }
+    }
+
+    // 2. Sync CSM Responses
+    const updatedCsms = [...localCsms];
+    for (let i = 0; i < localCsms.length; i++) {
+      const csm = localCsms[i];
+      if (csm.synced) continue;
+
+      try {
+        const { id, synced, ...payload } = csm;
+        
+        if (payload.visitorLogId && payload.visitorLogId.startsWith('local_')) {
+          const mappedId = idMap[payload.visitorLogId];
+          if (mappedId) {
+            payload.visitorLogId = mappedId;
+          } else {
+            const matchingLog = localLogs.find((l: any) => l.id === payload.visitorLogId);
+            if (matchingLog && matchingLog.firestoreId) {
+              payload.visitorLogId = matchingLog.firestoreId;
+            }
+          }
+        }
+
+        if (payload.createdAt) {
+          payload.createdAt = Timestamp.fromMillis(Number(payload.createdAt));
+        }
+
+        await addDoc(collection(firestore, 'csmResponses'), payload);
+        csm.synced = true;
+      } catch (err) {
+        console.error("Failed to sync CSM response:", csm, err);
+      }
+    }
+
+    // 3. Sync Logouts for existing online logs
+    const remainingLogouts = [];
+    for (const logout of localLogouts) {
+      try {
+        const timeVal = Timestamp.fromMillis(Number(logout.loggedOutAt));
+        await updateDoc(doc(firestore, 'visitorLogs', logout.visitorId), {
+          isLoggedOut: true,
+          loggedOutAt: timeVal
+        });
+      } catch (err) {
+        console.error("Failed to sync logout for visitor:", logout, err);
+        remainingLogouts.push(logout);
+      }
+    }
+
+    // Filter out synced items
+    const cleanLogs = updatedLogs.filter((log: any) => !log.synced);
+    const cleanCsms = updatedCsms.filter((csm: any) => !csm.synced);
+
+    localStorage.setItem('rsu_offline_visitor_logs', JSON.stringify(cleanLogs));
+    localStorage.setItem('rsu_offline_csm_responses', JSON.stringify(cleanCsms));
+    localStorage.setItem('rsu_offline_visitor_logouts', JSON.stringify(remainingLogouts));
+
+    toast({
+      title: "Data Synchronized",
+      description: "Offline logs and surveys have been uploaded and synced with the database.",
+    });
+
+    setLocalUpdateTrigger(prev => prev + 1);
+  };
+
+  // Sync effect when status changes to online
+  useEffect(() => {
+    if (isOnline && firestore) {
+      syncOfflineData();
+    }
+  }, [isOnline, firestore]);
+
+  // Periodic sync check when online
+  useEffect(() => {
+    if (!firestore) return;
+    const interval = setInterval(() => {
+      if (isOnline) {
+        syncOfflineData();
+      }
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [isOnline, firestore]);
+
   // Logout Success auto-reset effect
   useEffect(() => {
     if (logoutSuccessVisitorName) {
@@ -416,26 +571,68 @@ export default function VisitorLogbookPage() {
         unitId: userProfile.unitId || 'N/A',
         campusId: userProfile.campusId || 'N/A',
         unitName: isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'),
-        createdAt: Timestamp.now(),
+        createdAt: Date.now(),
         isLoggedOut: false,
         loggedOutAt: null,
       };
 
-      await addDoc(collection(firestore, 'visitorLogs'), logPayload);
+      if (isOnline) {
+        // Write to Firestore with a 3-second timeout protection
+        const writePromise = addDoc(collection(firestore, 'visitorLogs'), {
+          ...logPayload,
+          createdAt: Timestamp.now()
+        });
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000));
+
+        await Promise.race([writePromise, timeoutPromise]);
+        
+        toast({
+          title: 'Entry Recorded',
+          description: `Welcome to our office, ${visitorName}!`,
+        });
+      } else {
+        // Offline Mode: store locally in LocalStorage
+        const localLogs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]');
+        const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localLogs.push({ id: localId, ...logPayload, synced: false });
+        localStorage.setItem('rsu_offline_visitor_logs', JSON.stringify(localLogs));
+
+        toast({
+          title: 'Entry Recorded (Offline Mode)',
+          description: `Welcome, ${visitorName}! Saved to local storage.`,
+        });
+        setLocalUpdateTrigger(prev => prev + 1);
+      }
+
       setSubmitSuccess(true);
-      toast({
-        title: 'Entry Recorded',
-        description: isOnline 
-          ? `Welcome to our office, ${visitorName}!`
-          : `Welcome, ${visitorName}! Saved locally (will sync when online).`,
-      });
     } catch (error) {
-      console.error('Error logging visitor:', error);
+      console.warn('Online write failed or timed out, saving locally instead:', error);
+      
+      // Fallback: store locally in LocalStorage
+      const logPayload = {
+        name: visitorName.trim(),
+        sex: sex,
+        purpose: purpose.trim(),
+        lookingFor: lookingFor.trim(),
+        unitId: userProfile.unitId || 'N/A',
+        campusId: userProfile.campusId || 'N/A',
+        unitName: isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'),
+        createdAt: Date.now(),
+        isLoggedOut: false,
+        loggedOutAt: null,
+      };
+
+      const localLogs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]');
+      const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localLogs.push({ id: localId, ...logPayload, synced: false });
+      localStorage.setItem('rsu_offline_visitor_logs', JSON.stringify(localLogs));
+
       toast({
-        title: 'Submission Failed',
-        description: 'Could not record your visit. Please notify staff.',
-        variant: 'destructive',
+        title: 'Entry Recorded (Local Storage)',
+        description: `Welcome, ${visitorName}! Saved to local storage.`,
       });
+      setLocalUpdateTrigger(prev => prev + 1);
+      setSubmitSuccess(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -467,6 +664,9 @@ export default function VisitorLogbookPage() {
     try {
       const visitorId = activeSurveyVisitor.id;
       const visitorName = activeSurveyVisitor.name;
+      const isLocalVisitor = visitorId.startsWith('local_');
+
+      let csmPayload: any = null;
 
       if (!skip) {
         if (!csmAgeGroup || !csmClientType || csmCC1 === null) {
@@ -479,7 +679,7 @@ export default function VisitorLogbookPage() {
           return;
         }
 
-        const csmPayload = {
+        csmPayload = {
           visitorLogId: visitorId,
           visitorName: visitorName,
           sex: activeSurveyVisitor.sex || 'N/A',
@@ -491,8 +691,8 @@ export default function VisitorLogbookPage() {
           purpose: activeSurveyVisitor.purpose || 'N/A',
           
           cc1: Number(csmCC1),
-          cc2: csmCC2 !== null ? Number(csmCC2) : 5, // default to 5 (N/A)
-          cc3: csmCC3 !== null ? Number(csmCC3) : 4, // default to 4 (N/A)
+          cc2: csmCC2 !== null ? Number(csmCC2) : 5,
+          cc3: csmCC3 !== null ? Number(csmCC3) : 4,
           
           sqd1: Number(csmSQD1),
           sqd2: Number(csmSQD2),
@@ -504,33 +704,134 @@ export default function VisitorLogbookPage() {
           sqd8: Number(csmSQD8),
           
           comments: csmComments.trim(),
-          createdAt: Timestamp.now(),
+          createdAt: Date.now(),
         };
-
-        await addDoc(collection(firestore, 'csmResponses'), csmPayload);
       }
 
-      await updateDoc(doc(firestore, 'visitorLogs', visitorId), {
-        isLoggedOut: true,
-        loggedOutAt: Timestamp.now(),
-      });
+      if (isOnline && !isLocalVisitor) {
+        // Online write with 3-second timeout protection
+        const checkoutPromises = [];
+        
+        if (!skip && csmPayload) {
+          checkoutPromises.push(addDoc(collection(firestore, 'csmResponses'), {
+            ...csmPayload,
+            createdAt: Timestamp.now()
+          }));
+        }
+
+        checkoutPromises.push(updateDoc(doc(firestore, 'visitorLogs', visitorId), {
+          isLoggedOut: true,
+          loggedOutAt: Timestamp.now(),
+        }));
+
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000));
+
+        await Promise.race([Promise.all(checkoutPromises), timeoutPromise]);
+
+        toast({
+          title: skip ? 'Visitor Logged Out' : 'Feedback Submitted & Checked Out',
+          description: skip 
+            ? `${visitorName} has logged out successfully.` 
+            : `Thank you for completing the survey, ${visitorName}!`,
+        });
+      } else {
+        // Offline Mode or Local Visitor
+        if (!skip && csmPayload) {
+          const localCsms = JSON.parse(localStorage.getItem('rsu_offline_csm_responses') || '[]');
+          localCsms.push({ id: `csm_${Date.now()}`, ...csmPayload, synced: false });
+          localStorage.setItem('rsu_offline_csm_responses', JSON.stringify(localCsms));
+        }
+
+        if (isLocalVisitor) {
+          const localLogs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]');
+          const idx = localLogs.findIndex((l: any) => l.id === visitorId);
+          if (idx !== -1) {
+            localLogs[idx].isLoggedOut = true;
+            localLogs[idx].loggedOutAt = Date.now();
+            localStorage.setItem('rsu_offline_visitor_logs', JSON.stringify(localLogs));
+          }
+        } else {
+          const localLogouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]');
+          localLogouts.push({ visitorId, loggedOutAt: Date.now() });
+          localStorage.setItem('rsu_offline_visitor_logouts', JSON.stringify(localLogouts));
+        }
+
+        toast({
+          title: skip ? 'Visitor Logged Out (Offline Mode)' : 'Feedback Saved (Offline Mode)',
+          description: skip 
+            ? `${visitorName} logged out locally (will sync when online).` 
+            : `Thank you, ${visitorName}! Feedback saved locally.`,
+        });
+        setLocalUpdateTrigger(prev => prev + 1);
+      }
 
       setCsmSubmitted(!skip);
       setLogoutSuccessVisitorName(visitorName);
       setActiveSurveyVisitor(null);
-      toast({
-        title: skip ? 'Visitor Logged Out' : 'Feedback Submitted & Checked Out',
-        description: skip 
-          ? (isOnline ? `${visitorName} has logged out successfully.` : `${visitorName} logged out locally (will sync when online).`)
-          : (isOnline ? `Thank you for completing the survey, ${visitorName}!` : `Thank you, ${visitorName}! Feedback saved locally.`),
-      });
     } catch (error) {
-      console.error('Error logging out and saving CSM:', error);
+      console.warn('Online checkout failed or timed out, saving locally:', error);
+      
+      // Fallback
+      const visitorId = activeSurveyVisitor.id;
+      const visitorName = activeSurveyVisitor.name;
+      const isLocalVisitor = visitorId.startsWith('local_');
+
+      if (!skip) {
+        const csmPayload = {
+          visitorLogId: visitorId,
+          visitorName: visitorName,
+          sex: activeSurveyVisitor.sex || 'N/A',
+          ageGroup: csmAgeGroup,
+          clientType: csmClientType,
+          campusId: activeSurveyVisitor.campusId || userProfile?.campusId || 'N/A',
+          unitId: activeSurveyVisitor.unitId || 'N/A',
+          unitName: activeSurveyVisitor.unitName || 'Office',
+          purpose: activeSurveyVisitor.purpose || 'N/A',
+          cc1: Number(csmCC1),
+          cc2: csmCC2 !== null ? Number(csmCC2) : 5,
+          cc3: csmCC3 !== null ? Number(csmCC3) : 4,
+          sqd1: Number(csmSQD1),
+          sqd2: Number(csmSQD2),
+          sqd3: Number(csmSQD3),
+          sqd4: Number(csmSQD4),
+          sqd5: Number(csmSQD5),
+          sqd6: Number(csmSQD6),
+          sqd7: Number(csmSQD7),
+          sqd8: Number(csmSQD8),
+          comments: csmComments.trim(),
+          createdAt: Date.now(),
+        };
+
+        const localCsms = JSON.parse(localStorage.getItem('rsu_offline_csm_responses') || '[]');
+        localCsms.push({ id: `csm_${Date.now()}`, ...csmPayload, synced: false });
+        localStorage.setItem('rsu_offline_csm_responses', JSON.stringify(localCsms));
+      }
+
+      if (isLocalVisitor) {
+        const localLogs = JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]');
+        const idx = localLogs.findIndex((l: any) => l.id === visitorId);
+        if (idx !== -1) {
+          localLogs[idx].isLoggedOut = true;
+          localLogs[idx].loggedOutAt = Date.now();
+          localStorage.setItem('rsu_offline_visitor_logs', JSON.stringify(localLogs));
+        }
+      } else {
+        const localLogouts = JSON.parse(localStorage.getItem('rsu_offline_visitor_logouts') || '[]');
+        localLogouts.push({ visitorId, loggedOutAt: Date.now() });
+        localStorage.setItem('rsu_offline_visitor_logouts', JSON.stringify(localLogouts));
+      }
+
       toast({
-        title: 'Error Logging Out',
-        description: 'Failed to record checkout. Please try again.',
-        variant: 'destructive',
+        title: skip ? 'Visitor Logged Out (Offline Mode)' : 'Feedback Saved (Offline Mode)',
+        description: skip 
+          ? `${visitorName} logged out. Sync pending.` 
+          : `Thank you, ${visitorName}! Saved to local storage.`,
       });
+      setLocalUpdateTrigger(prev => prev + 1);
+
+      setCsmSubmitted(!skip);
+      setLogoutSuccessVisitorName(visitorName);
+      setActiveSurveyVisitor(null);
     } finally {
       setIsSubmittingCsm(false);
     }
@@ -574,6 +875,15 @@ export default function VisitorLogbookPage() {
             {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
           </button>
+
+          {pendingSyncCount > 0 && (
+            <div className="flex items-center gap-2 bg-amber-500 text-slate-950 px-4 py-1.5 rounded-full shadow-lg border border-amber-400 animate-pulse">
+              <div className="h-2 w-2 rounded-full bg-slate-950 animate-ping" />
+              <span className="text-[9px] font-black uppercase tracking-widest">
+                {pendingSyncCount} Sync Pending
+              </span>
+            </div>
+          )}
 
           <div className={`flex items-center gap-2 border px-4 py-1.5 rounded-full shadow-lg transition-all duration-300 ${
             isOnline 
@@ -641,6 +951,39 @@ export default function VisitorLogbookPage() {
                   <p className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]/80">Today's Date</p>
                   <p className="text-base font-black text-white leading-tight mt-1">
                     {format(currentTime, 'EEEE, MMM dd')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* QR Code Mobile Sign In */}
+          {userProfile && (
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-5 shadow-xl space-y-4 max-w-md mx-auto xl:mx-0">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center text-[#D4AF37]">
+                  <Sparkles className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Scan to Sign In</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Use your mobile phone</p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="bg-white p-2.5 rounded-2xl border border-white/15 shadow-inner shrink-0 relative w-[130px] h-[130px]">
+                  <Image
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                      `${typeof window !== 'undefined' ? window.location.origin : ''}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'))}`
+                    )}`}
+                    alt="Mobile Sign In QR Code"
+                    fill
+                    className="object-contain p-1"
+                  />
+                </div>
+                <div className="space-y-1.5 text-center sm:text-left">
+                  <p className="text-xs font-black uppercase tracking-wide text-white">Sign In on your device</p>
+                  <p className="text-[10px] text-slate-355 font-medium leading-relaxed">
+                    Scan the QR code to sign in, check out, and complete the CSM satisfaction survey on your own phone.
                   </p>
                 </div>
               </div>
@@ -855,7 +1198,7 @@ export default function VisitorLogbookPage() {
                   <div className="h-6 w-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Loading list...</span>
                 </div>
-              ) : activeVisitors.length === 0 ? (
+              ) : displayedActiveVisitors.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-12 space-y-3">
                   <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
                     <User className="h-6 w-6 opacity-40" />
@@ -867,10 +1210,12 @@ export default function VisitorLogbookPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {activeVisitors.map((visitor) => {
+                  {displayedActiveVisitors.map((visitor) => {
                     const timeInStr = visitor.createdAt?.toDate 
                       ? format(visitor.createdAt.toDate(), 'hh:mm a') 
-                      : 'N/A';
+                      : (typeof visitor.createdAt === 'number'
+                          ? format(new Date(visitor.createdAt), 'hh:mm a')
+                          : 'N/A');
                     return (
                       <div 
                         key={visitor.id} 
