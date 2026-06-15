@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 interface Iso25010FormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 const formSchema = z.object({
@@ -45,7 +46,7 @@ const LIKERT_OPTIONS = [
     { value: 5, label: 'Excellent', color: 'text-emerald-600', bg: 'bg-emerald-50' },
 ];
 
-export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
+export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormProps) {
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -113,6 +114,7 @@ export function Iso25010Form({ isOpen, onOpenChange }: Iso25010FormProps) {
     try {
       await addDoc(collection(firestore, 'softwareEvaluations'), evaluationData);
       toast({ title: 'Evaluation Submitted', description: 'Thank you! The software quality audit has been securely recorded.' });
+      onSuccess?.();
       onOpenChange(false);
       setCurrentStep(0);
       form.reset();

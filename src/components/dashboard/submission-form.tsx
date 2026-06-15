@@ -114,6 +114,8 @@ export function SubmissionForm({
   const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
   const [originalSubmitter, setOriginalSubmitter] = useState<AppUser | null>(null);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [firstCycleSubmission, setFirstCycleSubmission] = useState<Submission | null>(null);
+  const [isLoadingFirstCycle, setIsLoadingFirstCycle] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
@@ -160,8 +162,47 @@ export function SubmissionForm({
 
   const isPostTreatmentIncomplete = useMemo(() => {
     if (!isRorForm || cycleId !== 'final' || !digitalRisks) return false;
-    return digitalRisks.some(r => !r.postTreatment?.likelihood || !r.postTreatment?.consequence || !r.postTreatment?.evidence);
+    return digitalRisks.some(r => {
+      // If the risk is closed, it is considered complete and doesn't block submission
+      if (r.status === 'Closed') return false;
+      // If the risk is initially Low, it doesn't require treatment/re-assessment
+      if (r.preTreatment?.rating?.toLowerCase() === 'low') return false;
+      
+      return !r.postTreatment?.likelihood || !r.postTreatment?.consequence || !r.postTreatment?.evidence;
+    });
   }, [isRorForm, cycleId, digitalRisks]);
+
+  const isFirstCycleNotApproved = useMemo(() => {
+    if (!isRorForm || cycleId !== 'final') return false;
+    if (isLoadingFirstCycle) return false;
+    return !firstCycleSubmission || firstCycleSubmission.statusId !== 'approved';
+  }, [isRorForm, cycleId, firstCycleSubmission, isLoadingFirstCycle]);
+
+  const isSubmissionBlocked = useMemo(() => {
+    if (!canUpdateExisting) return true;
+    if (isRorForm) {
+      if (!isDigitalComplete) return true;
+      if (!isLoadingPreviousRisks && hasUnclosedPreviousRisks) return true;
+      if (cycleId === 'final' && !isDraftValue) {
+        if (isFirstCycleNotApproved) return true;
+        if (isPostTreatmentIncomplete) return true;
+        if (!isLoadingDigitalRisks && hasUnclosedCurrentRisks) return true;
+      }
+    }
+    return false;
+  }, [
+    canUpdateExisting,
+    isRorForm,
+    isDigitalComplete,
+    isLoadingPreviousRisks,
+    hasUnclosedPreviousRisks,
+    cycleId,
+    isDraftValue,
+    isFirstCycleNotApproved,
+    isPostTreatmentIncomplete,
+    isLoadingDigitalRisks,
+    hasUnclosedCurrentRisks,
+  ]);
 
   const previousRisksQuery = useMemoFirebase(() => {
     const tUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
@@ -353,6 +394,35 @@ export function SubmissionForm({
     }
     fetchExistingSubmission();
   }, [firestore, targetUnitId, targetCampusId, reportType, year, cycleId, user, form]); 
+
+  useEffect(() => {
+    const fetchFirstCycle = async () => {
+        if (!firestore || !targetUnitId || !targetCampusId || cycleId !== 'final' || !isRorForm) return;
+        setIsLoadingFirstCycle(true);
+        try {
+            const q = query(
+                collection(firestore, 'submissions'),
+                where('unitId', '==', targetUnitId),
+                where('campusId', '==', targetCampusId),
+                where('reportType', '==', reportType),
+                where('year', '==', year),
+                where('cycleId', '==', 'first')
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                setFirstCycleSubmission({ ...querySnapshot.docs[0].data(), id: querySnapshot.docs[0].id } as Submission);
+            } else {
+                setFirstCycleSubmission(null);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingFirstCycle(false);
+        }
+    };
+
+    fetchFirstCycle();
+  }, [firestore, targetUnitId, targetCampusId, reportType, year, cycleId, isRorForm]);
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userProfile || !userRole) return true;
@@ -707,6 +777,21 @@ export function SubmissionForm({
             </Alert>
         )}
 
+        {isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingFirstCycle && isFirstCycleNotApproved && (
+            <Alert variant="destructive" className="border-amber-300 bg-amber-50 animate-in zoom-in duration-500 shadow-md">
+                <ShieldAlert className="h-5 w-5 text-amber-600" />
+                <AlertTitle className="font-black uppercase text-amber-800 tracking-tight">First Cycle Submission Pending Approval</AlertTitle>
+                <AlertDescription className="space-y-4 pt-1">
+                    <p className="text-xs font-bold leading-relaxed text-amber-700">
+                        The Final Submission for the Risk Registry is <strong>BLOCKED</strong> because the First Cycle submission for **AY {year}** has not been approved by the Quality Assurance Admin yet.
+                    </p>
+                    <p className="text-[10px] font-medium italic text-amber-600">
+                        Status: {firstCycleSubmission ? `Submitted (Awaiting Approval)` : 'No First Cycle Submission Found'}
+                    </p>
+                </AlertDescription>
+            </Alert>
+        )}
+
         {isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && isPostTreatmentIncomplete && (
             <Alert variant="destructive" className="border-rose-300 bg-rose-50 animate-in zoom-in duration-500 shadow-md">
                 <ShieldAlert className="h-5 w-5 text-rose-600" />
@@ -846,7 +931,7 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) || (isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && hasUnclosedCurrentRisks) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
+                    disabled={isSubmissionBlocked}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
@@ -911,7 +996,7 @@ export function SubmissionForm({
                 <Textarea
                   placeholder="Add any relevant comments for the approvers"
                   {...field}
-                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) || (isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && hasUnclosedCurrentRisks) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
+                  disabled={isSubmissionBlocked}
                 />
               </FormControl>
               <FormMessage />
@@ -932,7 +1017,7 @@ export function SubmissionForm({
                     onValueChange={(value: string) => setRiskRating(value as RiskRating)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
-                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) || (isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && hasUnclosedCurrentRisks) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
+                    disabled={isSubmissionBlocked}
                 >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="low" /></FormControl>
@@ -962,7 +1047,7 @@ export function SubmissionForm({
                             id={`${reportType}-${item.id}`}
                             checked={checkedState[item.id] || false}
                             onCheckedChange={() => handleCheckboxChange(item.id)}
-                            disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete) || (isRorForm && cycleId === 'final' && isPostTreatmentIncomplete) || (isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && hasUnclosedCurrentRisks) || (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)}
+                            disabled={isSubmissionBlocked}
                         />
                         <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-tight cursor-pointer">
                             {item.label}
@@ -993,11 +1078,7 @@ export function SubmissionForm({
             validationStatus === 'validating' ||
             validationStatus === 'invalid' ||
             !isChecklistComplete ||
-            !canUpdateExisting ||
-            (isRorForm && !isLoadingDigitalRisks && !isDigitalComplete) ||
-            (isRorForm && cycleId === 'final' && !isDraftValue && isPostTreatmentIncomplete) ||
-            (isRorForm && cycleId === 'final' && !isDraftValue && !isLoadingDigitalRisks && hasUnclosedCurrentRisks) ||
-            (isRorForm && !isLoadingPreviousRisks && hasUnclosedPreviousRisks)
+            isSubmissionBlocked
           }
         >
           {isSubmitting ? (

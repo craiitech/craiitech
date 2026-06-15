@@ -205,9 +205,7 @@ export default function LogoutPage() {
         )}
       </Card>
       
-      {isFormOpen && (
-          <Iso25010Form isOpen={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setView(isAdmin ? 'backup' : 'feedback'); }} />
-      )}
+      <Iso25010Form isOpen={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setView(isAdmin ? 'backup' : 'feedback'); }} />
     </div>
   );
 }
