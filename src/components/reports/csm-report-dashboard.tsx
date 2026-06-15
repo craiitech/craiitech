@@ -41,9 +41,9 @@ import {
   Loader2,
   Radio
 } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -51,6 +51,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+const maskName = (name: string) => {
+  if (!name) return 'Anonymous';
+  const parts = name.trim().split(/\s+/);
+  return parts.map(part => {
+    if (part.length <= 1) return part;
+    if (part.length === 2) return part.charAt(0) + '*';
+    return part.charAt(0) + '*'.repeat(part.length - 2) + part.charAt(part.length - 1);
+  }).join(' ');
+};
 
 interface CsmReportDashboardProps {
   csmResponses: any[];
@@ -519,6 +529,112 @@ export function CsmReportDashboard({
     }).filter(u => u.totalVisitors > 0 || u.totalResponses > 0)
       .sort((a, b) => b.satisfactionRate - a.satisfactionRate);
   }, [filteredResponses, filteredVisitorLogs, units, campuses, hasAccessToAll]);
+
+  // Fetch all unit csm settings
+  const unitSettingsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'unitCsmSettings') : null),
+    [firestore]
+  );
+  const { data: allUnitSettings } = useCollection<any>(unitSettingsQuery);
+
+  // SERVICE PERFORMANCE BREAKDOWN
+  const serviceBreakdown = useMemo(() => {
+    if (!filteredResponses) return [];
+    
+    // Get the services lists for the active unit or all units
+    const servicesMap = new Map<string, string[]>(); // unitId -> services[]
+    allUnitSettings?.forEach(setting => {
+      if (setting.services) {
+        servicesMap.set(setting.id, setting.services);
+      }
+    });
+
+    // Let's gather the active services to track
+    let targetServices: string[] = [];
+    if (selectedUnitId !== 'all') {
+      targetServices = servicesMap.get(selectedUnitId) || [];
+    } else {
+      // For system-wide, gather all services
+      const allSvc = new Set<string>();
+      allUnitSettings?.forEach(setting => {
+        setting.services?.forEach((s: string) => allSvc.add(s.trim().toLowerCase()));
+      });
+      targetServices = Array.from(allSvc);
+    }
+
+    // Now, group responses by purpose/service
+    const serviceStats = new Map<string, { count: number; ratingSum: number; ratingCount: number; positiveCount: number }>();
+    
+    // Helper to find match
+    const getServiceKey = (purposeStr: string) => {
+      if (!purposeStr) return null;
+      const cleanPurpose = purposeStr.trim().toLowerCase();
+      
+      // If we are looking at a specific unit, we match against its configured services
+      if (selectedUnitId !== 'all') {
+        const found = targetServices.find(s => s.trim().toLowerCase() === cleanPurpose);
+        if (found) return found;
+      } else {
+        // Find any service in all settings that matches
+        for (const setting of allUnitSettings || []) {
+          const found = setting.services?.find((s: string) => s.trim().toLowerCase() === cleanPurpose);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    filteredResponses.forEach(res => {
+      const purposeVal = res.purpose || '';
+      const serviceKey = getServiceKey(purposeVal) || 'Others / Custom';
+      
+      const stats = serviceStats.get(serviceKey) || { count: 0, ratingSum: 0, ratingCount: 0, positiveCount: 0 };
+      stats.count++;
+
+      // Calculate rating for this response
+      for (let i = 1; i <= 8; i++) {
+        const rating = res[`sqd${i}`];
+        if (rating > 0 && rating <= 5) {
+          stats.ratingCount++;
+          stats.ratingSum += rating;
+          if (rating >= 4) {
+            stats.positiveCount++;
+          }
+        }
+      }
+      serviceStats.set(serviceKey, stats);
+    });
+
+    // Convert map to array and compute averages/percentages
+    const breakdownList = Array.from(serviceStats.entries()).map(([serviceName, stats]) => {
+      const avgRating = stats.ratingCount > 0 ? Number((stats.ratingSum / stats.ratingCount).toFixed(2)) : 0;
+      const satisfactionRate = stats.ratingCount > 0 ? Math.round((stats.positiveCount / stats.ratingCount) * 100) : 0;
+      // Cap at 100% just in case of any formula anomalies
+      const normalizedSatisfaction = satisfactionRate > 100 ? 100 : satisfactionRate;
+      return {
+        name: serviceName,
+        count: stats.count,
+        avgRating,
+        satisfactionRate: normalizedSatisfaction
+      };
+    });
+
+    // If a unit is selected, add any configured services that have 0 client count
+    if (selectedUnitId !== 'all') {
+      targetServices.forEach(svc => {
+        if (!serviceStats.has(svc)) {
+          breakdownList.push({
+            name: svc,
+            count: 0,
+            avgRating: 0,
+            satisfactionRate: 0
+          });
+        }
+      });
+    }
+
+    return breakdownList.sort((a, b) => b.count - a.count);
+  }, [filteredResponses, allUnitSettings, selectedUnitId]);
 
   // 7. PRINT FUNCTION FOR OFFICIAL ARTA CSM SCORECARD
   const handlePrintScorecard = () => {
@@ -1016,6 +1132,65 @@ export function CsmReportDashboard({
         </CardContent>
       </Card>
 
+      {/* CSM SERVICES PERFORMANCE BREAKDOWN */}
+      <Card className="shadow-md border-primary/10 overflow-hidden animate-in fade-in duration-500">
+        <CardHeader className="bg-muted/10 border-b py-3.5">
+          <div>
+            <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-705">
+              <FileText className="h-4 w-4 text-primary" />
+              CSM Services Performance Breakdown
+            </CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase mt-0.5">
+              Client volumes, average ratings, and satisfaction index grouped by unit services.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-slate-50">
+              <TableRow>
+                <TableHead className="font-black text-[10px] uppercase pl-4">Service Provided</TableHead>
+                <TableHead className="font-black text-[10px] uppercase text-center">Clients Served</TableHead>
+                <TableHead className="font-black text-[10px] uppercase text-center">Satisfaction Index</TableHead>
+                <TableHead className="font-black text-[10px] uppercase text-center">Average SQD Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {serviceBreakdown.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-xs font-bold text-slate-400 uppercase italic">
+                    No service transactions logged for this period.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                serviceBreakdown.map((svc, idx) => (
+                  <TableRow key={idx} className="hover:bg-slate-50/50">
+                    <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800">
+                      {svc.name.toUpperCase()}
+                    </TableCell>
+                    <TableCell className="text-center text-xs font-bold text-slate-600">
+                      {svc.count}
+                    </TableCell>
+                    <TableCell className="text-center font-black text-xs">
+                      {svc.count > 0 ? (
+                        <span className={svc.satisfactionRate >= 85 ? 'text-emerald-600' : 'text-rose-600'}>
+                          {svc.satisfactionRate}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center text-xs font-bold text-slate-600">
+                      {svc.count > 0 ? `${svc.avgRating} / 5.0` : <span className="text-slate-400">—</span>}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* 5. UNIT BENCHMARKS TABLE */}
       {hasAccessToAll && unitBenchmarks.length > 0 && (
         <Card className="shadow-md border-primary/10 overflow-hidden">
@@ -1094,7 +1269,7 @@ export function CsmReportDashboard({
                       <div key={idx} className="bg-white border rounded-xl p-4 shadow-sm space-y-2">
                         <div className="flex justify-between items-start border-b pb-1.5">
                           <div className="space-y-0.5">
-                            <span className="text-xs font-black text-[#1B6535] uppercase">{r.visitorName}</span>
+                            <span className="text-xs font-black text-[#1B6535] uppercase">{maskName(r.visitorName)}</span>
                             <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
                               Visitted: <span className="text-slate-600">{r.unitName}</span> &bull; Purpose: <span className="text-slate-600">{r.purpose}</span>
                             </div>

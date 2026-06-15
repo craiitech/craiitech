@@ -54,6 +54,13 @@ export default function VisitorLogbookPage() {
 
   const { data: systemSettingsDoc } = useDoc<SystemSettings>(systemSettingsRef);
 
+  const unitCsmSettingsRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return doc(firestore, 'unitCsmSettings', userProfile.unitId);
+  }, [firestore, userProfile?.unitId]);
+
+  const { data: unitCsmSettingsDoc } = useDoc<any>(unitCsmSettingsRef);
+
   const getCampusSitePrefix = (campusName: string): string => {
     const nameUpper = campusName.toUpperCase();
     if (/^SITE\s+\d+\s+-/.test(nameUpper)) {
@@ -95,6 +102,7 @@ export default function VisitorLogbookPage() {
   const [visitorName, setVisitorName] = useState('');
   const [sex, setSex] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [selectedService, setSelectedService] = useState('');
   const [lookingFor, setLookingFor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -331,6 +339,7 @@ export default function VisitorLogbookPage() {
         setSex('');
         setPurpose('');
         setLookingFor('');
+        setSelectedService('');
       }, 4000);
       return () => clearTimeout(resetTimer);
     }
@@ -693,22 +702,75 @@ export default function VisitorLogbookPage() {
                   </div>
 
                   {/* Purpose */}
-                  <div className="space-y-2">
-                    <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
-                      Purpose of Visit
-                    </Label>
-                    <div className="relative">
-                      <HelpCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="purpose"
-                        type="text"
-                        placeholder="e.g. Document submission, Meeting, Inquiry"
-                        value={purpose}
-                        onChange={(e) => setPurpose(e.target.value)}
-                        required
-                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
-                      />
-                    </div>
+                  <div className="space-y-4">
+                    {unitCsmSettingsDoc?.services && unitCsmSettingsDoc.services.length > 0 ? (
+                      <div className="space-y-2 animate-in fade-in duration-300">
+                        <Label htmlFor="purposeSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                          Purpose of Visit
+                        </Label>
+                        <div className="relative">
+                          <HelpCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <select
+                            id="purposeSelect"
+                            value={selectedService}
+                            onChange={(e) => {
+                              setSelectedService(e.target.value);
+                              if (e.target.value !== 'Others') {
+                                setPurpose(e.target.value);
+                              } else {
+                                setPurpose('');
+                              }
+                            }}
+                            required
+                            className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                          >
+                            <option value="">-- SELECT PURPOSE OF VISIT --</option>
+                            {unitCsmSettingsDoc.services.map((svc: string) => (
+                              <option key={svc} value={svc}>{svc.toUpperCase()}</option>
+                            ))}
+                            <option value="Others">OTHERS (PLEASE SPECIFY)</option>
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                          Purpose of Visit
+                        </Label>
+                        <div className="relative">
+                          <HelpCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Input
+                            id="purpose"
+                            type="text"
+                            placeholder="e.g. Document submission, Meeting, Inquiry"
+                            value={purpose}
+                            onChange={(e) => setPurpose(e.target.value)}
+                            required
+                            className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedService === 'Others' && (
+                      <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                        <Label htmlFor="customPurpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                          Please specify your purpose
+                        </Label>
+                        <div className="relative">
+                          <HelpCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Input
+                            id="customPurpose"
+                            type="text"
+                            placeholder="e.g. Document submission, Meeting, Inquiry"
+                            value={purpose}
+                            onChange={(e) => setPurpose(e.target.value)}
+                            required
+                            className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Looking For */}

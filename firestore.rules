@@ -232,6 +232,10 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    match /unitCsmSettings/{unitId} {
+      allow get, list, write: if isSignedIn();
+    }
+
     match /activityLogs/{id} {
       allow create: if isSignedIn();
       allow get, list: if isAdmin();

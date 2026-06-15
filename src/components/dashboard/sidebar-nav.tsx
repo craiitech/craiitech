@@ -541,6 +541,15 @@ export function SidebarNav({
                 </>
               )}
             </Button>
+            <Button 
+              onClick={() => {
+                router.push('/visitor-logbook/settings');
+                setIsVisitorDialogOpen(false);
+              }}
+              className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+            >
+              CSM Settings Page
+            </Button>
           </div>
           <AlertDialogFooter className="border-t pt-3">
             <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
