@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import type { Campus, Unit, DeviceBinding } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -48,10 +48,10 @@ export default function RsuAttendanceApp() {
   const firestore = useFirestore();
 
   // Load campuses and units for registration form
-  const campusesQuery = useMemo(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemo(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
   // Client device details
