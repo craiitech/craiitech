@@ -178,31 +178,6 @@ export function SubmissionForm({
     return !firstCycleSubmission || firstCycleSubmission.statusId !== 'approved';
   }, [isRorForm, cycleId, firstCycleSubmission, isLoadingFirstCycle]);
 
-  const isSubmissionBlocked = useMemo(() => {
-    if (!canUpdateExisting) return true;
-    if (isRorForm) {
-      if (!isDigitalComplete) return true;
-      if (!isLoadingPreviousRisks && hasUnclosedPreviousRisks) return true;
-      if (cycleId === 'final' && !isDraftValue) {
-        if (isFirstCycleNotApproved) return true;
-        if (isPostTreatmentIncomplete) return true;
-        if (!isLoadingDigitalRisks && hasUnclosedCurrentRisks) return true;
-      }
-    }
-    return false;
-  }, [
-    canUpdateExisting,
-    isRorForm,
-    isDigitalComplete,
-    isLoadingPreviousRisks,
-    hasUnclosedPreviousRisks,
-    cycleId,
-    isDraftValue,
-    isFirstCycleNotApproved,
-    isPostTreatmentIncomplete,
-    isLoadingDigitalRisks,
-    hasUnclosedCurrentRisks,
-  ]);
 
   const previousRisksQuery = useMemoFirebase(() => {
     const tUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
@@ -439,6 +414,32 @@ export function SubmissionForm({
 
     return false;
   }, [existingSubmission, user, userProfile, userRole, isAdmin]);
+
+  const isSubmissionBlocked = useMemo(() => {
+    if (!canUpdateExisting) return true;
+    if (isRorForm) {
+      if (!isDigitalComplete) return true;
+      if (!isLoadingPreviousRisks && hasUnclosedPreviousRisks) return true;
+      if (cycleId === 'final' && !isDraftValue) {
+        if (isFirstCycleNotApproved) return true;
+        if (isPostTreatmentIncomplete) return true;
+        if (!isLoadingDigitalRisks && hasUnclosedCurrentRisks) return true;
+      }
+    }
+    return false;
+  }, [
+    canUpdateExisting,
+    isRorForm,
+    isDigitalComplete,
+    isLoadingPreviousRisks,
+    hasUnclosedPreviousRisks,
+    cycleId,
+    isDraftValue,
+    isFirstCycleNotApproved,
+    isPostTreatmentIncomplete,
+    isLoadingDigitalRisks,
+    hasUnclosedCurrentRisks,
+  ]);
 
   const isApprovedDraft = useMemo(() => {
       return !!(existingSubmission?.statusId === 'approved' && existingSubmission?.isDraft);
