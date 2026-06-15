@@ -28,7 +28,9 @@ import {
     UserCheck,
     BarChart3,
     ChevronRight,
-    Search
+    Search,
+    QrCode,
+    CalendarCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -155,6 +157,13 @@ export default function Home() {
                         <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg bg-white/5 border-white/40 text-white hover:bg-white/20 font-bold uppercase tracking-widest transition-all backdrop-blur-sm">
                             <Link href="/register">
                                 Create Account
+                            </Link>
+                        </Button>
+                        {/* My Attendance — device-bound QR shortcut */}
+                        <Button asChild size="lg" className="h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white transition-all hover:scale-105 active:scale-95">
+                            <Link href="/attendance-app" className="flex items-center gap-2.5">
+                                <QrCode className="h-5 w-5" />
+                                My Attendance
                             </Link>
                         </Button>
                     </div>

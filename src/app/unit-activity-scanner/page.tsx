@@ -11,15 +11,13 @@ import {
   where
 } from 'firebase/firestore';
 import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { 
   Calendar, 
-  Camera, 
   CheckCircle2, 
   XCircle, 
   Clock, 
@@ -28,7 +26,11 @@ import {
   Maximize2,
   Minimize2,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  ZoomIn,
+  ZoomOut,
+  QrCode,
+  Users
 } from 'lucide-react';
 
 function UnitActivityScannerTerminal() {
@@ -78,6 +80,9 @@ function UnitActivityScannerTerminal() {
   // --- CAMERA QR SCANNING MODULE (CDN LOADED) ---
   const [isScannerLibLoaded, setIsScannerLibLoaded] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [supportsZoom, setSupportsZoom] = useState(false);
+  const [showRegistryPanel, setShowRegistryPanel] = useState(false);
   const [scanResult, setScanResult] = useState<{
     status: 'success' | 'warning' | 'error' | 'none';
     message: string;
@@ -112,6 +117,28 @@ function UnitActivityScannerTerminal() {
     };
   }, []);
 
+  const applyZoom = (level: number) => {
+    if (!html5QrCodeScannerRef.current) return;
+    try {
+      const caps = html5QrCodeScannerRef.current.getRunningTrackCapabilities?.();
+      if (caps && caps.zoom) {
+        const minZoom = caps.zoom.min ?? 1;
+        const maxZoom = caps.zoom.max ?? 5;
+        const clampedZoom = Math.min(Math.max(level, minZoom), maxZoom);
+        html5QrCodeScannerRef.current.applyVideoConstraints({
+          advanced: [{ zoom: clampedZoom }]
+        }).catch(() => {});
+      }
+    } catch (e) {
+      // zoom not supported
+    }
+  };
+
+  const handleZoomChange = (newLevel: number) => {
+    setZoomLevel(newLevel);
+    applyZoom(newLevel);
+  };
+
   const startScanning = () => {
     if (!isScannerLibLoaded || !(window as any).Html5Qrcode) return;
     if (!paramActivityId) return;
@@ -121,26 +148,39 @@ function UnitActivityScannerTerminal() {
 
     setTimeout(() => {
       try {
-        const scanner = new (window as any).Html5Qrcode("reader-container");
+        const scanner = new (window as any).Html5Qrcode("reader-bg");
 
         scanner.start(
           { facingMode: "environment" },
           {
             fps: 10,
-            qrbox: { width: 220, height: 220 },
-            aspectRatio: 1.0
+            qrbox: { width: 280, height: 280 },
+            aspectRatio: window.innerWidth / window.innerHeight,
           },
           (decodedText: string) => {
             handleScanSuccess(decodedText);
           },
-          (errorMessage: string) => {
-            // standard polling camera logs can be ignored
+          (_errorMessage: string) => {
+            // silent polling errors
           }
         ).then(() => {
           html5QrCodeScannerRef.current = scanner;
+
+          // Check zoom support after start
+          try {
+            const caps = scanner.getRunningTrackCapabilities?.();
+            if (caps && caps.zoom && caps.zoom.max > 1) {
+              setSupportsZoom(true);
+            }
+          } catch (e) {}
+
+          // Apply continuous focus
+          try {
+            scanner.applyVideoConstraints({ focusMode: 'continuous' }).catch(() => {});
+          } catch (e) {}
         }).catch((err: any) => {
           console.error("Camera Start Error:", err);
-          setScanResult({ status: 'error', message: `Camera access failed: ${err.message || err}. Please ensure camera permission is granted and you are using a secure connection (HTTPS).` });
+          setScanResult({ status: 'error', message: `Camera access failed: ${err.message || err}. Please ensure camera permission is granted.` });
           setScannerActive(false);
         });
       } catch (err: any) {
@@ -164,6 +204,8 @@ function UnitActivityScannerTerminal() {
       }
     }
     setScannerActive(false);
+    setSupportsZoom(false);
+    setZoomLevel(1);
     setScanResult({ status: 'none', message: 'Camera stream disconnected.' });
   };
 
@@ -186,13 +228,11 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      // Validate QR rotation expiration (60s grace + 10s buffer)
       if (Date.now() - timestamp > 70000) {
         setScanResult({ status: 'error', message: 'Rejected: Expired QR token. Use the rotating code from the active phone app.' });
         return;
       }
 
-      // Verify strict Device Binding Lock in Firestore
       const bindingRef = doc(firestore, 'attendanceDeviceBindings', deviceFingerprint);
       const bindingSnap = await getDoc(bindingRef);
 
@@ -213,7 +253,6 @@ function UnitActivityScannerTerminal() {
       const scanTime = Date.now();
       const actStart = activeActivity.startDateTime.toDate ? activeActivity.startDateTime.toDate().getTime() : new Date(activeActivity.startDateTime).getTime();
       const actEnd = activeActivity.endDateTime.toDate ? activeActivity.endDateTime.toDate().getTime() : new Date(activeActivity.endDateTime).getTime();
-      
       const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
 
       let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
@@ -324,9 +363,10 @@ function UnitActivityScannerTerminal() {
     return () => clearInterval(timer);
   }, []);
 
-  // Manage scanner camera lifecycle automatically based on fullscreen state
+  // Manage scanner camera lifecycle — start as soon as library and activityId are ready
+  // Camera runs continuously; fullscreen overlay is cosmetic/security UX only
   useEffect(() => {
-    if (isFullscreen && isScannerLibLoaded && paramActivityId) {
+    if (isScannerLibLoaded && paramActivityId) {
       startScanning();
     } else {
       stopScanning();
@@ -335,7 +375,7 @@ function UnitActivityScannerTerminal() {
     return () => {
       stopScanning();
     };
-  }, [isFullscreen, isScannerLibLoaded, paramActivityId, activeActivity]);
+  }, [isScannerLibLoaded, paramActivityId, activeActivity]);
 
   const handleExitTerminal = async () => {
     try {
@@ -381,312 +421,408 @@ function UnitActivityScannerTerminal() {
     ? `${window.location.origin}/attendance-app`
     : '';
   const registrationQrCodeUrl = registrationUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(registrationUrl)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(registrationUrl)}`
     : '';
 
   return (
-    <div className="relative min-h-screen w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-y-auto xl:overflow-hidden p-4 md:p-6 lg:p-8 text-white font-sans">
-      <div className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-[#1B6535]/25 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-1/4 w-[600px] h-[600px] bg-[#D4AF37]/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="relative w-full h-screen overflow-hidden bg-black font-sans text-white">
 
-      {/* Top Header/Action Bar */}
-      <div className="w-full flex flex-col md:flex-row justify-between items-center z-10 gap-4 mb-4 shrink-0">
+      {/* ================================================================== */}
+      {/* FULL-SCREEN CAMERA BACKGROUND                                       */}
+      {/* ================================================================== */}
+      <div
+        id="reader-bg"
+        className="absolute inset-0 w-full h-full"
+        style={{ zIndex: 0 }}
+      />
+
+      {/* Dark vignette overlay to make text readable over raw camera */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 1,
+          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.72) 100%)',
+        }}
+      />
+      {/* Top bar darkening */}
+      <div
+        className="absolute top-0 left-0 right-0 h-28 pointer-events-none"
+        style={{ zIndex: 1, background: 'linear-gradient(to bottom, rgba(0,0,0,0.80) 0%, transparent 100%)' }}
+      />
+      {/* Bottom bar darkening */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
+        style={{ zIndex: 1, background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)' }}
+      />
+
+      {/* ================================================================== */}
+      {/* QR TARGETING RETICLE — centered scanning frame with corner borders  */}
+      {/* ================================================================== */}
+      {scannerActive && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ zIndex: 2 }}
+        >
+          <div className="relative" style={{ width: 280, height: 280 }}>
+            {/* Corner brackets — green scanning frame */}
+            {/* Top-left */}
+            <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-md" />
+            {/* Top-right */}
+            <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-md" />
+            {/* Bottom-left */}
+            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-md" />
+            {/* Bottom-right */}
+            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-emerald-400 rounded-br-md" />
+
+            {/* Scanning sweep line */}
+            <div
+              className="absolute left-2 right-2"
+              style={{
+                height: 2,
+                background: 'linear-gradient(to right, transparent, #34d399, #34d399, transparent)',
+                animation: 'scanSweep 2s ease-in-out infinite',
+                top: '50%',
+              }}
+            />
+
+            {/* Center crosshair dot */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-emerald-400/80 shadow-[0_0_8px_2px_rgba(52,211,153,0.7)]" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* TOP HEADER BAR — floats over camera                                 */}
+      {/* ================================================================== */}
+      <div
+        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-3 gap-4"
+      >
+        {/* Branding */}
         <div className="flex items-center gap-3">
-          <img src="/rsulogo.png" alt="RSU Logo" className="h-12 w-12 object-contain" />
+          <img src="/rsulogo.png" alt="RSU Logo" className="h-10 w-10 object-contain drop-shadow-lg" />
           <div>
-            <h1 className="text-lg font-black tracking-tight text-white uppercase flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#D4AF37] animate-pulse" />
+            <h1 className="text-sm font-black tracking-tight text-white uppercase flex items-center gap-1.5 drop-shadow">
+              <Sparkles className="h-3.5 w-3.5 text-[#D4AF37] animate-pulse" />
               RSU Attendance Terminal
             </h1>
-            <p className="text-[9px] font-black text-[#D4AF37] tracking-widest uppercase mt-0.5">
-              Secure QR scanner portal
-            </p>
+            {activeActivity && (
+              <p className="text-[9px] font-black text-[#D4AF37] tracking-widest uppercase mt-0.5 drop-shadow">
+                {activeActivity.name} &bull; {activeActivityUnit}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Time & Date Widget */}
+        {/* Clock widget */}
         {currentTime && (
-          <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl px-5 py-2 shadow-xl flex items-center justify-between gap-4 max-w-md">
-            <div className="flex items-center gap-2.5">
-              <Clock className="h-4.5 w-4.5 text-[#D4AF37] shrink-0" />
-              <div>
-                <p className="text-[7.5px] font-black uppercase tracking-widest text-[#D4AF37]/80 leading-none">Time</p>
-                <p className="text-sm font-black text-white tabular-nums mt-1 leading-none">
-                  {format(currentTime, 'hh:mm:ss a')}
-                </p>
-              </div>
-            </div>
-            <div className="h-6 w-px bg-white/10 shrink-0" />
-            <div className="flex items-center gap-2.5">
-              <Calendar className="h-4.5 w-4.5 text-[#D4AF37] shrink-0" />
-              <div>
-                <p className="text-[7.5px] font-black uppercase tracking-widest text-[#D4AF37]/80 leading-none">Date</p>
-                <p className="text-xs font-black text-white mt-1 leading-none">
-                  {format(currentTime, 'EEEE, MMM dd')}
-                </p>
-              </div>
-            </div>
+          <div className="hidden md:flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 shadow-xl">
+            <Clock className="h-4 w-4 text-[#D4AF37] shrink-0" />
+            <span className="text-sm font-black text-white tabular-nums">{format(currentTime, 'hh:mm:ss a')}</span>
+            <div className="h-4 w-px bg-white/15" />
+            <Calendar className="h-4 w-4 text-[#D4AF37] shrink-0" />
+            <span className="text-xs font-bold text-white">{format(currentTime, 'EEE, MMM dd')}</span>
           </div>
         )}
 
         {/* Action buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleFullscreen}
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#D4AF37]/70 hover:text-[#D4AF37] transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-[#D4AF37]/20 shadow-lg active:scale-95"
-          >
-            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            <span>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
-          </button>
-
-          <div className="flex items-center gap-2 bg-[#1B6535]/30 border border-[#D4AF37]/25 px-4 py-1.5 rounded-full shadow-lg">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Active Terminal</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full">
+            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Live</span>
           </div>
 
-          <button 
-            onClick={handleExitTerminal}
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-350 transition-all bg-rose-500/10 hover:bg-rose-500/20 px-4 py-2 rounded-full border border-rose-500/30 shadow-lg"
+          <button
+            onClick={toggleFullscreen}
+            className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#D4AF37]/80 hover:text-[#D4AF37] bg-black/40 hover:bg-black/60 backdrop-blur-md px-3 py-2 rounded-full border border-white/10 transition-all"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Exit Terminal
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+
+          <button
+            onClick={handleExitTerminal}
+            className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md px-3 py-2 rounded-full border border-rose-500/30 transition-all"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Exit
           </button>
         </div>
       </div>
 
-      {/* Main Two-Column View */}
-      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-6 xl:gap-8 max-w-7xl w-full mx-auto my-2 z-10 xl:h-[calc(100vh-140px)] min-h-[500px]">
-        
-        {/* Left Column: Live camera scan section & registration QR */}
-        <div className="w-full xl:w-[48%] flex flex-col justify-between space-y-6">
-          
-          {/* Top: Scanner Camera Viewport */}
-          <Card className="bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden flex flex-col flex-1 min-h-[340px]">
-            <CardHeader className="border-b border-white/10 py-3 flex flex-row items-center justify-between shrink-0">
-              <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-200 tracking-wider">Attendance Scanner</CardTitle>
-                <CardDescription className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
-                  Activity: <span className="font-extrabold text-emerald-400">{activeActivity ? activeActivity.name : "None selected"}</span>
-                </CardDescription>
-              </div>
-              {activeActivity && (
-                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[8.5px] uppercase font-black px-2.5 py-0.5 rounded-full">
-                  Unit: {activeActivityUnit}
-                </Badge>
-              )}
-            </CardHeader>
+      {/* ================================================================== */}
+      {/* BOTTOM LEFT — Zoom controls + Scan result feed                      */}
+      {/* ================================================================== */}
+      <div
+        className="absolute bottom-5 left-5 z-10 flex flex-col gap-3"
+        style={{ maxWidth: 340 }}
+      >
+        {/* Zoom Slider — only shows when camera supports it */}
+        {scannerActive && supportsZoom && (
+          <div className="flex items-center gap-3 bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2.5 shadow-xl">
+            <button
+              onClick={() => handleZoomChange(Math.max(1, zoomLevel - 0.5))}
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={0.1}
+              value={zoomLevel}
+              onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+              className="flex-1 h-1 accent-emerald-400"
+            />
+            <button
+              onClick={() => handleZoomChange(Math.min(5, zoomLevel + 0.5))}
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+            <span className="text-[9px] font-black text-emerald-400 w-8 text-right">{zoomLevel.toFixed(1)}×</span>
+          </div>
+        )}
 
-            <CardContent className="flex-1 flex flex-col items-center justify-center p-5 relative">
-              {!paramActivityId ? (
-                <div className="text-center max-w-sm space-y-3 p-6">
-                  <ShieldAlert className="h-12 w-12 text-[#D4AF37] animate-pulse mx-auto" />
-                  <h3 className="text-sm font-black uppercase text-slate-200">Scanner Locked</h3>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase leading-normal">
-                    No specific activity session detected. Please select an active session from the main manager page to launch the scanner.
-                  </p>
+        {/* Scan Result card */}
+        {scanResult.status !== 'none' ? (
+          <div className={`p-4 rounded-2xl border backdrop-blur-md shadow-2xl flex items-start gap-3 transition-all ${
+            scanResult.status === 'success'
+              ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-100'
+              : scanResult.status === 'warning'
+              ? 'bg-amber-500/20 border-amber-400/40 text-amber-100'
+              : 'bg-rose-500/20 border-rose-400/40 text-rose-100'
+          }`}>
+            <div className="shrink-0 mt-0.5">
+              {scanResult.status === 'success' ? (
+                <div className="h-8 w-8 rounded-full bg-emerald-500/30 flex items-center justify-center text-emerald-300">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+              ) : scanResult.status === 'warning' ? (
+                <div className="h-8 w-8 rounded-full bg-amber-500/30 flex items-center justify-center text-amber-300">
+                  <Clock className="h-5 w-5" />
                 </div>
               ) : (
-                <div className="w-full flex flex-col items-center justify-center space-y-4">
-                  <div className="w-full max-w-[280px] aspect-square bg-black rounded-2xl overflow-hidden shadow-2xl border-2 border-emerald-500/30 relative flex items-center justify-center">
-                    <div id="reader-container" className="w-full h-full" />
-                    {!scannerActive && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 p-4 text-center">
-                        <Loader2 className="h-8 w-8 text-[#D4AF37] animate-spin mb-2" />
-                        <p className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]">Initializing Camera...</p>
-                      </div>
-                    )}
+                <div className="h-8 w-8 rounded-full bg-rose-500/30 flex items-center justify-center text-rose-300">
+                  <XCircle className="h-5 w-5" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-[10px] font-black uppercase tracking-wider">
+                {scanResult.status === 'success' ? 'Scan Approved' : scanResult.status === 'warning' ? 'Scan Logged (Warning)' : 'Scan Rejected'}
+              </h4>
+              <p className="text-xs font-bold leading-snug mt-0.5">{scanResult.message}</p>
+              {scanResult.details && (
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] bg-black/20 p-2.5 rounded-xl border border-white/5 font-semibold">
+                  <div className="col-span-2 border-b border-white/10 pb-1 uppercase font-black tracking-wide text-white text-[8.5px]">Attendee</div>
+                  <div>
+                    <span className="text-[8px] font-black uppercase opacity-60 block">Name</span>
+                    <span className="uppercase truncate block">{scanResult.details.name}</span>
                   </div>
-
-                  <div className="w-full max-w-md">
-                    {scanResult.status === 'none' ? (
-                      <div className="text-center py-2.5 opacity-60">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          {scanResult.message}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
-                        scanResult.status === 'success' 
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' 
-                          : scanResult.status === 'warning' 
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' 
-                          : 'bg-rose-500/10 border-rose-500/30 text-rose-200'
-                      }`}>
-                        <div className="shrink-0 mt-0.5">
-                          {scanResult.status === 'success' ? (
-                            <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                              <CheckCircle2 className="h-5 w-5" />
-                            </div>
-                          ) : scanResult.status === 'warning' ? (
-                            <div className="h-8 w-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
-                              <Clock className="h-5 w-5" />
-                            </div>
-                          ) : (
-                            <div className="h-8 w-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400">
-                              <XCircle className="h-5 w-5" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-[11px] font-black uppercase tracking-wider">
-                            {scanResult.status === 'success' ? 'Scan Approved' : scanResult.status === 'warning' ? 'Scan Logged (Warning)' : 'Scan Rejected'}
-                          </h4>
-                          <p className="text-xs font-bold leading-normal mt-0.5 mb-2">
-                            {scanResult.message}
-                          </p>
-                          
-                          {scanResult.details && (
-                            <div className="grid grid-cols-2 gap-2 text-[10px] bg-black/20 p-2.5 rounded-xl border border-white/5 font-semibold text-slate-300">
-                              <div className="col-span-2 border-b border-white/5 pb-1 uppercase font-black tracking-wide text-white">
-                                Attendee Profile
-                              </div>
-                              <div className="truncate">
-                                <span className="text-[8.5px] font-black uppercase text-slate-400 block leading-none mb-0.5">Name:</span>
-                                <span className="uppercase text-white truncate block">{scanResult.details.name}</span>
-                              </div>
-                              <div className="truncate">
-                                <span className="text-[8.5px] font-black uppercase text-slate-400 block leading-none mb-0.5">Office:</span>
-                                <span className="uppercase text-white truncate block">{scanResult.details.office}</span>
-                              </div>
-                              <div>
-                                <span className="text-[8.5px] font-black uppercase text-slate-400 block leading-none mb-0.5">Time Logged:</span>
-                                <span>{scanResult.details.time}</span>
-                              </div>
-                              <div>
-                                <span className="text-[8.5px] font-black uppercase text-slate-400 block leading-none mb-0.5">Status:</span>
-                                <span className={`${
-                                  scanResult.details.status === 'ON TIME' 
-                                    ? 'text-emerald-400' 
-                                    : scanResult.details.status === 'LATE'
-                                    ? 'text-amber-400'
-                                    : 'text-rose-400'
-                                } font-black uppercase`}>{scanResult.details.status}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                  <div>
+                    <span className="text-[8px] font-black uppercase opacity-60 block">Office</span>
+                    <span className="uppercase truncate block">{scanResult.details.office}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-black uppercase opacity-60 block">Time</span>
+                    <span>{scanResult.details.time}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-black uppercase opacity-60 block">Status</span>
+                    <span className={`${
+                      scanResult.details.status === 'ON TIME' ? 'text-emerald-300'
+                      : scanResult.details.status === 'LATE' ? 'text-amber-300'
+                      : 'text-rose-300'
+                    } font-black uppercase`}>{scanResult.details.status}</span>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        ) : scannerActive ? (
+          <div className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2.5 shadow-xl">
+            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Scanning for QR Code...</p>
+          </div>
+        ) : null}
+      </div>
 
-          {/* Bottom: RSU Attendance App Download QR */}
-          <Card className="bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden shrink-0">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="bg-white p-2.5 rounded-2xl border border-white/10 shadow-inner shrink-0 w-[110px] h-[110px] flex items-center justify-center">
-                {registrationQrCodeUrl ? (
-                  <img
-                    src={registrationQrCodeUrl}
-                    alt="RSU Attendance App Sign Up QR"
-                    className="w-[90px] h-[90px] object-contain"
-                  />
-                ) : (
-                  <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
-                )}
-              </div>
-              <div className="space-y-1 text-left flex-1 min-w-0">
-                <Badge className="bg-[#D4AF37]/10 hover:bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 text-[8.5px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full mb-1">
-                  First-Time Attendance
-                </Badge>
-                <h3 className="text-xs font-black uppercase tracking-wide text-white">No Attendance App Yet?</h3>
-                <p className="text-[9.5px] text-slate-300 font-medium leading-relaxed">
-                  Scan this QR code with your phone to access the **RSU Attendance App** portal. Register your name, office, and lock your device fingerprint to enable attendance scanning.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* ================================================================== */}
+      {/* BOTTOM RIGHT — Registration QR + toggle registry button            */}
+      {/* ================================================================== */}
+      <div className="absolute bottom-5 right-5 z-10 flex flex-col items-end gap-3">
+
+        {/* Attendance Registry toggle */}
+        <button
+          onClick={() => setShowRegistryPanel(v => !v)}
+          className="flex items-center gap-2 bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-4 py-2.5 shadow-xl text-[9px] font-black uppercase tracking-widest text-white hover:bg-black/70 transition-all"
+        >
+          <Users className="h-3.5 w-3.5 text-emerald-400" />
+          {sortedLogs.length} Checked In
+        </button>
+
+        {/* Registration QR Card */}
+        <div className="bg-black/50 backdrop-blur-md border border-[#D4AF37]/20 rounded-2xl p-3 shadow-2xl flex flex-col items-center gap-2" style={{ maxWidth: 180 }}>
+          <Badge className="bg-[#D4AF37]/15 hover:bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 text-[7.5px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">
+            <QrCode className="h-2.5 w-2.5 mr-1" />
+            No App Yet?
+          </Badge>
+          <div className="bg-white p-2 rounded-xl shadow-inner w-[130px] h-[130px] flex items-center justify-center">
+            {registrationQrCodeUrl ? (
+              <img
+                src={registrationQrCodeUrl}
+                alt="RSU Attendance App QR"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+            )}
+          </div>
+          <p className="text-[8px] font-bold text-slate-300 text-center leading-tight">
+            Scan to open RSU Attendance App & register your phone
+          </p>
         </div>
+      </div>
 
-        {/* Right Column: List of Checked-In Participants */}
-        <div className="w-full xl:w-[52%] flex flex-col">
-          <Card className="bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden flex flex-col flex-1">
-            <CardHeader className="border-b border-white/10 py-3 flex flex-row items-center justify-between shrink-0">
-              <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-200 tracking-wider">Checked-In Registry</CardTitle>
-                <CardDescription className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
-                  Real-time verification logs
-                </CardDescription>
-              </div>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-black tracking-widest px-3 py-1 rounded-full">
-                Total: {sortedLogs.length} Checked In
+      {/* ================================================================== */}
+      {/* SLIDE-IN REGISTRY PANEL                                             */}
+      {/* ================================================================== */}
+      <div
+        className={`absolute top-0 right-0 h-full z-20 transition-transform duration-300 ease-in-out ${showRegistryPanel ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ width: 360 }}
+      >
+        <div className="h-full bg-black/70 backdrop-blur-xl border-l border-white/10 flex flex-col shadow-2xl">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+            <div>
+              <h2 className="text-xs font-black uppercase text-slate-200 tracking-wider">Checked-In Registry</h2>
+              <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Real-time verification logs</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-black tracking-widest px-2.5 py-0.5 rounded-full">
+                {sortedLogs.length}
               </Badge>
-            </CardHeader>
-            
-            <CardContent className="p-0 flex-1 overflow-y-auto min-h-0">
-              <Table>
-                <TableHeader className="bg-white/[0.02] border-b border-white/5 shrink-0">
-                  <TableRow className="border-b border-white/5 hover:bg-transparent">
-                    <TableHead className="font-black text-[9px] uppercase pl-4 text-slate-400">Name</TableHead>
-                    <TableHead className="font-black text-[9px] uppercase text-slate-400">Office / Unit</TableHead>
-                    <TableHead className="font-black text-[9px] uppercase text-slate-400">Details</TableHead>
-                    <TableHead className="font-black text-[9px] uppercase text-right pr-4 text-slate-400">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedLogs.length === 0 ? (
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={4} className="text-center py-24 text-slate-400 font-bold uppercase italic text-[11px]">
-                        No records checked in yet for this session.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    sortedLogs.map((log) => (
-                      <TableRow key={log.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <TableCell className="pl-4 py-3 font-extrabold text-xs text-white uppercase">
-                          {log.userName}
-                        </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-300 uppercase">
-                          {log.unitName}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="flex flex-col gap-0.5 text-[10px] text-slate-400">
-                            <span className="font-bold text-slate-300">{log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'hh:mm a') : 'N/A'}</span>
-                            <span className="text-[9px]">{log.sex} &bull; {log.contactNumber}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right pr-4 py-3">
-                          <Badge className={`${
-                            log.status === 'ON_TIME' 
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                              : log.status === 'LATE'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                          } text-[8.5px] font-black uppercase px-2.5 py-0.5 rounded-full`}>
-                            {log.status.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+              <button
+                onClick={() => setShowRegistryPanel(false)}
+                className="text-slate-400 hover:text-white transition-colors ml-1 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <Table>
+              <TableHeader className="bg-white/[0.02] border-b border-white/5">
+                <tr className="border-b border-white/5">
+                  <TableHead className="font-black text-[8.5px] uppercase pl-4 text-slate-400 py-2">Name</TableHead>
+                  <TableHead className="font-black text-[8.5px] uppercase text-slate-400 py-2">Unit</TableHead>
+                  <TableHead className="font-black text-[8.5px] uppercase text-right pr-4 text-slate-400 py-2">Status</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {sortedLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="text-center py-16 text-slate-500 font-bold uppercase italic text-[10px]">
+                      No records yet.
+                    </td>
+                  </tr>
+                ) : (
+                  sortedLogs.map((log) => (
+                    <tr key={log.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                      <td className="pl-4 py-3">
+                        <p className="font-extrabold text-[10px] text-white uppercase">{log.userName}</p>
+                        <p className="text-[8.5px] text-slate-400 mt-0.5">{log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'hh:mm a') : 'N/A'}</p>
+                      </td>
+                      <td className="text-[10px] font-semibold text-slate-300 uppercase pr-2 py-3">{log.unitName}</td>
+                      <td className="text-right pr-4 py-3">
+                        <Badge className={`${
+                          log.status === 'ON_TIME'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : log.status === 'LATE'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        } text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full`}>
+                          {log.status.replace('_', ' ')}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="border-t border-white/5 px-5 py-3 shrink-0">
+            <p className="text-[8px] font-black uppercase tracking-widest text-slate-600 text-center">
+              RSU EOMS • QR Scanner Kiosk Console
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Footer info line */}
-      <div className="w-full text-center z-10 border-t border-white/5 pt-3 mt-4 shrink-0">
-        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-          Romblon State University &bull; EOMS QR Scanner Kiosk Console
-        </p>
-      </div>
+      {/* ================================================================== */}
+      {/* NO ACTIVITY LOCKED OVERLAY                                          */}
+      {/* ================================================================== */}
+      {!paramActivityId && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm text-center p-8 space-y-4">
+          <ShieldAlert className="h-16 w-16 text-[#D4AF37] animate-pulse" />
+          <h3 className="text-xl font-black uppercase text-white">Scanner Locked</h3>
+          <p className="text-sm font-bold text-slate-400 max-w-sm leading-relaxed uppercase">
+            No activity session detected. Please select an active session from the Unit Activity manager and click Open Scanner.
+          </p>
+        </div>
+      )}
 
-      {/* CSS Radial Gradient overlay */}
+      {/* ================================================================== */}
+      {/* CSS: Scanning animation + html5-qrcode element overrides           */}
+      {/* ================================================================== */}
       <style jsx global>{`
-        .bg-radial-gradient {
-          background-image: radial-gradient(circle at center, #0e301b 0%, #08170e 100%);
+        @keyframes scanSweep {
+          0% { transform: translateY(-130px); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(130px); opacity: 0; }
         }
-        #reader-container video {
+
+        /* Force the html5-qrcode video to fill the full background div */
+        #reader-bg {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+        #reader-bg > div {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        #reader-bg video {
+          position: absolute !important;
+          inset: 0 !important;
           width: 100% !important;
           height: 100% !important;
           object-fit: cover !important;
+          z-index: 0 !important;
+        }
+        /* Hide default html5-qrcode UI elements: button bar, select, canvas overlay */
+        #reader-bg #reader-bg__scan_region img,
+        #reader-bg #reader-bg__dashboard,
+        #reader-bg #reader-bg__header_message,
+        #reader-bg button,
+        #reader-bg select,
+        #reader-bg__dashboard_section_swaplink {
+          display: none !important;
+        }
+        /* Hide the library's built-in green qr box border (we draw our own) */
+        #reader-bg canvas {
+          display: none !important;
         }
       `}</style>
 
-      {/* Kiosk Mode Paused Overlay */}
+      {/* ================================================================== */}
+      {/* KIOSK PAUSED OVERLAY — when not fullscreen                         */}
+      {/* ================================================================== */}
       {!isFullscreen && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center space-y-6 animate-in fade-in duration-300">
           <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] animate-pulse">

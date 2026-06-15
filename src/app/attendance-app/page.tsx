@@ -162,7 +162,7 @@ export default function RsuAttendanceApp() {
     setQrPayload(payloadString);
     
     // Construct QR rendering URL from API server
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(payloadString)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=700x700&data=${encodeURIComponent(payloadString)}`;
     setQrCodeUrl(qrUrl);
     setTimeLeft(60);
   };
@@ -292,32 +292,44 @@ export default function RsuAttendanceApp() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="flex flex-col items-center py-4">
-              {/* QR Render wrapper */}
-              <div className="relative bg-white p-4 rounded-2xl shadow-inner border border-slate-800 mb-4 h-[200px] w-[200px] flex items-center justify-center overflow-hidden">
-                {qrCodeUrl ? (
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="RSU Encrypted Rotation Token" 
-                    className="h-full w-full object-contain" 
-                  />
-                ) : (
-                  <Loader2 className="h-8 w-8 text-[#D4AF37] animate-spin" />
-                )}
+            <CardContent className="flex flex-col items-center py-4 px-4">
+              {/* QR Render wrapper — large, fills most of the phone screen */}
+              <div className="relative mb-5 w-full">
+                {/* Outer glow ring */}
+                <div className="absolute inset-0 rounded-3xl bg-emerald-500/10 blur-xl pointer-events-none" />
+                {/* Pulsing border ring */}
+                <div className="absolute -inset-1 rounded-3xl border-2 border-emerald-400/30 animate-pulse pointer-events-none" />
+                <div className="relative bg-white p-4 rounded-3xl shadow-2xl border-2 border-emerald-500/20 flex items-center justify-center aspect-square w-full">
+                  {qrCodeUrl ? (
+                    <img
+                      src={qrCodeUrl}
+                      alt="RSU Encrypted Rotation Token"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-12 w-12 text-[#D4AF37] animate-spin" />
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Generating QR...</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Progress counter */}
-              <div className="w-[200px] space-y-1">
+              <div className="w-full space-y-1.5">
                 <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  <span>Token Rotation</span>
-                  <span className="text-emerald-400 font-bold">{timeLeft}s remaining</span>
+                  <span>QR Token Rotation</span>
+                  <span className={`font-black text-sm tabular-nums ${timeLeft <= 10 ? 'text-rose-400' : 'text-emerald-400'}`}>{timeLeft}s</span>
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
+                <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-1000 ease-linear rounded-full ${timeLeft <= 10 ? 'bg-rose-500' : 'bg-emerald-500'}`}
                     style={{ width: `${(timeLeft / 60) * 100}%` }}
                   />
                 </div>
+                <p className="text-[8.5px] text-center text-slate-500 font-bold uppercase tracking-wide pt-0.5">
+                  QR code refreshes every 60 seconds for security
+                </p>
               </div>
             </CardContent>
 
