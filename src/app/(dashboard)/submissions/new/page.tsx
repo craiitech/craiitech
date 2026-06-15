@@ -219,6 +219,10 @@ export default function NewSubmissionPage() {
     return prevYearRisks.filter(r => r.status !== 'Closed');
   }, [prevYearRisks, selectedYear, hasPrevYearConfig]);
 
+  const isBlocked = useMemo(() => {
+    return !!(selectedYear && hasPrevYearConfig && (missingPrevYearSubmissions.length > 0 || openPrevYearRisks.length > 0));
+  }, [selectedYear, hasPrevYearConfig, missingPrevYearSubmissions, openPrevYearRisks]);
+
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!rawSubmissions) {
       return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
@@ -733,7 +737,20 @@ export default function NewSubmissionPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {showUpdateDialog === selectedReport && !showFormForUpdate ? (
+                                {isBlocked ? (
+                                    <div className="space-y-4">
+                                        <Alert variant="destructive">
+                                            <XCircle className="h-4 w-4" />
+                                            <AlertTitle className="font-extrabold uppercase text-[10px] text-destructive tracking-wider">Submission Locked</AlertTitle>
+                                            <AlertDescription className="text-xs font-semibold leading-relaxed mt-1 text-slate-800">
+                                                You cannot submit or update documents for {selectedYear} because your unit has pending requirements or open risks for the previous year ({selectedYear - 1}). Please refer to the warning banner above for the complete list of outstanding items.
+                                            </AlertDescription>
+                                        </Alert>
+                                        <Button className="w-full h-10 font-black uppercase text-[10px] tracking-wider bg-slate-200 text-slate-400 border-none cursor-not-allowed hover:bg-slate-200" disabled>
+                                            Submission Locked
+                                        </Button>
+                                    </div>
+                                ) : showUpdateDialog === selectedReport && !showFormForUpdate ? (
                                     <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
                                         <AlertDialogContent>
                                             <AlertDialogHeader>
