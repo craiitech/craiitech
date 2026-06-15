@@ -114,6 +114,7 @@ export default function VisitorLogbookPage() {
   const [logoutSuccessVisitorName, setLogoutSuccessVisitorName] = useState<string | null>(null);
   const [localUpdateTrigger, setLocalUpdateTrigger] = useState<number>(0);
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
+  const [qrUrl, setQrUrl] = useState<string>('');
 
   // ARTA CSM survey kiosk states
   const [csmLanguage, setCsmLanguage] = useState<'EN' | 'FIL'>('EN');
@@ -333,6 +334,19 @@ export default function VisitorLogbookPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Generate QR code URL on client side to avoid SSR window mismatch and image optimization issues
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userProfile) {
+      const officeNameStr = isCampusOdimoOrDirector 
+        ? "OFFICE OF THE CAMPUS DIRECTOR" 
+        : (unitDoc?.name || userProfile.unitName || 'Office');
+        
+      const fullUrl = `${window.location.origin}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      
+      setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(fullUrl)}`);
+    }
+  }, [userProfile, unitDoc, isCampusOdimoOrDirector]);
 
   // Form Reset timer on success
   useEffect(() => {
@@ -970,15 +984,18 @@ export default function VisitorLogbookPage() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="bg-white p-2.5 rounded-2xl border border-white/15 shadow-inner shrink-0 relative w-[130px] h-[130px]">
-                  <Image
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                      `${typeof window !== 'undefined' ? window.location.origin : ''}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'))}`
-                    )}`}
-                    alt="Mobile Sign In QR Code"
-                    fill
-                    className="object-contain p-1"
-                  />
+                <div className="bg-white p-2.5 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[130px] h-[130px] flex items-center justify-center">
+                  {qrUrl ? (
+                    <img
+                      src={qrUrl}
+                      alt="Mobile Sign In QR Code"
+                      className="w-[110px] h-[110px] object-contain"
+                    />
+                  ) : (
+                    <div className="w-[110px] h-[110px] flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5 text-center sm:text-left">
                   <p className="text-xs font-black uppercase tracking-wide text-white">Sign In on your device</p>
