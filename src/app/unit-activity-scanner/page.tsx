@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { 
   collection, 
@@ -37,8 +36,14 @@ export default function UnitActivityScannerPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const searchParams = useSearchParams();
-  const paramActivityId = searchParams.get('activityId');
+  const [paramActivityId, setParamActivityId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      setParamActivityId(searchParams.get('activityId'));
+    }
+  }, []);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
