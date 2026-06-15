@@ -45,7 +45,10 @@ import {
   Sparkles,
   ArrowLeft,
   Building2,
-  Check
+  Check,
+  Pencil,
+  StopCircle,
+  X
 } from 'lucide-react';
 
 export default function UnitActivityPage() {
@@ -97,7 +100,17 @@ export default function UnitActivityPage() {
   const [newActivityStart, setNewActivityStart] = useState('');
   const [newActivityEnd, setNewActivityEnd] = useState('');
   const [lateThreshold, setLateThreshold] = useState('15');
+  const [newRequiresLogout, setNewRequiresLogout] = useState(false);
   const [isCreatingActivity, setIsCreatingActivity] = useState(false);
+
+  // --- EDIT ACTIVITY STATE ---
+  const [editingActivity, setEditingActivity] = useState<AttendanceActivity | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editStart, setEditStart] = useState('');
+  const [editEnd, setEditEnd] = useState('');
+  const [editThreshold, setEditThreshold] = useState('');
+  const [editRequiresLogout, setEditRequiresLogout] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +137,8 @@ export default function UnitActivityPage() {
         startDateTime: start,
         endDateTime: end,
         lateThresholdMinutes: Number(lateThreshold),
-        status: 'ACTIVE', // Default active
+        requiresLogout: newRequiresLogout,
+        status: 'ACTIVE',
         unitId: userProfile.unitId || 'all',
         campusId: userProfile.campusId || 'all',
         createdAt: new Date(),
@@ -136,11 +150,89 @@ export default function UnitActivityPage() {
       setNewActivityName('');
       setNewActivityStart('');
       setNewActivityEnd('');
+      setNewRequiresLogout(false);
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'Failed to create activity.', variant: 'destructive' });
     } finally {
       setIsCreatingActivity(false);
+    }
+  };
+
+  // --- EDIT & END ACTIVITY HANDLERS ---
+  const openEditModal = (act: AttendanceActivity) => {
+    setEditingActivity(act);
+    setEditName(act.name);
+    
+    // Parse times for datetime-local input (format: yyyy-MM-ddTHH:mm)
+    const startVal = act.startDateTime?.toDate 
+      ? act.startDateTime.toDate() 
+      : (act.startDateTime?.seconds ? new Date(act.startDateTime.seconds * 1000) : new Date(act.startDateTime));
+    const endVal = act.endDateTime?.toDate 
+      ? act.endDateTime.toDate() 
+      : (act.endDateTime?.seconds ? new Date(act.endDateTime.seconds * 1000) : new Date(act.endDateTime));
+
+    setEditStart(format(startVal, "yyyy-MM-dd'T'HH:mm"));
+    setEditEnd(format(endVal, "yyyy-MM-dd'T'HH:mm"));
+    setEditThreshold(String(act.lateThresholdMinutes || 0));
+    setEditRequiresLogout(act.requiresLogout === true);
+  };
+
+  const handleEditActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !editingActivity) return;
+
+    if (!editName.trim() || !editStart || !editEnd) {
+      toast({ title: 'Validation Error', description: 'Please complete all form fields.', variant: 'destructive' });
+      return;
+    }
+
+    const start = new Date(editStart);
+    const end = new Date(editEnd);
+    if (end <= start) {
+      toast({ title: 'Validation Error', description: 'End time must be after start time.', variant: 'destructive' });
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const docRef = doc(firestore, 'unitActivities', editingActivity.id);
+      
+      const updatedActivity: AttendanceActivity = {
+        ...editingActivity,
+        name: editName.trim(),
+        startDateTime: start,
+        endDateTime: end,
+        lateThresholdMinutes: Number(editThreshold),
+        requiresLogout: editRequiresLogout
+      };
+
+      await setDoc(docRef, updatedActivity);
+      toast({ title: 'Activity Updated', description: `Successfully updated "${editName}"` });
+      setEditingActivity(null);
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to update activity.', variant: 'destructive' });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleEndActivity = async (act: AttendanceActivity) => {
+    if (!firestore || !window.confirm(`Are you sure you want to end "${act.name}"? This will disable scanning and mark it as COMPLETED.`)) return;
+    try {
+      const docRef = doc(firestore, 'unitActivities', act.id);
+      
+      const updatedActivity: AttendanceActivity = {
+        ...act,
+        status: 'COMPLETED'
+      };
+
+      await setDoc(docRef, updatedActivity);
+      toast({ title: 'Activity Ended', description: `Successfully completed "${act.name}"` });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to end activity.', variant: 'destructive' });
     }
   };
 
@@ -325,35 +417,54 @@ export default function UnitActivityPage() {
       const finalContact = contactNumber || officialBinding.contactNumber || 'N/A';
       const finalSex = sex || officialBinding.sex || 'Did not specify';
 
-      // 4. Calculate Attendance Status
+      // 4. Calculate Attendance Status (login)
       const scanTime = Date.now();
       const actStart = activeActivity.startDateTime.toDate ? activeActivity.startDateTime.toDate().getTime() : new Date(activeActivity.startDateTime).getTime();
       const actEnd = activeActivity.endDateTime.toDate ? activeActivity.endDateTime.toDate().getTime() : new Date(activeActivity.endDateTime).getTime();
-      
-      const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
 
       let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
-      if (scanTime < actStart) {
-        logStatus = 'ON_TIME'; // Scanned early
-      } else if (scanTime <= lateCutoff) {
-        logStatus = 'ON_TIME';
-      } else if (scanTime <= actEnd) {
-        logStatus = 'LATE';
+      if (activeActivity.lateThresholdMinutes === 0) {
+        // threshold=0 means no late marking — everyone within window is ON_TIME
+        logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
       } else {
-        logStatus = 'OUTSIDE_WINDOW';
+        const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
+        if (scanTime < actStart || scanTime <= lateCutoff) {
+          logStatus = 'ON_TIME';
+        } else if (scanTime <= actEnd) {
+          logStatus = 'LATE';
+        } else {
+          logStatus = 'OUTSIDE_WINDOW';
+        }
       }
 
-      // 5. Write to Firestore activity logs with unique compound ID to block duplicate entries
+      // 5. Write to Firestore
       const logId = `${activeActivity.id}_${userId}`;
       const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
 
       const existingLog = await getDoc(logRef);
       if (existingLog.exists()) {
-        setScanResult({
-          status: 'warning',
-          message: `${userName} has already signed in for this session. Duplicate scan ignored.`,
-          details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
-        });
+        const existingData = existingLog.data() as ActivityAttendanceLog;
+        // Login+Logout mode: second scan = logout
+        if (activeActivity.requiresLogout && !existingData.logoutAt) {
+          await setDoc(logRef, { ...existingData, logoutAt: new Date() });
+          setScanResult({
+            status: 'success',
+            message: `Logout recorded for ${userName}.`,
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'LOGOUT' }
+          });
+        } else if (activeActivity.requiresLogout && existingData.logoutAt) {
+          setScanResult({
+            status: 'warning',
+            message: `${userName} has already logged in and out. Duplicate scan ignored.`,
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
+          });
+        } else {
+          setScanResult({
+            status: 'warning',
+            message: `${userName} has already signed in for this session. Duplicate scan ignored.`,
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
+          });
+        }
         return;
       }
 
@@ -373,17 +484,18 @@ export default function UnitActivityPage() {
 
       await setDoc(logRef, newLog);
 
-      // Play internal web success audio indicator (optional visual feedback)
       setScanResult({
         status: logStatus === 'ON_TIME' ? 'success' : 'warning',
-        message: logStatus === 'ON_TIME' 
-          ? `Verified! Signed on time.` 
-          : `Lateness recorded. Threshold was ${activeActivity.lateThresholdMinutes} mins.`,
+        message: logStatus === 'ON_TIME'
+          ? `Login verified! Signed in on time.${ activeActivity.requiresLogout ? ' Scan again to logout.' : '' }`
+          : logStatus === 'LATE'
+          ? `Late login recorded. Threshold was ${activeActivity.lateThresholdMinutes} mins.`
+          : `Scan outside activity window — recorded as OUTSIDE WINDOW.`,
         details: {
           name: userName,
           office: unitName,
           time: format(new Date(), 'hh:mm a'),
-          status: logStatus.replace('_', ' ')
+          status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW'
         }
       });
 
@@ -413,18 +525,24 @@ export default function UnitActivityPage() {
     }
 
     const activityName = activeActivity?.name || 'All-Sessions';
+    const hasLogout = activeActivity?.requiresLogout === true;
+    const headers = ['Name', 'Unit/Office', 'Contact Number', 'Sex', 'Login Time', ...(hasLogout ? ['Logout Time'] : []), 'Attendance Status', 'Device Fingerprint'];
     const csvContent = [
-      ['Name', 'Unit/Office', 'Contact Number', 'Sex', 'Scanned Time', 'Attendance Status', 'Device Fingerprint'],
+      headers,
       ...sortedLogs.map(log => {
-        const timeStr = log.scannedAt?.toDate 
+        const loginStr = log.scannedAt?.toDate 
           ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') 
           : 'N/A';
+        const logoutStr = log.logoutAt?.toDate
+          ? format(log.logoutAt.toDate(), 'MM/dd/yyyy hh:mm a')
+          : log.logoutAt ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a') : 'Not logged out';
         return [
           log.userName, 
           log.unitName, 
           log.contactNumber || 'N/A', 
           log.sex || 'Did not specify', 
-          timeStr, 
+          loginStr,
+          ...(hasLogout ? [logoutStr] : []),
           log.status, 
           log.deviceFingerprint
         ];
@@ -447,6 +565,11 @@ export default function UnitActivityPage() {
       return;
     }
 
+    if (activeActivity.status !== 'COMPLETED') {
+      toast({ title: 'Print Locked', description: 'Printing is only allowed once the activity attendance session has ended (status is COMPLETED).', variant: 'destructive' });
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast({ title: 'Pop-up Blocked', description: 'Please allow pop-ups to print the attendance sheet.', variant: 'destructive' });
@@ -463,6 +586,7 @@ export default function UnitActivityPage() {
       : 'N/A';
 
     const logs = sortedLogs || [];
+    const isLogoutMode = activeActivity.requiresLogout === true;
 
     // Compile rows (up to a minimum of 35)
     let tableRowsHtml = '';
@@ -473,22 +597,40 @@ export default function UnitActivityPage() {
         const checkInTime = log.scannedAt?.toDate 
           ? format(log.scannedAt.toDate(), 'hh:mm a') 
           : 'N/A';
-        tableRowsHtml += `
-          <tr>
-            <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${i + 1}</td>
-            <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
-            <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
-            <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
-            <td style="border: 1px solid black; padding: 6px; text-align: center;">
-              <span style="font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: normal; color: #111;">
-                ${log.userName}
-              </span>
-              <span style="font-size: 8px; color: #666; display: block; margin-top: 2px;">
-                ✓ Verified (${checkInTime})
-              </span>
-            </td>
-          </tr>
-        `;
+        
+        if (isLogoutMode) {
+          const checkOutTime = log.logoutAt?.toDate
+            ? format(log.logoutAt.toDate(), 'hh:mm a')
+            : log.logoutAt ? format(new Date(log.logoutAt), 'hh:mm a') : 'Not logged out';
+          
+          tableRowsHtml += `
+            <tr>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${i + 1}</td>
+              <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 10px; font-weight: bold;">${checkInTime}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 10px; font-weight: bold;">${checkOutTime}</td>
+            </tr>
+          `;
+        } else {
+          tableRowsHtml += `
+            <tr>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; font-size: 11px;">${i + 1}</td>
+              <td style="border: 1px solid black; padding: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left;">${log.userName}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${log.contactNumber || 'N/A'}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center; font-size: 11px;">${log.sex || 'Did not specify'}</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: center;">
+                <span style="font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: normal; color: #111;">
+                  ${log.userName}
+                </span>
+                <span style="font-size: 8px; color: #666; display: block; margin-top: 2px;">
+                  ✓ Verified (${checkInTime})
+                </span>
+              </td>
+            </tr>
+          `;
+        }
       } else {
         tableRowsHtml += `
           <tr>
@@ -497,10 +639,34 @@ export default function UnitActivityPage() {
             <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
             <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
             <td style="border: 1px solid black; padding: 6px;">&nbsp;</td>
+            ${isLogoutMode ? '<td style="border: 1px solid black; padding: 6px;">&nbsp;</td>' : ''}
           </tr>
         `;
       }
     }
+
+    const tableHeaderHtml = isLogoutMode ? `
+      <thead>
+        <tr>
+          <th style="width: 6%;">No.</th>
+          <th style="width: 34%;">Name</th>
+          <th style="width: 20%;">Contact Number</th>
+          <th style="width: 10%;">Sex</th>
+          <th style="width: 15%;">Login Time</th>
+          <th style="width: 15%;">Logout Time</th>
+        </tr>
+      </thead>
+    ` : `
+      <thead>
+        <tr>
+          <th style="width: 6%;">No.</th>
+          <th style="width: 40%;">Name</th>
+          <th style="width: 22%;">Contact Number</th>
+          <th style="width: 12%;">Sex</th>
+          <th style="width: 20%;">Signature</th>
+        </tr>
+      </thead>
+    `;
 
     printWindow.document.write(`
       <html>
@@ -627,15 +793,7 @@ export default function UnitActivityPage() {
 
           <!-- Main Table -->
           <table>
-            <thead>
-              <tr>
-                <th style="width: 6%;">No.</th>
-                <th style="width: 40%;">Name</th>
-                <th style="width: 22%;">Contact Number</th>
-                <th style="width: 12%;">Sex</th>
-                <th style="width: 20%;">Signature</th>
-              </tr>
-            </thead>
+            ${tableHeaderHtml}
             <tbody>
               ${tableRowsHtml}
             </tbody>
@@ -782,6 +940,33 @@ export default function UnitActivityPage() {
                       className="h-10 text-xs font-bold bg-white border-slate-200"
                     />
                   </div>
+
+                  {/* Attendance Type (Login/Logout Mode) */}
+                  <div className="space-y-2 pt-1">
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5 block">Attendance Type</label>
+                    <div className="flex gap-4 border border-slate-200 rounded-xl p-3 bg-white">
+                      <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="newRequiresLogout"
+                          checked={!newRequiresLogout}
+                          onChange={() => setNewRequiresLogout(false)}
+                          className="h-4 w-4 accent-[#1B6535]"
+                        />
+                        Login Only
+                      </label>
+                      <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="newRequiresLogout"
+                          checked={newRequiresLogout}
+                          onChange={() => setNewRequiresLogout(true)}
+                          className="h-4 w-4 accent-[#1B6535]"
+                        />
+                        Login &amp; Logout
+                      </label>
+                    </div>
+                  </div>
                 </CardContent>
 
                 <CardFooter className="pb-6">
@@ -810,8 +995,9 @@ export default function UnitActivityPage() {
                       <TableHead className="font-black text-[10px] uppercase pl-4">Session Name</TableHead>
                       <TableHead className="font-black text-[10px] uppercase">Start Time</TableHead>
                       <TableHead className="font-black text-[10px] uppercase">End Time</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase text-center font-bold">Late Threshold</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase text-right pr-4">Scope Actions</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-center">Threshold</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-center">Status</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-right pr-4">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -829,36 +1015,81 @@ export default function UnitActivityPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      sortedActivities.map(act => (
-                        <TableRow key={act.id} className="hover:bg-slate-50/50">
-                          <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800">{act.name}</TableCell>
-                          <TableCell className="text-xs font-semibold text-slate-500">
-                            {act.startDateTime?.toDate 
-                              ? format(act.startDateTime.toDate(), 'MM/dd/yyyy hh:mm a') 
-                              : format(new Date(act.startDateTime), 'MM/dd/yyyy hh:mm a')}
-                          </TableCell>
-                          <TableCell className="text-xs font-semibold text-slate-500">
-                            {act.endDateTime?.toDate 
-                              ? format(act.endDateTime.toDate(), 'MM/dd/yyyy hh:mm a') 
-                              : format(new Date(act.endDateTime), 'MM/dd/yyyy hh:mm a')}
-                          </TableCell>
-                          <TableCell className="text-center py-3 text-xs font-bold text-[#1B6535]">
-                            {act.lateThresholdMinutes} mins
-                          </TableCell>
-                          <TableCell className="text-right pr-4 py-3">
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                window.open(`/unit-activity-scanner?activityId=${act.id}`, '_blank');
-                              }}
-                              className="h-8 text-[9px] font-black uppercase tracking-widest text-[#1B6535] border-emerald-500/20 hover:bg-emerald-50"
-                            >
-                              Open Scanner
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      sortedActivities.map(act => {
+                        const isEnded = act.status === 'COMPLETED' || act.status === 'CANCELLED';
+                        return (
+                          <TableRow key={act.id} className="hover:bg-slate-50/50">
+                            <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 max-w-[180px]">
+                              <span className="block truncate">{act.name}</span>
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-slate-500">
+                              {act.startDateTime?.toDate 
+                                ? format(act.startDateTime.toDate(), 'MM/dd/yyyy hh:mm a') 
+                                : format(new Date(act.startDateTime), 'MM/dd/yyyy hh:mm a')}
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-slate-500">
+                              {act.endDateTime?.toDate 
+                                ? format(act.endDateTime.toDate(), 'MM/dd/yyyy hh:mm a') 
+                                : format(new Date(act.endDateTime), 'MM/dd/yyyy hh:mm a')}
+                            </TableCell>
+                            <TableCell className="text-center py-3 text-xs font-bold text-[#1B6535]">
+                              {act.lateThresholdMinutes} mins
+                            </TableCell>
+                            {/* Status badge */}
+                            <TableCell className="text-center py-3">
+                              <Badge className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                act.status === 'ACTIVE' || act.status === 'UPCOMING'
+                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                                  : act.status === 'COMPLETED'
+                                  ? 'bg-slate-100 text-slate-500 border border-slate-300'
+                                  : 'bg-rose-100 text-rose-600 border border-rose-300'
+                              }`}>
+                                {act.status}
+                              </Badge>
+                            </TableCell>
+                            {/* Action buttons */}
+                            <TableCell className="text-right pr-4 py-3">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* Open Scanner — disabled if ended */}
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isEnded}
+                                  onClick={() => {
+                                    window.open(`/unit-activity-scanner?activityId=${act.id}`, '_blank');
+                                  }}
+                                  className="h-8 text-[9px] font-black uppercase tracking-widest text-[#1B6535] border-emerald-500/20 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  <Camera className="h-3 w-3 mr-1" />
+                                  Scanner
+                                </Button>
+                                {/* Edit */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openEditModal(act)}
+                                  className="h-8 text-[9px] font-black uppercase tracking-widest text-blue-600 border-blue-300/50 hover:bg-blue-50"
+                                >
+                                  <Pencil className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                {/* End Activity — only if not already ended */}
+                                {!isEnded && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEndActivity(act)}
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-300/50 hover:bg-rose-50"
+                                  >
+                                    <StopCircle className="h-3 w-3 mr-1" />
+                                    End
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -1023,8 +1254,9 @@ export default function UnitActivityPage() {
                 <Button 
                   size="sm" 
                   onClick={handlePrintAttendanceSheet}
-                  disabled={!activeActivity}
-                  className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-white border border-[#1B6535]/25 hover:bg-slate-50 text-[#1B6535] shadow-sm flex items-center justify-center gap-1.5"
+                  disabled={!activeActivity || activeActivity.status !== 'COMPLETED'}
+                  className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-white border border-[#1B6535]/25 hover:bg-slate-50 text-[#1B6535] shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40"
+                  title={activeActivity?.status !== 'COMPLETED' ? "Print attendance sheet is locked until the activity has ended." : "Print attendance sheet"}
                 >
                   <Calendar className="h-3.5 w-3.5 mr-1 text-amber-500" /> Print Official Sheet
                 </Button>
@@ -1045,7 +1277,10 @@ export default function UnitActivityPage() {
                     <TableHead className="font-black text-[10px] uppercase">Unit/Office</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Contact Number</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Sex</TableHead>
-                    <TableHead className="font-black text-[10px] uppercase">Scanned Time</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase">{activeActivity?.requiresLogout ? 'Login Time' : 'Scanned Time'}</TableHead>
+                    {activeActivity?.requiresLogout && (
+                      <TableHead className="font-black text-[10px] uppercase">Logout Time</TableHead>
+                    )}
                     <TableHead className="font-black text-[10px] uppercase text-center font-bold">Device Binding</TableHead>
                     <TableHead className="font-black text-[10px] uppercase text-right pr-4">Lateness status</TableHead>
                   </TableRow>
@@ -1053,7 +1288,7 @@ export default function UnitActivityPage() {
                 <TableBody>
                   {!sortedLogs || sortedLogs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
+                      <TableCell colSpan={activeActivity?.requiresLogout ? 8 : 7} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
                         No attendance entries logged for this period.
                       </TableCell>
                     </TableRow>
@@ -1077,6 +1312,13 @@ export default function UnitActivityPage() {
                             ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') 
                             : 'N/A'}
                         </TableCell>
+                        {activeActivity?.requiresLogout && (
+                          <TableCell className="text-xs font-semibold text-slate-500">
+                            {log.logoutAt?.toDate
+                              ? format(log.logoutAt.toDate(), 'MM/dd/yyyy hh:mm a')
+                              : log.logoutAt ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a') : 'Not logged out'}
+                          </TableCell>
+                        )}
                         <TableCell className="text-center py-3 text-[10px] font-mono text-slate-400">
                           {log.deviceFingerprint?.substring(0, 15)}...
                         </TableCell>
@@ -1179,6 +1421,129 @@ export default function UnitActivityPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ================================================================== */}
+      {/* EDIT ACTIVITY MODAL                                                 */}
+      {/* ================================================================== */}
+      {editingActivity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-black uppercase text-slate-800 tracking-tight flex items-center gap-2">
+                  <Pencil className="h-4 w-4 text-blue-500" />
+                  Edit Activity
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{editingActivity.name}</p>
+              </div>
+              <button
+                onClick={() => setEditingActivity(null)}
+                className="text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleEditActivity}>
+              <div className="px-6 py-5 space-y-4">
+                {/* Activity Name */}
+                <div className="space-y-1">
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Activity Name</label>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="e.g. QMS Audit Briefing"
+                    className="h-10 text-xs font-bold bg-white border-slate-200"
+                  />
+                </div>
+
+                {/* Start DateTime */}
+                <div className="space-y-1">
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Start DateTime</label>
+                  <Input
+                    type="datetime-local"
+                    value={editStart}
+                    onChange={(e) => setEditStart(e.target.value)}
+                    className="h-10 text-xs font-bold bg-white border-slate-200"
+                  />
+                </div>
+
+                {/* End DateTime */}
+                <div className="space-y-1">
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">End DateTime</label>
+                  <Input
+                    type="datetime-local"
+                    value={editEnd}
+                    onChange={(e) => setEditEnd(e.target.value)}
+                    className="h-10 text-xs font-bold bg-white border-slate-200"
+                  />
+                </div>
+
+                {/* Late Threshold */}
+                <div className="space-y-1">
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Late Threshold (minutes)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editThreshold}
+                    onChange={(e) => setEditThreshold(e.target.value)}
+                    className="h-10 text-xs font-bold bg-white border-slate-200"
+                  />
+                </div>
+
+                {/* Attendance Type (Login/Logout Mode) */}
+                <div className="space-y-2 pt-1">
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5 block">Attendance Type</label>
+                  <div className="flex gap-4 border border-slate-200 rounded-xl p-3 bg-white">
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editRequiresLogout"
+                        checked={!editRequiresLogout}
+                        onChange={() => setEditRequiresLogout(false)}
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      Login Only
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editRequiresLogout"
+                        checked={editRequiresLogout}
+                        onChange={() => setEditRequiresLogout(true)}
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      Login &amp; Logout
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingActivity(null)}
+                  className="h-9 px-5 text-[10px] font-black uppercase tracking-wider"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="h-9 px-6 bg-blue-600 hover:bg-blue-700 border-none text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-2"
+                >
+                  {isSavingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

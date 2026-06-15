@@ -1094,6 +1094,7 @@ export type AttendanceActivity = {
   startDateTime: any; // Timestamp
   endDateTime: any; // Timestamp
   lateThresholdMinutes: number;
+  requiresLogout: boolean; // true = Login+Logout mode, false = Login Only
   status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   unitId: string;
   campusId: string;
@@ -1121,7 +1122,8 @@ export type ActivityAttendanceLog = {
   unitId: string;
   unitName: string;
   deviceFingerprint: string;
-  scannedAt: any; // Timestamp
+  scannedAt: any; // Login Timestamp
+  logoutAt?: any; // Logout Timestamp (only when requiresLogout=true)
   status: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' | 'REJECTED';
   remarks?: string;
   contactNumber?: string;

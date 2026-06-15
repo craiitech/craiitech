@@ -254,17 +254,19 @@ function UnitActivityScannerTerminal() {
       const scanTime = Date.now();
       const actStart = activeActivity.startDateTime.toDate ? activeActivity.startDateTime.toDate().getTime() : new Date(activeActivity.startDateTime).getTime();
       const actEnd = activeActivity.endDateTime.toDate ? activeActivity.endDateTime.toDate().getTime() : new Date(activeActivity.endDateTime).getTime();
-      const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
 
       let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
-      if (scanTime < actStart) {
-        logStatus = 'ON_TIME';
-      } else if (scanTime <= lateCutoff) {
-        logStatus = 'ON_TIME';
-      } else if (scanTime <= actEnd) {
-        logStatus = 'LATE';
+      if (activeActivity.lateThresholdMinutes === 0) {
+        logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
       } else {
-        logStatus = 'OUTSIDE_WINDOW';
+        const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
+        if (scanTime < actStart || scanTime <= lateCutoff) {
+          logStatus = 'ON_TIME';
+        } else if (scanTime <= actEnd) {
+          logStatus = 'LATE';
+        } else {
+          logStatus = 'OUTSIDE_WINDOW';
+        }
       }
 
       const logId = `${activeActivity.id}_${userId}`;
@@ -272,11 +274,27 @@ function UnitActivityScannerTerminal() {
 
       const existingLog = await getDoc(logRef);
       if (existingLog.exists()) {
-        setScanResult({
-          status: 'warning',
-          message: `${userName} has already signed in for this session. Duplicate scan ignored.`,
-          details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
-        });
+        const existingData = existingLog.data() as ActivityAttendanceLog;
+        if (activeActivity.requiresLogout && !existingData.logoutAt) {
+          await setDoc(logRef, { ...existingData, logoutAt: new Date() });
+          setScanResult({
+            status: 'success',
+            message: `Logout recorded for ${userName}.`,
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'LOGOUT' }
+          });
+        } else if (activeActivity.requiresLogout && existingData.logoutAt) {
+          setScanResult({
+            status: 'warning',
+            message: `${userName} has already logged in and out. Duplicate scan ignored.`,
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
+          });
+        } else {
+          setScanResult({
+            status: 'warning',
+            message: `${userName} has already signed in for this session. Duplicate scan ignored.`,
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
+          });
+        }
         return;
       }
 
@@ -299,13 +317,15 @@ function UnitActivityScannerTerminal() {
       setScanResult({
         status: logStatus === 'ON_TIME' ? 'success' : 'warning',
         message: logStatus === 'ON_TIME' 
-          ? `Verified! Signed on time.` 
-          : `Lateness recorded. Threshold was ${activeActivity.lateThresholdMinutes} mins.`,
+          ? `Verified! Signed on time.${ activeActivity.requiresLogout ? ' Scan again to logout.' : '' }` 
+          : logStatus === 'LATE'
+          ? `Lateness recorded. Threshold was ${activeActivity.lateThresholdMinutes} mins.`
+          : `Scan outside activity window — recorded as OUTSIDE WINDOW.`,
         details: {
           name: userName,
           office: unitName,
           time: format(new Date(), 'hh:mm a'),
-          status: logStatus.replace('_', ' ')
+          status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW'
         }
       });
 
