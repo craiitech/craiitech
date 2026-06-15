@@ -112,6 +112,10 @@ export default function UnitActivityPage() {
   const [editRequiresLogout, setEditRequiresLogout] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // --- DELETE ACTIVITY STATE ---
+  const [confirmDeleteActivityId, setConfirmDeleteActivityId] = useState<string | null>(null);
+  const [isDeletingActivityId, setIsDeletingActivityId] = useState<string | null>(null);
+
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !userProfile) return;
@@ -233,6 +237,44 @@ export default function UnitActivityPage() {
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'Failed to end activity.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: string) => {
+    if (!firestore) return;
+    setIsDeletingActivityId(activityId);
+    try {
+      // 1. Delete all attendance logs matching this activityId
+      const logsCol = collection(firestore, 'unitActivityAttendanceLogs');
+      const q = query(logsCol, where('activityId', '==', activityId));
+      const snapshot = await getDocs(q);
+      const deletePromises = snapshot.docs.map(docSnap => 
+        deleteDoc(doc(firestore, 'unitActivityAttendanceLogs', docSnap.id))
+      );
+      await Promise.all(deletePromises);
+
+      // 2. Delete the activity document itself
+      await deleteDoc(doc(firestore, 'unitActivities', activityId));
+
+      // 3. Reset selected activity filter if deleted activity was active
+      if (selectedActivityId === activityId) {
+        setSelectedActivityId('all');
+      }
+
+      toast({ 
+        title: 'Activity Deleted', 
+        description: 'Activity and its attendance logs have been permanently deleted.' 
+      });
+    } catch (err) {
+      console.error(err);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to delete activity.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setConfirmDeleteActivityId(null);
+      setIsDeletingActivityId(null);
     }
   };
 
@@ -1085,43 +1127,85 @@ export default function UnitActivityPage() {
                             </TableCell>
                             {/* Action buttons */}
                             <TableCell className="text-right pr-4 py-3">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {/* Open Scanner — disabled if ended */}
-                                <Button 
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={isEnded}
-                                  onClick={() => {
-                                    window.open(`/unit-activity-scanner?activityId=${act.id}`, '_blank');
-                                  }}
-                                  className="h-8 text-[9px] font-black uppercase tracking-widest text-[#1B6535] border-emerald-500/20 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                  <Camera className="h-3 w-3 mr-1" />
-                                  Scanner
-                                </Button>
-                                {/* Edit */}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openEditModal(act)}
-                                  className="h-8 text-[9px] font-black uppercase tracking-widest text-blue-600 border-blue-300/50 hover:bg-blue-50"
-                                >
-                                  <Pencil className="h-3 w-3 mr-1" />
-                                  Edit
-                                </Button>
-                                {/* End Activity — only if not already ended */}
-                                {!isEnded && (
+                              {confirmDeleteActivityId === act.id ? (
+                                <div className="flex items-center justify-end gap-1.5 animate-in fade-in duration-200">
+                                  <span className="text-[10px] font-black uppercase text-rose-600 tracking-wider mr-1 animate-pulse">
+                                    Confirm delete?
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={isDeletingActivityId === act.id}
+                                    onClick={() => handleDeleteActivity(act.id)}
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest bg-rose-600 hover:bg-rose-700 text-white border-none flex items-center gap-1"
+                                  >
+                                    {isDeletingActivityId === act.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
+                                    Yes, Delete
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleEndActivity(act)}
+                                    disabled={isDeletingActivityId === act.id}
+                                    onClick={() => setConfirmDeleteActivityId(null)}
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-slate-600 border-slate-300 hover:bg-slate-50 flex items-center gap-1"
+                                  >
+                                    <X className="h-3 w-3" />
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* Open Scanner — disabled if ended */}
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={isEnded}
+                                    onClick={() => {
+                                      window.open(`/unit-activity-scanner?activityId=${act.id}`, '_blank');
+                                    }}
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-[#1B6535] border-emerald-500/20 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    <Camera className="h-3 w-3 mr-1" />
+                                    Scanner
+                                  </Button>
+                                  {/* Edit */}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openEditModal(act)}
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-blue-600 border-blue-300/50 hover:bg-blue-50"
+                                  >
+                                    <Pencil className="h-3 w-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                  {/* End Activity — only if not already ended */}
+                                  {!isEnded && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleEndActivity(act)}
+                                      className="h-8 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-300/50 hover:bg-rose-50"
+                                    >
+                                      <StopCircle className="h-3 w-3 mr-1" />
+                                      End
+                                    </Button>
+                                  )}
+                                  {/* Delete */}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setConfirmDeleteActivityId(act.id)}
                                     className="h-8 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-300/50 hover:bg-rose-50"
                                   >
-                                    <StopCircle className="h-3 w-3 mr-1" />
-                                    End
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
                                   </Button>
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
