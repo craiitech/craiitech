@@ -895,7 +895,7 @@ export default function VisitorLogbookPage() {
   // officeName is dynamically defined above
 
   return (
-    <div className="relative min-h-screen w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-hidden p-6 md:p-12">
+    <div className="relative min-h-screen w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-y-auto xl:overflow-hidden p-4 md:p-6 lg:p-8">
       {/* Decorative shimmers */}
       <div className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-[#1B6535]/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 -right-1/4 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none" />
@@ -948,52 +948,56 @@ export default function VisitorLogbookPage() {
       </div>
 
       {/* Main layout wrapper */}
-      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-8 xl:gap-8 max-w-7xl w-full mx-auto my-8 z-10">
+      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-6 xl:gap-8 max-w-7xl w-full mx-auto my-4 xl:my-6 z-10 xl:h-[calc(100vh-160px)] xl:min-h-[580px] xl:max-h-[750px]">
         
         {/* Left column: Welcome, date/time info */}
-        <div className="w-full xl:w-[28%] flex flex-col justify-center text-center xl:text-left space-y-6">
-          <div className="flex justify-center xl:justify-start">
-            <div className="relative h-28 w-28 md:h-36 md:w-36 transition-all hover:scale-105 duration-300">
-              <Image 
-                src={logoSrc} 
-                alt="University Logo" 
-                fill 
-                className="object-contain" 
-                priority
-              />
+        <div className="w-full xl:w-[28%] flex flex-col justify-between text-center xl:text-left space-y-6 xl:space-y-0 py-2">
+          
+          {/* Logo and Titles */}
+          <div className="space-y-4">
+            <div className="flex justify-center xl:justify-start">
+              <div className="relative h-20 w-20 md:h-24 md:w-24 transition-all hover:scale-105 duration-300">
+                <Image 
+                  src={logoSrc} 
+                  alt="University Logo" 
+                  fill 
+                  className="object-contain" 
+                  priority
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
+                <Sparkles className="h-3 w-3" /> Romblon State University
+              </span>
+              <h1 className="text-3xl md:text-4xl font-black uppercase text-white tracking-tight leading-none">
+                Visitor <span className="text-[#D4AF37]">Logbook</span>
+              </h1>
+              <p className="text-sm md:text-base font-bold text-slate-300 leading-snug">
+                Welcome to <span className="text-emerald-400 font-extrabold">{officeName}</span>
+              </p>
             </div>
           </div>
-          <div className="space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
-              <Sparkles className="h-3 w-3" /> Romblon State University
-            </span>
-            <h1 className="text-4xl md:text-5xl font-black uppercase text-white tracking-tight leading-tight">
-              Visitor <span className="text-[#D4AF37]">Logbook</span>
-            </h1>
-            <p className="text-lg md:text-xl font-bold text-slate-300">
-              Welcome to <span className="text-emerald-400 font-extrabold">{officeName}</span>
-            </p>
-          </div>
 
+          {/* Time & Date Widget (unified landscape layout) */}
           {currentTime && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto xl:mx-0">
-              {/* Clock */}
-              <div className="flex items-center gap-4 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-xl">
-                <Clock className="h-8 w-8 text-[#D4AF37] shrink-0" />
+            <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4 max-w-md mx-auto xl:mx-0">
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-[#D4AF37] shrink-0" />
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]/80">Current Time</p>
-                  <p className="text-2xl font-black text-white leading-none mt-1 tabular-nums">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/80 leading-none">Current Time</p>
+                  <p className="text-sm md:text-base font-black text-white tabular-nums mt-1 leading-none">
                     {format(currentTime, 'hh:mm:ss a')}
                   </p>
                 </div>
               </div>
-
-              {/* Date */}
-              <div className="flex items-center gap-4 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-xl">
-                <Calendar className="h-8 w-8 text-[#D4AF37] shrink-0" />
+              <div className="h-8 w-px bg-white/10 shrink-0" />
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-[#D4AF37] shrink-0" />
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]/80">Today's Date</p>
-                  <p className="text-base font-black text-white leading-tight mt-1">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/80 leading-none">Today's Date</p>
+                  <p className="text-xs font-black text-white mt-1 leading-none">
                     {format(currentTime, 'EEEE, MMM dd')}
                   </p>
                 </div>
@@ -1001,46 +1005,47 @@ export default function VisitorLogbookPage() {
             </div>
           )}
 
-          {/* QR Code Mobile Sign In */}
+          {/* QR Code Mobile Sign In (Compact design) */}
           {userProfile && (
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-5 shadow-xl space-y-4 max-w-md mx-auto xl:mx-0">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center text-[#D4AF37]">
-                  <Sparkles className="h-4.5 w-4.5" />
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-4 shadow-xl space-y-3.5 max-w-md mx-auto xl:mx-0">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center text-[#D4AF37]">
+                  <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Scan to Sign In</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Use your mobile phone</p>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#D4AF37] leading-none">Scan to Sign In</h3>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Use your mobile phone</p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="bg-white p-2.5 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[130px] h-[130px] flex items-center justify-center">
+              
+              <div className="flex items-center gap-4">
+                <div className="bg-white p-2 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[96px] h-[96px] flex items-center justify-center">
                   {qrUrl ? (
                     <img
                       src={qrUrl}
                       alt="Mobile Sign In QR Code"
-                      className="w-[110px] h-[110px] object-contain"
+                      className="w-[80px] h-[80px] object-contain"
                     />
                   ) : (
-                    <div className="w-[110px] h-[110px] flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+                    <div className="w-[80px] h-[80px] flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#1B6535]" />
                     </div>
                   )}
                 </div>
-                <div className="space-y-1.5 text-center sm:text-left">
-                  <p className="text-xs font-black uppercase tracking-wide text-white">Sign In on your device</p>
-                  <p className="text-[10px] text-slate-355 font-medium leading-relaxed">
-                    Scan the QR code to sign in, check out, and complete the CSM satisfaction survey on your own phone.
+                <div className="space-y-1 text-left">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-white">Sign In on your device</p>
+                  <p className="text-[9px] text-slate-300 font-medium leading-relaxed">
+                    Scan the QR code to sign in, check out, and submit the survey on your own phone.
                   </p>
                 </div>
               </div>
               
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex items-start gap-2.5 text-left">
-                <span className="text-amber-400 text-xs mt-0.5">⚠️</span>
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 flex items-start gap-2 text-left">
+                <span className="text-amber-400 text-xs leading-none">⚠️</span>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-wide text-amber-400">Internet Required</p>
-                  <p className="text-[9px] text-slate-300 font-bold uppercase tracking-wider leading-normal mt-0.5">
-                    Scanning requires an active internet connection (mobile data or office Wi-Fi) to load the page on your device.
+                  <p className="text-[9px] font-black uppercase tracking-wide text-amber-400 leading-none">Internet Required</p>
+                  <p className="text-[8px] text-slate-300 font-medium leading-tight mt-1">
+                    Mobile data or office Wi-Fi is required to load the logbook page on your device.
                   </p>
                 </div>
               </div>
@@ -1049,23 +1054,23 @@ export default function VisitorLogbookPage() {
         </div>
  
         {/* Middle column: Form Card */}
-        <div className="w-full xl:w-[36%] max-w-md flex flex-col justify-start">
-          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b border-slate-100 p-6 md:p-8">
+        <div className="w-full xl:w-[36%] max-w-md flex flex-col h-full justify-stretch">
+          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden h-full flex flex-col">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4 md:p-5 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                  <ClipboardList className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <ClipboardList className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800">Sign In</CardTitle>
-                  <CardDescription className="text-slate-500 text-xs font-bold uppercase mt-0.5">Please log your credentials below</CardDescription>
+                  <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800">Sign In</CardTitle>
+                  <CardDescription className="text-slate-500 text-[10px] font-bold uppercase mt-0.5">Please log your credentials below</CardDescription>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="p-6 md:p-8 min-h-[360px] flex flex-col justify-center">
+            <CardContent className="p-5 md:p-6 flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
               {!submitSuccess ? (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Visitor Name */}
                   <div className="space-y-2">
                     <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
@@ -1233,23 +1238,23 @@ export default function VisitorLogbookPage() {
             </CardContent>
           </Card>
         </div>
-
+        
         {/* Right column: Active Visitors Card */}
-        <div className="w-full xl:w-[36%] max-w-md flex flex-col justify-start">
-          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden h-full flex flex-col">
-            <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
+        <div className="w-full xl:w-[36%] max-w-md flex flex-col h-full justify-stretch gap-4">
+          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden flex-1 min-h-0 flex flex-col">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                  <Users2 className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Users2 className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800">Active Visitors</CardTitle>
-                  <CardDescription className="text-slate-500 text-xs font-bold uppercase mt-0.5">Currently in the Office</CardDescription>
+                  <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800">Active Visitors</CardTitle>
+                  <CardDescription className="text-slate-500 text-[10px] font-bold uppercase mt-0.5">Currently in the Office</CardDescription>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="p-6 flex-1 overflow-y-auto max-h-[450px]">
+            <CardContent className="p-4 flex-1 overflow-y-auto min-h-0">
               {activeVisitorsLoading ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-2">
                   <div className="h-6 w-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
@@ -1266,7 +1271,7 @@ export default function VisitorLogbookPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {displayedActiveVisitors.map((visitor) => {
                     const timeInStr = visitor.createdAt?.toDate 
                       ? format(visitor.createdAt.toDate(), 'hh:mm a') 
@@ -1276,21 +1281,21 @@ export default function VisitorLogbookPage() {
                     return (
                       <div 
                         key={visitor.id} 
-                        className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all text-left"
+                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all text-left"
                       >
                         <div className="space-y-1">
-                          <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{visitor.name}</h4>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">{visitor.name}</h4>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                             <span>Time-in: <span className="font-mono text-slate-700">{timeInStr}</span></span>
                             <span>&bull;</span>
-                            <span className="truncate max-w-[150px]">To Meet: <span className="text-slate-700">{visitor.lookingFor}</span></span>
+                            <span className="truncate max-w-[130px]">To Meet: <span className="text-slate-700">{visitor.lookingFor}</span></span>
                           </div>
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleLogoutVisitor(visitor)}
-                          className="h-8 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 rounded-lg shadow-sm shrink-0"
+                          className="h-7 px-2.5 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 rounded-lg shadow-sm shrink-0"
                         >
                           Logout
                         </Button>
@@ -1304,8 +1309,8 @@ export default function VisitorLogbookPage() {
 
           {/* Offline Checked Out Card (Sync Pending) */}
           {offlineLogoutsList.length > 0 && (
-            <Card className="mt-6 bg-[#fffdf5] border border-amber-200/60 shadow-xl rounded-3xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-              <CardHeader className="bg-amber-500/5 border-b border-amber-100 p-5">
+            <Card className="bg-[#fffdf5] border border-amber-200/60 shadow-xl rounded-3xl overflow-hidden h-[180px] shrink-0 flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+              <CardHeader className="bg-amber-500/5 border-b border-amber-100 p-3 shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="h-8 w-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
@@ -1321,7 +1326,7 @@ export default function VisitorLogbookPage() {
                   </span>
                 </div>
               </CardHeader>
-              <CardContent className="p-5 max-h-[220px] overflow-y-auto space-y-3">
+              <CardContent className="p-3 flex-1 overflow-y-auto min-h-0 space-y-2.5">
                 {offlineLogoutsList.map((logout: any, index: number) => {
                   const timeOutStr = logout.loggedOutAt 
                     ? format(new Date(logout.loggedOutAt), 'hh:mm a')
@@ -1329,7 +1334,7 @@ export default function VisitorLogbookPage() {
                   return (
                     <div 
                       key={logout.visitorId || index} 
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-amber-100/70"
+                      className="flex items-center justify-between p-3 rounded-2xl bg-white border border-amber-100/70"
                     >
                       <div className="space-y-0.5">
                         <h4 className="text-xs font-black text-slate-700 uppercase tracking-tight">
