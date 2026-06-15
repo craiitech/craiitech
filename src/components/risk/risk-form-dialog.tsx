@@ -234,7 +234,7 @@ export function RiskFormDialog({
         treatmentAction: r.treatmentAction || '',
         monitoringScore: r.monitoringScore || '',
         status: r.status || 'Open',
-        responsiblePersonId: r.responsiblePersonId || '',
+        responsiblePersonId: r.responsiblePersonName || r.responsiblePersonId || '',
         targetYear: targetDate instanceof Date ? String(targetDate.getFullYear()) : undefined,
         targetMonth: targetDate instanceof Date ? String(targetDate.getMonth()) : undefined,
         targetDay: targetDate instanceof Date ? String(targetDate.getDate()) : undefined,
@@ -320,7 +320,7 @@ export function RiskFormDialog({
   const ptMagnitude = ptLikelihood * ptConsequence;
   const ptRating = getRating(ptMagnitude);
 
-  const showActionPlan = rating === 'Medium' || rating === 'High';
+  const showActionPlan = true;
 
   const filteredUsers = useMemo(() => {
     const targetUnitId = isAdmin ? selectedAdminUnitId : userProfile?.unitId;
@@ -359,8 +359,9 @@ export function RiskFormDialog({
     setIsSubmitting(true);
     
     try {
-        const responsiblePerson = filteredUsers.find(u => u.id === values.responsiblePersonId);
-        
+        const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
+        const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
+
         let targetTimestamp: Timestamp | null = null;
         if (values.targetYear && values.targetMonth && values.targetDay) {
             const yearNum = parseInt(values.targetYear);
@@ -374,9 +375,6 @@ export function RiskFormDialog({
                 }
             }
         }
-
-        const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
-        const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
 
         const riskData: any = {
           objective: values.objective || '',
@@ -397,7 +395,7 @@ export function RiskFormDialog({
           treatmentAction: values.treatmentAction || '',
           monitoringScore: values.monitoringScore || '',
           responsiblePersonId: values.responsiblePersonId || '',
-          responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : (activeRisk?.responsiblePersonName || ''),
+          responsiblePersonName: values.responsiblePersonId || '',
           targetDate: targetTimestamp,
           oapNo: values.oapNo || '',
           resourcesNeeded: values.resourcesNeeded || '',
@@ -691,16 +689,9 @@ export function RiskFormDialog({
                                                 <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
                                                   <FormItem>
                                                     <FormLabel className="font-bold">Accountable Person</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                      <FormControl>
-                                                        <SelectTrigger>
-                                                          <SelectValue placeholder="Select Accountable Person" />
-                                                        </SelectTrigger>
-                                                      </FormControl>
-                                                      <SelectContent modal={false}>
-                                                        {filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}
-                                                      </SelectContent>
-                                                    </Select>
+                                                    <FormControl>
+                                                      <Input {...field} value={field.value || ''} placeholder="Enter name of accountable person" className="bg-white" />
+                                                    </FormControl>
                                                     <FormMessage />
                                                   </FormItem>
                                                 )} />
