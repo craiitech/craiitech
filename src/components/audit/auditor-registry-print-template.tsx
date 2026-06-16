@@ -65,6 +65,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
         <div className="mt-6 border-y-2 border-black py-3 bg-slate-50/50">
           <h2 className="font-black uppercase tracking-[0.12em]" style={{ fontSize: '12pt' }}>Active System Auditors Registry & Completion</h2>
           <p className="font-bold mt-1" style={{ fontSize: '11pt' }}>ACADEMIC YEAR {year}</p>
+          <p className="font-bold mt-0.5" style={{ fontSize: '10pt' }}>Updated as of {format(new Date(), 'MMMM dd, yyyy')}</p>
         </div>
       </div>
 
@@ -91,11 +92,11 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                   });
 
                   return (
-                      <tr key={i} className="break-inside-avoid border-b border-black">
-                          <td className="border border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
+                      <tr key={i} className="break-inside-avoid">
+                          <td className="border-2 border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
                               {auditor.name}
                           </td>
-                          <td className="border border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
+                          <td className="border-2 border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
                               {sortedAssignments.length > 0 ? (
                                   <ul className="list-disc pl-4 space-y-2">
                                       {sortedAssignments.map((asgn, asgnIdx) => {
@@ -118,7 +119,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                                   <span className="italic text-slate-400">No Audited Units</span>
                               )}
                           </td>
-                          <td className="border border-black p-2.5 text-center font-black" style={{ fontSize: '10pt' }}>
+                          <td className="border-2 border-black p-2.5 text-center font-black" style={{ fontSize: '10pt' }}>
                               <span className={getStatusColorClass(status)}>
                                   {status} ({auditor.completed}/{auditor.count})
                               </span>
