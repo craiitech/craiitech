@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { Campus, Unit, SystemSettings } from '@/lib/types';
+import type { Campus, Unit, SystemSettings, Employee } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +62,18 @@ export default function VisitorLogbookPage() {
   }, [firestore, userProfile?.unitId]);
 
   const { data: unitCsmSettingsDoc } = useDoc<any>(unitCsmSettingsRef);
+
+  // Fetch active employees for Visitor Logbook
+  const activeEmployeesQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return query(
+      collection(firestore, 'unitPersonnel'),
+      where('unitId', '==', userProfile.unitId),
+      where('isActive', '==', true)
+    );
+  }, [firestore, userProfile?.unitId]);
+
+  const { data: activeEmployees } = useCollection<Employee>(activeEmployeesQuery);
 
   const getCampusSitePrefix = (campusName: string): string => {
     const nameUpper = campusName.toUpperCase();
@@ -1211,15 +1223,30 @@ export default function VisitorLogbookPage() {
                     </Label>
                     <div className="relative">
                       <Users2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="lookingFor"
-                        type="text"
-                        placeholder="e.g. Sarah Jane Fallaria, Office Head"
-                        value={lookingFor}
-                        onChange={(e) => setLookingFor(e.target.value)}
-                        required
-                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
-                      />
+                      {activeEmployees && activeEmployees.length > 0 ? (
+                        <select
+                          id="lookingFor"
+                          value={lookingFor}
+                          onChange={(e) => setLookingFor(e.target.value)}
+                          required
+                          className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                        >
+                          <option value="">-- SELECT PERSONNEL --</option>
+                          {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
+                            <option key={emp.id} value={emp.name}>{emp.name.toUpperCase()} ({emp.type.toUpperCase()})</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input
+                          id="lookingFor"
+                          type="text"
+                          placeholder="e.g. Sarah Jane Fallaria, Office Head"
+                          value={lookingFor}
+                          onChange={(e) => setLookingFor(e.target.value)}
+                          required
+                          className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                        />
+                      )}
                     </div>
                   </div>
 

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, addDoc, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, updateDoc, query, where } from 'firebase/firestore';
+import type { Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,18 @@ function MobileVisitorLogbookContent() {
   }, [firestore, unitId, currentUser]);
 
   const { data: unitCsmSettingsDoc } = useDoc<any>(unitCsmSettingsRef);
+
+  // Fetch active employees for Visitor Logbook
+  const activeEmployeesQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId || unitId === 'N/A' || !currentUser) return null;
+    return query(
+      collection(firestore, 'unitPersonnel'),
+      where('unitId', '==', unitId),
+      where('isActive', '==', true)
+    );
+  }, [firestore, unitId, currentUser]);
+
+  const { data: activeEmployees } = useCollection<Employee>(activeEmployeesQuery);
 
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -976,15 +989,30 @@ function MobileVisitorLogbookContent() {
                   </Label>
                   <div className="relative">
                     <Users2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                    <Input
-                      id="lookingFor"
-                      type="text"
-                      placeholder="e.g. Office Head, Staff Name"
-                      value={lookingFor}
-                      onChange={(e) => setLookingFor(e.target.value)}
-                      required
-                      className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
-                    />
+                    {activeEmployees && activeEmployees.length > 0 ? (
+                      <select
+                        id="lookingFor"
+                        value={lookingFor}
+                        onChange={(e) => setLookingFor(e.target.value)}
+                        required
+                        className="w-full h-11 px-3 pl-9 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
+                      >
+                        <option value="">-- SELECT PERSONNEL --</option>
+                        {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
+                          <option key={emp.id} value={emp.name}>{emp.name.toUpperCase()} ({emp.type.toUpperCase()})</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        id="lookingFor"
+                        type="text"
+                        placeholder="e.g. Office Head, Staff Name"
+                        value={lookingFor}
+                        onChange={(e) => setLookingFor(e.target.value)}
+                        required
+                        className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
+                      />
+                    )}
                   </div>
                 </div>
 

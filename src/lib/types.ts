@@ -31,6 +31,7 @@ export type User = {
   role: string; // denormalized
   campusId: string;
   unitId: string;
+  unitName?: string; // denormalized
   verified: boolean;
   ndaAccepted?: boolean;
   lastSeen?: any;
@@ -950,6 +951,19 @@ export type UnitPersonnelCensus = {
     };
     updatedAt: any;
     updatedBy: string;
+};
+
+export type Employee = {
+    id: string;
+    name: string;
+    sex: 'Male' | 'Female' | 'LGBTQA+';
+    type: 'Teaching' | 'Non-Teaching';
+    sectors: GADSector[];
+    unitId: string;
+    campusId: string;
+    isActive: boolean;
+    createdAt: any;
+    updatedAt: any;
 };
 
 // --- QA REPORTS MODULE TYPES ---

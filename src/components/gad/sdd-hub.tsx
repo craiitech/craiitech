@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { ProgramComplianceRecord, Campus, Unit, UnitPersonnelCensus, GADSector } from '@/lib/types';
+import type { ProgramComplianceRecord, Campus, Unit, UnitPersonnelCensus, GADSector, Employee } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     PieChart, 
@@ -70,10 +70,86 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
   const censusRef = useMemoFirebase(() => (firestore && userProfile?.unitId ? doc(firestore, 'unitPersonnelCensus', censusId) : null), [firestore, censusId]);
   const { data: census, isLoading: isLoadingCensus } = useDoc<UnitPersonnelCensus>(censusRef);
 
+  // Fetch active employees for auto-calculation
+  const activePersonnelQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return query(
+      collection(firestore, 'unitPersonnel'),
+      where('unitId', '==', userProfile.unitId),
+      where('isActive', '==', true)
+    );
+  }, [firestore, userProfile?.unitId]);
+
+  const { data: unitPersonnel, isLoading: isLoadingPersonnel } = useCollection<Employee>(activePersonnelQuery);
+
   const [censusForm, setCensusForm] = useState<Partial<UnitPersonnelCensus>>({
     teaching: { male: 0, female: 0, sectors: {} },
     nonTeaching: { male: 0, female: 0, sectors: {} }
   });
+
+  const handleAutoCalculateCensus = () => {
+    if (!unitPersonnel || unitPersonnel.length === 0) {
+      toast({
+        title: 'No Personnel Found',
+        description: 'Please add active staff members to your Personnel Registry in CSM settings first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Initialize census structure with GAD_SECTORS
+    const updatedForm = {
+      teaching: {
+        male: 0,
+        female: 0,
+        sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {} as Record<GADSector, { male: number; female: number }>)
+      },
+      nonTeaching: {
+        male: 0,
+        female: 0,
+        sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {} as Record<GADSector, { male: number; female: number }>)
+      }
+    };
+
+    unitPersonnel.forEach((emp) => {
+      const isTeaching = emp.type === 'Teaching';
+      const targetGroup = isTeaching ? updatedForm.teaching : updatedForm.nonTeaching;
+
+      if (emp.sex === 'Male') {
+        targetGroup.male++;
+      } else {
+        targetGroup.female++;
+      }
+
+      // Get sectors and auto-add LGBTQA++ if employee has sex 'LGBTQA+'
+      const sectorsList = [...(emp.sectors || [])];
+      if (emp.sex === 'LGBTQA+' && !sectorsList.includes('LGBTQA++')) {
+        sectorsList.push('LGBTQA++');
+      }
+
+      sectorsList.forEach((sector) => {
+        if (!targetGroup.sectors[sector]) {
+          targetGroup.sectors[sector] = { male: 0, female: 0 };
+        }
+        if (emp.sex === 'Male') {
+          targetGroup.sectors[sector].male++;
+        } else {
+          targetGroup.sectors[sector].female++;
+        }
+      });
+    });
+
+    setCensusForm((prev) => ({
+      ...prev,
+      teaching: updatedForm.teaching as any,
+      nonTeaching: updatedForm.nonTeaching as any,
+    }));
+
+    toast({
+      title: 'Sync Complete',
+      description: `Successfully synchronized and auto-calculated metrics from ${unitPersonnel.length} active staff records.`,
+    });
+  };
 
   useEffect(() => {
     if (census) setCensusForm(census);
@@ -261,10 +337,21 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                           </div>
                           <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/70">Update total employee headcount for your office for AY {selectedYear}.</p>
                       </div>
-                      <Button onClick={handleSaveCensus} disabled={isSavingCensus} className="shadow-lg shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-[10px] tracking-widest h-10 px-8">
-                          {isSavingCensus ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                          Commit Personnel Registry
-                      </Button>
+                      <div className="flex flex-wrap items-center gap-3">
+                          <Button 
+                            variant="outline" 
+                            onClick={handleAutoCalculateCensus} 
+                            disabled={isLoadingPersonnel || isSavingCensus}
+                            className="border-indigo-300 text-indigo-700 hover:bg-indigo-100/50 hover:text-indigo-800 bg-white font-black uppercase text-[10px] tracking-widest h-10 px-5"
+                          >
+                            <Activity className="h-4 w-4 mr-2" />
+                            Sync from Registry
+                          </Button>
+                          <Button onClick={handleSaveCensus} disabled={isSavingCensus} className="shadow-lg shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-[10px] tracking-widest h-10 px-8">
+                              {isSavingCensus ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                              Commit Personnel Registry
+                          </Button>
+                      </div>
                   </div>
               </CardHeader>
               <CardContent className="p-8">
