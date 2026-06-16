@@ -356,7 +356,7 @@ export default function VisitorLogbookPage() {
         
       const fullUrl = `${window.location.origin}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
       
-      setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(fullUrl)}`);
+      setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullUrl)}`);
     }
   }, [userProfile, unitDoc, isCampusOdimoOrDirector]);
 
@@ -1031,16 +1031,16 @@ export default function VisitorLogbookPage() {
               </div>
               
               <div className="flex items-center gap-4">
-                <div className="bg-white p-2 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[96px] h-[96px] flex items-center justify-center">
+                <div className="bg-white p-3 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[192px] h-[192px] flex items-center justify-center">
                   {qrUrl ? (
                     <img
                       src={qrUrl}
                       alt="Mobile Sign In QR Code"
-                      className="w-[80px] h-[80px] object-contain"
+                      className="w-[168px] h-[168px] object-contain"
                     />
                   ) : (
-                    <div className="w-[80px] h-[80px] flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-[#1B6535]" />
+                    <div className="w-[168px] h-[168px] flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
                     </div>
                   )}
                 </div>
