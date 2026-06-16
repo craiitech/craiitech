@@ -478,6 +478,44 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     }));
   }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter]);
 
+  const programsByLevel = useMemo(() => {
+    if (!analytics?.roadmapData) return {};
+    const groups: Record<string, typeof analytics.roadmapData> = {
+      'Level IV': [],
+      'Level III': [],
+      'Level II': [],
+      'Level I': [],
+      'Candidate': [],
+      'New Offering': [],
+      'Non-Accredited': []
+    };
+
+    analytics.roadmapData.forEach(r => {
+      if (!r.isActive) return;
+      
+      const pObj = programs.find(p => p.id === r.id);
+      const abbr = pObj?.abbreviation || r.name;
+
+      if (r.isNewProgram) {
+        groups['New Offering'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level IV')) {
+        groups['Level IV'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level III')) {
+        groups['Level III'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level II')) {
+        groups['Level II'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level I')) {
+        groups['Level I'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.toLowerCase().includes('candidate') || r.currentLevel.includes('PSV')) {
+        groups['Candidate'].push({ ...r, abbreviation: abbr });
+      } else {
+        groups['Non-Accredited'].push({ ...r, abbreviation: abbr });
+      }
+    });
+
+    return groups;
+  }, [analytics?.roadmapData, programs]);
+
   const handlePrintGaps = () => {
     if (!filteredRecommendations.length) {
         toast({ title: "No Gaps Recorded", description: "There are no active records matching the current selection.", variant: "destructive" });
@@ -545,44 +583,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     { name: 'New Offering', color: 'bg-purple-500', textColor: 'text-purple-600', borderColor: 'border-purple-200' },
     { name: 'Non-Accredited', color: 'bg-slate-400', textColor: 'text-slate-500', borderColor: 'border-slate-200' }
   ];
-
-  const programsByLevel = useMemo(() => {
-    if (!analytics?.roadmapData) return {};
-    const groups: Record<string, typeof analytics.roadmapData> = {
-      'Level IV': [],
-      'Level III': [],
-      'Level II': [],
-      'Level I': [],
-      'Candidate': [],
-      'New Offering': [],
-      'Non-Accredited': []
-    };
-
-    analytics.roadmapData.forEach(r => {
-      if (!r.isActive) return;
-      
-      const pObj = programs.find(p => p.id === r.id);
-      const abbr = pObj?.abbreviation || r.name;
-
-      if (r.isNewProgram) {
-        groups['New Offering'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level IV')) {
-        groups['Level IV'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level III')) {
-        groups['Level III'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level II')) {
-        groups['Level II'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level I')) {
-        groups['Level I'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.toLowerCase().includes('candidate') || r.currentLevel.includes('PSV')) {
-        groups['Candidate'].push({ ...r, abbreviation: abbr });
-      } else {
-        groups['Non-Accredited'].push({ ...r, abbreviation: abbr });
-      }
-    });
-
-    return groups;
-  }, [analytics?.roadmapData, programs]);
 
   const displayedLevel = programsByLevel[selectedLevelView]?.length > 0 
     ? selectedLevelView 
