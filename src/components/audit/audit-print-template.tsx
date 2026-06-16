@@ -182,7 +182,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 {/* Column 3: Checkboxes */}
                 <td className="p-3" style={{ verticalAlign: 'middle' }}>
                   <div className="flex flex-col items-center justify-center select-none">
-                    <div className="space-y-3.5 font-normal text-black w-fit" style={{ fontSize: '11pt' }}>
+                    <div className="space-y-2.5 font-normal text-black w-fit" style={{ fontSize: '11pt' }}>
                       <div className="flex items-center gap-2">
                           <div className="border border-black flex-shrink-0" style={{ width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? '#000' : 'transparent' }}>
                               {finding?.type === 'Compliance' && <Check className="h-3 w-3 text-white" />}
@@ -200,6 +200,12 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                               {finding?.type === 'Non-Conformance' && <Check className="h-3 w-3 text-white" />}
                           </div>
                           <span>NC</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <div className="border border-black flex-shrink-0" style={{ width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Not Applicable' ? '#000' : 'transparent' }}>
+                              {finding?.type === 'Not Applicable' && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <span>N/A</span>
                       </div>
                     </div>
                   </div>
