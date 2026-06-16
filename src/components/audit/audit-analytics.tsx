@@ -733,7 +733,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="shadow-lg border-primary/10 overflow-hidden">
+          <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
                     <ShieldAlert className="h-5 w-5 text-destructive" />
@@ -743,25 +743,27 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     Prioritized department directory with open non-conformances needing immediate Corrective Action Request (CAR) resolution.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                  <Table>
-                      <TableHeader className="bg-muted/30">
-                          <TableRow>
-                              <TableHead className="pl-6 text-[10px] font-black uppercase">Unit / Office</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Campus / Site</TableHead>
-                              <TableHead className="text-center text-[10px] font-black uppercase">Open NCs</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {analytics.hotspots.map((h, i) => (
-                              <TableRow key={i}>
-                                  <TableCell className="pl-6 font-bold text-xs uppercase">{h.name}</TableCell>
-                                  <TableCell className="text-xs font-semibold text-slate-600 uppercase">{h.campusName}</TableCell>
-                                  <TableCell className="text-center"><Badge variant="destructive" className="h-5 font-black">{h.nc} NC</Badge></TableCell>
+              <CardContent className="p-0 flex-1">
+                  <ScrollArea className="h-[300px]">
+                      <Table>
+                          <TableHeader className="bg-muted/30">
+                              <TableRow>
+                                  <TableHead className="pl-6 text-[10px] font-black uppercase">Unit / Office</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase">Campus / Site</TableHead>
+                                  <TableHead className="text-center text-[10px] font-black uppercase">Open NCs</TableHead>
                               </TableRow>
-                          ))}
-                      </TableBody>
-                  </Table>
+                          </TableHeader>
+                          <TableBody>
+                              {analytics.hotspots.slice(0, 10).map((h, i) => (
+                                  <TableRow key={i}>
+                                      <TableCell className="pl-6 font-bold text-xs uppercase">{h.name}</TableCell>
+                                      <TableCell className="text-xs font-semibold text-slate-600 uppercase">{h.campusName}</TableCell>
+                                      <TableCell className="text-center"><Badge variant="destructive" className="h-5 font-black">{h.nc} NC</Badge></TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </ScrollArea>
               </CardContent>
           </Card>
 
