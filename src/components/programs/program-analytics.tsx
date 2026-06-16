@@ -228,10 +228,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (hasCopc) activeGradCopc++;
             }
             
-            if (rawLevel.includes('Level I')) levelCounts.L1++;
-            else if (rawLevel.includes('Level II')) levelCounts.L2++;
+            if (rawLevel.includes('Level IV')) levelCounts.L4++;
             else if (rawLevel.includes('Level III')) levelCounts.L3++;
-            else if (rawLevel.includes('Level IV')) levelCounts.L4++;
+            else if (rawLevel.includes('Level II')) levelCounts.L2++;
+            else if (rawLevel.includes('Level I')) levelCounts.L1++;
 
             // Radar Logic
             if (hasCopc) globalPillarSums.authority += 100;
