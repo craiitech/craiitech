@@ -1,10 +1,16 @@
 'use client';
 
 import React from 'react';
+import { format } from 'date-fns';
+import { parseDate } from '@/lib/utils';
 
 interface AssignmentEntry {
     unitName: string;
     status: string;
+    date?: any;
+    startTime?: any;
+    endTime?: any;
+    campus?: string;
 }
 
 interface AuditorData {
@@ -35,6 +41,18 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
     return 'text-yellow-700 font-bold';
   };
 
+  const safeFormatDate = (d: any) => {
+    if (!d) return '';
+    const date = parseDate(d);
+    return isNaN(date.getTime()) ? '' : format(date, 'MM/dd/yyyy');
+  };
+
+  const safeFormatTime = (d: any) => {
+    if (!d) return '';
+    const date = parseDate(d);
+    return isNaN(date.getTime()) ? '' : format(date, 'h:mm a');
+  };
+
   return (
     <div className="text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none animate-in fade-in duration-300" style={{ fontSize: '11pt' }}>
       {/* Institutional Header */}
@@ -62,18 +80,29 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
           <tbody>
               {auditorData.map((auditor, i) => {
                   const status = getAuditorStatus(auditor);
-                  const uniqueUnits = Array.from(new Set(auditor.assignments.map(a => a.unitName)));
                   return (
                       <tr key={i} className="break-inside-avoid border-b border-black">
                           <td className="border border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
                               {auditor.name}
                           </td>
                           <td className="border border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
-                              {uniqueUnits.length > 0 ? (
-                                  <ul className="list-disc pl-4 space-y-0.5">
-                                      {uniqueUnits.map((u, uIdx) => (
-                                          <li key={uIdx}>{u}</li>
-                                      ))}
+                              {auditor.assignments.length > 0 ? (
+                                  <ul className="list-disc pl-4 space-y-2">
+                                      {auditor.assignments.map((asgn, asgnIdx) => {
+                                          const dateStr = safeFormatDate(asgn.date);
+                                          const timeStr = asgn.startTime && asgn.endTime 
+                                              ? `${safeFormatTime(asgn.startTime)} – ${safeFormatTime(asgn.endTime)}`
+                                              : safeFormatTime(asgn.startTime || asgn.endTime);
+                                          const dateTimeStr = [dateStr, timeStr].filter(Boolean).join(', ');
+                                          return (
+                                              <li key={asgnIdx} className="leading-tight">
+                                                  <span className="font-semibold text-black uppercase">{asgn.unitName}</span>
+                                                  <span className="block text-slate-600 text-[9pt] mt-0.5 normal-case font-medium">
+                                                      Campus/Site: <span className="font-semibold text-slate-800">{asgn.campus || 'Institutional'}</span> | Date/Time: <span className="font-semibold text-slate-800">{dateTimeStr || 'Not scheduled'}</span>
+                                                  </span>
+                                              </li>
+                                          );
+                                      })}
                                   </ul>
                               ) : (
                                   <span className="italic text-slate-400">No Audited Units</span>
