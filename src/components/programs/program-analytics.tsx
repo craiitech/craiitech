@@ -119,6 +119,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   const [roadmapCampusFilter, setRoadmapCampusFilter] = useState('all');
   const [roadmapUnitFilter, setRoadmapUnitFilter] = useState('all');
 
+  const [selectedLevelView, setSelectedLevelView] = useState<string>('Level IV');
+
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
     [firestore]
@@ -146,7 +148,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     let programsWithRecordThisYear = 0;
 
     const statusTotals = { COMPLIANT: 0, OVERDUE: 0, 'AWAITING RESULT': 0, 'NEW PROGRAM': 0 };
-    const levelCounts = { L1: 0, L2: 0, L3: 0, L4: 0 };
+    const levelCounts = { L1: 0, L2: 0, L3: 0, L4: 0, Candidate: 0, NewOffering: 0, NonAccredited: 0 };
     const accreditationYearCounts: Record<string, number> = {};
 
     const globalPillarSums = { authority: 0, accreditation: 0, faculty: 0, curriculum: 0, outcomes: 0 };
@@ -228,10 +230,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (hasCopc) activeGradCopc++;
             }
             
-            if (rawLevel.includes('Level IV')) levelCounts.L4++;
+            if (p.isNewProgram) levelCounts.NewOffering++;
+            else if (rawLevel.includes('Level IV')) levelCounts.L4++;
             else if (rawLevel.includes('Level III')) levelCounts.L3++;
             else if (rawLevel.includes('Level II')) levelCounts.L2++;
             else if (rawLevel.includes('Level I')) levelCounts.L1++;
+            else if (rawLevel.toLowerCase().includes('candidate') || rawLevel.includes('PSV')) levelCounts.Candidate++;
+            else levelCounts.NonAccredited++;
 
             // Radar Logic
             if (hasCopc) globalPillarSums.authority += 100;
@@ -531,6 +536,68 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   const activeGradAccreditable = analytics.activeGradCount - analytics.activeGradNewCount;
   const gradAccredRate = activeGradAccreditable > 0 ? Math.round((analytics.activeGradAccredited / activeGradAccreditable) * 100) : 0;
 
+  const levelCategories = [
+    { name: 'Level IV', color: 'bg-indigo-600', textColor: 'text-indigo-600', borderColor: 'border-indigo-200' },
+    { name: 'Level III', color: 'bg-blue-600', textColor: 'text-blue-600', borderColor: 'border-blue-200' },
+    { name: 'Level II', color: 'bg-emerald-600', textColor: 'text-emerald-600', borderColor: 'border-emerald-200' },
+    { name: 'Level I', color: 'bg-emerald-400', textColor: 'text-emerald-400', borderColor: 'border-emerald-200' },
+    { name: 'Candidate', color: 'bg-amber-500', textColor: 'text-amber-600', borderColor: 'border-amber-200' },
+    { name: 'New Offering', color: 'bg-purple-500', textColor: 'text-purple-600', borderColor: 'border-purple-200' },
+    { name: 'Non-Accredited', color: 'bg-slate-400', textColor: 'text-slate-500', borderColor: 'border-slate-200' }
+  ];
+
+  const programsByLevel = useMemo(() => {
+    if (!analytics?.roadmapData) return {};
+    const groups: Record<string, typeof analytics.roadmapData> = {
+      'Level IV': [],
+      'Level III': [],
+      'Level II': [],
+      'Level I': [],
+      'Candidate': [],
+      'New Offering': [],
+      'Non-Accredited': []
+    };
+
+    analytics.roadmapData.forEach(r => {
+      if (!r.isActive) return;
+      
+      const pObj = programs.find(p => p.id === r.id);
+      const abbr = pObj?.abbreviation || r.name;
+
+      if (r.isNewProgram) {
+        groups['New Offering'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level IV')) {
+        groups['Level IV'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level III')) {
+        groups['Level III'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level II')) {
+        groups['Level II'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.includes('Level I')) {
+        groups['Level I'].push({ ...r, abbreviation: abbr });
+      } else if (r.currentLevel.toLowerCase().includes('candidate') || r.currentLevel.includes('PSV')) {
+        groups['Candidate'].push({ ...r, abbreviation: abbr });
+      } else {
+        groups['Non-Accredited'].push({ ...r, abbreviation: abbr });
+      }
+    });
+
+    return groups;
+  }, [analytics?.roadmapData, programs]);
+
+  const displayedLevel = programsByLevel[selectedLevelView]?.length > 0 
+    ? selectedLevelView 
+    : (levelCategories.find(c => (programsByLevel[c.name]?.length || 0) > 0)?.name || 'Level IV');
+
+  const accreditationDistData = [
+    { name: 'Level IV', value: analytics.levelCounts.L4, fill: '#1e3a8a' },
+    { name: 'Level III', value: analytics.levelCounts.L3, fill: '#3b82f6' },
+    { name: 'Level II', value: analytics.levelCounts.L2, fill: '#10b981' },
+    { name: 'Level I', value: analytics.levelCounts.L1, fill: '#34d399' },
+    { name: 'Candidate', value: analytics.levelCounts.Candidate, fill: '#fbbf24' },
+    { name: 'New Offering', value: analytics.levelCounts.NewOffering, fill: '#a855f7' },
+    { name: 'Non-Accredited', value: analytics.levelCounts.NonAccredited, fill: '#94a3b8' },
+  ].filter(d => d.value > 0);
+
   return (
     <TooltipProvider delayDuration={100}>
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
@@ -729,8 +796,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
               <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-600" /><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Strategic Maturity Profile</CardTitle></CardHeader>
               <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
                   <ChartContainer config={{}} className="h-[300px] w-full">
@@ -739,7 +806,95 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <div className="text-center mt-4"><span className="text-5xl font-black tabular-nums tracking-tighter text-primary">{analytics.overallQualityScore}%</span><p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.15em] mt-1">Institutional Quality Score</p></div>
               </CardContent>
           </Card>
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white">
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+              <CardHeader className="py-5 px-8 border-b flex flex-row items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Accreditation Distribution</CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label="Accreditation Distribution Information">
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                    <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation Distribution</p>
+                    <p className="text-slate-200">Visualizes active offerings per AACCUP status. Select a category below to view the corresponding academic programs.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col p-6 overflow-hidden">
+                  <ChartContainer config={{}} className="h-[150px] w-full shrink-0">
+                      <ResponsiveContainer>
+                          <PieChart>
+                              <Pie 
+                                  data={accreditationDistData} 
+                                  cx="50%" 
+                                  cy="50%" 
+                                  innerRadius={45} 
+                                  outerRadius={65} 
+                                  paddingAngle={3} 
+                                  dataKey="value"
+                              >
+                                  {accreditationDistData.map((entry, idx) => (
+                                      <Cell key={idx} fill={entry.fill} className="outline-none" />
+                                  ))}
+                              </Pie>
+                              <RechartsTooltip />
+                          </PieChart>
+                      </ResponsiveContainer>
+                  </ChartContainer>
+
+                  <div className="flex flex-wrap gap-1.5 justify-center py-2 border-t border-b border-slate-100 my-2 shrink-0">
+                      {levelCategories.map((cat) => {
+                          const count = programsByLevel[cat.name]?.length || 0;
+                          const isSelected = displayedLevel === cat.name;
+                          if (count === 0) return null;
+                          return (
+                              <button
+                                  key={cat.name}
+                                  onClick={() => setSelectedLevelView(cat.name)}
+                                  className={cn(
+                                      "px-2 py-1 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center gap-1 border",
+                                      isSelected 
+                                          ? `${cat.color} text-white border-transparent shadow-sm scale-105` 
+                                          : `bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100`
+                                  )}
+                              >
+                                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSelected ? "bg-white" : cat.color)}></span>
+                                  {cat.name} ({count})
+                              </button>
+                          );
+                      })}
+                  </div>
+
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                      <ScrollArea className="flex-1">
+                          <div className="flex flex-wrap gap-1.5 p-1 justify-center">
+                              {programsByLevel[displayedLevel]?.map((prog: any) => (
+                                  <Tooltip key={prog.id}>
+                                      <TooltipTrigger asChild>
+                                          <div className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100/80 transition-colors cursor-help text-center shrink-0">
+                                              <span className="text-[10px] font-black text-slate-800 block leading-tight font-mono">{prog.abbreviation}</span>
+                                              <span className="text-[7px] text-muted-foreground font-black uppercase tracking-tighter mt-0.5 block">{prog.campus}</span>
+                                          </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 border-none text-white text-[10px] p-2.5 rounded-md shadow-lg max-w-[220px]">
+                                          <p className="font-bold">{prog.name}</p>
+                                          <p className="text-slate-300 text-[9px] mt-0.5">{prog.campus} &bull; {prog.currentLevel}</p>
+                                      </TooltipContent>
+                                  </Tooltip>
+                              ))}
+                              {(!programsByLevel[displayedLevel] || programsByLevel[displayedLevel].length === 0) && (
+                                  <p className="text-[10px] text-muted-foreground italic text-center py-6 w-full">No active programs recorded in this level.</p>
+                              )}
+                          </div>
+                      </ScrollArea>
+                  </div>
+              </CardContent>
+          </Card>
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
               <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2"><BookOpen className="h-4 w-4 text-emerald-600" /><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Faculty Educational Attainment (GAD)</CardTitle></CardHeader>
               <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
                   <ChartContainer config={{}} className="h-[250px] w-full mb-8">
@@ -747,7 +902,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </ChartContainer>
               </CardContent>
           </Card>
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white">
+          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
               <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2"><CalendarDays className="h-4 w-4 text-emerald-600" /><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">Institutional Survey Pipeline</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
                   <ChartContainer config={{}} className="h-[350px] w-full">
