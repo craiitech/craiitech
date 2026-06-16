@@ -860,11 +860,11 @@ function MobileVisitorLogbookContent() {
                   <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                     Sex
                   </Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setSex('Male')}
-                      className={`h-10 rounded-xl font-black text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
+                      className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                         sex === 'Male'
                           ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md shadow-[#1B6535]/15'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -875,13 +875,24 @@ function MobileVisitorLogbookContent() {
                     <button
                       type="button"
                       onClick={() => setSex('Female')}
-                      className={`h-10 rounded-xl font-black text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
+                      className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                         sex === 'Female'
                           ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md shadow-[#1B6535]/15'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
                       Female
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSex('LGBTQA+')}
+                      className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
+                        sex === 'LGBTQA+'
+                          ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md shadow-[#1B6535]/15'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      LGBTQA+
                     </button>
                   </div>
                 </div>

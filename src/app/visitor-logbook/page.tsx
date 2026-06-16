@@ -1095,7 +1095,7 @@ export default function VisitorLogbookPage() {
                     <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                       Sex
                     </Label>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-2.5">
                       <button
                         type="button"
                         onClick={() => setSex('Male')}
@@ -1117,6 +1117,17 @@ export default function VisitorLogbookPage() {
                         }`}
                       >
                         Female
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSex('LGBTQA+')}
+                        className={`h-11 rounded-xl font-bold text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
+                          sex === 'LGBTQA+'
+                            ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
+                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        LGBTQA+
                       </button>
                     </div>
                   </div>

@@ -656,7 +656,10 @@ export function CsmReportDashboard({
 
       filteredResponses.forEach(res => {
         // Sex
-        const sexVal = res.sex || 'Did not specify';
+        let sexVal = res.sex || 'Did not specify';
+        if (sexVal === 'LGBTQA+' || sexVal === 'Others (LGBTQI++)') {
+          sexVal = 'LGBTQ+';
+        }
         if (sexVal in sexCounts) sexCounts[sexVal]++;
         else sexCounts['Did not specify']++;
 
