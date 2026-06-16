@@ -80,15 +80,25 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
           <tbody>
               {auditorData.map((auditor, i) => {
                   const status = getAuditorStatus(auditor);
+                  const sortedAssignments = [...auditor.assignments].sort((a, b) => {
+                      const timeA = a.date ? parseDate(a.date).getTime() : 0;
+                      const timeB = b.date ? parseDate(b.date).getTime() : 0;
+                      if (timeA !== timeB) return timeA - timeB;
+
+                      const startA = a.startTime ? parseDate(a.startTime).getTime() : 0;
+                      const startB = b.startTime ? parseDate(b.startTime).getTime() : 0;
+                      return startA - startB;
+                  });
+
                   return (
                       <tr key={i} className="break-inside-avoid border-b border-black">
                           <td className="border border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
                               {auditor.name}
                           </td>
                           <td className="border border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
-                              {auditor.assignments.length > 0 ? (
+                              {sortedAssignments.length > 0 ? (
                                   <ul className="list-disc pl-4 space-y-2">
-                                      {auditor.assignments.map((asgn, asgnIdx) => {
+                                      {sortedAssignments.map((asgn, asgnIdx) => {
                                           const dateStr = safeFormatDate(asgn.date);
                                           const timeStr = asgn.startTime && asgn.endTime 
                                               ? `${safeFormatTime(asgn.startTime)} – ${safeFormatTime(asgn.endTime)}`
