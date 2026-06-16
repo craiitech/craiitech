@@ -1006,7 +1006,7 @@ function MobileVisitorLogbookContent() {
       {/* Footer copyright */}
       <div className="w-full text-center z-10 border-t border-[#D4AF37]/10 pt-4 mt-auto">
         <p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/50">
-          Romblon State University &bull; EOMS Portal Mobile Kiosk
+          Romblon State University | Quality Assurance Office | Institutional Planning and Development Office (IPDO) | Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)
         </p>
       </div>
 

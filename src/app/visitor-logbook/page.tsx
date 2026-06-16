@@ -1780,7 +1780,7 @@ export default function VisitorLogbookPage() {
       {/* Footer copyright */}
       <div className="w-full text-center z-10 border-t border-[#D4AF37]/10 pt-4">
         <p className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]/50">
-          Romblon State University &bull; Educational Organization Management System
+          Romblon State University | Quality Assurance Office | Institutional Planning and Development Office (IPDO) | Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)
         </p>
       </div>
 
