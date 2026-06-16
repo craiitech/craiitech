@@ -212,11 +212,39 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         if (!program.isNewProgram) gaps.push({ type: 'Academic Quality', msg: 'No active accreditation status recorded.', priority: 'Medium', target: 'accreditation' });
     }
 
+    const specMap = new Map((program.specializations || []).map(s => [s.id, s.name]));
+
     const evidenceRegistry: { title: string, url: string, category: string }[] = [];
     if (record.ched?.copcLink) evidenceRegistry.push({ title: 'CHED COPC Certificate', url: record.ched.copcLink, category: 'Regulatory' });
     if (record.ched?.programCmoLink) evidenceRegistry.push({ title: 'CHED Memorandum Order (CMO)', url: record.ched.programCmoLink, category: 'Regulatory' });
     if (record.ched?.boardApprovalLink) evidenceRegistry.push({ title: 'Board Approval (BOR Resolution)', url: record.ched.boardApprovalLink, category: 'Governance' });
     
+    if (record.ched?.majorBoardApprovals) {
+        record.ched.majorBoardApprovals.forEach(mba => {
+            if (mba.link) {
+                const majorName = specMap.get(mba.majorId) || mba.majorId;
+                evidenceRegistry.push({
+                    title: `BOR Approval Resolution - ${majorName} Curriculum`,
+                    url: mba.link,
+                    category: 'Governance'
+                });
+            }
+        });
+    }
+
+    curriculumRecords.forEach(cr => {
+        if (cr.notationProofLink) {
+            const majorName = cr.majorId === 'General' || cr.majorId === 'general'
+                ? 'General'
+                : (specMap.get(cr.majorId) || cr.majorId);
+            evidenceRegistry.push({
+                title: `CHED Curriculum Notation & Proof - ${majorName} (Rev. ${cr.revisionNumber})`,
+                url: cr.notationProofLink,
+                category: 'Regulatory'
+            });
+        }
+    });
+
     milestones.forEach(m => {
         if (m.certificateLink) evidenceRegistry.push({ title: `${m.level} Accreditation Certificate`, url: m.certificateLink, category: 'Quality' });
     });
