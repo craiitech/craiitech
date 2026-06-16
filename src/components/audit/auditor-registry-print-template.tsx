@@ -91,41 +91,57 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                       return startA - startB;
                   });
 
-                  return (
-                      <tr key={i} className="break-inside-avoid">
-                          <td className="border-2 border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
-                              {auditor.name}
-                          </td>
-                          <td className="border-2 border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
-                              {sortedAssignments.length > 0 ? (
-                                  <ul className="list-disc pl-4 space-y-2">
-                                      {sortedAssignments.map((asgn, asgnIdx) => {
-                                          const dateStr = safeFormatDate(asgn.date);
-                                          const timeStr = asgn.startTime && asgn.endTime 
-                                              ? `${safeFormatTime(asgn.startTime)} – ${safeFormatTime(asgn.endTime)}`
-                                              : safeFormatTime(asgn.startTime || asgn.endTime);
-                                          const dateTimeStr = [dateStr, timeStr].filter(Boolean).join(', ');
-                                          return (
-                                              <li key={asgnIdx} className="leading-tight">
-                                                  <span className="font-semibold text-black uppercase">{asgn.unitName}</span>
-                                                  <span className="block text-slate-600 text-[9pt] mt-0.5 normal-case font-medium">
-                                                      Campus/Site: <span className="font-semibold text-slate-800">{asgn.campus || 'Institutional'}</span> | Date/Time: <span className="font-semibold text-slate-800">{dateTimeStr || 'Not scheduled'}</span>
-                                                  </span>
-                                              </li>
-                                          );
-                                      })}
-                                  </ul>
-                              ) : (
+                  if (sortedAssignments.length === 0) {
+                      return (
+                          <tr key={`empty-${i}`} className="break-inside-avoid">
+                              <td className="border-2 border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
+                                  {auditor.name}
+                              </td>
+                              <td className="border-2 border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
                                   <span className="italic text-slate-400">No Audited Units</span>
-                              )}
-                          </td>
-                          <td className="border-2 border-black p-2.5 text-center font-black" style={{ fontSize: '10pt' }}>
-                              <span className={getStatusColorClass(status)}>
-                                  {status} ({auditor.completed}/{auditor.count})
-                              </span>
-                          </td>
-                      </tr>
-                  );
+                              </td>
+                              <td className="border-2 border-black p-2.5 text-center font-black" style={{ fontSize: '10pt' }}>
+                                  <span className={getStatusColorClass(status)}>
+                                      {status} (0/0)
+                                  </span>
+                              </td>
+                          </tr>
+                      );
+                  }
+
+                  return sortedAssignments.map((asgn, asgnIdx) => {
+                      const dateStr = safeFormatDate(asgn.date);
+                      const timeStr = asgn.startTime && asgn.endTime 
+                          ? `${safeFormatTime(asgn.startTime)} – ${safeFormatTime(asgn.endTime)}`
+                          : safeFormatTime(asgn.startTime || asgn.endTime);
+                      const dateTimeStr = [dateStr, timeStr].filter(Boolean).join(', ');
+
+                      return (
+                          <tr key={`${i}-${asgnIdx}`} className="break-inside-avoid">
+                              <td className="border-2 border-black p-2.5 text-left font-black uppercase" style={{ fontSize: '10pt' }}>
+                                  {asgnIdx === 0 ? auditor.name : ''}
+                              </td>
+                              <td className="border-2 border-black p-2.5 text-left text-slate-700 leading-normal" style={{ fontSize: '10pt' }}>
+                                  <div className="flex items-start gap-2 leading-tight">
+                                      <span className="shrink-0 text-black select-none">•</span>
+                                      <div>
+                                          <span className="font-semibold text-black uppercase">{asgn.unitName}</span>
+                                          <span className="block text-slate-600 text-[9pt] mt-0.5 normal-case font-medium">
+                                              Campus/Site: <span className="font-semibold text-slate-800">{asgn.campus || 'Institutional'}</span> | Date/Time: <span className="font-semibold text-slate-800">{dateTimeStr || 'Not scheduled'}</span>
+                                          </span>
+                                      </div>
+                                  </div>
+                              </td>
+                              <td className="border-2 border-black p-2.5 text-center font-black" style={{ fontSize: '10pt' }}>
+                                  {asgnIdx === 0 ? (
+                                      <span className={getStatusColorClass(status)}>
+                                          {status} ({auditor.completed}/{auditor.count})
+                                      </span>
+                                  ) : ''}
+                              </td>
+                          </tr>
+                      );
+                  });
               })}
           </tbody>
       </table>
