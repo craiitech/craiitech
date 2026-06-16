@@ -339,37 +339,48 @@ export function AuditResultsView({
               <Card className="shadow-lg border-rose-200 overflow-hidden">
                   <Table>
                       <TableHeader className="bg-muted/30">
-                          <TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit & Auditor</TableHead><TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead></TableRow>
+                          <TableRow>
+                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Campus / Auditee</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead>
+                              <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
+                          </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').map(finding => (
-                              <TableRow key={finding.id} className="hover:bg-rose-50/20 group">
-                                  <TableCell className="pl-8 py-5">
-                                      <p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <Badge className="bg-rose-600 text-white h-4 px-1.5 text-[8px] font-black mb-2">Clause {finding.isoClause}</Badge>
-                                      <p className="text-xs font-bold italic">"{finding.ncStatement || finding.description}"</p>
-                                  </TableCell>
-                                  <TableCell className="text-right pr-8">
-                                      <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
-                                          {isAdmin && (
-                                              <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase bg-white border-primary/20 text-primary" onClick={() => { setEditingFinding(finding); setEditFindingText(finding.ncStatement || finding.description); }}>
-                                                  <Edit className="h-3 w-3 mr-1" /> EDIT STMT
+                          {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').map(finding => {
+                              const schedule = kpis.yearSchedules.find(s => s.id === finding.auditScheduleId);
+                              const campusName = schedule ? (campusMap.get(schedule.campusId) || 'Institutional') : 'Institutional';
+                              const auditeeName = schedule ? (schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head') : 'Unit Head';
+                              return (
+                                  <TableRow key={finding.id} className="hover:bg-rose-50/20 group">
+                                      <TableCell className="pl-8 py-5">
+                                          <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
+                                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
+                                          <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <Badge className="bg-rose-600 text-white h-4 px-1.5 text-[8px] font-black mb-2">Clause {finding.isoClause}</Badge>
+                                          <p className="text-xs font-bold italic">"{finding.ncStatement || finding.description}"</p>
+                                      </TableCell>
+                                      <TableCell className="text-right pr-8">
+                                          <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
+                                              {isAdmin && (
+                                                  <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase bg-white border-primary/20 text-primary" onClick={() => { setEditingFinding(finding); setEditFindingText(finding.ncStatement || finding.description); }}>
+                                                      <Edit className="h-3 w-3 mr-1" /> EDIT STMT
+                                                  </Button>
+                                              )}
+                                              <Button size="sm" onClick={() => handleNavigateToIssueCar({ finding })} className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md">
+                                                  <Gavel className="h-3.5 w-3.5 mr-1.5" /> ISSUE CAR
                                               </Button>
-                                          )}
-                                          <Button size="sm" onClick={() => handleNavigateToIssueCar({ finding })} className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md">
-                                              <Gavel className="h-3.5 w-3.5 mr-1.5" /> ISSUE CAR
-                                          </Button>
-                                          {(isAdmin || user?.uid === finding.authorId) && (
-                                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteFinding(finding.id, finding.authorId)}>
-                                                  <Trash2 className="h-3.5 w-3.5" />
-                                              </Button>
-                                          )}
-                                      </div>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
+                                              {(isAdmin || user?.uid === finding.authorId) && (
+                                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteFinding(finding.id, finding.authorId)}>
+                                                      <Trash2 className="h-3.5 w-3.5" />
+                                                  </Button>
+                                              )}
+                                          </div>
+                                      </TableCell>
+                                  </TableRow>
+                              );
+                          })}
                           {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').length === 0 && (
                               <TableRow><TableCell colSpan={3} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase tracking-widest">No verified NCs in this scope</p></TableCell></TableRow>
                           )}
@@ -383,29 +394,36 @@ export function AuditResultsView({
                   <Table>
                       <TableHeader className="bg-muted/30">
                           <TableRow>
-                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Auditee</TableHead>
+                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Campus / Auditee</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">ISO Clause</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">Compliance Description</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">Evidence Logged</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {kpis.yearFindings.filter(f => f.type === 'Compliance').map(finding => (
-                              <TableRow key={finding.id} className="hover:bg-emerald-50/10 transition-colors">
-                                  <TableCell className="pl-8 py-5">
-                                      <p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
+                          {kpis.yearFindings.filter(f => f.type === 'Compliance').map(finding => {
+                              const schedule = kpis.yearSchedules.find(s => s.id === finding.auditScheduleId);
+                              const campusName = schedule ? (campusMap.get(schedule.campusId) || 'Institutional') : 'Institutional';
+                              const auditeeName = schedule ? (schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head') : 'Unit Head';
+                              return (
+                                  <TableRow key={finding.id} className="hover:bg-emerald-50/10 transition-colors">
+                                      <TableCell className="pl-8 py-5">
+                                          <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
+                                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
+                                          <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
+                                      </TableCell>
+                                  </TableRow>
+                              );
+                          })}
                           {kpis.yearFindings.filter(f => f.type === 'Compliance').length === 0 && (
                               <TableRow>
                                   <TableCell colSpan={4} className="h-40 text-center opacity-20">
@@ -424,29 +442,36 @@ export function AuditResultsView({
                   <Table>
                       <TableHeader className="bg-muted/30">
                           <TableRow>
-                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Auditee</TableHead>
+                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Campus / Auditee</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">ISO Clause</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">OFI Description</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">Evidence Logged</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {kpis.yearFindings.filter(f => f.type === 'Observation for Improvement').map(finding => (
-                              <TableRow key={finding.id} className="hover:bg-amber-50/10 transition-colors">
-                                  <TableCell className="pl-8 py-5">
-                                      <p className="font-black text-sm uppercase">{kpis.yearSchedules.find(s => s.id === finding.auditScheduleId)?.targetName}</p>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
-                                  </TableCell>
-                                  <TableCell className="py-5">
-                                      <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
+                          {kpis.yearFindings.filter(f => f.type === 'Observation for Improvement').map(finding => {
+                              const schedule = kpis.yearSchedules.find(s => s.id === finding.auditScheduleId);
+                              const campusName = schedule ? (campusMap.get(schedule.campusId) || 'Institutional') : 'Institutional';
+                              const auditeeName = schedule ? (schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head') : 'Unit Head';
+                              return (
+                                  <TableRow key={finding.id} className="hover:bg-amber-50/10 transition-colors">
+                                      <TableCell className="pl-8 py-5">
+                                          <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
+                                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
+                                          <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
+                                      </TableCell>
+                                      <TableCell className="py-5">
+                                          <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
+                                      </TableCell>
+                                  </TableRow>
+                              );
+                          })}
                           {kpis.yearFindings.filter(f => f.type === 'Observation for Improvement').length === 0 && (
                               <TableRow>
                                   <TableCell colSpan={4} className="h-40 text-center opacity-20">
@@ -464,15 +489,26 @@ export function AuditResultsView({
               <Card className="shadow-md border-primary/10 overflow-hidden">
                    <Table>
                       <TableHeader className="bg-muted/30">
-                          <TableRow><TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Unit / Auditee</TableHead><TableHead className="text-[10px] font-black uppercase">Positive Observations</TableHead></TableRow>
+                          <TableRow>
+                              <TableHead className="pl-8 py-3 text-[10px] font-black uppercase">Unit / Campus / Auditee</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Positive Observations</TableHead>
+                          </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {kpis.yearSchedules.filter(s => s.summaryCommendable).map(s => (
-                              <TableRow key={s.id} className="hover:bg-emerald-50/20 transition-colors">
-                                  <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                                  <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
-                              </TableRow>
-                          ))}
+                          {kpis.yearSchedules.filter(s => s.summaryCommendable).map(s => {
+                              const campusName = campusMap.get(s.campusId) || 'Institutional';
+                              const auditeeName = s.auditeeHeadName || s.officerInCharge || 'Unit Head';
+                              return (
+                                  <TableRow key={s.id} className="hover:bg-emerald-50/20 transition-colors">
+                                      <TableCell className="pl-8 py-5 w-[250px]">
+                                          <p className="font-black text-sm uppercase">{s.targetName}</p>
+                                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
+                                          <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
+                                      </TableCell>
+                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
+                                  </TableRow>
+                              );
+                          })}
                           {kpis.yearSchedules.filter(s => s.summaryCommendable).length === 0 && (
                               <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Star className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No positive findings recorded</p></TableCell></TableRow>
                           )}
