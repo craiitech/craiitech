@@ -285,25 +285,51 @@ export default function AuditExecutionPage() {
 
   const watchAll = form.watch();
 
-  const sortSummaryLines = (lines: string[]) => {
-    return [...lines].sort((a, b) => {
-      const matchA = a.match(/^\[Clause\s+([^\]]+)\]/i);
-      const matchB = b.match(/^\[Clause\s+([^\]]+)\]/i);
-      if (!matchA && !matchB) return a.localeCompare(b);
-      if (!matchA) return 1;
-      if (!matchB) return -1;
-      
-      const clauseA = matchA[1];
-      const clauseB = matchB[1];
-      
-      return clauseA.localeCompare(clauseB, undefined, { numeric: true, sensitivity: 'base' });
+  const parseSummaryBlocks = (val: string | undefined): { id: string; header: string; content: string }[] => {
+    if (!val) return [];
+    // Split by newlines followed by a lookahead for a clause header to isolate individual clause findings
+    const regex = /(?:^|\n)(?=\[Clause\s+[^\]]+\]:)/gi;
+    const parts = val.split(regex).map(p => p.trim()).filter(p => p.length > 0);
+    
+    const blocks: { id: string; header: string; content: string }[] = [];
+    parts.forEach(part => {
+      const match = part.match(/^\[Clause\s+([^\]]+)\]:\s*([\s\S]*)$/i);
+      if (match) {
+        blocks.push({
+          id: match[1].trim(),
+          header: `[Clause ${match[1].trim()}]:`,
+          content: match[2].trim()
+        });
+      } else {
+        // If it does not start with a Clause header (like raw text/header notes at the top)
+        blocks.push({
+          id: '',
+          header: '',
+          content: part
+        });
+      }
     });
+    return blocks;
+  };
+
+  const serializeSummaryBlocks = (blocks: { id: string; header: string; content: string }[]): string => {
+    // Sort blocks: those without IDs (general notes) first, then by clause ID numerically
+    const sorted = [...blocks].sort((a, b) => {
+      if (!a.id && !b.id) return a.content.localeCompare(b.content);
+      if (!a.id) return -1;
+      if (!b.id) return 1;
+      return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    return sorted
+      .map(b => b.header ? `${b.header} ${b.content}` : b.content)
+      .join('\n\n');
   };
 
   const getSortedSummary = (val: string | undefined) => {
     if (!val) return '';
-    const lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    return sortSummaryLines(lines).join('\n');
+    const blocks = parseSummaryBlocks(val);
+    return serializeSummaryBlocks(blocks);
   };
 
   useEffect(() => {
@@ -491,7 +517,6 @@ export default function AuditExecutionPage() {
       actualText = finding.description || finding.evidence || '';
     }
 
-    const formattedEntry = actualText.trim() ? `[Clause ${clauseId}]: ${actualText.trim()}` : '';
     const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
       'summaryCommendable', 
       'summaryCompliance', 
@@ -508,17 +533,21 @@ export default function AuditExecutionPage() {
         if (['officerInCharge', 'actualDate', 'actualStartTime', 'actualEndTime'].includes(fName)) return;
         
         const currentVal = form.getValues(fName) || '';
-        const lines = currentVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const blocks = parseSummaryBlocks(currentVal);
         
-        const prefix = `[Clause ${clauseId}]:`;
-        const otherLines = lines.filter(l => !l.toLowerCase().startsWith(prefix.toLowerCase()));
+        // Filter out the existing block for this clause (regardless of previous type)
+        const updatedBlocks = blocks.filter(b => b.id.toLowerCase() !== clauseId.toLowerCase());
         
-        if (fName === targetFieldName && formattedEntry) {
-            otherLines.push(formattedEntry);
+        // If this is the target summary field, append the new block for this clause
+        if (fName === targetFieldName && actualText.trim()) {
+          updatedBlocks.push({
+            id: clauseId,
+            header: `[Clause ${clauseId}]:`,
+            content: actualText.trim()
+          });
         }
         
-        const sortedLines = sortSummaryLines(otherLines);
-        const finalContent = sortedLines.join('\n');
+        const finalContent = serializeSummaryBlocks(updatedBlocks);
         form.setValue(fName, finalContent, { shouldDirty: true });
     });
   };
