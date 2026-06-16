@@ -40,11 +40,14 @@ import {
     Layers,
     Edit,
     Trash2,
-    Save
+    Save,
+    Calendar,
+    Clock
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -341,21 +344,46 @@ export function AuditResultsView({
                       <TableHeader className="bg-muted/30">
                           <TableRow>
                               <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit / Campus / Auditee</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Audit Date & Time</TableHead>
                               <TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead>
                               <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {kpis.yearFindings.filter(f => f.type === 'Non-Conformance').map(finding => {
-                              const schedule = kpis.yearSchedules.find(s => s.id === finding.auditScheduleId);
-                              const campusName = schedule ? (campusMap.get(schedule.campusId) || 'Institutional') : 'Institutional';
-                              const auditeeName = schedule ? (schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head') : 'Unit Head';
-                              return (
+                          {kpis.yearFindings
+                            .filter(f => f.type === 'Non-Conformance')
+                            .sort((a, b) => {
+                                const schedA = kpis.yearSchedules.find(s => s.id === a.auditScheduleId);
+                                const schedB = kpis.yearSchedules.find(s => s.id === b.auditScheduleId);
+                                if (!schedA || !schedB) return 0;
+                                return parseDate(schedA.scheduledDate).getTime() - parseDate(schedB.scheduledDate).getTime();
+                            })
+                            .map(finding => {
+                               const schedule = kpis.yearSchedules.find(s => s.id === finding.auditScheduleId);
+                               const campusName = schedule ? (campusMap.get(schedule.campusId) || 'Institutional') : 'Institutional';
+                               const auditeeName = schedule ? (schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head') : 'Unit Head';
+                               return (
                                   <TableRow key={finding.id} className="hover:bg-rose-50/20 group">
                                       <TableCell className="pl-8 py-5">
                                           <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
                                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
                                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
+                                      </TableCell>
+                                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700">
+                                          {schedule?.scheduledDate ? (
+                                              <div className="space-y-1">
+                                                  <div className="flex items-center gap-1.5">
+                                                      <Calendar className="h-3.5 w-3.5 text-[#1B6535]" />
+                                                      <span>{format(parseDate(schedule.scheduledDate), 'PPP')}</span>
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                                      <Clock className="h-3 w-3" />
+                                                      <span>{format(parseDate(schedule.scheduledDate), 'p')}</span>
+                                                  </div>
+                                              </div>
+                                          ) : (
+                                              <span className="text-muted-foreground italic">N/A</span>
+                                          )}
                                       </TableCell>
                                       <TableCell className="py-5">
                                           <Badge className="bg-rose-600 text-white h-4 px-1.5 text-[8px] font-black mb-2">Clause {finding.isoClause}</Badge>

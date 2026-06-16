@@ -37,11 +37,14 @@ import {
     Activity,
     ClipboardCheck,
     Star,
-    Layers
+    Layers,
+    Calendar,
+    Clock
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -150,6 +153,12 @@ export function AuditResultsView({
             const schedule = kpis.yearSchedules.find(s => s.id === finding.auditScheduleId);
             const linkedCar = cars.find(car => car.findingId === finding.id);
             return { finding, schedule, linkedCar, isIssued: !!linkedCar };
+        })
+        .sort((a, b) => {
+            if (!a.schedule || !b.schedule) return 0;
+            const dateA = parseDate(a.schedule.scheduledDate).getTime();
+            const dateB = parseDate(b.schedule.scheduledDate).getTime();
+            return dateA - dateB;
         });
   }, [kpis, cars]);
 
@@ -440,9 +449,10 @@ export function AuditResultsView({
                   </CardHeader>
                   <CardContent className="p-0">
                       <Table>
-                          <TableHeader className="bg-muted/30">
+                           <TableHeader className="bg-muted/30">
                               <TableRow>
                                   <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit & Auditor</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase">Audit Date & Time</TableHead>
                                   <TableHead className="text-[10px] font-black uppercase">NC Statement</TableHead>
                                   <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
                                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase">CAR Bridge</TableHead>
@@ -456,6 +466,22 @@ export function AuditResultsView({
                                               <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule?.targetName}</p>
                                               <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div>
                                           </div>
+                                      </TableCell>
+                                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700">
+                                          {item.schedule?.scheduledDate ? (
+                                              <div className="space-y-1">
+                                                  <div className="flex items-center gap-1.5">
+                                                      <Calendar className="h-3.5 w-3.5 text-[#1B6535]" />
+                                                      <span>{format(parseDate(item.schedule.scheduledDate), 'PPP')}</span>
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                                      <Clock className="h-3 w-3" />
+                                                      <span>{format(parseDate(item.schedule.scheduledDate), 'p')}</span>
+                                                  </div>
+                                              </div>
+                                          ) : (
+                                              <span className="text-muted-foreground italic">N/A</span>
+                                          )}
                                       </TableCell>
                                       <TableCell className="max-w-md py-5">
                                           <div className="space-y-2">
