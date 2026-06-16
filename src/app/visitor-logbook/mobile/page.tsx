@@ -67,6 +67,7 @@ function MobileVisitorLogbookContent() {
   const [sex, setSex] = useState('');
   const [purpose, setPurpose] = useState('');
   const [lookingFor, setLookingFor] = useState('');
+  const [selectedLookingFor, setSelectedLookingFor] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -402,6 +403,7 @@ function MobileVisitorLogbookContent() {
     setSex('');
     setPurpose('');
     setLookingFor('');
+    setSelectedLookingFor('');
     setCheckoutComplete(false);
     setShowSurvey(false);
     setCsmAgeGroup('');
@@ -984,24 +986,55 @@ function MobileVisitorLogbookContent() {
 
                 {/* Looking For */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="lookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                  <Label htmlFor="lookingForSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                     Who are you looking for?
                   </Label>
                   <div className="relative">
                     <Users2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                     {activeEmployees && activeEmployees.length > 0 ? (
-                      <select
-                        id="lookingFor"
-                        value={lookingFor}
-                        onChange={(e) => setLookingFor(e.target.value)}
-                        required
-                        className="w-full h-11 px-3 pl-9 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
-                      >
-                        <option value="">-- SELECT PERSONNEL --</option>
-                        {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
-                          <option key={emp.id} value={emp.name}>{emp.name.toUpperCase()} ({emp.type.toUpperCase()})</option>
-                        ))}
-                      </select>
+                      <div className="space-y-2 w-full">
+                        <select
+                          id="lookingForSelect"
+                          value={selectedLookingFor}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedLookingFor(val);
+                            if (val !== 'Others') {
+                              setLookingFor(val);
+                            } else {
+                              setLookingFor('');
+                            }
+                          }}
+                          required
+                          className="w-full h-11 px-3 pl-9 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
+                        >
+                          <option value="">-- SELECT PERSONNEL --</option>
+                          {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
+                            <option key={emp.id} value={emp.name}>{emp.name.toUpperCase()} ({emp.type.toUpperCase()})</option>
+                          ))}
+                          <option value="Others">OTHERS (PLEASE SPECIFY)</option>
+                        </select>
+
+                        {selectedLookingFor === 'Others' && (
+                          <div className="space-y-1.5 pt-2 animate-in slide-in-from-top-2 duration-300">
+                            <Label htmlFor="customLookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                              Please specify the person you are looking for
+                            </Label>
+                            <div className="relative">
+                              <Users2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                              <Input
+                                id="customLookingFor"
+                                type="text"
+                                placeholder="e.g. Sarah Jane Fallaria, Office Head"
+                                value={lookingFor}
+                                onChange={(e) => setLookingFor(e.target.value)}
+                                required
+                                className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600 font-bold text-xs uppercase"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <Input
                         id="lookingFor"
