@@ -235,6 +235,19 @@
       animation: float-blob 12s infinite ease-in-out;
     }
 
+    @keyframes logo-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .animate-logo-float {
+      animation: logo-float 4s infinite ease-in-out;
+    }
+
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+
     @keyframes emergency-flash {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.2; }

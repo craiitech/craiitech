@@ -967,13 +967,22 @@ export default function VisitorLogbookPage() {
           
           {/* Logo and Titles */}
           <div className="space-y-4">
-            <div className="flex justify-center xl:justify-start">
-              <div className="relative h-20 w-20 md:h-24 md:w-24 transition-all hover:scale-105 duration-300">
+            <div className="flex justify-center xl:justify-start items-center gap-4">
+              <div className="relative h-20 w-20 md:h-24 md:w-24 transition-all hover:scale-105 duration-300 animate-logo-float">
                 <Image 
                   src={logoSrc} 
                   alt="University Logo" 
                   fill 
                   className="object-contain" 
+                  priority
+                />
+              </div>
+              <div className="relative h-20 w-20 md:h-24 md:w-24 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
+                <Image 
+                  src="/ISOlogo.jpg" 
+                  alt="ISO Logo" 
+                  fill 
+                  className="object-contain rounded-xl border border-white/10" 
                   priority
                 />
               </div>
