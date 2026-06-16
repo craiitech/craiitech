@@ -625,11 +625,11 @@ export default function VisitorLogbookSettingsPage() {
                                 <Checkbox
                                   id={`sector-${sector}`}
                                   checked={isChecked}
-                                  onCheckedChange={() => {}} // Handled by div click
+                                  className="pointer-events-none"
                                 />
-                                <Label htmlFor={`sector-${sector}`} className="text-[10px] font-bold uppercase tracking-wider text-slate-600 cursor-pointer select-none truncate">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 select-none truncate">
                                   {sector}
-                                </Label>
+                                </span>
                               </div>
                             );
                           })}
