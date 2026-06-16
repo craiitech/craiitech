@@ -130,7 +130,16 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const currentYearNum = new Date().getFullYear();
     let activeCount = 0;
+    let activeNewCount = 0;
     let closedCount = 0;
+    let activeUgCount = 0;
+    let activeUgNewCount = 0;
+    let activeUgAccredited = 0;
+    let activeUgCopc = 0;
+    let activeGradCount = 0;
+    let activeGradNewCount = 0;
+    let activeGradAccredited = 0;
+    let activeGradCopc = 0;
     let activeAccredited = 0;
     let activeCopc = 0;
     let currentYearAccreditationCount = 0;
@@ -203,8 +212,21 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
         if (p.isActive) {
             activeCount++;
+            if (p.isNewProgram) activeNewCount++;
             if (isAccredited) activeAccredited++;
             if (hasCopc) activeCopc++;
+            
+            if (p.level === 'Undergraduate') {
+                activeUgCount++;
+                if (p.isNewProgram) activeUgNewCount++;
+                if (isAccredited) activeUgAccredited++;
+                if (hasCopc) activeUgCopc++;
+            } else if (p.level === 'Graduate') {
+                activeGradCount++;
+                if (p.isNewProgram) activeGradNewCount++;
+                if (isAccredited) activeGradAccredited++;
+                if (hasCopc) activeGradCopc++;
+            }
             
             if (rawLevel.includes('Level I')) levelCounts.L1++;
             else if (rawLevel.includes('Level II')) levelCounts.L2++;
@@ -353,6 +375,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         facultyTrendData,
         facultyAttainmentData,
         activeCount, 
+        activeNewCount,
+        activeUgCount,
+        activeUgNewCount,
+        activeUgAccredited,
+        activeUgCopc,
+        activeGradCount,
+        activeGradNewCount,
+        activeGradAccredited,
+        activeGradCopc,
         closedCount,
         activeAccredited, 
         activeCopc,
@@ -491,10 +522,19 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
   if (!analytics) return null;
 
+  const ugCopcRate = analytics.activeUgCount > 0 ? Math.round((analytics.activeUgCopc / analytics.activeUgCount) * 100) : 0;
+  const gradCopcRate = analytics.activeGradCount > 0 ? Math.round((analytics.activeGradCopc / analytics.activeGradCount) * 100) : 0;
+
+  const activeUgAccreditable = analytics.activeUgCount - analytics.activeUgNewCount;
+  const ugAccredRate = activeUgAccreditable > 0 ? Math.round((analytics.activeUgAccredited / activeUgAccreditable) * 100) : 0;
+
+  const activeGradAccreditable = analytics.activeGradCount - analytics.activeGradNewCount;
+  const gradAccredRate = activeGradAccreditable > 0 ? Math.round((analytics.activeGradAccredited / activeGradAccreditable) * 100) : 0;
+
   return (
     <TooltipProvider delayDuration={100}>
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card className="bg-slate-50/50 border-slate-200 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span>
@@ -546,6 +586,51 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </p>
             </div>
         </Card>
+        <Card className="bg-cyan-50/20 border-cyan-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-600/70">COPC by Level</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-cyan-400 hover:text-cyan-600 transition-colors focus:outline-none" aria-label="COPC by Level Information">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">COPC by Level</p>
+                  <p className="text-slate-200">Shows the percentage of active Undergraduate and Graduate programs that hold a valid Certificate of Program Compliance (COPC).</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="space-y-3 my-auto">
+              <div>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[11px] font-bold text-slate-700">Undergraduate</span>
+                  <span className="text-xs font-black text-cyan-600">
+                    {ugCopcRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeUgCopc}/{analytics.activeUgCount})</span>
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-cyan-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${ugCopcRate}%` }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[11px] font-bold text-slate-700">Graduate</span>
+                  <span className="text-xs font-black text-cyan-600">
+                    {gradCopcRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeGradCopc}/{analytics.activeGradCount})</span>
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-cyan-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${gradCopcRate}%` }}></div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-cyan-100/60">
+              <p className="text-[9px] font-bold text-cyan-600/70 uppercase tracking-widest">
+                Compliance by level
+              </p>
+            </div>
+        </Card>
         <Card className="bg-amber-50/20 border-amber-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/70">Quality Maturity</span>
@@ -557,17 +642,62 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
                   <p className="font-bold border-b border-slate-700 pb-1 mb-1">Quality Maturity</p>
-                  <p className="text-slate-200">Measures the percentage of active academic programs that have attained AACCUP Level I or above accreditation.</p>
+                  <p className="text-slate-200">Measures the percentage of active academic programs (excluding new program offerings not yet subject to accreditation) that have attained AACCUP Level I or above accreditation.</p>
                 </TooltipContent>
               </Tooltip>
             </div>
             <div className="text-3xl font-black text-amber-600 leading-none mb-2">{analytics.activeAccredited} Accredited</div>
             <div className="space-y-1.5 mt-auto pt-3 border-t border-amber-100/60">
               <p className="text-[10px] font-black text-slate-700 leading-tight">
-                {analytics.activeAccredited} of {analytics.activeCount} programs accredited
+                {analytics.activeAccredited} of {analytics.activeCount - analytics.activeNewCount} accreditable programs accredited
               </p>
               <p className="text-[9px] font-bold text-amber-600/70 uppercase tracking-widest">
-                {analytics.activeCount > 0 ? Math.round((analytics.activeAccredited / analytics.activeCount) * 100) : 0}% Accreditation Rate
+                {(analytics.activeCount - analytics.activeNewCount) > 0 ? Math.round((analytics.activeAccredited / (analytics.activeCount - analytics.activeNewCount)) * 100) : 0}% Accreditation Rate
+              </p>
+            </div>
+        </Card>
+        <Card className="bg-indigo-50/20 border-indigo-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/70">Accreditation by Level</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-indigo-400 hover:text-indigo-600 transition-colors focus:outline-none" aria-label="Accreditation by Level Information">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation by Level</p>
+                  <p className="text-slate-200">Measures the percentage of accreditable Undergraduate and Graduate programs that have achieved Level I or higher accreditation.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="space-y-3 my-auto">
+              <div>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[11px] font-bold text-slate-700">Undergraduate</span>
+                  <span className="text-xs font-black text-indigo-600">
+                    {ugAccredRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeUgAccredited}/{activeUgAccreditable})</span>
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${ugAccredRate}%` }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[11px] font-bold text-slate-700">Graduate</span>
+                  <span className="text-xs font-black text-indigo-600">
+                    {gradAccredRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeGradAccredited}/{activeGradAccreditable})</span>
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${gradAccredRate}%` }}></div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-indigo-100/60">
+              <p className="text-[9px] font-bold text-indigo-600/70 uppercase tracking-widest">
+                Accreditation by level
               </p>
             </div>
         </Card>
