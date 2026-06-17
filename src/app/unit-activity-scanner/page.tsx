@@ -852,74 +852,79 @@ function UnitActivityScannerTerminal() {
       {/* ================================================================== */}
       {/* TOP HEADER BAR — floats over layout                                */}
       {/* ================================================================== */}
-      <header className="relative z-20 flex items-center justify-between px-6 py-3 bg-black/40 backdrop-blur-md border-b border-white/10 shrink-0 animate-in slide-in-from-top duration-300">
-        {/* Branding */}
-        <div className="flex items-center gap-3">
-          <img src="/rsulogo.png" alt="RSU Logo" className="h-9 w-9 object-contain drop-shadow-lg" />
-          <div>
-            <h1 className="text-xs font-black tracking-tight text-white uppercase flex items-center gap-1.5 drop-shadow">
-              <Sparkles className="h-3.5 w-3.5 text-[#D4AF37] animate-pulse" />
-              RSU Attendance Terminal
-            </h1>
-            {activeActivity && (
-              <p className="text-[9px] font-black text-[#D4AF37] tracking-widest uppercase mt-0.5 drop-shadow">
-                {activeActivity.name} &bull; {activeActivityUnit}
-              </p>
-            )}
-          </div>
+      <header className="relative z-20 flex flex-col items-center px-6 pt-5 pb-3 bg-black/40 backdrop-blur-md border-b border-white/10 shrink-0 animate-in slide-in-from-top duration-300 gap-2">
+
+        {/* ---- CENTERED BRANDING BLOCK ---- */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <img src="/rsulogo.png" alt="RSU Logo" className="h-16 w-16 object-contain drop-shadow-2xl" />
+          <h1 className="text-lg sm:text-xl font-black tracking-tight text-white uppercase flex items-center gap-2 drop-shadow">
+            <Sparkles className="h-4 w-4 text-[#D4AF37] animate-pulse shrink-0" />
+            RSU Attendance Terminal
+            <Sparkles className="h-4 w-4 text-[#D4AF37] animate-pulse shrink-0" />
+          </h1>
+          {activeActivity && (
+            <p className="text-base sm:text-lg md:text-2xl font-black text-[#D4AF37] tracking-widest uppercase drop-shadow leading-tight text-center max-w-4xl">
+              {activeActivity.name}
+            </p>
+          )}
+          {activeActivity && (
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              {activeActivityUnit}
+            </span>
+          )}
         </div>
 
-        {/* Clock widget */}
-        {currentTime && (
-          <div className="hidden lg:flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 shadow-xl">
-            <Clock className="h-3.5 w-3.5 text-[#D4AF37] shrink-0" />
-            <span className="text-xs font-black text-white tabular-nums">{format(currentTime, 'hh:mm:ss a')}</span>
-            <div className="h-3 w-px bg-white/15" />
-            <Calendar className="h-3.5 w-3.5 text-[#D4AF37] shrink-0" />
-            <span className="text-[9.5px] font-bold text-white">{format(currentTime, 'EEE, MMM dd')}</span>
-          </div>
-        )}
+        {/* ---- CONTROLS ROW ---- */}
+        <div className="flex items-center gap-2 flex-wrap justify-center mt-1">
+          {/* Clock widget */}
+          {currentTime && (
+            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 shadow-xl">
+              <Clock className="h-3 w-3 text-[#D4AF37] shrink-0" />
+              <span className="text-[10px] font-black text-white tabular-nums">{format(currentTime, 'hh:mm:ss a')}</span>
+              <div className="h-3 w-px bg-white/15" />
+              <Calendar className="h-3 w-3 text-[#D4AF37] shrink-0" />
+              <span className="text-[9px] font-bold text-white">{format(currentTime, 'EEE, MMM dd')}</span>
+            </div>
+          )}
 
-        {/* Session Selector */}
-        {sessions.length > 0 && (
-          <div className="hidden md:flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 shadow-xl">
-            <span className="text-[8.5px] font-black text-[#D4AF37] uppercase tracking-wider">Session:</span>
-            <select
-              value={selectedSessionId}
-              onChange={async (e) => {
-                const newSessionId = e.target.value;
-                setSelectedSessionId(newSessionId);
-                if (firestore && paramActivityId) {
-                  try {
-                    await updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
-                      activeSessionId: newSessionId
-                    });
-                  } catch (err) {
-                    console.error("Error updating active session:", err);
+          {/* Session Selector */}
+          {sessions.length > 0 && (
+            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 shadow-xl">
+              <span className="text-[8px] font-black text-[#D4AF37] uppercase tracking-wider">Session:</span>
+              <select
+                value={selectedSessionId}
+                onChange={async (e) => {
+                  const newSessionId = e.target.value;
+                  setSelectedSessionId(newSessionId);
+                  if (firestore && paramActivityId) {
+                    try {
+                      await updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
+                        activeSessionId: newSessionId
+                      });
+                    } catch (err) {
+                      console.error("Error updating active session:", err);
+                    }
                   }
-                }
-              }}
-              className="bg-transparent border-none text-[9.5px] font-black text-white focus:outline-none cursor-pointer uppercase pr-2 max-w-[150px]"
-            >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id} className="bg-slate-950 text-white text-[9px] font-bold">
-                  {s.label} ({s.date})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+                }}
+                className="bg-transparent border-none text-[9px] font-black text-white focus:outline-none cursor-pointer uppercase pr-2 max-w-[150px]"
+              >
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-slate-950 text-white text-[9px] font-bold">
+                    {s.label} ({s.date})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[8.5px] font-black text-white/85 uppercase tracking-widest">Live</span>
+            <span className="text-[8px] font-black text-white/85 uppercase tracking-widest">Live</span>
           </div>
 
           <button
             onClick={toggleFullscreen}
-            className="inline-flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-widest text-[#D4AF37]/80 hover:text-[#D4AF37] bg-black/40 hover:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 transition-all"
+            className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/80 hover:text-[#D4AF37] bg-black/40 hover:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 transition-all"
           >
             {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
             Fullscreen
@@ -927,7 +932,7 @@ function UnitActivityScannerTerminal() {
 
           <button
             onClick={handleExitTerminal}
-            className="inline-flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-rose-500/30 transition-all"
+            className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md px-3 py-1 rounded-full border border-rose-500/30 transition-all"
           >
             <ArrowLeft className="h-3 w-3" />
             Exit
@@ -1299,12 +1304,12 @@ function UnitActivityScannerTerminal() {
           )}
 
           {/* ---- REGISTRATION QR CODE CARD ---- */}
-          <div className="border border-white/15 bg-white/5 p-4 rounded-3xl flex flex-col items-center gap-2.5 shrink-0 shadow">
-            <Badge className="bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 text-[7px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">
-              <QrCode className="h-2.5 w-2.5 mr-1" />
-              No App Installed?
+          <div className="border border-white/15 bg-white/5 p-4 rounded-3xl flex flex-col items-center gap-3 shrink-0 shadow">
+            <Badge className="bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 text-[8px] font-black tracking-widest uppercase px-3 py-1 rounded-full">
+              <QrCode className="h-3 w-3 mr-1.5" />
+              No App? Scan Here!
             </Badge>
-            <div className="bg-white p-2 rounded-2xl shadow-inner w-[96px] h-[96px] flex items-center justify-center overflow-hidden">
+            <div className="bg-white p-3 rounded-2xl shadow-inner w-[190px] h-[190px] flex items-center justify-center overflow-hidden">
               {registrationQrCodeUrl ? (
                 <img
                   src={registrationQrCodeUrl}
@@ -1312,10 +1317,10 @@ function UnitActivityScannerTerminal() {
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <Loader2 className="h-5 w-5 animate-spin text-[#1B6535]" />
+                <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
               )}
             </div>
-            <p className="text-[7px] font-bold text-slate-400 text-center leading-normal uppercase">
+            <p className="text-[8px] font-bold text-slate-300 text-center leading-normal uppercase tracking-wider">
               Scan to open RSU Attendance Portal
             </p>
           </div>
