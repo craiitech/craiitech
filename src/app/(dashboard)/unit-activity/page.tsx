@@ -19,6 +19,10 @@ import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -126,6 +130,60 @@ export default function UnitActivityPage() {
   // --- DELETE ACTIVITY STATE ---
   const [confirmDeleteActivityId, setConfirmDeleteActivityId] = useState<string | null>(null);
   const [isDeletingActivityId, setIsDeletingActivityId] = useState<string | null>(null);
+
+  // --- EVALUATION STRATEGY STATE ---
+  const [selectedEvalActivity, setSelectedEvalActivity] = useState<AttendanceActivity | null>(null);
+  const [isEvalWizardOpen, setIsEvalWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [evalRequirePin, setEvalRequirePin] = useState(false);
+  const [evalPinCode, setEvalPinCode] = useState('');
+  const [evalFeedbackFocus, setEvalFeedbackFocus] = useState<string[]>(['objectives', 'speaker', 'venue', 'overall']);
+  const [evalFormMode, setEvalFormMode] = useState<'open' | 'strict'>('open');
+  const [isSavingStrategy, setIsSavingStrategy] = useState(false);
+
+  const openEvalWizard = (act: AttendanceActivity) => {
+    setSelectedEvalActivity(act);
+    setEvalRequirePin(act.evaluationStrategy?.requirePin ?? false);
+    setEvalPinCode(act.evaluationStrategy?.pinCode ?? Math.floor(1000 + Math.random() * 9000).toString());
+    setEvalFeedbackFocus(act.evaluationStrategy?.feedbackFocus ?? ['objectives', 'speaker', 'venue', 'overall']);
+    setEvalFormMode(act.evaluationStrategy?.formMode ?? 'open');
+    setWizardStep(1);
+    setIsEvalWizardOpen(true);
+  };
+
+  const handleSaveStrategy = async () => {
+    if (!firestore || !selectedEvalActivity) return;
+    setIsSavingStrategy(true);
+    try {
+      const updatedStrategy = {
+        requirePin: evalRequirePin,
+        pinCode: evalPinCode.trim() || '1234',
+        feedbackFocus: evalFeedbackFocus,
+        formMode: evalFormMode
+      };
+
+      const docRef = doc(firestore, 'unitActivities', selectedEvalActivity.id);
+      await setDoc(docRef, {
+        ...selectedEvalActivity,
+        evaluationStrategy: updatedStrategy
+      });
+
+      toast({
+        title: 'Strategy Saved',
+        description: 'Activity evaluation strategy has been updated successfully.'
+      });
+      setWizardStep(3);
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Error',
+        description: 'Failed to save evaluation strategy.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingStrategy(false);
+    }
+  };
 
   // --- SESSION HANDLERS ---
   const handleAddSession = () => {
@@ -1493,6 +1551,16 @@ export default function UnitActivityPage() {
                                     <Camera className="h-3 w-3 mr-1" />
                                     Scanner
                                   </Button>
+                                  {/* Setup Evaluation Strategy */}
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openEvalWizard(act)}
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-[#D4AF37] border-amber-500/20 hover:bg-amber-50"
+                                  >
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Setup Eval
+                                  </Button>
                                   {/* Edit */}
                                   <Button
                                     size="sm"
@@ -2256,6 +2324,267 @@ export default function UnitActivityPage() {
           </div>
         </div>
       )}
+
+      {/* EVALUATION STRATEGY WIZARD DIALOG */}
+      <Dialog open={isEvalWizardOpen} onOpenChange={setIsEvalWizardOpen}>
+        <DialogContent className="max-w-md bg-white border-slate-200 text-slate-900 rounded-2xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
+            <DialogTitle className="text-base font-black uppercase text-slate-800 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#D4AF37] animate-pulse" />
+              Evaluation Strategy Wizard
+            </DialogTitle>
+            <DialogDescription className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              Configure and strategize participant feedback collection
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Wizard step progress indicator */}
+          <div className="px-6 pt-4 flex items-center gap-3">
+            <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+              <div 
+                className="h-full bg-[#D4AF37] transition-all duration-300"
+                style={{ width: `${(wizardStep / 3) * 100}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-black uppercase text-slate-400">Step {wizardStep} of 3</span>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {wizardStep === 1 && (
+              /* Step 1: Security & PIN Settings */
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Step 1: Security & Identity Strategy</h4>
+                  <p className="text-[10px] text-slate-400">Establish access credentials to prevent unauthorized or spam feedback submissions.</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={evalRequirePin}
+                      onCheckedChange={(checked) => setEvalRequirePin(!!checked)}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-black uppercase text-slate-800">Require Submission PIN</span>
+                      <p className="text-[9.5px] text-slate-400 leading-normal">
+                        Participants must enter a 4-digit PIN code displayed on screen/projector to submit their reviews.
+                      </p>
+                    </div>
+                  </label>
+
+                  {evalRequirePin && (
+                    <div className="pl-7 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                      <Label className="text-[9px] font-black uppercase text-slate-500 pl-1">Event Entry PIN</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          maxLength={4}
+                          value={evalPinCode}
+                          onChange={(e) => setEvalPinCode(e.target.value.replace(/\D/g, ''))}
+                          className="w-24 text-center font-mono font-bold tracking-widest text-sm h-9 bg-white"
+                          placeholder="7788"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEvalPinCode(Math.floor(1000 + Math.random() * 9000).toString())}
+                          className="h-9 text-[10px] font-black uppercase tracking-wider"
+                        >
+                          Regenerate PIN
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                  <span className="text-xs font-black uppercase text-slate-800 block">Demographics Identity Strategy</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEvalFormMode('open')}
+                      className={cn(
+                        "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
+                        evalFormMode === 'open' 
+                          ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="text-[10px] font-black uppercase">Open/Anonymous</span>
+                      <span className="text-[9px] opacity-60 leading-normal font-medium">Names are optional</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEvalFormMode('strict')}
+                      className={cn(
+                        "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
+                        evalFormMode === 'strict' 
+                          ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="text-[10px] font-black uppercase">Strict Verification</span>
+                      <span className="text-[9px] opacity-60 leading-normal font-medium">Require name & contact</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 2 && (
+              /* Step 2: Custom Focus Areas */
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Step 2: Customize Feedback Focus</h4>
+                  <p className="text-[10px] text-slate-400">Select the specific evaluation aspects you want participants to rate for this activity.</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  {[
+                    { id: 'objectives', label: '1. Objectives Met', desc: 'Assess if the participants felt the event objectives were met.' },
+                    { id: 'speaker', label: '2. Speaker & Facilitator Delivery', desc: 'Assess the performance and quality of speakers/presenters.' },
+                    { id: 'venue', label: '3. Venue & Organization Quality', desc: 'Assess physical organization, comfort, and logistical smooth flow.' },
+                    { id: 'food', label: '4. Food & Refreshments Quality', desc: 'Assess the quality of the catering or meals served.' },
+                    { id: 'materials', label: '5. Materials & Handouts Quality', desc: 'Assess quality of reference files, handouts, or digital guides.' },
+                    { id: 'overall', label: '6. Overall Satisfaction', desc: 'Capture the net satisfaction metric for this session.' }
+                  ].map((cat) => {
+                    const isChecked = evalFeedbackFocus.includes(cat.id);
+                    return (
+                      <label 
+                        key={cat.id}
+                        className={cn(
+                          "p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5",
+                          isChecked 
+                            ? "bg-slate-50 border-slate-300"
+                            : "bg-white border-slate-100 hover:bg-slate-50/50"
+                        )}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setEvalFeedbackFocus([...evalFeedbackFocus, cat.id]);
+                            } else {
+                              // Always keep at least one category checked to prevent empty forms
+                              if (evalFeedbackFocus.length > 1) {
+                                setEvalFeedbackFocus(evalFeedbackFocus.filter(f => f !== cat.id));
+                              } else {
+                                toast({
+                                  title: 'Selection Locked',
+                                  description: 'At least one focus category must be selected.',
+                                  variant: 'destructive'
+                                });
+                              }
+                            }
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-extrabold text-slate-800">{cat.label}</span>
+                          <p className="text-[9.5px] text-slate-400 leading-normal font-medium">{cat.desc}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 3 && (
+              /* Step 3: Success & Launch Options */
+              <div className="space-y-6 text-center py-4">
+                <div className="h-16 w-16 bg-emerald-50 text-emerald-500 border border-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                  <Check className="h-8 w-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-sm font-black uppercase text-slate-800 tracking-tight">Evaluation Strategy Deployed!</h4>
+                  <p className="text-[10.5px] text-slate-500 leading-relaxed font-semibold max-w-xs mx-auto">
+                    Your evaluation settings have been synchronized. The portal is ready to receive structured ratings.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2.5 max-w-sm mx-auto text-xs font-semibold">
+                  <div className="flex justify-between border-b pb-1.5 uppercase font-black text-[9.5px] text-slate-400">
+                    <span>Configured Strategy</span>
+                    <span>Status</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Submission Mode:</span>
+                    <span className="font-bold uppercase text-slate-700">{evalFormMode === 'strict' ? 'Verified Demographics' : 'Anonymous Open'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">PIN Security:</span>
+                    <span className="font-bold text-slate-700">{evalRequirePin ? `Required (Code: ${evalPinCode})` : 'Disabled'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Aspects Selected:</span>
+                    <span className="font-bold text-[#1B6535]">{evalFeedbackFocus.length} categories active</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-3 max-w-xs mx-auto">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      window.open(`/unit-activity/evaluate/kiosk?activityId=${selectedEvalActivity?.id}`, '_blank');
+                    }}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-800 border-none text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Maximize2 className="h-4 w-4 text-[#D4AF37]" />
+                    Launch Fullscreen Kiosk
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEvalWizardOpen(false);
+                    }}
+                    className="w-full h-11 text-xs font-black uppercase tracking-wider text-slate-600 border-slate-200"
+                  >
+                    Done & Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer buttons for step 1 & 2 */}
+          {wizardStep < 3 && (
+            <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4 flex gap-2 sm:justify-end">
+              {wizardStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setWizardStep(wizardStep - 1)}
+                  className="h-10 text-[10px] font-black uppercase tracking-wider"
+                >
+                  Back
+                </Button>
+              )}
+              {wizardStep === 1 ? (
+                <Button
+                  type="button"
+                  onClick={() => setWizardStep(2)}
+                  className="h-10 px-5 text-[10px] font-black uppercase tracking-wider"
+                >
+                  Continue Focus Focus
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={isSavingStrategy}
+                  onClick={handleSaveStrategy}
+                  className="h-10 px-6 bg-[#1B6535] hover:bg-[#154e29] border-none text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  {isSavingStrategy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  Deploy Strategy
+                </Button>
+              )}
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

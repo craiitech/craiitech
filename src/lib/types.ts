@@ -1120,6 +1120,13 @@ export type ActivitySession = {
   endTime: string; // "HH:mm"
 };
 
+export type EvaluationStrategy = {
+  requirePin: boolean;
+  pinCode: string;
+  feedbackFocus: string[]; // e.g. ['objectives', 'speaker', 'venue', 'food', 'materials', 'overall']
+  formMode: 'open' | 'strict';
+};
+
 export type AttendanceActivity = {
   id: string;
   name: string;
@@ -1134,6 +1141,7 @@ export type AttendanceActivity = {
   createdBy: string;
   documents?: { description: string; googleDriveLink: string; }[];
   sessions?: ActivitySession[];
+  evaluationStrategy?: EvaluationStrategy;
 };
 
 export type DeviceBinding = {

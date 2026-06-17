@@ -48,7 +48,6 @@ function UnitActivityScannerTerminal() {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
-  const [isEvalQrOpen, setIsEvalQrOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('default');
 
   // Fetch specific activity details
@@ -518,12 +517,6 @@ function UnitActivityScannerTerminal() {
   const registrationQrCodeUrl = registrationUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(registrationUrl)}`
     : '';
-  const evalUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/unit-activity/evaluate?activityId=${activeActivity?.id}`
-    : '';
-  const evalQrCodeUrl = evalUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(evalUrl)}`
-    : '';
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black font-sans text-white">
@@ -614,7 +607,7 @@ function UnitActivityScannerTerminal() {
       {/* TOP HEADER BAR — floats over camera                                 */}
       {/* ================================================================== */}
       <div
-        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-3 gap-4"
+        className="absolute top-0 left-0 right-[300px] z-10 flex items-center justify-between px-5 py-3 gap-4"
       >
         {/* Branding */}
         <div className="flex items-center gap-3">
@@ -667,14 +660,6 @@ function UnitActivityScannerTerminal() {
             <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Live</span>
           </div>
-
-          <button
-            onClick={() => setIsEvalQrOpen(true)}
-            className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#D4AF37] hover:text-white bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 backdrop-blur-md px-3 py-2 rounded-full border border-[#D4AF37]/30 transition-all"
-          >
-            <QrCode className="h-3.5 w-3.5" />
-            Evaluation QR
-          </button>
 
           <button
             onClick={toggleFullscreen}
@@ -940,58 +925,7 @@ function UnitActivityScannerTerminal() {
         }
       `}</style>
 
-      {/* ================================================================== */}
-      {/* EVALUATION PORTAL QR OVERLAY                                       */}
-      {/* ================================================================== */}
-      {isEvalQrOpen && (
-        <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white p-6 rounded-3xl shadow-2xl w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] flex flex-col items-center justify-center border-4 border-amber-400">
-            {evalQrCodeUrl ? (
-              <img
-                src={evalQrCodeUrl}
-                alt="Evaluation Portal QR Code"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            )}
-          </div>
-          <div className="space-y-2 max-w-md">
-            <h3 className="text-xl font-black uppercase tracking-tight text-white flex items-center justify-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-400 animate-pulse" />
-              Scan to Evaluate Activity
-            </h3>
-            <p className="text-[11px] font-black text-amber-400 uppercase tracking-widest">
-              {activeActivity?.name}
-            </p>
-            <p className="text-xs font-medium text-slate-300 pt-1 leading-relaxed">
-              Scan the QR code above to access the Participant Feedback Portal and complete the activity evaluation.
-            </p>
-          </div>
-          <div className="pt-2 flex gap-3 w-full max-w-xs">
-            <Button
-              asChild
-              variant="outline"
-              className="flex-grow h-10 bg-white text-slate-900 border-none font-black uppercase tracking-widest text-[10px] rounded-xl"
-            >
-              <a
-                href={evalQrCodeUrl}
-                download={`evaluation-qr-${activeActivity?.id}.png`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Download QR
-              </a>
-            </Button>
-            <Button
-              onClick={() => setIsEvalQrOpen(false)}
-              className="flex-grow h-10 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-[10px] border-none rounded-xl"
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
+
 
       {/* ================================================================== */}
       {/* KIOSK PAUSED OVERLAY — when not fullscreen                         */}

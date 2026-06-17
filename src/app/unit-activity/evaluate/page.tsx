@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone } from 'lucide-react';
+import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -75,8 +75,18 @@ function EvaluationForm() {
   const [ratingObjectives, setRatingObjectives] = useState(0);
   const [ratingSpeaker, setRatingSpeaker] = useState(0);
   const [ratingVenue, setRatingVenue] = useState(0);
+  const [ratingFood, setRatingFood] = useState(0);
+  const [ratingMaterials, setRatingMaterials] = useState(0);
   const [ratingOverall, setRatingOverall] = useState(0);
   const [comments, setComments] = useState('');
+  const [pinInput, setPinInput] = useState('');
+
+  // Extract strategy settings
+  const strategy = activity?.evaluationStrategy;
+  const focusList = strategy?.feedbackFocus || ['objectives', 'speaker', 'venue', 'overall'];
+  const isPinRequired = strategy?.requirePin === true;
+  const activePin = strategy?.pinCode || '';
+  const evalFormMode = strategy?.formMode || 'open';
 
   useEffect(() => {
     async function fetchActivity() {
@@ -103,28 +113,62 @@ function EvaluationForm() {
     e.preventDefault();
     if (!firestore || !activityId) return;
 
-    if (ratingObjectives === 0 || ratingSpeaker === 0 || ratingVenue === 0 || ratingOverall === 0) {
+    // Strict Mode Identity Check
+    if (evalFormMode === 'strict' && (!name.trim() || !contact.trim())) {
+      toast({
+        title: 'Fields Required',
+        description: 'Please provide both your Name and Contact details to submit this evaluation.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Dynamic Category Ratings Validation
+    const validationFailed = focusList.some(cat => {
+      if (cat === 'objectives' && ratingObjectives === 0) return true;
+      if (cat === 'speaker' && ratingSpeaker === 0) return true;
+      if (cat === 'venue' && ratingVenue === 0) return true;
+      if (cat === 'food' && ratingFood === 0) return true;
+      if (cat === 'materials' && ratingMaterials === 0) return true;
+      if (cat === 'overall' && ratingOverall === 0) return true;
+      return false;
+    });
+
+    if (validationFailed) {
       toast({
         title: 'Evaluation Incomplete',
-        description: 'Please provide star ratings for all categories before submitting.',
+        description: 'Please provide star ratings for all active categories before submitting.',
         variant: 'destructive',
+      });
+      return;
+    }
+
+    // Security PIN Check
+    if (isPinRequired && pinInput.trim() !== activePin) {
+      toast({
+        title: 'Security PIN Mismatch',
+        description: 'The PIN code entered does not match the active event security PIN.',
+        variant: 'destructive'
       });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const evaluationData = {
+      const evaluationData: any = {
         activityId,
         participantName: name.trim() || 'Anonymous',
         participantContact: contact.trim() || 'Not Provided',
-        ratingObjectives,
-        ratingSpeaker,
-        ratingVenue,
-        ratingOverall,
         comments: comments.trim(),
         submittedAt: serverTimestamp(),
       };
+
+      if (focusList.includes('objectives')) evaluationData.ratingObjectives = ratingObjectives;
+      if (focusList.includes('speaker')) evaluationData.ratingSpeaker = ratingSpeaker;
+      if (focusList.includes('venue')) evaluationData.ratingVenue = ratingVenue;
+      if (focusList.includes('food')) evaluationData.ratingFood = ratingFood;
+      if (focusList.includes('materials')) evaluationData.ratingMaterials = ratingMaterials;
+      if (focusList.includes('overall')) evaluationData.ratingOverall = ratingOverall;
 
       await addDoc(collection(firestore, 'unitActivityEvaluations'), evaluationData);
       setSubmitted(true);
@@ -200,8 +244,11 @@ function EvaluationForm() {
                 setRatingObjectives(0);
                 setRatingSpeaker(0);
                 setRatingVenue(0);
+                setRatingFood(0);
+                setRatingMaterials(0);
                 setRatingOverall(0);
                 setComments('');
+                setPinInput('');
                 setSubmitted(false);
               }}
             >
@@ -228,54 +275,88 @@ function EvaluationForm() {
         <CardContent className="pt-6 space-y-6">
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
             <div className="space-y-1">
-              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Demographic Details (Optional)</h4>
-              <p className="text-[10px] text-slate-400">Feel free to leave blank if you wish to remain completely anonymous.</p>
+              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                Demographic Details {evalFormMode === 'strict' ? '(Required)' : '(Optional)'}
+              </h4>
+              <p className="text-[10px] text-slate-400">
+                {evalFormMode === 'strict' 
+                  ? 'Identity verification is active for this event feedback.' 
+                  : 'Feel free to leave blank if you wish to remain completely anonymous.'}
+              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><User className="h-3 w-3" /> Name</Label>
+                <Label htmlFor="name" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                  <User className="h-3 w-3" /> Name {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                </Label>
                 <Input
                   id="name"
                   placeholder="e.g. John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs h-10"
+                  className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                  required={evalFormMode === 'strict'}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="contact" className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><Phone className="h-3 w-3" /> Contact No.</Label>
+                <Label htmlFor="contact" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                  <Phone className="h-3 w-3" /> Contact No. {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                </Label>
                 <Input
                   id="contact"
                   placeholder="e.g. 09123456789"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs h-10"
+                  className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                  required={evalFormMode === 'strict'}
                 />
               </div>
             </div>
           </div>
 
           <div className="space-y-5">
-            <StarRating 
-              value={ratingObjectives} 
-              onChange={setRatingObjectives} 
-              label="1. Objectives Met" 
-            />
-            <StarRating 
-              value={ratingSpeaker} 
-              onChange={setRatingSpeaker} 
-              label="2. Speaker & Facilitator Delivery" 
-            />
-            <StarRating 
-              value={ratingVenue} 
-              onChange={setRatingVenue} 
-              label="3. Venue and Organization Quality" 
-            />
-            <StarRating 
-              value={ratingOverall} 
-              onChange={setRatingOverall} 
-              label="4. Overall Satisfaction" 
-            />
+            {focusList.includes('objectives') && (
+              <StarRating 
+                value={ratingObjectives} 
+                onChange={setRatingObjectives} 
+                label="1. Objectives Met" 
+              />
+            )}
+            {focusList.includes('speaker') && (
+              <StarRating 
+                value={ratingSpeaker} 
+                onChange={setRatingSpeaker} 
+                label="2. Speaker & Facilitator Delivery" 
+              />
+            )}
+            {focusList.includes('venue') && (
+              <StarRating 
+                value={ratingVenue} 
+                onChange={setRatingVenue} 
+                label="3. Venue and Organization Quality" 
+              />
+            )}
+            {focusList.includes('food') && (
+              <StarRating 
+                value={ratingFood} 
+                onChange={setRatingFood} 
+                label="4. Food & Refreshments Quality" 
+              />
+            )}
+            {focusList.includes('materials') && (
+              <StarRating 
+                value={ratingMaterials} 
+                onChange={setRatingMaterials} 
+                label="5. Materials & Handouts Quality" 
+              />
+            )}
+            {focusList.includes('overall') && (
+              <StarRating 
+                value={ratingOverall} 
+                onChange={setRatingOverall} 
+                label="6. Overall Satisfaction" 
+              />
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -290,6 +371,28 @@ function EvaluationForm() {
               className="bg-slate-50/50 border-slate-200 shadow-inner text-xs min-h-[100px]"
             />
           </div>
+
+          {/* Secure PIN code entry at bottom */}
+          {isPinRequired && (
+            <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2 animate-in fade-in duration-300">
+              <Label htmlFor="pin" className="text-xs font-black uppercase text-amber-700 flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+                Security Verification PIN
+              </Label>
+              <Input
+                id="pin"
+                type="text"
+                maxLength={4}
+                placeholder="Enter 4-digit Event PIN"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                className="bg-white border-amber-300 shadow-sm text-center font-mono font-bold tracking-widest text-lg h-10 w-full max-w-[200px] mx-auto block"
+              />
+              <p className="text-[10px] text-center text-amber-600/80 font-bold uppercase tracking-wider leading-relaxed">
+                Please get the active PIN code from the main kiosk screen at the venue to submit.
+              </p>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pb-8 pt-4 border-t">
           <Button 
