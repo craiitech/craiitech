@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2 } from 'lucide-react';
+import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -99,13 +99,14 @@ function EvaluationForm() {
   const [comments, setComments] = useState('');
   const [pinInput, setPinInput] = useState('');
 
-  // 7 Open-ended answers
+  // 4 Consolidated Open-ended answers (fused from original 7)
+  // Q1: Takeaways + Most Valuable
+  // Q2: Expectations + Feelings
+  // Q3: Missed Opportunities
+  // Q4: Change + Recommendations
   const [ansTakeaways, setAnsTakeaways] = useState('');
   const [ansExpectations, setAnsExpectations] = useState('');
-  const [ansFeelings, setAnsFeelings] = useState('');
-  const [ansValuable, setAnsValuable] = useState('');
   const [ansMissed, setAnsMissed] = useState('');
-  const [ansChange, setAnsChange] = useState('');
   const [ansSuggestions, setAnsSuggestions] = useState('');
 
   // Extract strategy settings
@@ -114,6 +115,50 @@ function EvaluationForm() {
   const isPinRequired = strategy?.requirePin === true;
   const activePin = strategy?.pinCode || '';
   const evalFormMode = strategy?.formMode || 'open';
+
+  // Load saved binding info from device to pre-fill demographic fields
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Compute device fingerprint (same logic as attendance-app)
+    const getFingerprint = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return `UA-${window.navigator.userAgent.length}-${window.screen.width}`;
+      ctx.textBaseline = 'top';
+      ctx.font = "14px 'Arial'";
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#f60';
+      ctx.fillRect(125, 1, 62, 20);
+      ctx.fillStyle = '#069';
+      ctx.fillText('RSU_Attendance_Lock_1.0', 2, 15);
+      ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+      ctx.fillText('RSU_Attendance_Lock_1.0', 4, 17);
+      const dataUrl = canvas.toDataURL();
+      let hash = 0;
+      for (let i = 0; i < dataUrl.length; i++) {
+        const char = dataUrl.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      const screenDetails = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
+      return `RSU-FP-${Math.abs(hash)}-${screenDetails}`;
+    };
+
+    const fp = getFingerprint();
+    if (!firestore || !fp) return;
+
+    // Try to fetch saved binding data to pre-fill demographic fields
+    import('firebase/firestore').then(({ doc: fbDoc, getDoc: fbGetDoc }) => {
+      fbGetDoc(fbDoc(firestore, 'attendanceDeviceBindings', fp)).then(snap => {
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          if (data.userName && !name) setName(data.userName);
+          if (data.unitName && !office) setOffice(data.unitName);
+        }
+      }).catch(() => {});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firestore]);
 
   useEffect(() => {
     async function fetchActivity() {
@@ -237,14 +282,11 @@ function EvaluationForm() {
         evaluationData.commentsSpeaker = commentsSpeaker.trim();
       }
 
-      // 7 Open-ended answers
-      evaluationData.ansTakeaways = ansTakeaways.trim();
-      evaluationData.ansExpectations = ansExpectations.trim();
-      evaluationData.ansFeelings = ansFeelings.trim();
-      evaluationData.ansValuable = ansValuable.trim();
-      evaluationData.ansMissed = ansMissed.trim();
-      evaluationData.ansChange = ansChange.trim();
-      evaluationData.ansSuggestions = ansSuggestions.trim();
+      // 4 consolidated open-ended answers
+      evaluationData.ansTakeaways = ansTakeaways.trim();       // Q1: Takeaways + Most Valuable
+      evaluationData.ansExpectations = ansExpectations.trim(); // Q2: Expectations + Feelings
+      evaluationData.ansMissed = ansMissed.trim();             // Q3: Missed Opportunities
+      evaluationData.ansSuggestions = ansSuggestions.trim();   // Q4: Change + Recommendations
 
       await addDoc(collection(firestore, 'unitActivityEvaluations'), evaluationData);
       setSubmitted(true);
@@ -343,10 +385,7 @@ function EvaluationForm() {
                 setPinInput('');
                 setAnsTakeaways('');
                 setAnsExpectations('');
-                setAnsFeelings('');
-                setAnsValuable('');
                 setAnsMissed('');
-                setAnsChange('');
                 setAnsSuggestions('');
                 setSubmitted(false);
               }}
@@ -366,17 +405,32 @@ function EvaluationForm() {
           <Sparkles className="h-8 w-8" />
         </div>
         <CardTitle className="text-2xl font-black tracking-tight text-slate-900 uppercase">Activity Evaluation</CardTitle>
-        <CardDescription className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">
-          {activity ? activity.name : 'Unit Activity Feedback Portal'}
+        {activity && (
+          <div className="mt-3 mx-auto max-w-sm">
+            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+              <Calendar className="h-4 w-4 text-amber-500 shrink-0" />
+              <span className="text-sm font-black text-amber-800 uppercase tracking-tight leading-tight">{activity.name}</span>
+            </div>
+          </div>
+        )}
+        <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
+          {activity ? 'Please rate your experience with this activity' : 'Unit Activity Feedback Portal'}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="pt-6 space-y-6">
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
             <div className="space-y-1">
-              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
-                Demographic Details {evalFormMode === 'strict' ? '(Required)' : '(Optional)'}
-              </h4>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                  Demographic Details {evalFormMode === 'strict' ? '(Required)' : '(Optional)'}
+                </h4>
+                {(name || office) && (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                    <CheckCircle2 className="h-3 w-3" /> Auto-filled from your attendance profile
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] text-slate-400">
                 {evalFormMode === 'strict' 
                   ? 'Identity verification is active for this event feedback.' 
@@ -605,10 +659,10 @@ function EvaluationForm() {
             
             <div className="space-y-3.5">
               <div className="space-y-1.5">
-                <Label htmlFor="q1" className="text-xs font-bold text-slate-600">1. What was your single biggest takeaway from this event?</Label>
+                <Label htmlFor="q1" className="text-xs font-bold text-slate-600">1. What was your single biggest takeaway or most valuable part of this activity, and why?</Label>
                 <Textarea
                   id="q1"
-                  placeholder="Type your takeaway here..."
+                  placeholder="Type your takeaway and what you found most valuable here..."
                   value={ansTakeaways}
                   onChange={(e) => setAnsTakeaways(e.target.value)}
                   className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
@@ -616,10 +670,10 @@ function EvaluationForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q2" className="text-xs font-bold text-slate-600">2. Did this activity meet your expectations? Why or why not?</Label>
+                <Label htmlFor="q2" className="text-xs font-bold text-slate-600">2. Did this activity meet your expectations and how did it make you feel? Why or why not?</Label>
                 <Textarea
                   id="q2"
-                  placeholder="Type your expectations review here..."
+                  placeholder="Type your expectations review and reflections here..."
                   value={ansExpectations}
                   onChange={(e) => setAnsExpectations(e.target.value)}
                   className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
@@ -627,32 +681,10 @@ function EvaluationForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q3" className="text-xs font-bold text-slate-600">3. How did this activity make you feel?</Label>
+                <Label htmlFor="q3" className="text-xs font-bold text-slate-600">3. Was there a specific topic or activity you wish had been included?</Label>
                 <Textarea
                   id="q3"
-                  placeholder="Type your feelings/reflections here..."
-                  value={ansFeelings}
-                  onChange={(e) => setAnsFeelings(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="q4" className="text-xs font-bold text-slate-600">4. Which part was most valuable to you and why?</Label>
-                <Textarea
-                  id="q4"
-                  placeholder="Type the most valuable part here..."
-                  value={ansValuable}
-                  onChange={(e) => setAnsValuable(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="q5" className="text-xs font-bold text-slate-600">5. Was there a specific topic or activity you wish had been included?</Label>
-                <Textarea
-                  id="q5"
-                  placeholder="Type missed opportunities here..."
+                  placeholder="Type missed topics or suggestions here..."
                   value={ansMissed}
                   onChange={(e) => setAnsMissed(e.target.value)}
                   className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
@@ -660,21 +692,10 @@ function EvaluationForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q6" className="text-xs font-bold text-slate-600">6. If you could change one thing about this event, what would it be?</Label>
+                <Label htmlFor="q4" className="text-xs font-bold text-slate-600">4. If you could change one thing, or what suggestions do you have to make our next activity even better?</Label>
                 <Textarea
-                  id="q6"
-                  placeholder="Type suggested changes here..."
-                  value={ansChange}
-                  onChange={(e) => setAnsChange(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="q7" className="text-xs font-bold text-slate-600">7. What are your suggestions for making the next activity even better?</Label>
-                <Textarea
-                  id="q7"
-                  placeholder="Type suggestions/recommendations here..."
+                  id="q4"
+                  placeholder="Type changes or recommendations here..."
                   value={ansSuggestions}
                   onChange={(e) => setAnsSuggestions(e.target.value)}
                   className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"

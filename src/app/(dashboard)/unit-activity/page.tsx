@@ -2760,13 +2760,10 @@ export default function UnitActivityPage() {
               <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Qualitative Feedback Responses</h4>
               <div className="divide-y divide-slate-100 bg-slate-50 rounded-xl border border-slate-200/60 overflow-hidden">
                 {[
-                  { q: '1. What was your single biggest takeaway from this event?', val: selectedEvaluation?.ansTakeaways },
-                  { q: '2. Did this activity meet your expectations? Why or why not?', val: selectedEvaluation?.ansExpectations },
-                  { q: '3. How did this activity make you feel?', val: selectedEvaluation?.ansFeelings },
-                  { q: '4. Which part was most valuable to you and why?', val: selectedEvaluation?.ansValuable },
-                  { q: '5. Was there a specific topic or activity you wish had been included?', val: selectedEvaluation?.ansMissed },
-                  { q: '6. If you could change one thing about this event, what would it be?', val: selectedEvaluation?.ansChange },
-                  { q: '7. What are your suggestions for making the next activity even better?', val: selectedEvaluation?.ansSuggestions }
+                  { q: '1. What was your single biggest takeaway or most valuable part of this activity, and why?', val: selectedEvaluation?.ansTakeaways || selectedEvaluation?.ansValuable },
+                  { q: '2. Did this activity meet your expectations and how did it make you feel? Why or why not?', val: selectedEvaluation?.ansExpectations || selectedEvaluation?.ansFeelings },
+                  { q: '3. Was there a specific topic or activity you wish had been included?', val: selectedEvaluation?.ansMissed },
+                  { q: '4. If you could change one thing, or what suggestions do you have to make our next activity even better?', val: selectedEvaluation?.ansSuggestions || selectedEvaluation?.ansChange }
                 ].map((item, idx) => (
                   <div key={idx} className="p-4 space-y-1.5 hover:bg-slate-100/30 transition-colors">
                     <p className="text-xs font-bold text-slate-700">{item.q}</p>
