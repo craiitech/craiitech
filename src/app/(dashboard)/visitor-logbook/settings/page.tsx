@@ -51,7 +51,7 @@ const GAD_SECTORS: GADSector[] = ['Solo Parent', 'PWD', 'Senior Citizen', 'Youth
 
 export default function VisitorLogbookSettingsPage() {
   const firestore = useFirestore();
-  const { userProfile, isAdmin, isUserLoading } = useUser();
+  const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
   const { toast } = useToast();
 
   const [selectedCampusId, setSelectedCampusId] = useState<string>('');
@@ -74,14 +74,21 @@ export default function VisitorLogbookSettingsPage() {
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  // Fetch Units (Admin only)
+  // Fetch Units (Admin or Campus Supervisor)
   const unitsQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'units') : null),
-    [firestore, isAdmin]
+    () => {
+      if (!firestore) return null;
+      if (isAdmin) return collection(firestore, 'units');
+      if (isSupervisor && userProfile?.campusId) {
+        return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
+      }
+      return null;
+    },
+    [firestore, isAdmin, isSupervisor, userProfile]
   );
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  // Filter units for Admin dropdown
+  // Filter units for dropdown
   const filteredUnits = useMemo(() => {
     if (!units || !selectedCampusId) return [];
     return units
@@ -91,11 +98,11 @@ export default function VisitorLogbookSettingsPage() {
 
   // Determine active unit ID
   const activeUnitId = useMemo(() => {
-    if (isAdmin) {
+    if (isAdmin || isSupervisor) {
       return selectedUnitId;
     }
     return userProfile?.unitId || '';
-  }, [isAdmin, selectedUnitId, userProfile?.unitId]);
+  }, [isAdmin, isSupervisor, selectedUnitId, userProfile?.unitId]);
 
   // Fetch settings for active unit
   const unitSettingsRef = useMemoFirebase(() => {
@@ -105,17 +112,26 @@ export default function VisitorLogbookSettingsPage() {
 
   const { data: currentSettings, isLoading: isLoadingSettings } = useDoc<any>(unitSettingsRef);
 
-  // Default dropdown selection for Admin
+  // Default dropdown selection for Admin and Supervisor
   useEffect(() => {
-    if (isAdmin && userProfile) {
-      if (userProfile.campusId) {
-        setSelectedCampusId(userProfile.campusId);
-      }
-      if (userProfile.unitId) {
-        setSelectedUnitId(userProfile.unitId);
+    if (userProfile) {
+      if (isAdmin) {
+        if (userProfile.campusId) {
+          setSelectedCampusId(userProfile.campusId);
+        }
+        if (userProfile.unitId) {
+          setSelectedUnitId(userProfile.unitId);
+        }
+      } else if (isSupervisor) {
+        if (userProfile.campusId) {
+          setSelectedCampusId(userProfile.campusId);
+        }
+        if (userProfile.unitId) {
+          setSelectedUnitId(userProfile.unitId);
+        }
       }
     }
-  }, [isAdmin, userProfile]);
+  }, [isAdmin, isSupervisor, userProfile]);
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,7 +226,7 @@ export default function VisitorLogbookSettingsPage() {
         type: empType as 'Teaching' | 'Non-Teaching',
         sectors: empSectors,
         unitId: activeUnitId,
-        campusId: isAdmin ? selectedCampusId : (userProfile?.campusId || ''),
+        campusId: (isAdmin || isSupervisor) ? selectedCampusId : (userProfile?.campusId || ''),
         isActive: editingEmployee ? editingEmployee.isActive : true,
         updatedAt: serverTimestamp(),
       };
@@ -293,14 +309,19 @@ export default function VisitorLogbookSettingsPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingSettings || isLoadingEmployees || (isAdmin && (isLoadingCampuses || isLoadingUnits));
+  const isLoading =
+    isUserLoading ||
+    isLoadingSettings ||
+    isLoadingEmployees ||
+    (isAdmin && isLoadingCampuses) ||
+    (!!unitsQuery && isLoadingUnits);
   const activeUnitName = useMemo(() => {
     if (!activeUnitId) return '';
-    if (isAdmin && units) {
+    if ((isAdmin || isSupervisor) && units) {
       return units.find(u => u.id === activeUnitId)?.name || 'Selected Unit';
     }
     return userProfile?.unitName || 'Your Unit';
-  }, [isAdmin, units, activeUnitId, userProfile?.unitName]);
+  }, [isAdmin, isSupervisor, units, activeUnitId, userProfile?.unitName]);
 
   if (isLoading) {
     return (
@@ -335,9 +356,9 @@ export default function VisitorLogbookSettingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left column: Admin controls (if Admin) or general instructions */}
+        {/* Left column: Admin/Supervisor controls or general instructions */}
         <div className="lg:col-span-1 space-y-6">
-          {isAdmin && (
+          {(isAdmin || isSupervisor) && (
             <Card className="border-primary/10 shadow-md">
               <CardHeader className="bg-primary/5 border-b py-4">
                 <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
@@ -347,23 +368,27 @@ export default function VisitorLogbookSettingsPage() {
                 <CardDescription className="text-xs">Select a unit to manage services.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">1. Select Campus</Label>
-                  <Select value={selectedCampusId} onValueChange={(val) => { setSelectedCampusId(val); setSelectedUnitId(''); }}>
-                    <SelectTrigger className="h-11 font-bold">
-                      <School className="h-4 w-4 mr-2 opacity-40" />
-                      <SelectValue placeholder="Select Campus" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {campuses?.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {isAdmin && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">1. Select Campus</Label>
+                    <Select value={selectedCampusId} onValueChange={(val) => { setSelectedCampusId(val); setSelectedUnitId(''); }}>
+                      <SelectTrigger className="h-11 font-bold">
+                        <School className="h-4 w-4 mr-2 opacity-40" />
+                        <SelectValue placeholder="Select Campus" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campuses?.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">2. Select Unit / Office</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    {isAdmin ? '2. Select Unit / Office' : 'Select Unit / Office'}
+                  </Label>
                   <Select value={selectedUnitId} onValueChange={setSelectedUnitId} disabled={!selectedCampusId}>
                     <SelectTrigger className="h-11 font-bold">
                       <Building className="h-4 w-4 mr-2 opacity-40" />

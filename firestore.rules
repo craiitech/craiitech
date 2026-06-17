@@ -233,7 +233,21 @@ service cloud.firestore {
     }
 
     match /unitCsmSettings/{unitId} {
-      allow get, list, write: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow write: if isSignedIn() && (
+        isAdmin() || 
+        isSupervisor() || 
+        (hasProfile() && profile().get('role', '').matches('(?i).*coordinator.*'))
+      );
+    }
+
+    match /unitPersonnel/{id} {
+      allow get, list: if isSignedIn();
+      allow write: if isSignedIn() && (
+        isAdmin() || 
+        isSupervisor() || 
+        (hasProfile() && profile().get('role', '').matches('(?i).*coordinator.*'))
+      );
     }
 
     match /activityLogs/{id} {
