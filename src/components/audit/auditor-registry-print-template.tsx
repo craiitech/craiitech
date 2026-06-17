@@ -53,6 +53,34 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
     return isNaN(date.getTime()) ? '' : format(date, 'h:mm a');
   };
 
+  const getMergedCellBorderStyle = (idx: number, total: number) => {
+    if (total <= 1) {
+      return { border: '1px solid black' };
+    }
+    if (idx === 0) {
+      return {
+        borderLeft: '1px solid black',
+        borderTop: '1px solid black',
+        borderRight: '1px solid black',
+        borderBottom: 'none'
+      };
+    }
+    if (idx === total - 1) {
+      return {
+        borderLeft: '1px solid black',
+        borderRight: '1px solid black',
+        borderBottom: '1px solid black',
+        borderTop: 'none'
+      };
+    }
+    return {
+      borderLeft: '1px solid black',
+      borderRight: '1px solid black',
+      borderTop: 'none',
+      borderBottom: 'none'
+    };
+  };
+
   return (
     <div className="text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none animate-in fade-in duration-300" style={{ fontSize: '10pt' }}>
       {/* Institutional Header */}
@@ -81,6 +109,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
           <tbody>
               {auditorData.map((auditor, i) => {
                   const status = getAuditorStatus(auditor);
+                  const percentage = auditor.count > 0 ? Math.round((auditor.completed / auditor.count) * 100) : 0;
                   const sortedAssignments = [...auditor.assignments].sort((a, b) => {
                       const timeA = a.date ? parseDate(a.date).getTime() : 0;
                       const timeB = b.date ? parseDate(b.date).getTime() : 0;
@@ -102,7 +131,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                               </td>
                               <td className="border border-black py-1 px-2 text-center font-black" style={{ fontSize: '9.5pt' }}>
                                   <span className={getStatusColorClass(status)}>
-                                      {status} (0/0)
+                                      {status} (0/0 - {percentage}%)
                                   </span>
                               </td>
                           </tr>
@@ -118,7 +147,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
 
                       return (
                           <tr key={`${i}-${asgnIdx}`} className="break-inside-avoid">
-                              <td className="border border-black py-1 px-2 text-left font-black uppercase" style={{ fontSize: '9.5pt' }}>
+                              <td className="py-1 px-2 text-left font-black uppercase" style={{ fontSize: '9.5pt', ...getMergedCellBorderStyle(asgnIdx, sortedAssignments.length) }}>
                                   {asgnIdx === 0 ? auditor.name : ''}
                               </td>
                               <td className="border border-black py-1 px-2 text-left text-slate-700 leading-tight" style={{ fontSize: '9.5pt' }}>
@@ -132,10 +161,10 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                                       </div>
                                   </div>
                               </td>
-                              <td className="border border-black py-1 px-2 text-center font-black" style={{ fontSize: '9.5pt' }}>
+                              <td className="py-1 px-2 text-center font-black" style={{ fontSize: '9.5pt', ...getMergedCellBorderStyle(asgnIdx, sortedAssignments.length) }}>
                                   {asgnIdx === 0 ? (
                                       <span className={getStatusColorClass(status)}>
-                                          {status} ({auditor.completed}/{auditor.count})
+                                          {status} ({auditor.completed}/{auditor.count} - {percentage}%)
                                       </span>
                                   ) : ''}
                               </td>
