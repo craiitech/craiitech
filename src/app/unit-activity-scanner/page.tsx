@@ -157,6 +157,7 @@ function UnitActivityScannerTerminal() {
   }>({ status: 'none', message: 'Ready to scan QR codes.' });
 
   const html5QrCodeScannerRef = useRef<any>(null);
+  const readerBgRef = useRef<HTMLDivElement>(null);
 
   // Load html5-qrcode library from CDN dynamically
   useEffect(() => {
@@ -220,6 +221,11 @@ function UnitActivityScannerTerminal() {
   const startScanning = (mode?: 'environment' | 'user') => {
     if (!isScannerLibLoaded || !(window as any).Html5Qrcode) return;
     if (!paramActivityId) return;
+    if (!readerBgRef.current) {
+      setScanResult({ status: 'error', message: 'Camera initialization failed: Scanner container not ready.' });
+      setScannerActive(false);
+      return;
+    }
 
     const activeMode = mode ?? facingMode;
 
@@ -228,7 +234,7 @@ function UnitActivityScannerTerminal() {
 
     setTimeout(() => {
       try {
-        const scanner = new (window as any).Html5Qrcode("reader-bg");
+        const scanner = new (window as any).Html5Qrcode(readerBgRef.current);
 
         scanner.start(
           { facingMode: { ideal: activeMode } },
@@ -570,6 +576,7 @@ function UnitActivityScannerTerminal() {
       {/* FULL-SCREEN CAMERA BACKGROUND                                       */}
       {/* ================================================================== */}
       <div
+        ref={readerBgRef}
         id="reader-bg"
         className="absolute inset-0 w-full h-full"
         style={{ zIndex: 0 }}
