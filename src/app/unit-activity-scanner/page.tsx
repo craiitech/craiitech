@@ -62,16 +62,23 @@ function UnitActivityScannerTerminal() {
   const { data: activeActivity, isLoading: isLoadingActivity } = useDoc<AttendanceActivity>(activityRef);
 
   // Auto-generate OTP if none exists
+  const generatingOtpRef = useRef(false);
   useEffect(() => {
     if (!firestore || !activeActivity || !paramActivityId) return;
 
-    if (!activeActivity.attendanceOtpCode) {
+    if (!activeActivity.attendanceOtpCode && !generatingOtpRef.current) {
+      generatingOtpRef.current = true;
       const code = Math.floor(100 + Math.random() * 900).toString();
       updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
         attendanceOtpCode: code,
         attendanceOtpUpdatedAt: new Date(),
+      }).then(() => {
+        generatingOtpRef.current = false;
       }).catch((err) => {
         console.error("Error auto-generating OTP code:", err);
+        setTimeout(() => {
+          generatingOtpRef.current = false;
+        }, 5000);
       });
     }
   }, [firestore, activeActivity, paramActivityId]);
@@ -549,7 +556,7 @@ function UnitActivityScannerTerminal() {
     return () => {
       stopScanning();
     };
-  }, [isScannerLibLoaded, paramActivityId, activeActivity, isUserLoading, isLoadingActivity]);
+  }, [isScannerLibLoaded, paramActivityId, isUserLoading, isLoadingActivity]);
 
   const handleExitTerminal = async () => {
     try {
