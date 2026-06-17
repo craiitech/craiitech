@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock } from 'lucide-react';
+import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +50,7 @@ function StarRating({
           </button>
         ))}
         <span className="ml-2 text-xs font-black uppercase text-amber-600 tracking-widest bg-amber-50 px-2.5 py-1 rounded-lg">
-          {value === 5 ? 'Excellent' : value === 4 ? 'Very Good' : value === 3 ? 'Good' : value === 2 ? 'Fair' : value === 1 ? 'Poor' : 'Rate'}
+          {value === 5 ? 'Excellent' : value === 4 ? 'Very Satisfactory' : value === 3 ? 'Satisfactory' : value === 2 ? 'Fair' : value === 1 ? 'Poor' : 'Rate'}
         </span>
       </div>
     </div>
@@ -71,11 +71,16 @@ function EvaluationForm() {
 
   // Form states
   const [name, setName] = useState('');
-  const [contact, setContact] = useState('');
+  const [office, setOffice] = useState('');
+  const [position, setPosition] = useState('');
   const [ratingObjectives, setRatingObjectives] = useState(0);
   const [ratingSpeaker, setRatingSpeaker] = useState(0);
   const [ratingTopic, setRatingTopic] = useState(0); // Speaker/Topic relevance sub-criteria
+  const [ratingPerfQuality, setRatingPerfQuality] = useState(0);
+  const [ratingPerfTimeliness, setRatingPerfTimeliness] = useState(0);
+  const [ratingPerfStaff, setRatingPerfStaff] = useState(0);
   const [ratingVenue, setRatingVenue] = useState(0);
+  const [ratingFacility, setRatingFacility] = useState(0);
   const [ratingFood, setRatingFood] = useState(0);
   const [ratingMaterials, setRatingMaterials] = useState(0);
   const [ratingOverall, setRatingOverall] = useState(0);
@@ -83,7 +88,11 @@ function EvaluationForm() {
   // Per-category qualitative comments
   const [commentsObjectives, setCommentsObjectives] = useState('');
   const [commentsSpeaker, setCommentsSpeaker] = useState('');
+  const [commentsPerfQuality, setCommentsPerfQuality] = useState('');
+  const [commentsPerfTimeliness, setCommentsPerfTimeliness] = useState('');
+  const [commentsPerfStaff, setCommentsPerfStaff] = useState('');
   const [commentsVenue, setCommentsVenue] = useState('');
+  const [commentsFacility, setCommentsFacility] = useState('');
   const [commentsFood, setCommentsFood] = useState('');
   const [commentsMaterials, setCommentsMaterials] = useState('');
   const [commentsOverall, setCommentsOverall] = useState('');
@@ -101,7 +110,7 @@ function EvaluationForm() {
 
   // Extract strategy settings
   const strategy = activity?.evaluationStrategy;
-  const focusList = strategy?.feedbackFocus || ['objectives', 'speaker', 'venue', 'overall'];
+  const focusList = strategy?.feedbackFocus || ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall'];
   const isPinRequired = strategy?.requirePin === true;
   const activePin = strategy?.pinCode || '';
   const evalFormMode = strategy?.formMode || 'open';
@@ -132,10 +141,10 @@ function EvaluationForm() {
     if (!firestore || !activityId) return;
 
     // Strict Mode Identity Check
-    if (evalFormMode === 'strict' && (!name.trim() || !contact.trim())) {
+    if (evalFormMode === 'strict' && (!name.trim() || !office.trim() || !position.trim())) {
       toast({
         title: 'Fields Required',
-        description: 'Please provide both your Name and Contact details to submit this evaluation.',
+        description: 'Please provide your Name, Office, and Position details to submit this evaluation.',
         variant: 'destructive',
       });
       return;
@@ -143,12 +152,16 @@ function EvaluationForm() {
 
     // Dynamic Category Ratings Validation
     const validationFailed = focusList.some(cat => {
-      if (cat === 'objectives' && ratingObjectives === 0) return true;
-      if (cat === 'speaker' && (ratingSpeaker === 0 || ratingTopic === 0)) return true;
+      if (cat === 'perfQuality' && ratingPerfQuality === 0) return true;
+      if (cat === 'perfTimeliness' && ratingPerfTimeliness === 0) return true;
+      if (cat === 'perfStaff' && ratingPerfStaff === 0) return true;
       if (cat === 'venue' && ratingVenue === 0) return true;
+      if (cat === 'facility' && ratingFacility === 0) return true;
       if (cat === 'food' && ratingFood === 0) return true;
       if (cat === 'materials' && ratingMaterials === 0) return true;
       if (cat === 'overall' && ratingOverall === 0) return true;
+      if (cat === 'objectives' && ratingObjectives === 0) return true;
+      if (cat === 'speaker' && (ratingSpeaker === 0 || ratingTopic === 0)) return true;
       return false;
     });
 
@@ -176,23 +189,31 @@ function EvaluationForm() {
       const evaluationData: any = {
         activityId,
         participantName: name.trim() || 'Anonymous',
-        participantContact: contact.trim() || 'Not Provided',
+        participantOffice: office.trim() || 'Not Provided',
+        participantPosition: position.trim() || 'Not Provided',
         comments: comments.trim(),
         submittedAt: serverTimestamp(),
       };
 
-      if (focusList.includes('objectives')) {
-        evaluationData.ratingObjectives = ratingObjectives;
-        evaluationData.commentsObjectives = commentsObjectives.trim();
+      if (focusList.includes('perfQuality')) {
+        evaluationData.ratingPerfQuality = ratingPerfQuality;
+        evaluationData.commentsPerfQuality = commentsPerfQuality.trim();
       }
-      if (focusList.includes('speaker')) {
-        evaluationData.ratingSpeaker = ratingSpeaker;
-        evaluationData.ratingTopic = ratingTopic;
-        evaluationData.commentsSpeaker = commentsSpeaker.trim();
+      if (focusList.includes('perfTimeliness')) {
+        evaluationData.ratingPerfTimeliness = ratingPerfTimeliness;
+        evaluationData.commentsPerfTimeliness = commentsPerfTimeliness.trim();
+      }
+      if (focusList.includes('perfStaff')) {
+        evaluationData.ratingPerfStaff = ratingPerfStaff;
+        evaluationData.commentsPerfStaff = commentsPerfStaff.trim();
       }
       if (focusList.includes('venue')) {
         evaluationData.ratingVenue = ratingVenue;
         evaluationData.commentsVenue = commentsVenue.trim();
+      }
+      if (focusList.includes('facility')) {
+        evaluationData.ratingFacility = ratingFacility;
+        evaluationData.commentsFacility = commentsFacility.trim();
       }
       if (focusList.includes('food')) {
         evaluationData.ratingFood = ratingFood;
@@ -205,6 +226,15 @@ function EvaluationForm() {
       if (focusList.includes('overall')) {
         evaluationData.ratingOverall = ratingOverall;
         evaluationData.commentsOverall = commentsOverall.trim();
+      }
+      if (focusList.includes('objectives')) {
+        evaluationData.ratingObjectives = ratingObjectives;
+        evaluationData.commentsObjectives = commentsObjectives.trim();
+      }
+      if (focusList.includes('speaker')) {
+        evaluationData.ratingSpeaker = ratingSpeaker;
+        evaluationData.ratingTopic = ratingTopic;
+        evaluationData.commentsSpeaker = commentsSpeaker.trim();
       }
 
       // 7 Open-ended answers
@@ -286,17 +316,26 @@ function EvaluationForm() {
               className="flex-1 h-12"
               onClick={() => {
                 setName('');
-                setContact('');
+                setOffice('');
+                setPosition('');
                 setRatingObjectives(0);
                 setRatingSpeaker(0);
                 setRatingTopic(0);
+                setRatingPerfQuality(0);
+                setRatingPerfTimeliness(0);
+                setRatingPerfStaff(0);
                 setRatingVenue(0);
+                setRatingFacility(0);
                 setRatingFood(0);
                 setRatingMaterials(0);
                 setRatingOverall(0);
                 setCommentsObjectives('');
                 setCommentsSpeaker('');
+                setCommentsPerfQuality('');
+                setCommentsPerfTimeliness('');
+                setCommentsPerfStaff('');
                 setCommentsVenue('');
+                setCommentsFacility('');
                 setCommentsFood('');
                 setCommentsMaterials('');
                 setCommentsOverall('');
@@ -344,44 +383,188 @@ function EvaluationForm() {
                   : 'Feel free to leave blank if you wish to remain completely anonymous.'}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                  <User className="h-3 w-3" /> Name {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                  <User className="h-3 w-3" /> Name (First Name, M.I., Last Name) {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                 </Label>
                 <Input
                   id="name"
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. John D. Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
                   required={evalFormMode === 'strict'}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="contact" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                  <Phone className="h-3 w-3" /> Contact No. {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
-                </Label>
-                <Input
-                  id="contact"
-                  placeholder="e.g. 09123456789"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
-                  required={evalFormMode === 'strict'}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="office" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                    <Building2 className="h-3 w-3" /> Office {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                  </Label>
+                  <Input
+                    id="office"
+                    placeholder="e.g. Registrar Office"
+                    value={office}
+                    onChange={(e) => setOffice(e.target.value)}
+                    className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                    required={evalFormMode === 'strict'}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="position" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                    <User className="h-3 w-3" /> Position {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                  </Label>
+                  <Input
+                    id="position"
+                    placeholder="e.g. Administrative Officer"
+                    value={position}
+                    onChange={(e) => setPosition(e.target.value)}
+                    className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                    required={evalFormMode === 'strict'}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Structured Rating Questions */}
           <div className="space-y-5">
+            {focusList.includes('perfQuality') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingPerfQuality} 
+                  onChange={setRatingPerfQuality} 
+                  label="Quality of Delivery of Service" 
+                />
+                <Input
+                  placeholder="Additional feedback about quality of delivery of service..."
+                  value={commentsPerfQuality}
+                  onChange={(e) => setCommentsPerfQuality(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('perfTimeliness') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingPerfTimeliness} 
+                  onChange={setRatingPerfTimeliness} 
+                  label="Timeliness of Service" 
+                />
+                <Input
+                  placeholder="Additional feedback about timeliness of service..."
+                  value={commentsPerfTimeliness}
+                  onChange={(e) => setCommentsPerfTimeliness(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('perfStaff') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingPerfStaff} 
+                  onChange={setRatingPerfStaff} 
+                  label="Staff Behavior" 
+                />
+                <Input
+                  placeholder="Additional feedback about staff behavior..."
+                  value={commentsPerfStaff}
+                  onChange={(e) => setCommentsPerfStaff(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('venue') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingVenue} 
+                  onChange={setRatingVenue} 
+                  label="Venue" 
+                />
+                <Input
+                  placeholder="Additional feedback about the venue..."
+                  value={commentsVenue}
+                  onChange={(e) => setCommentsVenue(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('facility') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingFacility} 
+                  onChange={setRatingFacility} 
+                  label="Facility" 
+                />
+                <Input
+                  placeholder="Additional feedback about event facilities..."
+                  value={commentsFacility}
+                  onChange={(e) => setCommentsFacility(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('food') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingFood} 
+                  onChange={setRatingFood} 
+                  label="Food" 
+                />
+                <Input
+                  placeholder="Additional feedback about the food/meals served..."
+                  value={commentsFood}
+                  onChange={(e) => setCommentsFood(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('materials') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingMaterials} 
+                  onChange={setRatingMaterials} 
+                  label="Material" 
+                />
+                <Input
+                  placeholder="Additional feedback about reference files or digital materials..."
+                  value={commentsMaterials}
+                  onChange={(e) => setCommentsMaterials(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {focusList.includes('overall') && (
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingOverall} 
+                  onChange={setRatingOverall} 
+                  label="Overall satisfaction with the activity" 
+                />
+                <Input
+                  placeholder="Additional feedback about your overall experience..."
+                  value={commentsOverall}
+                  onChange={(e) => setCommentsOverall(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
+            )}
+
+            {/* Legacy Category Support */}
             {focusList.includes('objectives') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
                 <StarRating 
                   value={ratingObjectives} 
                   onChange={setRatingObjectives} 
-                  label="1. Objectives Met" 
+                  label="Objectives Met" 
                 />
                 <Input
                   placeholder="Additional feedback about the event objectives..."
@@ -398,82 +581,18 @@ function EvaluationForm() {
                   <StarRating 
                     value={ratingSpeaker} 
                     onChange={setRatingSpeaker} 
-                    label="2. Speaker & Facilitator Delivery" 
+                    label="Speaker & Facilitator Delivery" 
                   />
                   <StarRating 
                     value={ratingTopic} 
                     onChange={setRatingTopic} 
-                    label="2.1. Topic Relevance & Presentation Content" 
+                    label="Topic Relevance & Presentation Content" 
                   />
                 </div>
                 <Input
                   placeholder="Additional feedback about the speaker or the topic..."
                   value={commentsSpeaker}
                   onChange={(e) => setCommentsSpeaker(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
-                />
-              </div>
-            )}
-
-            {focusList.includes('venue') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                <StarRating 
-                  value={ratingVenue} 
-                  onChange={setRatingVenue} 
-                  label="3. Venue and Organization Quality" 
-                />
-                <Input
-                  placeholder="Additional feedback about the venue, comfort, or organization..."
-                  value={commentsVenue}
-                  onChange={(e) => setCommentsVenue(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
-                />
-              </div>
-            )}
-
-            {focusList.includes('food') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                <StarRating 
-                  value={ratingFood} 
-                  onChange={setRatingFood} 
-                  label="4. Food & Refreshments Quality" 
-                />
-                <Input
-                  placeholder="Additional feedback about the food or refreshments served..."
-                  value={commentsFood}
-                  onChange={(e) => setCommentsFood(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
-                />
-              </div>
-            )}
-
-            {focusList.includes('materials') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                <StarRating 
-                  value={ratingMaterials} 
-                  onChange={setRatingMaterials} 
-                  label="5. Materials & Handouts Quality" 
-                />
-                <Input
-                  placeholder="Additional feedback about reference files or digital materials..."
-                  value={commentsMaterials}
-                  onChange={(e) => setCommentsMaterials(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
-                />
-              </div>
-            )}
-
-            {focusList.includes('overall') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                <StarRating 
-                  value={ratingOverall} 
-                  onChange={setRatingOverall} 
-                  label="6. Overall Satisfaction" 
-                />
-                <Input
-                  placeholder="Additional feedback about your overall experience..."
-                  value={commentsOverall}
-                  onChange={(e) => setCommentsOverall(e.target.value)}
                   className="bg-white border-slate-200 text-xs h-9"
                 />
               </div>

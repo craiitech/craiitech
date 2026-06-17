@@ -1179,10 +1179,16 @@ export type ActivityEvaluation = {
   activityId: string;
   participantName?: string;
   participantContact?: string;
+  participantOffice?: string;
+  participantPosition?: string;
   ratingObjectives?: number;
   ratingSpeaker?: number;
   ratingTopic?: number; // Sub-criteria under Speaker & Facilitator for the Topic
+  ratingPerfQuality?: number; // Quality of Delivery of Service
+  ratingPerfTimeliness?: number; // Timeliness of Service
+  ratingPerfStaff?: number; // Staff Behavior
   ratingVenue?: number;
+  ratingFacility?: number; // Facility Quality
   ratingFood?: number;
   ratingMaterials?: number;
   ratingOverall?: number;
@@ -1190,7 +1196,11 @@ export type ActivityEvaluation = {
   // Per-category qualitative comments
   commentsObjectives?: string;
   commentsSpeaker?: string;
+  commentsPerfQuality?: string;
+  commentsPerfTimeliness?: string;
+  commentsPerfStaff?: string;
   commentsVenue?: string;
+  commentsFacility?: string;
   commentsFood?: string;
   commentsMaterials?: string;
   commentsOverall?: string;

@@ -139,7 +139,7 @@ export default function UnitActivityPage() {
   const [wizardStep, setWizardStep] = useState(1);
   const [evalRequirePin, setEvalRequirePin] = useState(false);
   const [evalPinCode, setEvalPinCode] = useState('');
-  const [evalFeedbackFocus, setEvalFeedbackFocus] = useState<string[]>(['objectives', 'speaker', 'venue', 'overall']);
+  const [evalFeedbackFocus, setEvalFeedbackFocus] = useState<string[]>(['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall']);
   const [evalFormMode, setEvalFormMode] = useState<'open' | 'strict'>('open');
   const [isSavingStrategy, setIsSavingStrategy] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<ActivityEvaluation | null>(null);
@@ -148,7 +148,7 @@ export default function UnitActivityPage() {
     setSelectedEvalActivity(act);
     setEvalRequirePin(act.evaluationStrategy?.requirePin ?? false);
     setEvalPinCode(act.evaluationStrategy?.pinCode ?? Math.floor(1000 + Math.random() * 9000).toString());
-    setEvalFeedbackFocus(act.evaluationStrategy?.feedbackFocus ?? ['objectives', 'speaker', 'venue', 'overall']);
+    setEvalFeedbackFocus(act.evaluationStrategy?.feedbackFocus ?? ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall']);
     setEvalFormMode(act.evaluationStrategy?.formMode ?? 'open');
     setWizardStep(1);
     setIsEvalWizardOpen(true);
@@ -535,12 +535,20 @@ export default function UnitActivityPage() {
 
   const averageRatingsObj = useMemo(() => {
     if (filteredEvaluations.length === 0) {
-      return { objectives: 0, speaker: 0, topic: 0, venue: 0, food: 0, materials: 0, overall: 0 };
+      return { 
+        objectives: 0, speaker: 0, topic: 0, 
+        perfQuality: 0, perfTimeliness: 0, perfStaff: 0, 
+        venue: 0, facility: 0, food: 0, materials: 0, overall: 0 
+      };
     }
     let sumObj = 0, countObj = 0;
     let sumSpk = 0, countSpk = 0;
     let sumTop = 0, countTop = 0;
+    let sumPQ = 0, countPQ = 0;
+    let sumPT = 0, countPT = 0;
+    let sumPS = 0, countPS = 0;
     let sumVen = 0, countVen = 0;
+    let sumFac = 0, countFac = 0;
     let sumFood = 0, countFood = 0;
     let sumMat = 0, countMat = 0;
     let sumOvr = 0, countOvr = 0;
@@ -549,7 +557,11 @@ export default function UnitActivityPage() {
       if (e.ratingObjectives) { sumObj += e.ratingObjectives; countObj++; }
       if (e.ratingSpeaker) { sumSpk += e.ratingSpeaker; countSpk++; }
       if (e.ratingTopic) { sumTop += e.ratingTopic; countTop++; }
+      if (e.ratingPerfQuality) { sumPQ += e.ratingPerfQuality; countPQ++; }
+      if (e.ratingPerfTimeliness) { sumPT += e.ratingPerfTimeliness; countPT++; }
+      if (e.ratingPerfStaff) { sumPS += e.ratingPerfStaff; countPS++; }
       if (e.ratingVenue) { sumVen += e.ratingVenue; countVen++; }
+      if (e.ratingFacility) { sumFac += e.ratingFacility; countFac++; }
       if (e.ratingFood) { sumFood += e.ratingFood; countFood++; }
       if (e.ratingMaterials) { sumMat += e.ratingMaterials; countMat++; }
       if (e.ratingOverall) { sumOvr += e.ratingOverall; countOvr++; }
@@ -559,7 +571,11 @@ export default function UnitActivityPage() {
       objectives: countObj > 0 ? parseFloat((sumObj / countObj).toFixed(2)) : 0,
       speaker: countSpk > 0 ? parseFloat((sumSpk / countSpk).toFixed(2)) : 0,
       topic: countTop > 0 ? parseFloat((sumTop / countTop).toFixed(2)) : 0,
+      perfQuality: countPQ > 0 ? parseFloat((sumPQ / countPQ).toFixed(2)) : 0,
+      perfTimeliness: countPT > 0 ? parseFloat((sumPT / countPT).toFixed(2)) : 0,
+      perfStaff: countPS > 0 ? parseFloat((sumPS / countPS).toFixed(2)) : 0,
       venue: countVen > 0 ? parseFloat((sumVen / countVen).toFixed(2)) : 0,
+      facility: countFac > 0 ? parseFloat((sumFac / countFac).toFixed(2)) : 0,
       food: countFood > 0 ? parseFloat((sumFood / countFood).toFixed(2)) : 0,
       materials: countMat > 0 ? parseFloat((sumMat / countMat).toFixed(2)) : 0,
       overall: countOvr > 0 ? parseFloat((sumOvr / countOvr).toFixed(2)) : 0,
@@ -567,21 +583,26 @@ export default function UnitActivityPage() {
   }, [filteredEvaluations]);
 
   const focusList = useMemo(() => {
-    return activeActivity?.evaluationStrategy?.feedbackFocus || ['objectives', 'speaker', 'venue', 'overall'];
+    return activeActivity?.evaluationStrategy?.feedbackFocus || ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall'];
   }, [activeActivity]);
 
   const averageRatings = useMemo(() => {
     if (filteredEvaluations.length === 0) return [];
     
-    const { objectives, speaker, topic, venue, food, materials, overall } = averageRatingsObj;
+    const { objectives, speaker, topic, perfQuality, perfTimeliness, perfStaff, venue, facility, food, materials, overall } = averageRatingsObj;
     const result = [];
+    if (focusList.includes('perfQuality') && perfQuality > 0) result.push({ category: 'Quality of Service', rating: perfQuality });
+    if (focusList.includes('perfTimeliness') && perfTimeliness > 0) result.push({ category: 'Timeliness of Service', rating: perfTimeliness });
+    if (focusList.includes('perfStaff') && perfStaff > 0) result.push({ category: 'Staff Behavior', rating: perfStaff });
+    if (focusList.includes('venue') && venue > 0) result.push({ category: 'Venue Quality', rating: venue });
+    if (focusList.includes('facility') && facility > 0) result.push({ category: 'Facility Quality', rating: facility });
+    if (focusList.includes('food') && food > 0) result.push({ category: 'Food Quality', rating: food });
+    if (focusList.includes('materials') && materials > 0) result.push({ category: 'Material Quality', rating: materials });
+    if (focusList.includes('overall') && overall > 0) result.push({ category: 'Overall Satisfaction', rating: overall });
+    // Legacy support
     if (focusList.includes('objectives') && objectives > 0) result.push({ category: 'Objectives Met', rating: objectives });
     if (focusList.includes('speaker') && speaker > 0) result.push({ category: 'Speaker Delivery', rating: speaker });
     if (focusList.includes('speaker') && topic > 0) result.push({ category: 'Topic Relevance', rating: topic });
-    if (focusList.includes('venue') && venue > 0) result.push({ category: 'Venue Quality', rating: venue });
-    if (focusList.includes('food') && food > 0) result.push({ category: 'Food Quality', rating: food });
-    if (focusList.includes('materials') && materials > 0) result.push({ category: 'Materials Quality', rating: materials });
-    if (focusList.includes('overall') && overall > 0) result.push({ category: 'Overall Satisfaction', rating: overall });
 
     return result;
   }, [filteredEvaluations, averageRatingsObj, focusList]);
@@ -1599,6 +1620,20 @@ export default function UnitActivityPage() {
                                     <Sparkles className="h-3 w-3 mr-1" />
                                     Setup Eval
                                   </Button>
+                                  {/* Launch Evaluation */}
+                                  {act.evaluationStrategy && (
+                                    <Button 
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        window.open(`/unit-activity/evaluate/kiosk?activityId=${act.id}`, '_blank');
+                                      }}
+                                      className="h-8 text-[9px] font-black uppercase tracking-widest text-[#D4AF37] bg-amber-500/10 border-amber-500/30 hover:bg-amber-100/50"
+                                    >
+                                      <Maximize2 className="h-3 w-3 mr-1 text-[#D4AF37]" />
+                                      Launch Eval
+                                    </Button>
+                                  )}
                                   {/* Edit */}
                                   <Button
                                     size="sm"
@@ -1996,15 +2031,19 @@ export default function UnitActivityPage() {
           ) : (
             <div className="space-y-6">
               {/* Average Ratings Dashboard Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 {[
+                  { id: 'perfQuality', title: 'Quality of Service', val: averageRatingsObj.perfQuality },
+                  { id: 'perfTimeliness', title: 'Timeliness of Service', val: averageRatingsObj.perfTimeliness },
+                  { id: 'perfStaff', title: 'Staff Behavior', val: averageRatingsObj.perfStaff },
+                  { id: 'venue', title: 'Venue Quality', val: averageRatingsObj.venue },
+                  { id: 'facility', title: 'Facility Quality', val: averageRatingsObj.facility },
+                  { id: 'food', title: 'Food Quality', val: averageRatingsObj.food },
+                  { id: 'materials', title: 'Material Quality', val: averageRatingsObj.materials },
+                  { id: 'overall', title: 'Overall Rating', val: averageRatingsObj.overall },
                   { id: 'objectives', title: 'Objectives Met', val: averageRatingsObj.objectives },
                   { id: 'speaker', title: 'Speaker Delivery', val: averageRatingsObj.speaker },
                   { id: 'topic', title: 'Topic Relevance', val: averageRatingsObj.topic },
-                  { id: 'venue', title: 'Venue Quality', val: averageRatingsObj.venue },
-                  { id: 'food', title: 'Food Quality', val: averageRatingsObj.food },
-                  { id: 'materials', title: 'Materials Quality', val: averageRatingsObj.materials },
-                  { id: 'overall', title: 'Overall Rating', val: averageRatingsObj.overall },
                 ].filter(item => {
                   if (item.id === 'topic') return focusList.includes('speaker');
                   return focusList.includes(item.id);
@@ -2495,12 +2534,16 @@ export default function UnitActivityPage() {
 
                 <div className="grid grid-cols-1 gap-2.5">
                   {[
-                    { id: 'objectives', label: '1. Objectives Met', desc: 'Assess if the participants felt the event objectives were met.' },
-                    { id: 'speaker', label: '2. Speaker & Facilitator Delivery', desc: 'Assess the performance and quality of speakers/presenters.' },
-                    { id: 'venue', label: '3. Venue & Organization Quality', desc: 'Assess physical organization, comfort, and logistical smooth flow.' },
-                    { id: 'food', label: '4. Food & Refreshments Quality', desc: 'Assess the quality of the catering or meals served.' },
-                    { id: 'materials', label: '5. Materials & Handouts Quality', desc: 'Assess quality of reference files, handouts, or digital guides.' },
-                    { id: 'overall', label: '6. Overall Satisfaction', desc: 'Capture the net satisfaction metric for this session.' }
+                    { id: 'perfQuality', label: '1. Quality of Delivery of Service', desc: 'Assess if the service provided was high quality.' },
+                    { id: 'perfTimeliness', label: '2. Timeliness of Service', desc: 'Assess the speed and timeliness of the service.' },
+                    { id: 'perfStaff', label: '3. Staff Behavior', desc: 'Assess professional attitude and helpfulness of the team.' },
+                    { id: 'venue', label: '4. Venue Quality', desc: 'Assess physical venue and comfort level.' },
+                    { id: 'facility', label: '5. Facility Quality', desc: 'Assess equipment, tools, and technical amenities.' },
+                    { id: 'food', label: '6. Food Quality', desc: 'Assess food and refreshments served.' },
+                    { id: 'materials', label: '7. Material Quality', desc: 'Assess references, digital guides, and printed handouts.' },
+                    { id: 'overall', label: '8. Overall Satisfaction', desc: 'Capture net satisfaction with this activity.' },
+                    { id: 'objectives', label: 'Legacy: Objectives Met', desc: 'Assess objectives met (legacy schema).' },
+                    { id: 'speaker', label: 'Legacy: Speaker & Facilitator', desc: 'Assess speakers and facilitators (legacy schema).' }
                   ].map((cat) => {
                     const isChecked = evalFeedbackFocus.includes(cat.id);
                     return (
@@ -2654,14 +2697,18 @@ export default function UnitActivityPage() {
 
           <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
             {/* Demographics Card */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-2 gap-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-3 gap-4">
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Participant Name</p>
                 <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantName || 'Anonymous'}</p>
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Contact details</p>
-                <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedEvaluation?.participantContact || 'Not Provided'}</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Office</p>
+                <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantOffice || 'Not Provided'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Position</p>
+                <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantPosition || 'Not Provided'}</p>
               </div>
             </div>
 
@@ -2670,13 +2717,18 @@ export default function UnitActivityPage() {
               <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Structured Category Ratings</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
+                  { label: 'Quality of Service', rating: selectedEvaluation?.ratingPerfQuality, comment: selectedEvaluation?.commentsPerfQuality },
+                  { label: 'Timeliness of Service', rating: selectedEvaluation?.ratingPerfTimeliness, comment: selectedEvaluation?.commentsPerfTimeliness },
+                  { label: 'Staff Behavior', rating: selectedEvaluation?.ratingPerfStaff, comment: selectedEvaluation?.commentsPerfStaff },
+                  { label: 'Venue Quality', rating: selectedEvaluation?.ratingVenue, comment: selectedEvaluation?.commentsVenue },
+                  { label: 'Facility Quality', rating: selectedEvaluation?.ratingFacility, comment: selectedEvaluation?.commentsFacility },
+                  { label: 'Food Quality', rating: selectedEvaluation?.ratingFood, comment: selectedEvaluation?.commentsFood },
+                  { label: 'Material Quality', rating: selectedEvaluation?.ratingMaterials, comment: selectedEvaluation?.commentsMaterials },
+                  { label: 'Overall Satisfaction', rating: selectedEvaluation?.ratingOverall, comment: selectedEvaluation?.commentsOverall },
+                  // Legacy Fallbacks
                   { label: 'Objectives Met', rating: selectedEvaluation?.ratingObjectives, comment: selectedEvaluation?.commentsObjectives },
                   { label: 'Speaker & Facilitator', rating: selectedEvaluation?.ratingSpeaker, comment: selectedEvaluation?.commentsSpeaker },
-                  { label: 'Topic Relevance (Speaker Sub-Criteria)', rating: selectedEvaluation?.ratingTopic },
-                  { label: 'Venue & Organization', rating: selectedEvaluation?.ratingVenue, comment: selectedEvaluation?.commentsVenue },
-                  { label: 'Food & Refreshments', rating: selectedEvaluation?.ratingFood, comment: selectedEvaluation?.commentsFood },
-                  { label: 'Materials & Handouts', rating: selectedEvaluation?.ratingMaterials, comment: selectedEvaluation?.commentsMaterials },
-                  { label: 'Overall Satisfaction', rating: selectedEvaluation?.ratingOverall, comment: selectedEvaluation?.commentsOverall }
+                  { label: 'Topic Relevance (Speaker Sub-Criteria)', rating: selectedEvaluation?.ratingTopic }
                 ].filter(r => r.rating !== undefined && r.rating > 0).map((r, idx) => (
                   <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
                     <div className="flex justify-between items-center">
