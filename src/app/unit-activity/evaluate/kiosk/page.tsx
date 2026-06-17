@@ -16,9 +16,11 @@ import {
   ArrowLeft, 
   Tv, 
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Maximize2
 } from 'lucide-react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 function KioskContent() {
   const searchParams = useSearchParams();
@@ -27,6 +29,38 @@ function KioskContent() {
   const activityId = searchParams.get('activityId');
   const [activity, setActivity] = useState<AttendanceActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    handleFullscreenChange();
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  const enterFullscreen = () => {
+    const element = document.documentElement;
+    if (element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if ((element as any).webkitRequestFullscreen) {
+      (element as any).webkitRequestFullscreen();
+    } else if ((element as any).msRequestFullscreen) {
+      (element as any).msRequestFullscreen();
+    }
+  };
 
   useEffect(() => {
     async function fetchActivity() {
@@ -153,6 +187,12 @@ function KioskContent() {
             padding: 10px !important;
             background: #eee !important;
           }
+          .print-qr img {
+            opacity: 100 !important;
+            filter: none !important;
+            display: block !important;
+            transform: none !important;
+          }
         }
       `}</style>
 
@@ -172,6 +212,17 @@ function KioskContent() {
         </div>
 
         <div className="flex items-center gap-3">
+          {!isFullscreen && (
+            <Button
+              onClick={enterFullscreen}
+              variant="outline"
+              className="h-10 text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 transition-all rounded-full flex items-center gap-1.5"
+            >
+              <Maximize2 className="h-4 w-4 animate-pulse" />
+              Enter Fullscreen
+            </Button>
+          )}
+
           <Button
             onClick={handlePrint}
             variant="outline"
@@ -199,28 +250,56 @@ function KioskContent() {
             
             {/* Left Column: Interactive QR Code Display */}
             <div className="flex flex-col items-center shrink-0">
-              <div className="relative bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(52,211,153,0.15)] border border-emerald-500/15 flex items-center justify-center w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] print-qr">
-                {/* Visual scanner Sweep line overlay (hidden on print) */}
-                <div 
-                  className="absolute left-6 right-6 no-print"
-                  style={{
-                    height: 2,
-                    background: 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)',
-                    animation: 'scanSweep 3s ease-in-out infinite',
-                    boxShadow: '0 0 10px 2px rgba(52,211,153,0.4)'
-                  }}
-                />
+              <div className="relative bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(52,211,153,0.15)] border border-emerald-500/15 flex items-center justify-center w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] print-qr overflow-hidden">
+                {/* Visual scanner Sweep line overlay (hidden on print and only active during fullscreen) */}
+                {isFullscreen && (
+                  <div 
+                    className="absolute left-6 right-6 no-print"
+                    style={{
+                      height: 2,
+                      background: 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)',
+                      animation: 'scanSweep 3s ease-in-out infinite',
+                      boxShadow: '0 0 10px 2px rgba(52,211,153,0.4)',
+                      zIndex: 10
+                    }}
+                  />
+                )}
                 
                 {qrCodeUrl ? (
                   <img
                     src={qrCodeUrl}
                     alt="Evaluation Portal QR Link"
-                    className="w-full h-full object-contain"
+                    className={cn(
+                      "w-full h-full object-contain transition-all duration-300",
+                      !isFullscreen ? "opacity-0 scale-95 blur-md pointer-events-none no-print" : "opacity-100 scale-100"
+                    )}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-3">
                     <Loader2 className="h-8 w-8 text-[#D4AF37] animate-spin" />
                     <span className="text-[10px] text-slate-400 font-bold uppercase">Rendering QR...</span>
+                  </div>
+                )}
+
+                {/* Pause blocker overlay if not in fullscreen */}
+                {!isFullscreen && (
+                  <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center space-y-3 no-print z-20 animate-in fade-in duration-300">
+                    <div className="h-10 w-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center text-[#D4AF37] border border-[#D4AF37]/20">
+                      <Tv className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-black uppercase text-[#D4AF37] tracking-wider">Display Paused</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase max-w-[180px] leading-relaxed mx-auto">
+                        Please enter Full Screen mode to display the QR Code.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={enterFullscreen}
+                      size="sm"
+                      className="h-8 text-[9px] font-black uppercase tracking-wider bg-[#D4AF37] hover:bg-[#b8942e] text-slate-950 rounded-lg px-4"
+                    >
+                      Enter Full Screen
+                    </Button>
                   </div>
                 )}
               </div>
