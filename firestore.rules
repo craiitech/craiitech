@@ -294,7 +294,7 @@ service cloud.firestore {
     }
 
     match /unitActivityAttendanceLogs/{id} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if true; // Scanner kiosk writes attendance without auth session
     }
 
