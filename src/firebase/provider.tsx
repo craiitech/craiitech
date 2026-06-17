@@ -7,6 +7,7 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { useDoc } from './firestore/use-doc';
 import { useCollection, type WithId } from './firestore/use-collection';
+import { useGetCollection } from './firestore/use-get-collection';
 import type { User as AppUser, Role, Campus, SystemSettings } from '@/lib/types';
 import { useMemoFirebase } from './';
 import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
@@ -166,7 +167,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     if (!firestore || !userAuthState.user) return null;
     return collection(firestore, 'campuses');
   }, [firestore, userAuthState.user]);
-  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses, isLoading: isLoadingCampuses } = useGetCollection<Campus>(campusesQuery);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {

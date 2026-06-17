@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
+import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit } from 'firebase/firestore';
 import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,12 +62,12 @@ const generateActivityCode = (activityId: string, timestamp: number) => {
 export default function RsuAttendanceApp() {
   const firestore = useFirestore();
 
-  // Load campuses and units for registration form
+  // Load campuses and units for registration form (static data, fetched once)
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
-  const { data: campuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses } = useGetCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: units } = useGetCollection<Unit>(unitsQuery);
 
   // Client device details
   const [deviceFingerprint, setDeviceFingerprint] = useState('');
@@ -112,15 +112,16 @@ export default function RsuAttendanceApp() {
     }
   }, []);
 
-  // Fetch active / upcoming activities for manual selector if needed
+  // Fetch active / upcoming activities for manual selector (limited to top 20, fetched once)
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'unitActivities'),
-      where('status', 'in', ['ACTIVE', 'UPCOMING'])
+      where('status', 'in', ['ACTIVE', 'UPCOMING']),
+      limit(20)
     );
   }, [firestore]);
-  const { data: activeActivities } = useCollection<AttendanceActivity>(activitiesQuery);
+  const { data: activeActivities } = useGetCollection<AttendanceActivity>(activitiesQuery);
 
   // Fetch specific selected activity document
   const selectedActivityRef = useMemoFirebase(() => {

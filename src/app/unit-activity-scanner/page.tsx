@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
 import { 
   collection, 
   doc, 
@@ -9,7 +9,9 @@ import {
   setDoc,
   query, 
   where,
-  updateDoc
+  updateDoc,
+  orderBy,
+  limit
 } from 'firebase/firestore';
 import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -154,14 +156,19 @@ function UnitActivityScannerTerminal() {
     return sessions.find(s => s.id === selectedSessionId) || sessions[0];
   }, [sessions, selectedSessionId]);
 
-  // Fetch unit list to resolve active activity unit name
+  // Fetch unit list to resolve active activity unit name (static, fetched once)
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: units } = useGetCollection<Unit>(unitsQuery);
 
-  // Fetch real-time logs for this activity
+  // Fetch real-time logs for this activity (ordered by time and limited to top 50 to prevent huge reads)
   const logsQuery = useMemoFirebase(() => {
     if (!firestore || !paramActivityId) return null;
-    return query(collection(firestore, 'unitActivityAttendanceLogs'), where('activityId', '==', paramActivityId));
+    return query(
+      collection(firestore, 'unitActivityAttendanceLogs'),
+      where('activityId', '==', paramActivityId),
+      orderBy('scannedAt', 'desc'),
+      limit(50)
+    );
   }, [firestore, paramActivityId]);
   const { data: attendanceLogs } = useCollection<ActivityAttendanceLog>(logsQuery);
 
