@@ -29,7 +29,8 @@ import {
   ZoomIn,
   ZoomOut,
   QrCode,
-  Users
+  Users,
+  FlipHorizontal2
 } from 'lucide-react';
 
 function UnitActivityScannerTerminal() {
@@ -142,6 +143,8 @@ function UnitActivityScannerTerminal() {
   const [scannerActive, setScannerActive] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [supportsZoom, setSupportsZoom] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraCount, setCameraCount] = useState(0);
   const [scanResult, setScanResult] = useState<{
     status: 'success' | 'warning' | 'error' | 'none';
     message: string;
@@ -160,13 +163,29 @@ function UnitActivityScannerTerminal() {
     if (typeof window === 'undefined') return;
     if ((window as any).Html5Qrcode) {
       setIsScannerLibLoaded(true);
+      // Enumerate cameras to detect multi-camera support
+      try {
+        (window as any).Html5Qrcode.getCameras().then((devices: any[]) => {
+          setCameraCount(devices?.length ?? 0);
+        }).catch(() => {});
+      } catch (e) {}
       return;
     }
 
     const script = document.createElement('script');
     script.src = "https://unpkg.com/html5-qrcode";
     script.async = true;
-    script.onload = () => setIsScannerLibLoaded(true);
+    script.onload = () => {
+      setIsScannerLibLoaded(true);
+      // Enumerate cameras after lib loads
+      setTimeout(() => {
+        try {
+          (window as any).Html5Qrcode.getCameras().then((devices: any[]) => {
+            setCameraCount(devices?.length ?? 0);
+          }).catch(() => {});
+        } catch (e) {}
+      }, 300);
+    };
     document.body.appendChild(script);
 
     return () => {
@@ -198,9 +217,11 @@ function UnitActivityScannerTerminal() {
     applyZoom(newLevel);
   };
 
-  const startScanning = () => {
+  const startScanning = (mode?: 'environment' | 'user') => {
     if (!isScannerLibLoaded || !(window as any).Html5Qrcode) return;
     if (!paramActivityId) return;
+
+    const activeMode = mode ?? facingMode;
 
     setScannerActive(true);
     setScanResult({ status: 'none', message: 'Initializing camera stream...' });
@@ -210,7 +231,7 @@ function UnitActivityScannerTerminal() {
         const scanner = new (window as any).Html5Qrcode("reader-bg");
 
         scanner.start(
-          { facingMode: "environment" },
+          { facingMode: { ideal: activeMode } },
           {
             fps: 24,
             qrbox: (() => {
@@ -251,6 +272,30 @@ function UnitActivityScannerTerminal() {
         setScannerActive(false);
       }
     }, 100);
+  };
+
+  // Switch between front and back camera
+  const switchCamera = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    setSupportsZoom(false);
+    setZoomLevel(1);
+    // Stop current scanner then restart with new camera
+    if (html5QrCodeScannerRef.current) {
+      const scanner = html5QrCodeScannerRef.current;
+      html5QrCodeScannerRef.current = null;
+      try {
+        scanner.stop().then(() => {
+          startScanning(nextMode);
+        }).catch(() => {
+          startScanning(nextMode);
+        });
+      } catch (e) {
+        startScanning(nextMode);
+      }
+    } else {
+      startScanning(nextMode);
+    }
   };
 
   const stopScanning = () => {
@@ -599,6 +644,18 @@ function UnitActivityScannerTerminal() {
                 borderRadius: 4,
               }}
             />
+
+            {/* Camera label — shown below the reticle frame */}
+            {cameraCount > 1 && (
+              <div className="absolute -bottom-10 inset-x-0 flex justify-center">
+                <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
+                  <FlipHorizontal2 className="h-3 w-3 text-cyan-400" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-cyan-300">
+                    {facingMode === 'environment' ? '📷 Back Camera' : '🤳 Front Camera'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -660,6 +717,18 @@ function UnitActivityScannerTerminal() {
             <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Live</span>
           </div>
+
+          {/* Camera Toggle — only shown when multiple cameras detected */}
+          {cameraCount > 1 && scannerActive && (
+            <button
+              onClick={switchCamera}
+              title={facingMode === 'environment' ? 'Switch to Front Camera' : 'Switch to Back Camera'}
+              className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-cyan-300 hover:text-cyan-100 bg-cyan-500/20 hover:bg-cyan-500/30 backdrop-blur-md px-3 py-2 rounded-full border border-cyan-500/30 transition-all"
+            >
+              <FlipHorizontal2 className="h-3.5 w-3.5" />
+              {facingMode === 'environment' ? 'Front Cam' : 'Back Cam'}
+            </button>
+          )}
 
           <button
             onClick={toggleFullscreen}
