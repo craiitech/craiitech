@@ -54,7 +54,10 @@ import {
   StopCircle,
   Star,
   MessageSquare,
-  X
+  X,
+  FileText,
+  Printer,
+  ClipboardCopy
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
@@ -143,6 +146,7 @@ export default function UnitActivityPage() {
   const [evalFormMode, setEvalFormMode] = useState<'open' | 'strict'>('open');
   const [isSavingStrategy, setIsSavingStrategy] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<ActivityEvaluation | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   const openEvalWizard = (act: AttendanceActivity) => {
     setSelectedEvalActivity(act);
@@ -2153,6 +2157,19 @@ export default function UnitActivityPage() {
                 </Card>
               </div>
 
+              {/* Generate Evaluation Summary Button */}
+              {filteredEvaluations.length > 0 && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setShowSummaryModal(true)}
+                    className="h-10 text-[11px] font-black uppercase tracking-widest bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 rounded-xl flex items-center gap-2 px-5"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Generate Evaluation Summary
+                  </Button>
+                </div>
+              )}
+
               {/* Feedback Comments list */}
               <Card className="shadow-sm border-slate-200 bg-white">
                 <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-row justify-between items-center">
@@ -2683,6 +2700,398 @@ export default function UnitActivityPage() {
       </Dialog>
 
       {/* EVALUATION DETAIL DIALOG */}
+      {/* ================================================================== */}
+      {/* EVALUATION SUMMARY MODAL                                           */}
+      {/* ================================================================== */}
+      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
+        <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-emerald-700 to-teal-700 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 bg-white/10 rounded-xl flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-sm font-black uppercase text-white tracking-tight">
+                    Evaluation Discussion Summary
+                  </DialogTitle>
+                  <DialogDescription className="text-[10px] text-emerald-200 font-bold uppercase tracking-widest mt-0.5">
+                    {activeActivity?.name} • {filteredEvaluations.length} Respondents • Names Hidden
+                  </DialogDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[10px] font-black uppercase tracking-wider border-white/20 text-white bg-white/10 hover:bg-white/20 rounded-lg"
+                  onClick={() => {
+                    const el = document.getElementById('eval-summary-content');
+                    if (el) navigator.clipboard.writeText(el.innerText).then(() => {});
+                  }}
+                >
+                  <ClipboardCopy className="h-3.5 w-3.5 mr-1" /> Copy Text
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[10px] font-black uppercase tracking-wider border-white/20 text-white bg-white/10 hover:bg-white/20 rounded-lg"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-3.5 w-3.5 mr-1" /> Print
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* Scrollable content */}
+          <div id="eval-summary-content" className="overflow-y-auto flex-1 p-6 space-y-8 bg-white text-slate-800">
+
+            {/* ---- Cover / Title Block ---- */}
+            <div className="text-center space-y-2 pb-6 border-b-2 border-emerald-600">
+              <div className="flex justify-center mb-3">
+                <img src="/rsulogo.png" alt="RSU" className="h-16 w-16 object-contain opacity-80" />
+              </div>
+              <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">Activity Evaluation Summary Report</h1>
+              <h2 className="text-base font-bold text-emerald-700 uppercase">{activeActivity?.name}</h2>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                Total Respondents: {filteredEvaluations.length} &nbsp;|&nbsp; Report Generated: {format(new Date(), 'MMMM d, yyyy')}
+              </p>
+              <p className="text-[10px] text-slate-400 italic">
+                Note: Individual respondent identities are withheld in this report to ensure impartial and candid evaluation.
+              </p>
+            </div>
+
+            {/* ---- I. RATINGS SUMMARY TABLE ---- */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
+                I. Summary of Evaluation Ratings
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                The table below presents the mean ratings per evaluation category based on responses gathered from {filteredEvaluations.length} participant{filteredEvaluations.length !== 1 ? 's' : ''}.
+                Ratings are on a 5-point scale where <strong>1 = Poor</strong>, <strong>2 = Fair</strong>, <strong>3 = Satisfactory</strong>, <strong>4 = Very Satisfactory</strong>, and <strong>5 = Excellent</strong>.
+              </p>
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-emerald-600 text-white">
+                      <th className="text-left px-4 py-2.5 font-black uppercase tracking-wide">Evaluation Category</th>
+                      <th className="text-center px-4 py-2.5 font-black uppercase tracking-wide">Mean Rating</th>
+                      <th className="text-center px-4 py-2.5 font-black uppercase tracking-wide">Verbal Interpretation</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {([
+                      { id: 'objectives', label: 'Objectives Met', val: averageRatingsObj.objectives },
+                      { id: 'speaker', label: 'Speaker & Facilitator Delivery', val: averageRatingsObj.speaker },
+                      { id: 'topic', label: 'Topic Relevance & Presentation', val: averageRatingsObj.topic },
+                      { id: 'perfQuality', label: 'Quality of Delivery of Service', val: averageRatingsObj.perfQuality },
+                      { id: 'perfTimeliness', label: 'Timeliness of Service', val: averageRatingsObj.perfTimeliness },
+                      { id: 'perfStaff', label: 'Staff Behavior', val: averageRatingsObj.perfStaff },
+                      { id: 'venue', label: 'Venue', val: averageRatingsObj.venue },
+                      { id: 'facility', label: 'Facility', val: averageRatingsObj.facility },
+                      { id: 'food', label: 'Food & Catering', val: averageRatingsObj.food },
+                      { id: 'materials', label: 'Learning Materials', val: averageRatingsObj.materials },
+                      { id: 'overall', label: 'Overall Satisfaction', val: averageRatingsObj.overall },
+                    ] as { id: string; label: string; val: number }[]).filter(item => {
+                      if (item.id === 'topic') return focusList.includes('speaker');
+                      return focusList.includes(item.id);
+                    }).map((item, idx) => {
+                      const vi = item.val >= 4.5 ? 'Excellent' : item.val >= 3.5 ? 'Very Satisfactory' : item.val >= 2.5 ? 'Satisfactory' : item.val >= 1.5 ? 'Fair' : item.val > 0 ? 'Poor' : 'N/A';
+                      const viColor = item.val >= 4.5 ? 'text-emerald-700' : item.val >= 3.5 ? 'text-blue-700' : item.val >= 2.5 ? 'text-amber-700' : item.val > 0 ? 'text-rose-700' : 'text-slate-400';
+                      return (
+                        <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="px-4 py-2.5 font-semibold text-slate-700">{item.label}</td>
+                          <td className="px-4 py-2.5 text-center font-black text-slate-800">
+                            {item.val > 0 ? item.val.toFixed(2) : '—'}
+                          </td>
+                          <td className={`px-4 py-2.5 text-center font-black uppercase tracking-wide ${viColor}`}>{vi}</td>
+                        </tr>
+                      );
+                    })}
+                    {/* Overall weighted average */}
+                    {(() => {
+                      const vals = [
+                        focusList.includes('objectives') ? averageRatingsObj.objectives : null,
+                        focusList.includes('speaker') ? averageRatingsObj.speaker : null,
+                        focusList.includes('speaker') ? averageRatingsObj.topic : null,
+                        focusList.includes('perfQuality') ? averageRatingsObj.perfQuality : null,
+                        focusList.includes('perfTimeliness') ? averageRatingsObj.perfTimeliness : null,
+                        focusList.includes('perfStaff') ? averageRatingsObj.perfStaff : null,
+                        focusList.includes('venue') ? averageRatingsObj.venue : null,
+                        focusList.includes('facility') ? averageRatingsObj.facility : null,
+                        focusList.includes('food') ? averageRatingsObj.food : null,
+                        focusList.includes('materials') ? averageRatingsObj.materials : null,
+                        focusList.includes('overall') ? averageRatingsObj.overall : null,
+                      ].filter(v => v !== null && v > 0) as number[];
+                      const grand = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+                      const vi = grand >= 4.5 ? 'Excellent' : grand >= 3.5 ? 'Very Satisfactory' : grand >= 2.5 ? 'Satisfactory' : grand >= 1.5 ? 'Fair' : 'Poor';
+                      return grand > 0 ? (
+                        <tr className="bg-emerald-50 border-t-2 border-emerald-200">
+                          <td className="px-4 py-2.5 font-black uppercase text-emerald-800">Grand Mean (All Categories)</td>
+                          <td className="px-4 py-2.5 text-center font-black text-emerald-800 text-sm">{grand.toFixed(2)}</td>
+                          <td className="px-4 py-2.5 text-center font-black text-emerald-700 uppercase tracking-wide">{vi}</td>
+                        </tr>
+                      ) : null;
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* ---- II. DISCUSSION PER CATEGORY ---- */}
+            <section className="space-y-6">
+              <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
+                II. Evaluation Discussion by Category
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                The following discussion presents a synthesis of the quantitative ratings and qualitative comments per evaluation category.
+                Comments are listed verbatim as submitted by respondents and analyzed to surface common themes and patterns.
+              </p>
+
+              {([
+                {
+                  id: 'objectives', label: 'Objectives Met', val: averageRatingsObj.objectives,
+                  comments: filteredEvaluations.map(e => e.commentsObjectives).filter(Boolean) as string[],
+                },
+                {
+                  id: 'speaker', label: 'Speaker & Facilitator Delivery', val: averageRatingsObj.speaker,
+                  comments: filteredEvaluations.map(e => e.commentsSpeaker).filter(Boolean) as string[],
+                  extra: averageRatingsObj.topic > 0 ? `Topic Relevance & Presentation Content sub-criterion received a mean of ${averageRatingsObj.topic.toFixed(2)}.` : null,
+                },
+                {
+                  id: 'perfQuality', label: 'Quality of Delivery of Service', val: averageRatingsObj.perfQuality,
+                  comments: filteredEvaluations.map(e => e.commentsPerfQuality).filter(Boolean) as string[],
+                },
+                {
+                  id: 'perfTimeliness', label: 'Timeliness of Service', val: averageRatingsObj.perfTimeliness,
+                  comments: filteredEvaluations.map(e => e.commentsPerfTimeliness).filter(Boolean) as string[],
+                },
+                {
+                  id: 'perfStaff', label: 'Staff Behavior', val: averageRatingsObj.perfStaff,
+                  comments: filteredEvaluations.map(e => e.commentsPerfStaff).filter(Boolean) as string[],
+                },
+                {
+                  id: 'venue', label: 'Venue', val: averageRatingsObj.venue,
+                  comments: filteredEvaluations.map(e => e.commentsVenue).filter(Boolean) as string[],
+                },
+                {
+                  id: 'facility', label: 'Facility', val: averageRatingsObj.facility,
+                  comments: filteredEvaluations.map(e => e.commentsFacility).filter(Boolean) as string[],
+                },
+                {
+                  id: 'food', label: 'Food & Catering', val: averageRatingsObj.food,
+                  comments: filteredEvaluations.map(e => e.commentsFood).filter(Boolean) as string[],
+                },
+                {
+                  id: 'materials', label: 'Learning Materials', val: averageRatingsObj.materials,
+                  comments: filteredEvaluations.map(e => e.commentsMaterials).filter(Boolean) as string[],
+                },
+                {
+                  id: 'overall', label: 'Overall Satisfaction', val: averageRatingsObj.overall,
+                  comments: [
+                    ...filteredEvaluations.map(e => e.commentsOverall).filter(Boolean) as string[],
+                    ...filteredEvaluations.map(e => e.comments).filter(Boolean) as string[],
+                  ],
+                },
+              ] as { id: string; label: string; val: number; comments: string[]; extra?: string | null }[])
+                .filter(cat => {
+                  if (cat.id === 'topic') return false;
+                  return focusList.includes(cat.id);
+                })
+                .map((cat, catIdx) => {
+                  const vi = cat.val >= 4.5 ? 'Excellent' : cat.val >= 3.5 ? 'Very Satisfactory' : cat.val >= 2.5 ? 'Satisfactory' : cat.val >= 1.5 ? 'Fair' : cat.val > 0 ? 'Poor' : null;
+                  const tone = cat.val >= 4.5 ? 'an excellent' : cat.val >= 3.5 ? 'a very satisfactory' : cat.val >= 2.5 ? 'a satisfactory' : cat.val >= 1.5 ? 'a fair' : 'a poor';
+                  const discussion = cat.val > 0
+                    ? `The ${cat.label} category obtained a mean rating of ${cat.val.toFixed(2)}, which is interpreted as ${vi} (${tone} level of performance). ${
+                        cat.comments.length > 0
+                          ? `Qualitative feedback from respondents further substantiates this rating. A review of the comments reveals that participants generally ${
+                              cat.val >= 3.5
+                                ? 'expressed positive sentiments and satisfaction with this aspect of the activity.'
+                                : cat.val >= 2.5
+                                ? 'found this aspect to be adequate, though some areas for improvement were noted.'
+                                : 'identified specific concerns and areas requiring attention and improvement.'
+                            } The comments, listed below for reference, provide additional context and specific observations from the respondents.`
+                          : 'No specific written comments were provided for this category.'
+                      }${ cat.extra ? ' ' + cat.extra : '' }`
+                    : null;
+
+                  return (
+                    <div key={cat.id} className="space-y-3">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase w-6 shrink-0">{catIdx + 1}.</span>
+                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{cat.label}</h4>
+                        {cat.val > 0 && (
+                          <span className={`ml-auto text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 ${
+                            cat.val >= 4.5 ? 'bg-emerald-100 text-emerald-700' :
+                            cat.val >= 3.5 ? 'bg-blue-100 text-blue-700' :
+                            cat.val >= 2.5 ? 'bg-amber-100 text-amber-700' :
+                            'bg-rose-100 text-rose-700'
+                          }`}>
+                            {cat.val.toFixed(2)} — {vi}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Narrative discussion paragraph */}
+                      {discussion ? (
+                        <p className="text-xs text-slate-700 leading-relaxed pl-9">{discussion}</p>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic pl-9">No data collected for this category.</p>
+                      )}
+
+                      {/* Anonymous comments */}
+                      {cat.comments.length > 0 && (
+                        <div className="pl-9 space-y-1.5">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Respondent Comments ({cat.comments.length}):</p>
+                          <ul className="space-y-1.5">
+                            {cat.comments.map((c, ci) => (
+                              <li key={ci} className="flex items-start gap-2 text-xs text-slate-600">
+                                <span className="shrink-0 h-4 w-4 bg-slate-100 rounded-full flex items-center justify-center text-[9px] font-black text-slate-500 mt-0.5">{ci + 1}</span>
+                                <span className="leading-relaxed italic">&ldquo;{c}&rdquo;</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </section>
+
+            {/* ---- III. OPEN-ENDED FEEDBACK ---- */}
+            {filteredEvaluations.some(e => e.ansTakeaways || e.ansExpectations || e.ansMissed || e.ansSuggestions) && (
+              <section className="space-y-6">
+                <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
+                  III. Open-Ended Qualitative Feedback
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  The following section compiles verbatim responses to the open-ended questions included in the evaluation form.
+                  These responses offer deeper qualitative insights into participant experiences, expectations, and suggestions.
+                </p>
+
+                {([
+                  {
+                    q: '1. What was your single biggest takeaway or most valuable part of this activity, and why?',
+                    key: 'ansTakeaways' as keyof ActivityEvaluation,
+                  },
+                  {
+                    q: '2. Did this activity meet your expectations and how did it make you feel?',
+                    key: 'ansExpectations' as keyof ActivityEvaluation,
+                  },
+                  {
+                    q: '3. Was there a specific topic or activity you wish had been included?',
+                    key: 'ansMissed' as keyof ActivityEvaluation,
+                  },
+                  {
+                    q: '4. If you could change one thing, or what suggestions do you have for next time?',
+                    key: 'ansSuggestions' as keyof ActivityEvaluation,
+                  },
+                ]).map((item, qi) => {
+                  const answers = filteredEvaluations
+                    .map(e => (e[item.key] as string | undefined)?.trim())
+                    .filter(Boolean) as string[];
+                  if (answers.length === 0) return null;
+                  return (
+                    <div key={qi} className="space-y-2">
+                      <p className="text-xs font-black text-slate-700">{item.q}</p>
+                      <ul className="space-y-1.5 pl-4">
+                        {answers.map((ans, ai) => (
+                          <li key={ai} className="flex items-start gap-2 text-xs text-slate-600">
+                            <span className="shrink-0 h-4 w-4 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center text-[9px] font-black text-emerald-700 mt-0.5">{ai + 1}</span>
+                            <span className="leading-relaxed">{ans}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+
+            {/* ---- IV. CONCLUSIONS & RECOMMENDATIONS ---- */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
+                IV. Conclusions and Recommendations
+              </h3>
+              {(() => {
+                const allVals = [
+                  focusList.includes('objectives') ? averageRatingsObj.objectives : 0,
+                  focusList.includes('speaker') ? averageRatingsObj.speaker : 0,
+                  focusList.includes('perfQuality') ? averageRatingsObj.perfQuality : 0,
+                  focusList.includes('perfTimeliness') ? averageRatingsObj.perfTimeliness : 0,
+                  focusList.includes('perfStaff') ? averageRatingsObj.perfStaff : 0,
+                  focusList.includes('venue') ? averageRatingsObj.venue : 0,
+                  focusList.includes('facility') ? averageRatingsObj.facility : 0,
+                  focusList.includes('food') ? averageRatingsObj.food : 0,
+                  focusList.includes('materials') ? averageRatingsObj.materials : 0,
+                  focusList.includes('overall') ? averageRatingsObj.overall : 0,
+                ].filter(v => v > 0);
+                const grand = allVals.length > 0 ? allVals.reduce((a, b) => a + b, 0) / allVals.length : 0;
+                const vi = grand >= 4.5 ? 'Excellent' : grand >= 3.5 ? 'Very Satisfactory' : grand >= 2.5 ? 'Satisfactory' : grand >= 1.5 ? 'Fair' : 'Poor';
+                const lowest = [
+                  { label: 'Objectives', val: averageRatingsObj.objectives, id: 'objectives' },
+                  { label: 'Speaker & Facilitation', val: averageRatingsObj.speaker, id: 'speaker' },
+                  { label: 'Quality of Service', val: averageRatingsObj.perfQuality, id: 'perfQuality' },
+                  { label: 'Timeliness', val: averageRatingsObj.perfTimeliness, id: 'perfTimeliness' },
+                  { label: 'Staff Behavior', val: averageRatingsObj.perfStaff, id: 'perfStaff' },
+                  { label: 'Venue', val: averageRatingsObj.venue, id: 'venue' },
+                  { label: 'Facility', val: averageRatingsObj.facility, id: 'facility' },
+                  { label: 'Food & Catering', val: averageRatingsObj.food, id: 'food' },
+                  { label: 'Materials', val: averageRatingsObj.materials, id: 'materials' },
+                  { label: 'Overall Satisfaction', val: averageRatingsObj.overall, id: 'overall' },
+                ].filter(x => focusList.includes(x.id) && x.val > 0 && x.val < 3.5)
+                  .sort((a, b) => a.val - b.val)
+                  .slice(0, 3);
+                return (
+                  <div className="space-y-3 text-xs text-slate-700 leading-relaxed">
+                    <p>
+                      Based on the evaluation results gathered from <strong>{filteredEvaluations.length}</strong> respondent{filteredEvaluations.length !== 1 ? 's' : ''}, the
+                      activity <strong>&ldquo;{activeActivity?.name}&rdquo;</strong> obtained a grand mean rating of <strong>{grand.toFixed(2)}</strong>,
+                      which is interpreted as <strong>{vi}</strong>. This indicates that the activity was {grand >= 3.5 ? 'well-received and effectively delivered,' : grand >= 2.5 ? 'moderately received by participants, though improvements are warranted,' : 'in need of significant review and improvement,'} as
+                      reflected in the overall satisfaction of the participants.
+                    </p>
+                    {lowest.length > 0 && (
+                      <div className="space-y-2">
+                        <p>The following area{lowest.length > 1 ? 's' : ''} obtained ratings below the Very Satisfactory threshold and are recommended for improvement in future activities:</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {lowest.map(l => (
+                            <li key={l.id}><strong>{l.label}</strong> — Mean: {l.val.toFixed(2)} ({l.val >= 2.5 ? 'Satisfactory' : l.val >= 1.5 ? 'Fair' : 'Poor'})</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p>
+                      It is recommended that the unit consider the qualitative feedback provided by participants when planning the next activity,
+                      particularly the open-ended responses which offer constructive insights on what participants found most valuable and areas they wish were addressed.
+                    </p>
+                    <p className="text-slate-500 italic">
+                      <em>Prepared by: _____________________________ &nbsp;&nbsp; Position: _____________________________</em>
+                    </p>
+                    <p className="text-slate-500 italic">
+                      <em>Date: _______________________ &nbsp;&nbsp; Approved by: _____________________________</em>
+                    </p>
+                  </div>
+                );
+              })()}
+            </section>
+
+          </div>
+
+          <DialogFooter className="px-6 py-3 border-t bg-slate-50 shrink-0">
+            <Button variant="outline" onClick={() => setShowSummaryModal(false)} className="text-xs font-black uppercase">
+              Close
+            </Button>
+            <Button
+              onClick={() => window.print()}
+              className="text-xs font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Printer className="h-4 w-4 mr-1.5" /> Print / Save as PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!selectedEvaluation} onOpenChange={(open) => { if (!open) setSelectedEvaluation(null); }}>
         <DialogContent className="max-w-2xl bg-white border-slate-200 text-slate-900 rounded-2xl shadow-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
