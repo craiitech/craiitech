@@ -97,6 +97,8 @@ export function useCollection<T = any>(
             ? (memoizedTargetRefOrQuery as CollectionReference).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
 
+        console.error("Firestore error in useCollection:", error);
+
         const contextualError = new FirestorePermissionError({
           operation: 'list',
           path,

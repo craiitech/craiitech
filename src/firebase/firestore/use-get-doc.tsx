@@ -62,6 +62,8 @@ export function useGetDoc<T = any>(
         setIsLoading(false);
       })
       .catch((err: FirestoreError) => {
+        console.error("Firestore error in useGetDoc:", err);
+
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
