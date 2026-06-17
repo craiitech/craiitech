@@ -273,7 +273,7 @@ function UnitActivityScannerTerminal() {
         const scanner = new (window as any).Html5Qrcode("reader-bg");
 
         scanner.start(
-          { facingMode: { ideal: activeMode } },
+          { facingMode: activeMode },
           {
             fps: 24,
             qrbox: (() => {
