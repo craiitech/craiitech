@@ -48,6 +48,8 @@ function UnitActivityScannerTerminal() {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isEvalQrOpen, setIsEvalQrOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('default');
 
   // Fetch specific activity details
   const activityRef = useMemoFirebase(() => {
@@ -55,6 +57,61 @@ function UnitActivityScannerTerminal() {
     return doc(firestore, 'unitActivities', paramActivityId);
   }, [firestore, paramActivityId]);
   const { data: activeActivity, isLoading: isLoadingActivity } = useDoc<AttendanceActivity>(activityRef);
+
+  const parseSessionTime = (dateStr: string, timeStr: string) => {
+    try {
+      const d = new Date(`${dateStr}T${timeStr}:00`);
+      if (isNaN(d.getTime())) {
+        return Date.now();
+      }
+      return d.getTime();
+    } catch (e) {
+      return Date.now();
+    }
+  };
+
+  const sessions = useMemo(() => {
+    if (activeActivity?.sessions && activeActivity.sessions.length > 0) {
+      return activeActivity.sessions;
+    }
+    const label = 'Default Session';
+    const date = activeActivity?.startDateTime?.toDate 
+      ? format(activeActivity.startDateTime.toDate(), 'yyyy-MM-dd') 
+      : activeActivity?.startDateTime
+      ? format(new Date(activeActivity.startDateTime), 'yyyy-MM-dd')
+      : format(new Date(), 'yyyy-MM-dd');
+    const startTime = activeActivity?.startDateTime?.toDate 
+      ? format(activeActivity.startDateTime.toDate(), 'HH:mm') 
+      : activeActivity?.startDateTime
+      ? format(new Date(activeActivity.startDateTime), 'HH:mm')
+      : '08:00';
+    const endTime = activeActivity?.endDateTime?.toDate 
+      ? format(activeActivity.endDateTime.toDate(), 'HH:mm') 
+      : activeActivity?.endDateTime
+      ? format(new Date(activeActivity.endDateTime), 'HH:mm')
+      : '17:00';
+    return [{
+      id: 'default',
+      date,
+      label,
+      sessionType: 'WHOLE_DAY' as const,
+      requiresLogout: activeActivity?.requiresLogout || false,
+      startTime,
+      endTime
+    }];
+  }, [activeActivity]);
+
+  useEffect(() => {
+    if (sessions.length > 0) {
+      if (!sessions.some(s => s.id === selectedSessionId)) {
+        setSelectedSessionId(sessions[0].id);
+      }
+    }
+  }, [sessions, selectedSessionId]);
+
+  const selectedSession = useMemo(() => {
+    return sessions.find(s => s.id === selectedSessionId) || sessions[0];
+  }, [sessions, selectedSessionId]);
 
   // Fetch unit list to resolve active activity unit name
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
@@ -69,12 +126,17 @@ function UnitActivityScannerTerminal() {
 
   const sortedLogs = useMemo(() => {
     if (!attendanceLogs) return [];
-    return [...attendanceLogs].sort((a, b) => {
-      const timeA = a.scannedAt?.toDate ? a.scannedAt.toDate().getTime() : (a.scannedAt?.seconds ? a.scannedAt.seconds * 1000 : new Date(a.scannedAt).getTime());
-      const timeB = b.scannedAt?.toDate ? b.scannedAt.toDate().getTime() : (b.scannedAt?.seconds ? b.scannedAt.seconds * 1000 : new Date(b.scannedAt).getTime());
-      return timeB - timeA;
-    });
-  }, [attendanceLogs]);
+    return [...attendanceLogs]
+      .filter(log => {
+        const logSessionId = log.sessionId || 'default';
+        return logSessionId === selectedSessionId;
+      })
+      .sort((a, b) => {
+        const timeA = a.scannedAt?.toDate ? a.scannedAt.toDate().getTime() : (a.scannedAt?.seconds ? a.scannedAt.seconds * 1000 : new Date(a.scannedAt).getTime());
+        const timeB = b.scannedAt?.toDate ? b.scannedAt.toDate().getTime() : (b.scannedAt?.seconds ? b.scannedAt.seconds * 1000 : new Date(b.scannedAt).getTime());
+        return timeB - timeA;
+      });
+  }, [attendanceLogs, selectedSessionId]);
 
   // --- CAMERA QR SCANNING MODULE (CDN LOADED) ---
   const [isScannerLibLoaded, setIsScannerLibLoaded] = useState(false);
@@ -252,14 +314,16 @@ function UnitActivityScannerTerminal() {
       const finalSex = sex || officialBinding.sex || 'Did not specify';
 
       const scanTime = Date.now();
-      const actStart = activeActivity.startDateTime.toDate ? activeActivity.startDateTime.toDate().getTime() : new Date(activeActivity.startDateTime).getTime();
-      const actEnd = activeActivity.endDateTime.toDate ? activeActivity.endDateTime.toDate().getTime() : new Date(activeActivity.endDateTime).getTime();
+      const actStart = parseSessionTime(selectedSession.date, selectedSession.startTime);
+      const actEnd = parseSessionTime(selectedSession.date, selectedSession.endTime);
+      const requiresLogout = selectedSession.requiresLogout;
+      const lateThreshold = Number(activeActivity.lateThresholdMinutes || 0);
 
       let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
-      if (activeActivity.lateThresholdMinutes === 0) {
+      if (lateThreshold === 0) {
         logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
       } else {
-        const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
+        const lateCutoff = actStart + (lateThreshold * 60000);
         if (scanTime < actStart || scanTime <= lateCutoff) {
           logStatus = 'ON_TIME';
         } else if (scanTime <= actEnd) {
@@ -269,29 +333,29 @@ function UnitActivityScannerTerminal() {
         }
       }
 
-      const logId = `${activeActivity.id}_${userId}`;
+      const logId = `${activeActivity.id}_${selectedSession.id}_${userId}`;
       const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
 
       const existingLog = await getDoc(logRef);
       if (existingLog.exists()) {
         const existingData = existingLog.data() as ActivityAttendanceLog;
-        if (activeActivity.requiresLogout && !existingData.logoutAt) {
+        if (requiresLogout && !existingData.logoutAt) {
           await setDoc(logRef, { ...existingData, logoutAt: new Date() });
           setScanResult({
             status: 'success',
-            message: `Logout recorded for ${userName}.`,
+            message: `Logout recorded for ${userName} (${selectedSession.label}).`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'LOGOUT' }
           });
-        } else if (activeActivity.requiresLogout && existingData.logoutAt) {
+        } else if (requiresLogout && existingData.logoutAt) {
           setScanResult({
             status: 'warning',
-            message: `${userName} has already logged in and out. Duplicate scan ignored.`,
+            message: `${userName} has already logged in and out for ${selectedSession.label}. Duplicate scan ignored.`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
           });
         } else {
           setScanResult({
             status: 'warning',
-            message: `${userName} has already signed in for this session. Duplicate scan ignored.`,
+            message: `${userName} has already signed in for ${selectedSession.label}. Duplicate scan ignored.`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
           });
         }
@@ -309,7 +373,9 @@ function UnitActivityScannerTerminal() {
         scannedAt: new Date(),
         status: logStatus,
         contactNumber: finalContact,
-        sex: finalSex
+        sex: finalSex,
+        sessionId: selectedSession.id,
+        sessionLabel: selectedSession.label
       };
 
       await setDoc(logRef, newLog);
@@ -317,10 +383,10 @@ function UnitActivityScannerTerminal() {
       setScanResult({
         status: logStatus === 'ON_TIME' ? 'success' : 'warning',
         message: logStatus === 'ON_TIME' 
-          ? `Verified! Signed on time.${ activeActivity.requiresLogout ? ' Scan again to logout.' : '' }` 
+          ? `Verified! Signed on time for ${selectedSession.label}.${ requiresLogout ? ' Scan again to logout.' : '' }` 
           : logStatus === 'LATE'
-          ? `Lateness recorded. Threshold was ${activeActivity.lateThresholdMinutes} mins.`
-          : `Scan outside activity window — recorded as OUTSIDE WINDOW.`,
+          ? `Lateness recorded for ${selectedSession.label}. Threshold was ${lateThreshold} mins.`
+          : `Scan outside session window — recorded as OUTSIDE WINDOW.`,
         details: {
           name: userName,
           office: unitName,
@@ -444,6 +510,12 @@ function UnitActivityScannerTerminal() {
   const registrationQrCodeUrl = registrationUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(registrationUrl)}`
     : '';
+  const evalUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/unit-activity/evaluate?activityId=${activeActivity?.id}`
+    : '';
+  const evalQrCodeUrl = evalUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(evalUrl)}`
+    : '';
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black font-sans text-white">
@@ -554,7 +626,7 @@ function UnitActivityScannerTerminal() {
 
         {/* Clock widget */}
         {currentTime && (
-          <div className="hidden md:flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 shadow-xl">
+          <div className="hidden lg:flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 shadow-xl">
             <Clock className="h-4 w-4 text-[#D4AF37] shrink-0" />
             <span className="text-sm font-black text-white tabular-nums">{format(currentTime, 'hh:mm:ss a')}</span>
             <div className="h-4 w-px bg-white/15" />
@@ -563,12 +635,38 @@ function UnitActivityScannerTerminal() {
           </div>
         )}
 
+        {/* Session Selector */}
+        {sessions.length > 0 && (
+          <div className="hidden md:flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-1.5 shadow-xl">
+            <span className="text-[9px] font-black text-[#D4AF37] uppercase tracking-wider">Session:</span>
+            <select
+              value={selectedSessionId}
+              onChange={(e) => setSelectedSessionId(e.target.value)}
+              className="bg-transparent border-none text-[10px] font-black text-white focus:outline-none cursor-pointer uppercase pr-2 max-w-[150px]"
+            >
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id} className="bg-slate-950 text-white text-[10px] font-bold">
+                  {s.label} ({s.date})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Action buttons */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full">
+          <div className="hidden sm:flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full">
             <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[9px] font-black text-white/85 uppercase tracking-widest">Live</span>
           </div>
+
+          <button
+            onClick={() => setIsEvalQrOpen(true)}
+            className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#D4AF37] hover:text-white bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 backdrop-blur-md px-3 py-2 rounded-full border border-[#D4AF37]/30 transition-all"
+          >
+            <QrCode className="h-3.5 w-3.5" />
+            Evaluation QR
+          </button>
 
           <button
             onClick={toggleFullscreen}
@@ -833,6 +931,59 @@ function UnitActivityScannerTerminal() {
           display: none !important;
         }
       `}</style>
+
+      {/* ================================================================== */}
+      {/* EVALUATION PORTAL QR OVERLAY                                       */}
+      {/* ================================================================== */}
+      {isEvalQrOpen && (
+        <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="bg-white p-6 rounded-3xl shadow-2xl w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] flex flex-col items-center justify-center border-4 border-amber-400">
+            {evalQrCodeUrl ? (
+              <img
+                src={evalQrCodeUrl}
+                alt="Evaluation Portal QR Code"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            )}
+          </div>
+          <div className="space-y-2 max-w-md">
+            <h3 className="text-xl font-black uppercase tracking-tight text-white flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-400 animate-pulse" />
+              Scan to Evaluate Activity
+            </h3>
+            <p className="text-[11px] font-black text-amber-400 uppercase tracking-widest">
+              {activeActivity?.name}
+            </p>
+            <p className="text-xs font-medium text-slate-300 pt-1 leading-relaxed">
+              Scan the QR code above to access the Participant Feedback Portal and complete the activity evaluation.
+            </p>
+          </div>
+          <div className="pt-2 flex gap-3 w-full max-w-xs">
+            <Button
+              asChild
+              variant="outline"
+              className="flex-grow h-10 bg-white text-slate-900 border-none font-black uppercase tracking-widest text-[10px] rounded-xl"
+            >
+              <a
+                href={evalQrCodeUrl}
+                download={`evaluation-qr-${activeActivity?.id}.png`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download QR
+              </a>
+            </Button>
+            <Button
+              onClick={() => setIsEvalQrOpen(false)}
+              className="flex-grow h-10 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-[10px] border-none rounded-xl"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ================================================================== */}
       {/* KIOSK PAUSED OVERLAY — when not fullscreen                         */}

@@ -1110,6 +1110,16 @@ export type Communication = {
 
 // --- UNIT ACTIVITY ATTENDANCE & DEVICE BINDING TYPES ---
 
+export type ActivitySession = {
+  id: string;
+  date: string;
+  label: string;
+  sessionType: 'AM' | 'PM' | 'WHOLE_DAY' | 'custom';
+  requiresLogout: boolean;
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
+};
+
 export type AttendanceActivity = {
   id: string;
   name: string;
@@ -1122,6 +1132,8 @@ export type AttendanceActivity = {
   campusId: string;
   createdAt: any; // Timestamp
   createdBy: string;
+  documents?: { description: string; googleDriveLink: string; }[];
+  sessions?: ActivitySession[];
 };
 
 export type DeviceBinding = {
@@ -1137,7 +1149,7 @@ export type DeviceBinding = {
 };
 
 export type ActivityAttendanceLog = {
-  id: string; // activityId_userId
+  id: string; // activityId_userId or activityId_sessionId_userId
   activityId: string;
   userId: string;
   userName: string;
@@ -1150,4 +1162,19 @@ export type ActivityAttendanceLog = {
   remarks?: string;
   contactNumber?: string;
   sex?: string;
+  sessionId?: string;
+  sessionLabel?: string;
+};
+
+export type ActivityEvaluation = {
+  id: string;
+  activityId: string;
+  participantName?: string;
+  participantContact?: string;
+  ratingObjectives: number;
+  ratingSpeaker: number;
+  ratingVenue: number;
+  ratingOverall: number;
+  comments: string;
+  submittedAt: any; // Timestamp
 };

@@ -15,7 +15,7 @@ import {
   orderBy, 
   serverTimestamp 
 } from 'firebase/firestore';
-import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
+import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog, ActivitySession, ActivityEvaluation } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ import {
   StopCircle,
   X
 } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 export default function UnitActivityPage() {
   const { userProfile, isAdmin, isSupervisor } = useUser();
@@ -103,6 +104,11 @@ export default function UnitActivityPage() {
   const [newRequiresLogout, setNewRequiresLogout] = useState(false);
   const [isCreatingActivity, setIsCreatingActivity] = useState(false);
 
+  const [newActivitySessions, setNewActivitySessions] = useState<ActivitySession[]>([]);
+  const [newActivityDocs, setNewActivityDocs] = useState<{ description: string; googleDriveLink: string }[]>([]);
+  const [docDesc, setDocDesc] = useState('');
+  const [docLink, setDocLink] = useState('');
+
   // --- EDIT ACTIVITY STATE ---
   const [editingActivity, setEditingActivity] = useState<AttendanceActivity | null>(null);
   const [editName, setEditName] = useState('');
@@ -112,24 +118,103 @@ export default function UnitActivityPage() {
   const [editRequiresLogout, setEditRequiresLogout] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  const [editActivitySessions, setEditActivitySessions] = useState<ActivitySession[]>([]);
+  const [editActivityDocs, setEditActivityDocs] = useState<{ description: string; googleDriveLink: string }[]>([]);
+  const [editDocDesc, setEditDocDesc] = useState('');
+  const [editDocLink, setEditDocLink] = useState('');
+
   // --- DELETE ACTIVITY STATE ---
   const [confirmDeleteActivityId, setConfirmDeleteActivityId] = useState<string | null>(null);
   const [isDeletingActivityId, setIsDeletingActivityId] = useState<string | null>(null);
 
+  // --- SESSION HANDLERS ---
+  const handleAddSession = () => {
+    const nextDay = newActivitySessions.length + 1;
+    setNewActivitySessions([
+      ...newActivitySessions,
+      {
+        id: `SESS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        label: `Day ${nextDay} Session`,
+        sessionType: 'WHOLE_DAY',
+        requiresLogout: false,
+        startTime: '08:00',
+        endTime: '17:00'
+      }
+    ]);
+  };
+
+  const handleRemoveSession = (id: string) => {
+    setNewActivitySessions(newActivitySessions.filter(s => s.id !== id));
+  };
+
+  const handleUpdateSession = (id: string, field: keyof ActivitySession, value: any) => {
+    setNewActivitySessions(newActivitySessions.map(s => {
+      if (s.id === id) {
+        return { ...s, [field]: value };
+      }
+      return s;
+    }));
+  };
+
+  const handleAddEditSession = () => {
+    const nextDay = editActivitySessions.length + 1;
+    setEditActivitySessions([
+      ...editActivitySessions,
+      {
+        id: `SESS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        label: `Day ${nextDay} Session`,
+        sessionType: 'WHOLE_DAY',
+        requiresLogout: false,
+        startTime: '08:00',
+        endTime: '17:00'
+      }
+    ]);
+  };
+
+  const handleRemoveEditSession = (id: string) => {
+    setEditActivitySessions(editActivitySessions.filter(s => s.id !== id));
+  };
+
+  const handleUpdateEditSession = (id: string, field: keyof ActivitySession, value: any) => {
+    setEditActivitySessions(editActivitySessions.map(s => {
+      if (s.id === id) {
+        return { ...s, [field]: value };
+      }
+      return s;
+    }));
+  };
+
+  const getSessionsRange = (sessList: ActivitySession[]) => {
+    if (sessList.length === 0) {
+      return { start: new Date(), end: new Date() };
+    }
+    const times = sessList.map(s => {
+      const start = new Date(`${s.date}T${s.startTime}:00`).getTime();
+      const end = new Date(`${s.date}T${s.endTime}:00`).getTime();
+      return { start, end };
+    });
+    const minStart = Math.min(...times.map(t => t.start));
+    const maxEnd = Math.max(...times.map(t => t.end));
+    return { start: new Date(minStart), end: new Date(maxEnd) };
+  };
+
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !userProfile) return;
-    if (!newActivityName.trim() || !newActivityStart || !newActivityEnd) {
+    if (!newActivityName.trim()) {
       toast({ title: 'Validation Error', description: 'Please complete all form fields.', variant: 'destructive' });
       return;
     }
-
-    const start = new Date(newActivityStart);
-    const end = new Date(newActivityEnd);
-    if (end <= start) {
-      toast({ title: 'Validation Error', description: 'End time must be after start time.', variant: 'destructive' });
+    if (newActivitySessions.length === 0) {
+      toast({ title: 'Validation Error', description: 'Please add at least one session to this activity.', variant: 'destructive' });
       return;
     }
+
+    const range = getSessionsRange(newActivitySessions);
+    const start = range.start;
+    const end = range.end;
 
     setIsCreatingActivity(true);
     try {
@@ -146,7 +231,9 @@ export default function UnitActivityPage() {
         unitId: userProfile.unitId || 'all',
         campusId: userProfile.campusId || 'all',
         createdAt: new Date(),
-        createdBy: userProfile.id
+        createdBy: userProfile.id,
+        sessions: newActivitySessions,
+        documents: newActivityDocs
       };
 
       await setDoc(docRef, newAct);
@@ -155,6 +242,8 @@ export default function UnitActivityPage() {
       setNewActivityStart('');
       setNewActivityEnd('');
       setNewRequiresLogout(false);
+      setNewActivitySessions([]);
+      setNewActivityDocs([]);
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'Failed to create activity.', variant: 'destructive' });
@@ -180,23 +269,45 @@ export default function UnitActivityPage() {
     setEditEnd(format(endVal, "yyyy-MM-dd'T'HH:mm"));
     setEditThreshold(String(act.lateThresholdMinutes || 0));
     setEditRequiresLogout(act.requiresLogout === true);
+
+    if (act.sessions && act.sessions.length > 0) {
+      setEditActivitySessions(act.sessions);
+    } else {
+      setEditActivitySessions([{
+        id: 'default',
+        date: format(startVal, 'yyyy-MM-dd'),
+        label: 'Default Session',
+        sessionType: 'WHOLE_DAY',
+        requiresLogout: act.requiresLogout === true,
+        startTime: format(startVal, 'HH:mm'),
+        endTime: format(endVal, 'HH:mm')
+      }]);
+    }
+
+    if (act.documents) {
+      setEditActivityDocs(act.documents);
+    } else {
+      setEditActivityDocs([]);
+    }
   };
 
   const handleEditActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !editingActivity) return;
 
-    if (!editName.trim() || !editStart || !editEnd) {
+    if (!editName.trim()) {
       toast({ title: 'Validation Error', description: 'Please complete all form fields.', variant: 'destructive' });
       return;
     }
 
-    const start = new Date(editStart);
-    const end = new Date(editEnd);
-    if (end <= start) {
-      toast({ title: 'Validation Error', description: 'End time must be after start time.', variant: 'destructive' });
+    if (editActivitySessions.length === 0) {
+      toast({ title: 'Validation Error', description: 'Please add at least one session to this activity.', variant: 'destructive' });
       return;
     }
+
+    const range = getSessionsRange(editActivitySessions);
+    const start = range.start;
+    const end = range.end;
 
     setIsSavingEdit(true);
     try {
@@ -208,7 +319,9 @@ export default function UnitActivityPage() {
         startDateTime: start,
         endDateTime: end,
         lateThresholdMinutes: Number(editThreshold),
-        requiresLogout: editRequiresLogout
+        requiresLogout: editRequiresLogout,
+        sessions: editActivitySessions,
+        documents: editActivityDocs
       };
 
       await setDoc(docRef, updatedActivity);
@@ -280,6 +393,12 @@ export default function UnitActivityPage() {
 
   // --- 2. ATTENDANCE LOGS CORRELATION ---
   const [selectedActivityId, setSelectedActivityId] = useState<string>('all');
+  const [selectedSessionIdFilter, setSelectedSessionIdFilter] = useState<string>('all');
+
+  useEffect(() => {
+    setSelectedSessionIdFilter('all');
+  }, [selectedActivityId]);
+
   const activeActivity = useMemo(() => {
     return sortedActivities?.find(a => a.id === selectedActivityId) || null;
   }, [sortedActivities, selectedActivityId]);
@@ -296,12 +415,80 @@ export default function UnitActivityPage() {
 
   const sortedLogs = useMemo(() => {
     if (!attendanceLogs) return [];
-    return [...attendanceLogs].sort((a, b) => {
+    let logs = [...attendanceLogs];
+    if (selectedSessionIdFilter !== 'all') {
+      logs = logs.filter(l => l.sessionId === selectedSessionIdFilter);
+    }
+    return logs.sort((a, b) => {
       const timeA = a.scannedAt?.toDate ? a.scannedAt.toDate().getTime() : (a.scannedAt?.seconds ? a.scannedAt.seconds * 1000 : new Date(a.scannedAt).getTime());
       const timeB = b.scannedAt?.toDate ? b.scannedAt.toDate().getTime() : (b.scannedAt?.seconds ? b.scannedAt.seconds * 1000 : new Date(b.scannedAt).getTime());
       return timeB - timeA;
     });
-  }, [attendanceLogs]);
+  }, [attendanceLogs, selectedSessionIdFilter]);
+
+  // Fetch evaluations
+  const evaluationsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'unitActivityEvaluations');
+  }, [firestore]);
+  const { data: evaluations } = useCollection<ActivityEvaluation>(evaluationsQuery);
+
+  const filteredEvaluations = useMemo(() => {
+    if (!evaluations) return [];
+    if (selectedActivityId === 'all') return evaluations;
+    return evaluations.filter(e => e.activityId === selectedActivityId);
+  }, [evaluations, selectedActivityId]);
+
+  const punctualityData = useMemo(() => {
+    const counts = { ON_TIME: 0, LATE: 0, OUTSIDE_WINDOW: 0 };
+    const logsToCount = selectedActivityId === 'all' 
+      ? sortedLogs 
+      : sortedLogs.filter(l => l.activityId === selectedActivityId);
+    logsToCount.forEach(l => {
+      if (l.status in counts) {
+        counts[l.status as keyof typeof counts]++;
+      }
+    });
+    return [
+      { name: 'On Time', value: counts.ON_TIME, color: '#10b981' },
+      { name: 'Late', value: counts.LATE, color: '#f59e0b' },
+      { name: 'Outside Window', value: counts.OUTSIDE_WINDOW, color: '#ef4444' },
+    ].filter(d => d.value > 0);
+  }, [sortedLogs, selectedActivityId]);
+
+  const genderData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const logsToCount = selectedActivityId === 'all' 
+      ? sortedLogs 
+      : sortedLogs.filter(l => l.activityId === selectedActivityId);
+    logsToCount.forEach(l => {
+      const sex = l.sex || 'Did not specify';
+      counts[sex] = (counts[sex] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({
+      name,
+      value,
+      color: name === 'Male' ? '#3b82f6' : name === 'Female' ? '#ec4899' : '#8b5cf6'
+    }));
+  }, [sortedLogs, selectedActivityId]);
+
+  const averageRatings = useMemo(() => {
+    if (filteredEvaluations.length === 0) return [];
+    let sumObj = 0, sumSpk = 0, sumVen = 0, sumOvr = 0;
+    filteredEvaluations.forEach(e => {
+      sumObj += e.ratingObjectives || 0;
+      sumSpk += e.ratingSpeaker || 0;
+      sumVen += e.ratingVenue || 0;
+      sumOvr += e.ratingOverall || 0;
+    });
+    const count = filteredEvaluations.length;
+    return [
+      { category: 'Objectives Met', rating: parseFloat((sumObj / count).toFixed(2)) },
+      { category: 'Speaker performance', rating: parseFloat((sumSpk / count).toFixed(2)) },
+      { category: 'Venue Quality', rating: parseFloat((sumVen / count).toFixed(2)) },
+      { category: 'Overall Satisfaction', rating: parseFloat((sumOvr / count).toFixed(2)) },
+    ];
+  }, [filteredEvaluations]);
 
   // --- 3. CAMERA QR SCANNING MODULE (CDN LOADED) ---
   const [isScannerLibLoaded, setIsScannerLibLoaded] = useState(false);
@@ -620,12 +807,27 @@ export default function UnitActivityPage() {
 
     const activityName = activeActivity.name;
     const unitName = activeActivity.unitId === 'all' ? 'University Wide' : (units?.find(u => u.id === activeActivity.unitId)?.name || 'Office/Unit');
-    const startStr = activeActivity.startDateTime?.toDate 
+    let startStr = activeActivity.startDateTime?.toDate 
       ? format(activeActivity.startDateTime.toDate(), 'MMMM dd, yyyy')
       : format(new Date(activeActivity.startDateTime), 'MMMM dd, yyyy');
-    const timeStr = activeActivity.startDateTime?.toDate && activeActivity.endDateTime?.toDate
+    let timeStr = activeActivity.startDateTime?.toDate && activeActivity.endDateTime?.toDate
       ? `${format(activeActivity.startDateTime.toDate(), 'hh:mm a')} - ${format(activeActivity.endDateTime.toDate(), 'hh:mm a')}`
       : 'N/A';
+    let printSessionLabel = '';
+
+    if (selectedSessionIdFilter !== 'all' && activeActivity.sessions) {
+      const activeSess = activeActivity.sessions.find(s => s.id === selectedSessionIdFilter);
+      if (activeSess) {
+        printSessionLabel = `(${activeSess.label})`;
+        const sessDate = new Date(`${activeSess.date}T00:00:00`);
+        startStr = format(sessDate, 'MMMM dd, yyyy');
+        try {
+          const tStart = format(new Date(`2000-01-01T${activeSess.startTime}:00`), 'hh:mm a');
+          const tEnd = format(new Date(`2000-01-01T${activeSess.endTime}:00`), 'hh:mm a');
+          timeStr = `${tStart} - ${tEnd}`;
+        } catch (e) {}
+      }
+    }
 
     const logs = sortedLogs || [];
     const isLogoutMode = activeActivity.requiresLogout === true;
@@ -757,7 +959,7 @@ export default function UnitActivityPage() {
             </div>
             <div class="metadata-row">
               <span>Title of Activity:</span>
-              <div class="metadata-line">${activityName}</div>
+              <div class="metadata-line">${activityName} ${printSessionLabel}</div>
             </div>
             <div style="display: flex; gap: 20px;">
               <div class="metadata-row" style="flex: 2;">
@@ -959,6 +1161,9 @@ export default function UnitActivityPage() {
           <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
             <Smartphone className="h-3.5 w-3.5" /> Device Lock Registry
           </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
+            <Sparkles className="h-3.5 w-3.5" /> Decision Support
+          </TabsTrigger>
         </TabsList>
 
         {/* ==================== SUB-TAB 1: SESSION MANAGER ==================== */}
@@ -985,28 +1190,6 @@ export default function UnitActivityPage() {
                     />
                   </div>
 
-                  {/* Start time */}
-                  <div className="space-y-1">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Start DateTime</label>
-                    <Input 
-                      type="datetime-local"
-                      value={newActivityStart}
-                      onChange={(e) => setNewActivityStart(e.target.value)}
-                      className="h-10 text-xs font-bold bg-white border-slate-200"
-                    />
-                  </div>
-
-                  {/* End time */}
-                  <div className="space-y-1">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">End DateTime</label>
-                    <Input 
-                      type="datetime-local"
-                      value={newActivityEnd}
-                      onChange={(e) => setNewActivityEnd(e.target.value)}
-                      className="h-10 text-xs font-bold bg-white border-slate-200"
-                    />
-                  </div>
-
                   {/* Threshold */}
                   <div className="space-y-1">
                     <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Late Threshold (minutes)</label>
@@ -1019,31 +1202,146 @@ export default function UnitActivityPage() {
                     />
                   </div>
 
-                  {/* Attendance Type (Login/Logout Mode) */}
-                  <div className="space-y-2 pt-1">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5 block">Attendance Type</label>
-                    <div className="flex gap-4 border border-slate-200 rounded-xl p-3 bg-white">
-                      <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="newRequiresLogout"
-                          checked={!newRequiresLogout}
-                          onChange={() => setNewRequiresLogout(false)}
-                          className="h-4 w-4 accent-[#1B6535]"
-                        />
-                        Login Only
-                      </label>
-                      <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="newRequiresLogout"
-                          checked={newRequiresLogout}
-                          onChange={() => setNewRequiresLogout(true)}
-                          className="h-4 w-4 accent-[#1B6535]"
-                        />
-                        Login &amp; Logout
-                      </label>
+                  {/* Documents Section */}
+                  <div className="space-y-2 pt-2 border-t border-slate-150">
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Document Links (Google Drive)</label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Description"
+                        value={docDesc}
+                        onChange={(e) => setDocDesc(e.target.value)}
+                        className="text-xs h-9 bg-white"
+                      />
+                      <Input
+                        placeholder="Google Drive Link"
+                        value={docLink}
+                        onChange={(e) => setDocLink(e.target.value)}
+                        className="text-xs h-9 bg-white"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!docDesc.trim() || !docLink.trim()) return;
+                          setNewActivityDocs([...newActivityDocs, { description: docDesc.trim(), googleDriveLink: docLink.trim() }]);
+                          setDocDesc('');
+                          setDocLink('');
+                        }}
+                        className="h-9 px-3 bg-[#1B6535] hover:bg-[#154e29]"
+                      >
+                        +
+                      </Button>
                     </div>
+                    {newActivityDocs.length > 0 && (
+                      <div className="p-2 border rounded-xl bg-slate-50 space-y-1">
+                        {newActivityDocs.map((doc, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
+                            <span className="truncate max-w-[180px]">{doc.description}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => setNewActivityDocs(newActivityDocs.filter((_, i) => i !== idx))}
+                              className="h-5 w-5 p-0 text-rose-600 hover:text-rose-800"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sessions Config Section */}
+                  <div className="space-y-3 pt-2 border-t border-slate-150">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Sessions ({newActivitySessions.length})</label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddSession}
+                        className="h-7 text-[9px] font-black uppercase px-2.5 bg-white border-slate-200"
+                      >
+                        + Add Session
+                      </Button>
+                    </div>
+
+                    {newActivitySessions.length === 0 ? (
+                      <p className="text-[9.5px] text-slate-400 italic">No sessions added yet. Please add at least one session.</p>
+                    ) : (
+                      <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+                        {newActivitySessions.map((session, idx) => (
+                          <div key={session.id} className="p-3 border rounded-xl bg-slate-50 space-y-2 relative">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSession(session.id)}
+                              className="absolute top-2 right-2 text-rose-500 hover:text-rose-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-bold text-slate-500 uppercase">Label</label>
+                                <Input
+                                  value={session.label}
+                                  onChange={(e) => handleUpdateSession(session.id, 'label', e.target.value)}
+                                  className="h-8 text-xs font-bold bg-white"
+                                  placeholder="Day 1 AM"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-bold text-slate-500 uppercase">Date</label>
+                                <Input
+                                  type="date"
+                                  value={session.date}
+                                  onChange={(e) => handleUpdateSession(session.id, 'date', e.target.value)}
+                                  className="h-8 text-xs font-bold bg-white"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-bold text-slate-500 uppercase">Start Time</label>
+                                <Input
+                                  type="time"
+                                  value={session.startTime}
+                                  onChange={(e) => handleUpdateSession(session.id, 'startTime', e.target.value)}
+                                  className="h-8 text-xs font-bold bg-white"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-bold text-slate-500 uppercase">End Time</label>
+                                <Input
+                                  type="time"
+                                  value={session.endTime}
+                                  onChange={(e) => handleUpdateSession(session.id, 'endTime', e.target.value)}
+                                  className="h-8 text-xs font-bold bg-white"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-bold text-slate-500 uppercase">Type</label>
+                                <select
+                                  value={session.sessionType}
+                                  onChange={(e) => handleUpdateSession(session.id, 'sessionType', e.target.value)}
+                                  className="h-8 px-2 bg-white text-xs font-bold border rounded-md w-full"
+                                >
+                                  <option value="AM">AM</option>
+                                  <option value="PM">PM</option>
+                                  <option value="WHOLE_DAY">Whole Day</option>
+                                </select>
+                              </div>
+                            </div>
+                            <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-slate-600 cursor-pointer pt-1">
+                              <input
+                                type="checkbox"
+                                checked={session.requiresLogout}
+                                onChange={(e) => handleUpdateSession(session.id, 'requiresLogout', e.target.checked)}
+                                className="h-3.5 w-3.5 accent-[#1B6535]"
+                              />
+                              Requires Logout
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
 
@@ -1099,6 +1397,21 @@ export default function UnitActivityPage() {
                           <TableRow key={act.id} className="hover:bg-slate-50/50">
                             <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 max-w-[180px]">
                               <span className="block truncate">{act.name}</span>
+                              {act.documents && act.documents.length > 0 && (
+                                <div className="mt-1.5 flex flex-col gap-1">
+                                  {act.documents.map((d, i) => (
+                                    <a
+                                      key={i}
+                                      href={d.googleDriveLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center text-[9px] font-black uppercase text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                    >
+                                      📄 {d.description}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="text-xs font-semibold text-slate-500">
                               {act.startDateTime?.toDate 
@@ -1370,7 +1683,22 @@ export default function UnitActivityPage() {
                   Showing logs for: <span className="font-extrabold text-[#1B6535]">{activeActivity ? activeActivity.name : "All sessions"}</span>
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                {activeActivity && activeActivity.sessions && activeActivity.sessions.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase text-slate-500">Filter Session:</span>
+                    <select
+                      value={selectedSessionIdFilter}
+                      onChange={(e) => setSelectedSessionIdFilter(e.target.value)}
+                      className="h-8 px-2 bg-white font-extrabold text-[11px] text-slate-800 border shadow-sm rounded-xl outline-none"
+                    >
+                      <option value="all">📁 All Sessions</option>
+                      {activeActivity.sessions.map(s => (
+                        <option key={s.id} value={s.id}>📍 {s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <Button 
                   size="sm" 
                   onClick={handlePrintAttendanceSheet}
@@ -1540,6 +1868,169 @@ export default function UnitActivityPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ==================== SUB-TAB 5: DECISION SUPPORT ANALYTICS ==================== */}
+        <TabsContent value="analytics" className="space-y-6 animate-in fade-in duration-500">
+          {selectedActivityId === 'all' ? (
+            <Card className="shadow-md border-slate-200/80 p-12 text-center space-y-4">
+              <Sparkles className="h-12 w-12 text-amber-500 animate-pulse mx-auto" />
+              <h3 className="text-sm font-black uppercase text-slate-800">Analytics Lock</h3>
+              <p className="text-[11px] font-bold text-slate-500 uppercase leading-normal max-w-md mx-auto">
+                Please select a specific activity from the dropdown at the top of the page to unlock session analytics, demographics profiling, and participant feedback evaluations.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Average Ratings Dashboard Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { title: 'Objectives Met', val: averageRatings[0]?.rating || 0 },
+                  { title: 'Speaker / Facilitator', val: averageRatings[1]?.rating || 0 },
+                  { title: 'Venue & Organization', val: averageRatings[2]?.rating || 0 },
+                  { title: 'Overall Satisfaction', val: averageRatings[3]?.rating || 0 },
+                ].map((item, idx) => (
+                  <Card key={idx} className="shadow-sm border-slate-200 bg-white">
+                    <CardHeader className="p-4 pb-2">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.title}</p>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-black text-slate-800 tracking-tight">{item.val > 0 ? item.val.toFixed(1) : 'N/A'}</span>
+                        {item.val > 0 && <span className="text-xs text-amber-500">★</span>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Chart 1: Punctuality */}
+                <Card className="shadow-sm border-slate-200 bg-white">
+                  <CardHeader className="bg-slate-50/50 border-b py-3">
+                    <CardTitle className="text-xs font-black uppercase text-slate-700">Attendee Punctuality Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 h-[250px] flex items-center justify-center">
+                    {punctualityData.length === 0 ? (
+                      <p className="text-xs font-bold text-slate-400 uppercase italic">No attendance data logged</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={punctualityData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {punctualityData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Chart 2: Demographics */}
+                <Card className="shadow-sm border-slate-200 bg-white">
+                  <CardHeader className="bg-slate-50/50 border-b py-3">
+                    <CardTitle className="text-xs font-black uppercase text-slate-700">Gender/Sex Demographics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 h-[250px] flex items-center justify-center">
+                    {genderData.length === 0 ? (
+                      <p className="text-xs font-bold text-slate-400 uppercase italic">No attendee records found</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={genderData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {genderData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Chart 3: Evaluation Ratings */}
+                <Card className="shadow-sm border-slate-200 bg-white md:col-span-2">
+                  <CardHeader className="bg-slate-50/50 border-b py-3">
+                    <CardTitle className="text-xs font-black uppercase text-slate-700">Evaluation Categories Ratings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 h-[250px]">
+                    {averageRatings.length === 0 ? (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-xs font-bold text-slate-400 uppercase italic">No participant reviews submitted</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={averageRatings} layout="vertical">
+                          <XAxis type="number" domain={[0, 5]} />
+                          <YAxis dataKey="category" type="category" width={150} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                          <Tooltip />
+                          <Bar dataKey="rating" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                            {averageRatings.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 3 ? '#10b981' : '#3b82f6'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Feedback Comments list */}
+              <Card className="shadow-sm border-slate-200 bg-white">
+                <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-row justify-between items-center">
+                  <CardTitle className="text-xs font-black uppercase text-slate-700">Participant Feedback Remarks</CardTitle>
+                  <Badge className="bg-amber-100 text-amber-800 border-none text-[9px] font-black">{filteredEvaluations.length} Reviews</Badge>
+                </CardHeader>
+                <CardContent className="p-0 max-h-[300px] overflow-y-auto">
+                  {filteredEvaluations.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 font-bold uppercase italic text-xs">
+                      No remarks recorded.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {filteredEvaluations.map((evalItem) => (
+                        <div key={evalItem.id} className="p-4 space-y-1 hover:bg-slate-50/30 transition-colors">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-extrabold text-slate-700 uppercase">{evalItem.participantName || 'Anonymous'}</span>
+                            <span className="text-[9px] font-bold text-slate-400">
+                              {evalItem.submittedAt?.toDate
+                                ? format(evalItem.submittedAt.toDate(), 'MM/dd/yyyy hh:mm a')
+                                : 'N/A'}
+                            </span>
+                          </div>
+                          {evalItem.comments ? (
+                            <p className="text-xs text-slate-600 italic font-medium">"{evalItem.comments}"</p>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic">No text comments provided.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* ================================================================== */}
@@ -1547,9 +2038,9 @@ export default function UnitActivityPage() {
       {/* ================================================================== */}
       {editingActivity && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="text-sm font-black uppercase text-slate-800 tracking-tight flex items-center gap-2">
                   <Pencil className="h-4 w-4 text-blue-500" />
@@ -1566,8 +2057,8 @@ export default function UnitActivityPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleEditActivity}>
-              <div className="px-6 py-5 space-y-4">
+            <form onSubmit={handleEditActivity} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                 {/* Activity Name */}
                 <div className="space-y-1">
                   <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Activity Name</label>
@@ -1575,28 +2066,6 @@ export default function UnitActivityPage() {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="e.g. QMS Audit Briefing"
-                    className="h-10 text-xs font-bold bg-white border-slate-200"
-                  />
-                </div>
-
-                {/* Start DateTime */}
-                <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Start DateTime</label>
-                  <Input
-                    type="datetime-local"
-                    value={editStart}
-                    onChange={(e) => setEditStart(e.target.value)}
-                    className="h-10 text-xs font-bold bg-white border-slate-200"
-                  />
-                </div>
-
-                {/* End DateTime */}
-                <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">End DateTime</label>
-                  <Input
-                    type="datetime-local"
-                    value={editEnd}
-                    onChange={(e) => setEditEnd(e.target.value)}
                     className="h-10 text-xs font-bold bg-white border-slate-200"
                   />
                 </div>
@@ -1613,31 +2082,146 @@ export default function UnitActivityPage() {
                   />
                 </div>
 
-                {/* Attendance Type (Login/Logout Mode) */}
-                <div className="space-y-2 pt-1">
-                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5 block">Attendance Type</label>
-                  <div className="flex gap-4 border border-slate-200 rounded-xl p-3 bg-white">
-                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editRequiresLogout"
-                        checked={!editRequiresLogout}
-                        onChange={() => setEditRequiresLogout(false)}
-                        className="h-4 w-4 accent-blue-600"
-                      />
-                      Login Only
-                    </label>
-                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editRequiresLogout"
-                        checked={editRequiresLogout}
-                        onChange={() => setEditRequiresLogout(true)}
-                        className="h-4 w-4 accent-blue-600"
-                      />
-                      Login &amp; Logout
-                    </label>
+                {/* Edit Documents Section */}
+                <div className="space-y-2 pt-2 border-t border-slate-150">
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Document Links (Google Drive)</label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Description"
+                      value={editDocDesc}
+                      onChange={(e) => setEditDocDesc(e.target.value)}
+                      className="text-xs h-9 bg-white"
+                    />
+                    <Input
+                      placeholder="Google Drive Link"
+                      value={editDocLink}
+                      onChange={(e) => setEditDocLink(e.target.value)}
+                      className="text-xs h-9 bg-white"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!editDocDesc.trim() || !editDocLink.trim()) return;
+                        setEditActivityDocs([...editActivityDocs, { description: editDocDesc.trim(), googleDriveLink: editDocLink.trim() }]);
+                        setEditDocDesc('');
+                        setEditDocLink('');
+                      }}
+                      className="h-9 px-3 bg-[#1B6535] hover:bg-[#154e29]"
+                    >
+                      +
+                    </Button>
                   </div>
+                  {editActivityDocs.length > 0 && (
+                    <div className="p-2 border rounded-xl bg-slate-50 space-y-1">
+                      {editActivityDocs.map((doc, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
+                          <span className="truncate max-w-[300px]">{doc.description}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setEditActivityDocs(editActivityDocs.filter((_, i) => i !== idx))}
+                            className="h-5 w-5 p-0 text-rose-600 hover:text-rose-800"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Edit Sessions Section */}
+                <div className="space-y-3 pt-2 border-t border-slate-150">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Sessions ({editActivitySessions.length})</label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddEditSession}
+                      className="h-7 text-[9px] font-black uppercase px-2.5 bg-white border-slate-200"
+                    >
+                      + Add Session
+                    </Button>
+                  </div>
+
+                  {editActivitySessions.length === 0 ? (
+                    <p className="text-[9.5px] text-slate-400 italic">No sessions added yet. Please add at least one session.</p>
+                  ) : (
+                    <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+                      {editActivitySessions.map((session, idx) => (
+                        <div key={session.id} className="p-3 border rounded-xl bg-slate-50 space-y-2 relative">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditSession(session.id)}
+                            className="absolute top-2 right-2 text-rose-500 hover:text-rose-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-500 uppercase">Label</label>
+                              <Input
+                                value={session.label}
+                                onChange={(e) => handleUpdateEditSession(session.id, 'label', e.target.value)}
+                                className="h-8 text-xs font-bold bg-white"
+                                placeholder="Day 1 AM"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-500 uppercase">Date</label>
+                              <Input
+                                type="date"
+                                value={session.date}
+                                onChange={(e) => handleUpdateEditSession(session.id, 'date', e.target.value)}
+                                className="h-8 text-xs font-bold bg-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-500 uppercase">Start Time</label>
+                              <Input
+                                type="time"
+                                value={session.startTime}
+                                onChange={(e) => handleUpdateEditSession(session.id, 'startTime', e.target.value)}
+                                className="h-8 text-xs font-bold bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-500 uppercase">End Time</label>
+                              <Input
+                                type="time"
+                                value={session.endTime}
+                                onChange={(e) => handleUpdateEditSession(session.id, 'endTime', e.target.value)}
+                                className="h-8 text-xs font-bold bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-500 uppercase">Type</label>
+                              <select
+                                value={session.sessionType}
+                                onChange={(e) => handleUpdateEditSession(session.id, 'sessionType', e.target.value)}
+                                className="h-8 px-2 bg-white text-xs font-bold border rounded-md w-full"
+                              >
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                                <option value="WHOLE_DAY">Whole Day</option>
+                              </select>
+                            </div>
+                          </div>
+                          <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-slate-600 cursor-pointer pt-1">
+                            <input
+                              type="checkbox"
+                              checked={session.requiresLogout}
+                              onChange={(e) => handleUpdateEditSession(session.id, 'requiresLogout', e.target.checked)}
+                              className="h-3.5 w-3.5 accent-[#1B6535]"
+                            />
+                            Requires Logout
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

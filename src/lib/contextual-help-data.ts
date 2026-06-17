@@ -866,6 +866,47 @@ export const helpContent: Record<string, PageHelp> = {
       { label: 'Approve Submission', labelShort: 'Accept', action: 'Saves status as Approved, updating unit maturity metric.' },
       { label: 'Reject Submission', labelShort: 'Return', action: 'Sets status to Rejected and requests unit corrections.' }
     ]
+  },
+
+  // --- UNIT ACTIVITY ATTENDANCE & DOCUMENTATION ---
+  '/unit-activity': {
+    title: 'Unit Activity Attendance & Documentation',
+    description: 'Central registry for units to plan activities, upload Google Drive links, configure multi-session attendance schedules, and review analytics.',
+    steps: [
+      { title: 'Register Activity', desc: 'Create a new activity with description, dates, target unit, and dynamic sessions.' },
+      { title: 'Attach CSW Documents', desc: 'Click the "+" button to link Google Drive files (Proposal, Terminal Report) with text descriptions.' },
+      { title: 'Configure Sessions', desc: 'Define individual sessions (Day 1 AM/PM, Day 2, etc.) and check-in options.' },
+      { title: 'Decision Support', desc: 'Access the Decision Support tab to view Recharts visualizations of attendee punctuality, sex demographics, and evaluations.' }
+    ],
+    buttons: [
+      { label: 'Create Activity', labelShort: 'Create', action: 'Opens the wizard to create a new activity with multi-session schedules.' },
+      { label: 'Attach Document', labelShort: '+ Doc', action: 'Appends a new Google Drive documentation link to the activity.' }
+    ]
+  },
+  '/unit-activity-scanner': {
+    title: 'Unit Activity Attendance Scanner',
+    description: 'Real-time terminal to scan participant QR codes, choose active session windows, and display feedback QR codes.',
+    steps: [
+      { title: 'Select Session', desc: 'Pick the current active session (e.g. Day 1 AM) from the dropdown selector.' },
+      { title: 'Scan QR Codes', desc: 'Scan participant QR codes to stamp their attendance (login/logout times).' },
+      { title: 'Evaluation QR Overlay', desc: 'Open the Full Screen display or download the generated QR code to collect participant feedback.' }
+    ],
+    buttons: [
+      { label: 'Change Session', labelShort: 'Session', action: 'Changes the active registration session window.' },
+      { label: 'Display Evaluation QR', labelShort: 'QR Code', action: 'Opens a fullscreen modal with the Evaluation Portal QR code.' }
+    ]
+  },
+  '/unit-activity/evaluate': {
+    title: 'Activity Evaluation Portal',
+    description: 'Participant feedback terminal to evaluate activity objectives, speakers, organization/venue, and leave comments.',
+    steps: [
+      { title: 'Identify Yourself', desc: 'Optionally provide your name and contact details (submissions can be anonymous).' },
+      { title: 'Provide Ratings', desc: 'Rate Objectives Met, Speaker Performance, and Venue/Organization quality from 1 to 5 stars.' },
+      { title: 'Leave Feedback', desc: 'Type constructive remarks in the comments text area and submit the review.' }
+    ],
+    buttons: [
+      { label: 'Submit Feedback', labelShort: 'Submit', action: 'Registers your responses in the QMS activity evaluation database.' }
+    ]
   }
 };
 
