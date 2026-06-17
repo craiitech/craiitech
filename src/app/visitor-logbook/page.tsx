@@ -910,6 +910,21 @@ export default function VisitorLogbookPage() {
 
   return (
     <div className="relative min-h-screen w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-y-auto xl:overflow-hidden p-4 md:p-6 lg:p-8">
+      {/* Subtle animated background image */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div 
+          className="absolute inset-0 w-full h-full bg-cover bg-center"
+          style={{
+            backgroundImage: "url('/rsupage.png')",
+            opacity: 0.08,
+            animation: "kenBurnsBackground 40s ease-in-out infinite",
+            mixBlendMode: "overlay"
+          }}
+        />
+        {/* Soft layout overlay to keep UI text/cards perfectly legible */}
+        <div className="absolute inset-0 bg-[#0d2a18]/60" />
+      </div>
+
       {/* Decorative shimmers */}
       <div className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-[#1B6535]/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 -right-1/4 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none" />
@@ -979,12 +994,12 @@ export default function VisitorLogbookPage() {
                   priority
                 />
               </div>
-              <div className="relative h-20 w-20 md:h-24 md:w-24 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
+              <div className="relative h-24 w-24 md:h-28 md:w-28 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
                 <Image 
                   src="/ISOlogo.jpg" 
                   alt="ISO Logo" 
                   fill 
-                  className="object-contain rounded-xl border border-white/10" 
+                  className="object-contain" 
                   priority
                 />
               </div>
@@ -1871,6 +1886,17 @@ export default function VisitorLogbookPage() {
           animation: border-blink 1.2s infinite;
           border-width: 2px !important;
           border-style: solid !important;
+        }
+        @keyframes kenBurnsBackground {
+          0% {
+            transform: scale(1) translate(0, 0);
+          }
+          50% {
+            transform: scale(1.12) translate(-1%, -1%);
+          }
+          100% {
+            transform: scale(1) translate(0, 0);
+          }
         }
       `}</style>
     </div>
