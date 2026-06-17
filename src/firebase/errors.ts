@@ -5,6 +5,7 @@ export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
+  originalError?: any;
 };
 
 interface FirebaseAuthToken {
@@ -99,25 +100,36 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
 /**
  * Builds the final, formatted error message for the LLM.
  * @param requestObject The simulated request object.
+ * @param originalError The original Firestore error.
  * @returns A string containing the error message and the JSON payload.
  */
-function buildErrorMessage(requestObject: SecurityRuleRequest): string {
+function buildErrorMessage(requestObject: SecurityRuleRequest, originalError?: any): string {
+  if (originalError && originalError.code && originalError.code !== 'permission-denied') {
+    return `Firestore Operation Failed: The operation encountered a Firebase error.
+Error Code: ${originalError.code}
+Error Message: ${originalError.message}
+
+Simulated Context Details:
+${JSON.stringify(requestObject, null, 2)}`;
+  }
   return `Missing or insufficient permissions: The following request was denied by Firestore Security Rules:
 ${JSON.stringify(requestObject, null, 2)}`;
 }
 
 /**
- * A custom error class designed to be consumed by an LLM for debugging.
+ * A custom error class designed to be consumed by an LLM or developer for debugging.
  * It structures the error information to mimic the request object
  * available in Firestore Security Rules.
  */
 export class FirestorePermissionError extends Error {
   public readonly request: SecurityRuleRequest;
+  public readonly originalError?: any;
 
   constructor(context: SecurityRuleContext) {
     const requestObject = buildRequestObject(context);
-    super(buildErrorMessage(requestObject));
+    super(buildErrorMessage(requestObject, context.originalError));
     this.name = 'FirebaseError';
     this.request = requestObject;
+    this.originalError = context.originalError;
   }
 }

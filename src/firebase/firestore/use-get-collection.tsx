@@ -69,6 +69,7 @@ export function useGetCollection<T = any>(
         const contextualError = new FirestorePermissionError({
           operation: 'list',
           path,
+          originalError: err,
         });
 
         setError(contextualError);

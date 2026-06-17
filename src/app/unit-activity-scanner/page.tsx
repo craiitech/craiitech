@@ -259,14 +259,14 @@ function UnitActivityScannerTerminal() {
 
   // Fetch real-time logs for this activity (ordered by time and limited to top 50 to prevent huge reads)
   const logsQuery = useMemoFirebase(() => {
-    if (!firestore || !paramActivityId || isUserLoading) return null;
+    if (!firestore || !paramActivityId || isUserLoading || !userProfile) return null;
     return query(
       collection(firestore, 'unitActivityAttendanceLogs'),
       where('activityId', '==', paramActivityId),
       orderBy('scannedAt', 'desc'),
       limit(50)
     );
-  }, [firestore, paramActivityId, isUserLoading]);
+  }, [firestore, paramActivityId, isUserLoading, userProfile]);
   const { data: attendanceLogs } = useCollection<ActivityAttendanceLog>(logsQuery);
 
   const sortedLogs = useMemo(() => {
