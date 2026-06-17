@@ -499,24 +499,9 @@ export default function AuditExecutionPage() {
   };
 
   /**
-   * SYNCHRONIZED SUMMARY UPDATE LOGIC
-   * Performs a strict search-and-replace using the Clause ID as a key.
+   * SYNCHRONIZED SUMMARY UPDATE LOGIC FOR MULTIPLE FINDINGS PER CLAUSE
    */
-  const handleFindingSync = (finding: any) => {
-    const clauseId = finding.isoClause;
-    const type = finding.type;
-    
-    let actualText = '';
-    if (type === 'Compliance') {
-      actualText = finding.description || finding.evidence || '';
-    } else if (type === 'Observation for Improvement') {
-      actualText = finding.description || finding.evidence || '';
-    } else if (type === 'Non-Conformance') {
-      actualText = finding.ncStatement || finding.description || finding.evidence || '';
-    } else {
-      actualText = finding.description || finding.evidence || '';
-    }
-
+  const handleFindingsSyncForClause = (clauseId: string, clauseFindings: any[]) => {
     const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
       'summaryCommendable', 
       'summaryCompliance', 
@@ -524,32 +509,68 @@ export default function AuditExecutionPage() {
       'summaryNC'
     ];
 
-    let targetFieldName: keyof z.infer<typeof summarySchema> | null = null;
-    if (type === 'Compliance') targetFieldName = 'summaryCompliance';
-    else if (type === 'Observation for Improvement') targetFieldName = 'summaryOFI';
-    else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
+    const findingsByType = {
+      'Compliance': clauseFindings.filter(f => f.type === 'Compliance'),
+      'Observation for Improvement': clauseFindings.filter(f => f.type === 'Observation for Improvement'),
+      'Non-Conformance': clauseFindings.filter(f => f.type === 'Non-Conformance'),
+    };
 
     summaryFields.forEach(fName => {
         if (['officerInCharge', 'actualDate', 'actualStartTime', 'actualEndTime'].includes(fName)) return;
         
+        let targetType: string | null = null;
+        if (fName === 'summaryCompliance') targetType = 'Compliance';
+        else if (fName === 'summaryOFI') targetType = 'Observation for Improvement';
+        else if (fName === 'summaryNC') targetType = 'Non-Conformance';
+
+        if (!targetType) return;
+
         const currentVal = form.getValues(fName) || '';
         const blocks = parseSummaryBlocks(currentVal);
         
-        // Filter out the existing block for this clause (regardless of previous type)
+        // Filter out the existing block for this clause (to be rebuilt)
         const updatedBlocks = blocks.filter(b => b.id.toLowerCase() !== clauseId.toLowerCase());
         
-        // If this is the target summary field, append the new block for this clause
-        if (fName === targetFieldName && actualText.trim()) {
-          updatedBlocks.push({
-            id: clauseId,
-            header: `[Clause ${clauseId}]:`,
-            content: actualText.trim()
-          });
+        // Get findings of this target type for this clause
+        const typeFindings = findingsByType[targetType as keyof typeof findingsByType] || [];
+        
+        if (typeFindings.length > 0) {
+          // Combine finding texts
+          const combinedText = typeFindings
+            .map(f => {
+              if (targetType === 'Non-Conformance') {
+                return f.ncStatement || f.description || f.evidence || '';
+              }
+              return f.description || f.evidence || '';
+            })
+            .map(t => t.trim())
+            .filter(Boolean)
+            .join('\n');
+
+          if (combinedText) {
+            updatedBlocks.push({
+              id: clauseId,
+              header: `[Clause ${clauseId}]:`,
+              content: combinedText
+            });
+          }
         }
         
         const finalContent = serializeSummaryBlocks(updatedBlocks);
         form.setValue(fName, finalContent, { shouldDirty: true });
     });
+  };
+
+  const handleFindingSync = (updatedFinding: any) => {
+    const clauseId = updatedFinding.isoClause;
+    const otherFindings = findings?.filter(f => f.isoClause === clauseId && f.id !== updatedFinding.id) || [];
+    const clauseFindings = [...otherFindings, updatedFinding];
+    handleFindingsSyncForClause(clauseId, clauseFindings);
+  };
+
+  const handleFindingDelete = (deletedFindingId: string, clauseId: string) => {
+    const clauseFindings = findings?.filter(f => f.isoClause === clauseId && f.id !== deletedFindingId) || [];
+    handleFindingsSyncForClause(clauseId, clauseFindings);
   };
 
   const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
@@ -649,7 +670,19 @@ export default function AuditExecutionPage() {
                     </Form></CardContent>
                 </Card>
 
-                <AuditChecklist scheduleId={schedule.id} clausesToAudit={clausesInScope} existingFindings={findings || []} onFindingSaved={handleFindingSync} unitCars={unitCars || []} unitSubmissions={unitSubmissions || []} isIqaUnit={isIqaUnit} previousYearOfis={previousYearOfis} scheduleTargetId={schedule.targetId} scheduleCampusId={schedule.campusId} />
+                <AuditChecklist 
+                  scheduleId={schedule.id} 
+                  clausesToAudit={clausesInScope} 
+                  existingFindings={findings || []} 
+                  onFindingSaved={handleFindingSync} 
+                  onFindingDeleted={handleFindingDelete}
+                  unitCars={unitCars || []} 
+                  unitSubmissions={unitSubmissions || []} 
+                  isIqaUnit={isIqaUnit} 
+                  previousYearOfis={previousYearOfis} 
+                  scheduleTargetId={schedule.targetId} 
+                  scheduleCampusId={schedule.campusId} 
+                />
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-6"><CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary" />2. Final Audit Report Summary</CardTitle><CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription></CardHeader>

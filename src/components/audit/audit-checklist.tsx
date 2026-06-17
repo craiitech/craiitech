@@ -13,10 +13,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk } from '@/lib/types';
-import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -32,6 +32,7 @@ interface AuditChecklistProps {
   clausesToAudit: ISOClause[];
   existingFindings: AuditFinding[];
   onFindingSaved?: (finding: any) => void;
+  onFindingDeleted?: (findingId: string, clauseId: string) => void;
   unitCars: CorrectiveActionRequest[];
   unitSubmissions: Submission[];
   isIqaUnit?: boolean;
@@ -59,7 +60,9 @@ function ClauseForm({
   scheduleId, 
   clause, 
   finding, 
+  findingId,
   onSave,
+  onDelete,
   clauseCars,
   clauseSubmissions,
   isIqaUnit = false,
@@ -70,7 +73,9 @@ function ClauseForm({
   scheduleId: string; 
   clause: ISOClause; 
   finding: AuditFinding | undefined, 
+  findingId: string,
   onSave: (data: any) => void,
+  onDelete?: (findingId: string) => void,
   clauseCars: CorrectiveActionRequest[],
   clauseSubmissions: Submission[],
   isIqaUnit?: boolean;
@@ -125,7 +130,6 @@ function ClauseForm({
     if (!firestore || !user || !values.type) return;
     
     setIsSubmitting(true);
-    const findingId = `${scheduleId}-${clause.id}`;
     const findingRef = doc(firestore, 'auditFindings', findingId);
 
     const findingData: any = {
@@ -156,6 +160,32 @@ function ClauseForm({
         .finally(() => {
             setIsSubmitting(false);
         });
+  };
+
+  const handleDelete = async () => {
+    if (!firestore || !finding?.id) return;
+    if (!window.confirm(`Are you sure you want to remove this finding result for Clause ${clause.id}?`)) return;
+    
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    setIsSubmitting(true);
+    const findingRef = doc(firestore, 'auditFindings', finding.id);
+    try {
+      await deleteDoc(findingRef);
+      onDelete?.(finding.id);
+      form.reset({
+        evidence: '',
+        description: '',
+        ncStatement: '',
+        type: '',
+      });
+      setLastSaved(null);
+      toast({ title: "Result Removed", description: `Audit result for Clause ${clause.id} has been deleted.` });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to delete audit result.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /**
@@ -611,6 +641,18 @@ function ClauseForm({
                     ) : lastSaved ? (
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored & Synced ({format(lastSaved, 'HH:mm:ss')})</div>
                     ) : null}
+                    {(finding?.id || findingId !== `${scheduleId}-${clause.id}`) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleDelete}
+                        disabled={isSubmitting}
+                        className="h-10 px-4 text-[10px] font-black uppercase tracking-widest text-destructive hover:bg-destructive/5"
+                      >
+                        Delete Result
+                      </Button>
+                    )}
                 </div>
                 <Button type="submit" disabled={isSubmitting || !watchType} className="h-10 px-8 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20">
                     {lastSaved ? 'Re-Commit Finding' : `Commit Clause ${clause.id}`}
@@ -627,6 +669,7 @@ export function AuditChecklist({
   clausesToAudit, 
   existingFindings, 
   onFindingSaved, 
+  onFindingDeleted,
   unitCars, 
   unitSubmissions = [], 
   isIqaUnit = false,
@@ -634,8 +677,41 @@ export function AuditChecklist({
   scheduleTargetId,
   scheduleCampusId
 }: AuditChecklistProps) {
-  const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
+  
   const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
+
+  const handleAddAdditionalResult = async (clauseId: string) => {
+    if (!firestore || !user) {
+      toast({ title: "Error", description: "You must be authenticated to add results.", variant: "destructive" });
+      return;
+    }
+    const newFindingId = `${scheduleId}-${clauseId}-${Date.now()}`;
+    const newFindingRef = doc(firestore, 'auditFindings', newFindingId);
+    
+    const newFindingData = {
+      id: newFindingId,
+      auditScheduleId: scheduleId,
+      isoClause: clauseId,
+      type: '', // Empty draft finding
+      description: '',
+      evidence: '',
+      ncStatement: '',
+      authorId: user.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    try {
+      await setDoc(newFindingRef, newFindingData);
+      toast({ title: "Additional Result Added", description: `A new result entry has been prepared for Clause ${clauseId}.` });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to add additional audit result.", variant: "destructive" });
+    }
+  };
 
   return (
     <Card className="shadow-2xl border-primary/10 overflow-hidden">
@@ -651,11 +727,24 @@ export function AuditChecklist({
       <CardContent className="p-0">
         <Accordion type="single" collapsible className="w-full">
           {sortedClauses.map((clause) => {
-            const hasFinding = findingsMap.has(clause.id);
-            const findingType = findingsMap.get(clause.id)?.type;
+            const clauseFindings = existingFindings.filter(f => f.isoClause === clause.id);
+            const activeFindings = clauseFindings.filter(f => f.type);
             const relevantCars = clause.id === '10.1' ? unitCars : unitCars.filter(c => String(c.concerningClause || '').toLowerCase().includes(String(clause.id).toLowerCase()));
             const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
             const relevantSubmissions = unitSubmissions.filter(s => requiredDocs.includes(s.reportType));
+
+            // Default to rendering one blank form if there are no existing findings in the DB
+            const findingsToRender = clauseFindings.length > 0 ? clauseFindings : [{
+              id: `${scheduleId}-${clause.id}`,
+              auditScheduleId: scheduleId,
+              isoClause: clause.id,
+              type: '' as any,
+              description: '',
+              evidence: '',
+              ncStatement: '',
+              authorId: '',
+              createdAt: null
+            }];
 
             return (
               <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
@@ -668,12 +757,65 @@ export function AuditChecklist({
                             {relevantCars.length > 0 && <div className="flex items-center gap-1.5 mt-1"><History className="h-3 w-3 text-amber-600" /><span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">{relevantCars.length} history detected</span></div>}
                         </div>
                     </div>
-                    {hasFinding && <Badge className={cn("h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110", findingType === 'Compliance' ? 'bg-emerald-600 text-white' : findingType === 'Non-Conformance' ? 'bg-destructive text-white' : findingType === 'Not Applicable' ? 'bg-slate-500 text-white' : 'bg-amber-50 text-amber-950')}>{findingType?.charAt(0)} RECORDED</Badge>}
+                    {activeFindings.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 ml-4">
+                        {Array.from(new Set(activeFindings.map(f => f.type))).map(type => (
+                          <Badge 
+                            key={type} 
+                            className={cn(
+                              "h-5 text-[8px] font-black uppercase shadow-none border-none transition-all scale-105", 
+                              type === 'Compliance' ? 'bg-emerald-600 text-white' : 
+                              type === 'Non-Conformance' ? 'bg-destructive text-white' : 
+                              type === 'Not Applicable' ? 'bg-slate-500 text-white' : 
+                              'bg-amber-500 text-white'
+                            )}
+                          >
+                            {type === 'Compliance' ? 'C' : type === 'Non-Conformance' ? 'NC' : type === 'Not Applicable' ? 'N/A' : 'OFI'} RECORDED
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-8">
-                  <div className="rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50">
-                    <ClauseForm scheduleId={scheduleId} clause={clause} finding={findingsMap.get(clause.id)} onSave={(data) => onFindingSaved?.(data)} clauseCars={relevantCars} clauseSubmissions={relevantSubmissions} isIqaUnit={isIqaUnit} previousYearOfis={previousYearOfis} scheduleTargetId={scheduleTargetId} scheduleCampusId={scheduleCampusId} />
+                  <div className="space-y-6">
+                    {findingsToRender.map((f, index) => (
+                      <div key={f.id} className={cn("rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50 relative", index > 0 && "mt-6 border-t-2 border-dashed")}>
+                        {findingsToRender.length > 1 && (
+                          <Badge className="absolute -top-3 left-4 bg-primary text-white text-[10px] font-black uppercase px-2.5 py-0.5 shadow-sm">
+                            Audit Result #{index + 1}
+                          </Badge>
+                        )}
+                        <ClauseForm 
+                          scheduleId={scheduleId} 
+                          clause={clause} 
+                          finding={f.type === '' && !f.authorId ? undefined : f} 
+                          findingId={f.id}
+                          onSave={(data) => onFindingSaved?.(data)} 
+                          onDelete={(id) => onFindingDeleted?.(id, clause.id)}
+                          clauseCars={relevantCars} 
+                          clauseSubmissions={relevantSubmissions} 
+                          isIqaUnit={isIqaUnit} 
+                          previousYearOfis={previousYearOfis} 
+                          scheduleTargetId={scheduleTargetId} 
+                          scheduleCampusId={scheduleCampusId} 
+                        />
+                      </div>
+                    ))}
+                    
+                    {/* Add Additional Result Trigger */}
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddAdditionalResult(clause.id)}
+                        className="font-black uppercase text-[10px] tracking-widest text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 gap-1.5 h-9 px-4"
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                        Add Additional Audit Result
+                      </Button>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
