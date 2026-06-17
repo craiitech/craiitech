@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
-import type { Campus, Unit, DeviceBinding } from '@/lib/types';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction } from 'firebase/firestore';
+import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import {
   Select,
   SelectContent,
@@ -26,7 +27,9 @@ import {
   RefreshCw,
   Phone,
   Smartphone,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound,
+  Calendar
 } from 'lucide-react';
 
 // Client-side secure hash/signature key for tamper-prevention
@@ -76,6 +79,44 @@ export default function RsuAttendanceApp() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [timeLeft, setTimeLeft] = useState(60);
   const [qrPayload, setQrPayload] = useState<string>('');
+
+  // OTP states
+  const [paramActivityId, setParamActivityId] = useState<string | null>(null);
+  const [chosenActivityId, setChosenActivityId] = useState('');
+  const [activeTab, setActiveTab] = useState<'qr' | 'code'>('qr');
+  const [otpCode, setOtpCode] = useState('');
+  const [isSubmittingOtp, setIsSubmittingOtp] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
+
+  // Read URL query parameter for activityId on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const actId = searchParams.get('activityId');
+      if (actId) {
+        setParamActivityId(actId);
+      }
+    }
+  }, []);
+
+  // Fetch active / upcoming activities for manual selector if needed
+  const activitiesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'unitActivities'),
+      where('status', 'in', ['ACTIVE', 'UPCOMING'])
+    );
+  }, [firestore]);
+  const { data: activeActivities } = useCollection<AttendanceActivity>(activitiesQuery);
+
+  // Fetch specific selected activity document
+  const selectedActivityRef = useMemoFirebase(() => {
+    const actId = paramActivityId || chosenActivityId;
+    if (!firestore || !actId) return null;
+    return doc(firestore, 'unitActivities', actId);
+  }, [firestore, paramActivityId, chosenActivityId]);
+  const { data: selectedActivity } = useDoc<AttendanceActivity>(selectedActivityRef);
 
   // 1. Calculate device fingerprint (canvas hashing)
   useEffect(() => {
@@ -241,6 +282,177 @@ export default function RsuAttendanceApp() {
     }
   };
 
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError('');
+    setOtpSuccess(null);
+
+    const actId = paramActivityId || chosenActivityId;
+    if (!firestore || !binding || !actId) {
+      setOtpError('Missing device binding or selected activity.');
+      return;
+    }
+
+    const trimmedOtp = otpCode.trim();
+    if (trimmedOtp.length !== 3) {
+      setOtpError('Please enter a valid 3-digit code.');
+      return;
+    }
+
+    setIsSubmittingOtp(true);
+
+    try {
+      const actRef = doc(firestore, 'unitActivities', actId);
+      
+      const result = await runTransaction(firestore, async (transaction) => {
+        // 1. Read activity document
+        const actSnap = await transaction.get(actRef);
+        if (!actSnap.exists()) {
+          throw new Error('Activity does not exist or has been deleted.');
+        }
+
+        const activityData = actSnap.data() as AttendanceActivity;
+        if (activityData.status !== 'ACTIVE') {
+          throw new Error('This activity is not currently active for attendance.');
+        }
+
+        // 2. Validate OTP code
+        if (!activityData.attendanceOtpCode || activityData.attendanceOtpCode !== trimmedOtp) {
+          throw new Error('Invalid code. The code may have already rolled or is incorrect.');
+        }
+
+        // 3. Resolve active session
+        const sessionId = activityData.activeSessionId || 'default';
+        
+        // Find session configuration
+        let sessionDetails = activityData.sessions?.find(s => s.id === sessionId);
+        if (!sessionDetails && sessionId === 'default') {
+          const defaultDate = activityData.startDateTime?.toDate 
+            ? format(activityData.startDateTime.toDate(), 'yyyy-MM-dd') 
+            : format(new Date(), 'yyyy-MM-dd');
+          const defaultStart = activityData.startDateTime?.toDate 
+            ? format(activityData.startDateTime.toDate(), 'HH:mm') 
+            : '08:00';
+          const defaultEnd = activityData.endDateTime?.toDate 
+            ? format(activityData.endDateTime.toDate(), 'HH:mm') 
+            : '17:00';
+          sessionDetails = {
+            id: 'default',
+            label: 'Default Session',
+            date: defaultDate,
+            sessionType: 'custom',
+            startTime: defaultStart,
+            endTime: defaultEnd,
+            requiresLogout: activityData.requiresLogout ?? false
+          };
+        }
+
+        if (!sessionDetails) {
+          throw new Error('The selected session configuration is invalid.');
+        }
+
+        // 4. Check if log already exists
+        const logId = `${actId}_${sessionId}_${binding.userId}`;
+        const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
+        const logSnap = await transaction.get(logRef);
+
+        const requiresLogout = sessionDetails.requiresLogout;
+        const now = new Date();
+
+        if (logSnap.exists()) {
+          const logData = logSnap.data() as ActivityAttendanceLog;
+          if (requiresLogout && !logData.logoutAt) {
+            // Update with logout timestamp
+            transaction.update(logRef, { logoutAt: now });
+            
+            // Generate next OTP
+            const nextOtp = Math.floor(100 + Math.random() * 900).toString();
+            transaction.update(actRef, { 
+              attendanceOtpCode: nextOtp, 
+              attendanceOtpUpdatedAt: now 
+            });
+
+            return { 
+              type: 'logout', 
+              message: `Logout recorded successfully for ${sessionDetails.label}.` 
+            };
+          } else {
+            throw new Error(`You have already completed attendance (login/logout) for ${sessionDetails.label}.`);
+          }
+        } else {
+          // Calculate lateness status
+          const scanTime = now.getTime();
+          
+          const parseTime = (dateStr: string, timeStr: string) => {
+            const d = new Date(`${dateStr}T${timeStr}:00`);
+            return isNaN(d.getTime()) ? Date.now() : d.getTime();
+          };
+
+          const actStart = parseTime(sessionDetails.date, sessionDetails.startTime);
+          const actEnd = parseTime(sessionDetails.date, sessionDetails.endTime);
+          const lateThreshold = Number(activityData.lateThresholdMinutes || 0);
+
+          let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
+          if (lateThreshold === 0) {
+            logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
+          } else {
+            const lateCutoff = actStart + (lateThreshold * 60000);
+            if (scanTime < actStart || scanTime <= lateCutoff) {
+              logStatus = 'ON_TIME';
+            } else if (scanTime <= actEnd) {
+              logStatus = 'LATE';
+            } else {
+              logStatus = 'OUTSIDE_WINDOW';
+            }
+          }
+
+          // Create new log document
+          const newLog: ActivityAttendanceLog = {
+            id: logId,
+            activityId: actId,
+            userId: binding.userId,
+            userName: binding.userName,
+            unitId: binding.unitId,
+            unitName: binding.unitName,
+            deviceFingerprint: binding.id,
+            scannedAt: now,
+            status: logStatus,
+            contactNumber: binding.contactNumber || 'N/A',
+            sex: binding.sex || 'Did not specify',
+            sessionId,
+            sessionLabel: sessionDetails.label
+          };
+
+          transaction.set(logRef, newLog);
+
+          // Generate next OTP
+          const nextOtp = Math.floor(100 + Math.random() * 900).toString();
+          transaction.update(actRef, { 
+            attendanceOtpCode: nextOtp, 
+            attendanceOtpUpdatedAt: now 
+          });
+
+          return { 
+            type: 'login', 
+            message: logStatus === 'ON_TIME' 
+              ? `Check-in recorded on time for ${sessionDetails.label}.` 
+              : logStatus === 'LATE'
+              ? `Lateness recorded for ${sessionDetails.label}.`
+              : `Check-in recorded outside window for ${sessionDetails.label}.` 
+          };
+        }
+      });
+
+      setOtpSuccess(result.message);
+      setOtpCode('');
+    } catch (err: any) {
+      console.error("OTP check-in failed:", err);
+      setOtpError(err.message || 'Check-in failed. Please verify the code and try again.');
+    } finally {
+      setIsSubmittingOtp(false);
+    }
+  };
+
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
@@ -287,45 +499,174 @@ export default function RsuAttendanceApp() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="flex flex-col items-center py-4 px-4">
-              {/* QR Render wrapper — large, fills most of the phone screen */}
-              <div className="relative mb-5 w-full">
-                {/* Outer glow ring */}
-                <div className="absolute inset-0 rounded-3xl bg-emerald-500/10 blur-xl pointer-events-none" />
-                {/* Pulsing border ring */}
-                <div className="absolute -inset-1 rounded-3xl border-2 border-emerald-400/30 animate-pulse pointer-events-none" />
-                <div className="relative bg-white p-4 rounded-3xl shadow-2xl border-2 border-emerald-500/20 flex items-center justify-center aspect-square w-full">
-                  {qrCodeUrl ? (
-                    <img
-                      src={qrCodeUrl}
-                      alt="RSU Encrypted Rotation Token"
-                      className="w-full h-full object-contain"
-                    />
+            {/* Tab Selector */}
+            <div className="flex border-b border-slate-800 px-4 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('qr');
+                  setOtpError('');
+                  setOtpSuccess(null);
+                }}
+                className={`flex-1 py-3 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                  activeTab === 'qr'
+                    ? 'border-[#D4AF37] text-[#D4AF37]'
+                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Show QR Code
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('code');
+                  setOtpError('');
+                  setOtpSuccess(null);
+                }}
+                className={`flex-1 py-3 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                  activeTab === 'code'
+                    ? 'border-[#D4AF37] text-[#D4AF37]'
+                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Enter 3-Digit Code
+              </button>
+            </div>
+
+            <CardContent className="flex flex-col items-center py-5 px-5">
+              {activeTab === 'qr' ? (
+                <>
+                  {/* QR Render wrapper — large, fills most of the phone screen */}
+                  <div className="relative mb-5 w-full">
+                    {/* Outer glow ring */}
+                    <div className="absolute inset-0 rounded-3xl bg-emerald-500/10 blur-xl pointer-events-none" />
+                    {/* Pulsing border ring */}
+                    <div className="absolute -inset-1 rounded-3xl border-2 border-emerald-400/30 animate-pulse pointer-events-none" />
+                    <div className="relative bg-white p-4 rounded-3xl shadow-2xl border-2 border-emerald-500/20 flex items-center justify-center aspect-square w-full">
+                      {qrCodeUrl ? (
+                        <img
+                          src={qrCodeUrl}
+                          alt="RSU Encrypted Rotation Token"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="h-12 w-12 text-[#D4AF37] animate-spin" />
+                          <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Generating QR...</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress counter */}
+                  <div className="w-full space-y-1.5">
+                    <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      <span>QR Token Rotation</span>
+                      <span className={`font-black text-sm tabular-nums ${timeLeft <= 10 ? 'text-rose-400' : 'text-emerald-400'}`}>{timeLeft}s</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-1000 ease-linear rounded-full ${timeLeft <= 10 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${(timeLeft / 60) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[8.5px] text-center text-slate-500 font-bold uppercase tracking-wide pt-0.5">
+                      QR code refreshes every 60 seconds for security
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full space-y-4">
+                  {/* Activity selection if not loaded from QR */}
+                  {!paramActivityId ? (
+                    <div className="w-full space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1">Select Event to Join</label>
+                      <select
+                        value={chosenActivityId}
+                        onChange={(e) => {
+                          setChosenActivityId(e.target.value);
+                          setOtpError('');
+                          setOtpSuccess(null);
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 text-xs font-bold h-10 px-3 rounded-xl text-white focus:outline-none focus:border-[#D4AF37]/50"
+                      >
+                        <option value="" className="text-slate-500">-- Choose Active Event --</option>
+                        {activeActivities && activeActivities.length > 0 ? (
+                          activeActivities.map(act => (
+                            <option key={act.id} value={act.id} className="bg-slate-900 text-white font-bold">
+                              {act.name}
+                            </option>
+                          ))
+                        ) : (
+                          <option disabled className="text-slate-500">No active events found</option>
+                        )}
+                      </select>
+                    </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="h-12 w-12 text-[#D4AF37] animate-spin" />
-                      <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Generating QR...</p>
+                    selectedActivity && (
+                      <div className="w-full p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-[#D4AF37] shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Event Joined</span>
+                          <span className="text-[11px] font-black text-white uppercase block truncate">{selectedActivity.name}</span>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {otpError && (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold leading-tight flex items-start gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>{otpError}</span>
                     </div>
                   )}
-                </div>
-              </div>
 
-              {/* Progress counter */}
-              <div className="w-full space-y-1.5">
-                <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  <span>QR Token Rotation</span>
-                  <span className={`font-black text-sm tabular-nums ${timeLeft <= 10 ? 'text-rose-400' : 'text-emerald-400'}`}>{timeLeft}s</span>
+                  {otpSuccess && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold leading-tight flex items-start gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>{otpSuccess}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleOtpSubmit} className="space-y-4">
+                    <div className="flex flex-col items-center gap-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">
+                        Enter 3-Digit Code from Screen
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={3}
+                        placeholder="•••"
+                        value={otpCode}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setOtpCode(val);
+                        }}
+                        className="w-32 h-14 bg-slate-950/80 border-2 border-slate-800 text-center text-3xl font-black tracking-[0.25em] text-[#D4AF37] rounded-2xl focus:border-[#D4AF37]/50 focus:outline-none placeholder-slate-800 transition-all font-mono"
+                        disabled={isSubmittingOtp}
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmittingOtp || (!paramActivityId && !chosenActivityId) || otpCode.length !== 3}
+                      className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                    >
+                      {isSubmittingOtp ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving check-in...
+                        </>
+                      ) : (
+                        <>
+                          <KeyRound className="h-4 w-4 mr-2" /> Submit Code Check-in
+                        </>
+                      )}
+                    </Button>
+                  </form>
                 </div>
-                <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-1000 ease-linear rounded-full ${timeLeft <= 10 ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                    style={{ width: `${(timeLeft / 60) * 100}%` }}
-                  />
-                </div>
-                <p className="text-[8.5px] text-center text-slate-500 font-bold uppercase tracking-wide pt-0.5">
-                  QR code refreshes every 60 seconds for security
-                </p>
-              </div>
+              )}
             </CardContent>
 
             <CardFooter className="bg-slate-950/40 p-4 border-t border-slate-800 flex items-center justify-center gap-2">

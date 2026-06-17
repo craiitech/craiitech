@@ -8,7 +8,8 @@ import {
   getDoc,
   setDoc,
   query, 
-  where
+  where,
+  updateDoc
 } from 'firebase/firestore';
 import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +31,9 @@ import {
   ZoomOut,
   QrCode,
   Users,
-  FlipHorizontal2
+  FlipHorizontal2,
+  KeyRound,
+  RefreshCw
 } from 'lucide-react';
 
 function UnitActivityScannerTerminal() {
@@ -57,6 +60,28 @@ function UnitActivityScannerTerminal() {
     return doc(firestore, 'unitActivities', paramActivityId);
   }, [firestore, paramActivityId]);
   const { data: activeActivity, isLoading: isLoadingActivity } = useDoc<AttendanceActivity>(activityRef);
+
+  // Auto-generate OTP if none exists
+  useEffect(() => {
+    if (!firestore || !activeActivity || !paramActivityId) return;
+
+    if (!activeActivity.attendanceOtpCode) {
+      const code = Math.floor(100 + Math.random() * 900).toString();
+      updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
+        attendanceOtpCode: code,
+        attendanceOtpUpdatedAt: new Date(),
+      }).catch((err) => {
+        console.error("Error auto-generating OTP code:", err);
+      });
+    }
+  }, [firestore, activeActivity, paramActivityId]);
+
+  // Sync activeSessionId from activity document
+  useEffect(() => {
+    if (activeActivity?.activeSessionId) {
+      setSelectedSessionId(activeActivity.activeSessionId);
+    }
+  }, [activeActivity?.activeSessionId]);
 
   const parseSessionTime = (dateStr: string, timeStr: string) => {
     try {
@@ -566,8 +591,8 @@ function UnitActivityScannerTerminal() {
   }
 
   const activeActivityUnit = activeActivity ? (units?.find(u => u.id === activeActivity.unitId)?.name || activeActivity.unitId) : 'N/A';
-  const registrationUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/attendance-app`
+  const registrationUrl = typeof window !== 'undefined' && activeActivity
+    ? `${window.location.origin}/attendance-app?activityId=${activeActivity.id}`
     : '';
   const registrationQrCodeUrl = registrationUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(registrationUrl)}`
@@ -710,7 +735,19 @@ function UnitActivityScannerTerminal() {
             <span className="text-[9px] font-black text-[#D4AF37] uppercase tracking-wider">Session:</span>
             <select
               value={selectedSessionId}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
+              onChange={async (e) => {
+                const newSessionId = e.target.value;
+                setSelectedSessionId(newSessionId);
+                if (firestore && paramActivityId) {
+                  try {
+                    await updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
+                      activeSessionId: newSessionId
+                    });
+                  } catch (err) {
+                    console.error("Error updating active session:", err);
+                  }
+                }
+              }}
               className="bg-transparent border-none text-[10px] font-black text-white focus:outline-none cursor-pointer uppercase pr-2 max-w-[150px]"
             >
               {sessions.map((s) => (
@@ -880,6 +917,56 @@ function UnitActivityScannerTerminal() {
               {sortedLogs.length}
             </Badge>
           </div>
+
+          {/* OTP Dynamic Code Card */}
+          {activeActivity && (
+            <div className="mx-4 my-3 p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-2xl flex flex-col gap-1.5 shadow-lg relative overflow-hidden shrink-0">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-[#D4AF37]/5 rounded-full blur-md pointer-events-none" />
+              <div className="flex justify-between items-center">
+                <span className="text-[8.5px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
+                  <KeyRound className="h-3 w-3" />
+                  Active Attendance Code
+                </span>
+                <button
+                  onClick={async () => {
+                    if (firestore && paramActivityId) {
+                      const newCode = Math.floor(100 + Math.random() * 900).toString();
+                      try {
+                        await updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
+                          attendanceOtpCode: newCode,
+                          attendanceOtpUpdatedAt: new Date()
+                        });
+                      } catch (err) {
+                        console.error("Error regenerating OTP:", err);
+                      }
+                    }
+                  }}
+                  className="text-white/60 hover:text-white transition-colors"
+                  title="Force Roll Code"
+                >
+                  <RefreshCw className="h-3 w-3 hover:rotate-180 transition-transform duration-300" />
+                </button>
+              </div>
+              
+              <div className="flex items-center justify-center gap-2.5 py-1">
+                {activeActivity.attendanceOtpCode ? (
+                  activeActivity.attendanceOtpCode.split('').map((char, index) => (
+                    <div 
+                      key={index}
+                      className="w-10 h-11 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-lg font-black text-[#D4AF37] shadow-inner font-mono tracking-widest"
+                    >
+                      {char}
+                    </div>
+                  ))
+                ) : (
+                  <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
+                )}
+              </div>
+              <p className="text-[7.5px] font-bold text-slate-400 text-center uppercase tracking-wider leading-normal">
+                Enter on phone to register check-in
+              </p>
+            </div>
+          )}
 
           {/* Scrollable log list */}
           <div className="flex-1 overflow-y-auto">

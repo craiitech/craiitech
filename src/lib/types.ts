@@ -1142,6 +1142,9 @@ export type AttendanceActivity = {
   documents?: { description: string; googleDriveLink: string; }[];
   sessions?: ActivitySession[];
   evaluationStrategy?: EvaluationStrategy;
+  attendanceOtpCode?: string;
+  attendanceOtpUpdatedAt?: any;
+  activeSessionId?: string;
 };
 
 export type DeviceBinding = {
