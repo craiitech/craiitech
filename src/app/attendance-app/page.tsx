@@ -47,6 +47,18 @@ const generatePayloadSignature = (userId: string, timestamp: number, fp: string)
   return `SIG-${Math.abs(hash)}`;
 };
 
+const generateActivityCode = (activityId: string, timestamp: number) => {
+  const windowId = Math.floor(timestamp / 60000); // 60-second window
+  const inputStr = `${activityId}-${windowId}-rsu-secure-otp`;
+  let hash = 0;
+  for (let i = 0; i < inputStr.length; i++) {
+    const char = inputStr.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return ((Math.abs(hash) % 900) + 100).toString();
+};
+
 export default function RsuAttendanceApp() {
   const firestore = useFirestore();
 
@@ -299,13 +311,24 @@ export default function RsuAttendanceApp() {
       return;
     }
 
+    // 1. Math-based rolling code verification (client-side matching)
+    const nowMs = Date.now();
+    const codeCurrent = generateActivityCode(actId, nowMs);
+    const codePrev = generateActivityCode(actId, nowMs - 60000);
+    const codeNext = generateActivityCode(actId, nowMs + 60000);
+
+    if (trimmedOtp !== codeCurrent && trimmedOtp !== codePrev && trimmedOtp !== codeNext) {
+      setOtpError('Invalid code. The code may have already rolled or is incorrect.');
+      return;
+    }
+
     setIsSubmittingOtp(true);
 
     try {
       const actRef = doc(firestore, 'unitActivities', actId);
       
       const result = await runTransaction(firestore, async (transaction) => {
-        // 1. Read activity document
+        // 1. Read activity document for metadata/session info
         const actSnap = await transaction.get(actRef);
         if (!actSnap.exists()) {
           throw new Error('Activity does not exist or has been deleted.');
@@ -316,12 +339,7 @@ export default function RsuAttendanceApp() {
           throw new Error('This activity is not currently active for attendance.');
         }
 
-        // 2. Validate OTP code
-        if (!activityData.attendanceOtpCode || activityData.attendanceOtpCode !== trimmedOtp) {
-          throw new Error('Invalid code. The code may have already rolled or is incorrect.');
-        }
-
-        // 3. Resolve active session
+        // 2. Resolve active session
         const sessionId = activityData.activeSessionId || 'default';
         
         // Find session configuration
@@ -351,7 +369,7 @@ export default function RsuAttendanceApp() {
           throw new Error('The selected session configuration is invalid.');
         }
 
-        // 4. Check if log already exists
+        // 3. Check if log already exists
         const logId = `${actId}_${sessionId}_${binding.userId}`;
         const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
         const logSnap = await transaction.get(logRef);
@@ -362,15 +380,8 @@ export default function RsuAttendanceApp() {
         if (logSnap.exists()) {
           const logData = logSnap.data() as ActivityAttendanceLog;
           if (requiresLogout && !logData.logoutAt) {
-            // Update with logout timestamp
+            // Update log document with logout timestamp
             transaction.update(logRef, { logoutAt: now });
-            
-            // Generate next OTP
-            const nextOtp = Math.floor(100 + Math.random() * 900).toString();
-            transaction.update(actRef, { 
-              attendanceOtpCode: nextOtp, 
-              attendanceOtpUpdatedAt: now 
-            });
 
             return { 
               type: 'logout', 
@@ -424,13 +435,6 @@ export default function RsuAttendanceApp() {
           };
 
           transaction.set(logRef, newLog);
-
-          // Generate next OTP
-          const nextOtp = Math.floor(100 + Math.random() * 900).toString();
-          transaction.update(actRef, { 
-            attendanceOtpCode: nextOtp, 
-            attendanceOtpUpdatedAt: now 
-          });
 
           return { 
             type: 'login', 

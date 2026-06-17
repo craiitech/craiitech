@@ -272,9 +272,7 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     match /unitActivities/{id} {
       allow read: if true; // Public read: needed by evaluation QR portal (unauthenticated mobile users)
-      allow write: if isSignedIn() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendanceOtpCode', 'attendanceOtpUpdatedAt'])
-      );
+      allow write: if isSignedIn();
     }
 
     match /attendanceDeviceBindings/{id} {

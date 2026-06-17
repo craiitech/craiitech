@@ -36,6 +36,18 @@ import {
   RefreshCw
 } from 'lucide-react';
 
+const generateActivityCode = (activityId: string, timestamp: number) => {
+  const windowId = Math.floor(timestamp / 60000); // 60-second window
+  const inputStr = `${activityId}-${windowId}-rsu-secure-otp`;
+  let hash = 0;
+  for (let i = 0; i < inputStr.length; i++) {
+    const char = inputStr.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return ((Math.abs(hash) % 900) + 100).toString();
+};
+
 function UnitActivityScannerTerminal() {
   const { userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -61,27 +73,8 @@ function UnitActivityScannerTerminal() {
   }, [firestore, paramActivityId]);
   const { data: activeActivity, isLoading: isLoadingActivity } = useDoc<AttendanceActivity>(activityRef);
 
-  // Auto-generate OTP if none exists
-  const generatingOtpRef = useRef(false);
-  useEffect(() => {
-    if (!firestore || !activeActivity || !paramActivityId) return;
-
-    if (!activeActivity.attendanceOtpCode && !generatingOtpRef.current) {
-      generatingOtpRef.current = true;
-      const code = Math.floor(100 + Math.random() * 900).toString();
-      updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
-        attendanceOtpCode: code,
-        attendanceOtpUpdatedAt: new Date(),
-      }).then(() => {
-        generatingOtpRef.current = false;
-      }).catch((err) => {
-        console.error("Error auto-generating OTP code:", err);
-        setTimeout(() => {
-          generatingOtpRef.current = false;
-        }, 5000);
-      });
-    }
-  }, [firestore, activeActivity, paramActivityId]);
+  const [activeCode, setActiveCode] = useState('');
+  const [codeSecondsLeft, setCodeSecondsLeft] = useState(60);
 
   // Sync activeSessionId from activity document
   useEffect(() => {
@@ -89,6 +82,22 @@ function UnitActivityScannerTerminal() {
       setSelectedSessionId(activeActivity.activeSessionId);
     }
   }, [activeActivity?.activeSessionId]);
+
+  // Compute purely client-side mathematical rolling OTP code
+  useEffect(() => {
+    if (!paramActivityId) return;
+
+    const updateCode = () => {
+      const now = Date.now();
+      const code = generateActivityCode(paramActivityId, now);
+      setActiveCode(code);
+      setCodeSecondsLeft(60 - (Math.floor(now / 1000) % 60));
+    };
+
+    updateCode();
+    const interval = setInterval(updateCode, 1000);
+    return () => clearInterval(interval);
+  }, [paramActivityId]);
 
   const parseSessionTime = (dateStr: string, timeStr: string) => {
     try {
@@ -926,48 +935,29 @@ function UnitActivityScannerTerminal() {
           </div>
 
           {/* OTP Dynamic Code Card */}
-          {activeActivity && (
+          {activeActivity && activeCode && (
             <div className="mx-4 my-3 p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-2xl flex flex-col gap-1.5 shadow-lg relative overflow-hidden shrink-0">
               <div className="absolute top-0 right-0 w-16 h-16 bg-[#D4AF37]/5 rounded-full blur-md pointer-events-none" />
               <div className="flex justify-between items-center">
                 <span className="text-[8.5px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
                   <KeyRound className="h-3 w-3" />
-                  Active Attendance Code
+                  Attendance Code
                 </span>
-                <button
-                  onClick={async () => {
-                    if (firestore && paramActivityId) {
-                      const newCode = Math.floor(100 + Math.random() * 900).toString();
-                      try {
-                        await updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
-                          attendanceOtpCode: newCode,
-                          attendanceOtpUpdatedAt: new Date()
-                        });
-                      } catch (err) {
-                        console.error("Error regenerating OTP:", err);
-                      }
-                    }
-                  }}
-                  className="text-white/60 hover:text-white transition-colors"
-                  title="Force Roll Code"
-                >
-                  <RefreshCw className="h-3 w-3 hover:rotate-180 transition-transform duration-300" />
-                </button>
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <Clock className="h-2.5 w-2.5 text-[#D4AF37]/80 animate-pulse" />
+                  Rotates in {codeSecondsLeft}s
+                </span>
               </div>
               
               <div className="flex items-center justify-center gap-2.5 py-1">
-                {activeActivity.attendanceOtpCode ? (
-                  activeActivity.attendanceOtpCode.split('').map((char, index) => (
-                    <div 
-                      key={index}
-                      className="w-10 h-11 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-lg font-black text-[#D4AF37] shadow-inner font-mono tracking-widest"
-                    >
-                      {char}
-                    </div>
-                  ))
-                ) : (
-                  <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
-                )}
+                {activeCode.split('').map((char, index) => (
+                  <div 
+                    key={index}
+                    className="w-10 h-11 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-lg font-black text-[#D4AF37] shadow-inner font-mono tracking-widest"
+                  >
+                    {char}
+                  </div>
+                ))}
               </div>
               <p className="text-[7.5px] font-bold text-slate-400 text-center uppercase tracking-wider leading-normal">
                 Enter on phone to register check-in
