@@ -213,7 +213,7 @@ function UnitActivityScannerTerminal() {
         scanner.start(
           { facingMode: "environment" },
           {
-            fps: 10,
+            fps: 24,
             qrbox: (() => {
               const size = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.60);
               return { width: size, height: size };
@@ -284,9 +284,14 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      const { userId, userName, unitId, unitName, deviceFingerprint, contactNumber, sex, timestamp } = payload;
+      // Check if it's the minified/optimized payload format
+      const isMinified = 'u' in payload && 'f' in payload && 't' in payload && 's' in payload;
+      
+      const userId = isMinified ? payload.u : payload.userId;
+      const deviceFingerprint = isMinified ? payload.f : payload.deviceFingerprint;
+      const timestamp = isMinified ? payload.t : payload.timestamp;
 
-      if (!userId || !userName || !deviceFingerprint || !timestamp) {
+      if (!userId || !deviceFingerprint || !timestamp) {
         setScanResult({ status: 'error', message: 'Rejected: Missing security properties in QR payload.' });
         return;
       }
@@ -310,8 +315,11 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      const finalContact = contactNumber || officialBinding.contactNumber || 'N/A';
-      const finalSex = sex || officialBinding.sex || 'Did not specify';
+      const userName = isMinified ? officialBinding.userName : (payload.userName || officialBinding.userName);
+      const unitId = isMinified ? officialBinding.unitId : (payload.unitId || officialBinding.unitId);
+      const unitName = isMinified ? officialBinding.unitName : (payload.unitName || officialBinding.unitName);
+      const finalContact = isMinified ? (officialBinding.contactNumber || 'N/A') : (payload.contactNumber || officialBinding.contactNumber || 'N/A');
+      const finalSex = isMinified ? (officialBinding.sex || 'Did not specify') : (payload.sex || officialBinding.sex || 'Did not specify');
 
       const scanTime = Date.now();
       const actStart = parseSessionTime(selectedSession.date, selectedSession.startTime);

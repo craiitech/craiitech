@@ -144,25 +144,20 @@ export default function RsuAttendanceApp() {
 
     const timestamp = Date.now();
     const signature = generatePayloadSignature(binding.userId, timestamp, binding.id);
-    
-    // Construct signed token payload
+
+    // Construct signed token payload (highly optimized/minified for fast, low-density QR scans)
     const payloadObj = {
-      userId: binding.userId,
-      userName: binding.userName,
-      unitId: binding.unitId,
-      unitName: binding.unitName,
-      deviceFingerprint: binding.id,
-      contactNumber: binding.contactNumber || '',
-      sex: binding.sex || '',
-      timestamp,
-      signature
+      u: binding.userId,
+      f: binding.id,
+      t: timestamp,
+      s: signature
     };
 
     const payloadString = JSON.stringify(payloadObj);
     setQrPayload(payloadString);
     
-    // Construct QR rendering URL from API server
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=700x700&data=${encodeURIComponent(payloadString)}`;
+    // Construct QR rendering URL from API server (optimized size & Low ECC for maximum speed)
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=L&data=${encodeURIComponent(payloadString)}`;
     setQrCodeUrl(qrUrl);
     setTimeLeft(60);
   };

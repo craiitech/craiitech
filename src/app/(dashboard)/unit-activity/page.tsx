@@ -549,7 +549,7 @@ export default function UnitActivityPage() {
         scanner.start(
           { facingMode: "environment" },
           {
-            fps: 10,
+            fps: 24,
             qrbox: { width: 220, height: 220 },
             aspectRatio: 1.0
           },
@@ -614,9 +614,14 @@ export default function UnitActivityPage() {
         return;
       }
 
-      const { userId, userName, unitId, unitName, deviceFingerprint, contactNumber, sex, timestamp, signature } = payload;
+      // Check if it's the minified/optimized payload format
+      const isMinified = 'u' in payload && 'f' in payload && 't' in payload && 's' in payload;
 
-      if (!userId || !userName || !deviceFingerprint || !timestamp) {
+      const userId = isMinified ? payload.u : payload.userId;
+      const deviceFingerprint = isMinified ? payload.f : payload.deviceFingerprint;
+      const timestamp = isMinified ? payload.t : payload.timestamp;
+
+      if (!userId || !deviceFingerprint || !timestamp) {
         setScanResult({ status: 'error', message: 'Rejected: Missing security properties in QR payload.' });
         return;
       }
@@ -643,8 +648,11 @@ export default function UnitActivityPage() {
       }
 
       // Fallback demographics from database binding if not present in payload
-      const finalContact = contactNumber || officialBinding.contactNumber || 'N/A';
-      const finalSex = sex || officialBinding.sex || 'Did not specify';
+      const userName = isMinified ? officialBinding.userName : (payload.userName || officialBinding.userName);
+      const unitId = isMinified ? officialBinding.unitId : (payload.unitId || officialBinding.unitId);
+      const unitName = isMinified ? officialBinding.unitName : (payload.unitName || officialBinding.unitName);
+      const finalContact = isMinified ? (officialBinding.contactNumber || 'N/A') : (payload.contactNumber || officialBinding.contactNumber || 'N/A');
+      const finalSex = isMinified ? (officialBinding.sex || 'Did not specify') : (payload.sex || officialBinding.sex || 'Did not specify');
 
       // 4. Calculate Attendance Status (login)
       const scanTime = Date.now();
