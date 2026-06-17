@@ -945,35 +945,55 @@ function UnitActivityScannerTerminal() {
           <div className="shrink-0 animate-in slide-in-from-left duration-300">
             {scanResult.status === 'none' ? (
               // STANDBY WELCOME PANEL
-              <div className="relative rounded-2xl flex flex-col items-center justify-center p-5 text-center overflow-hidden"
+              <div className="relative rounded-2xl flex items-center gap-8 p-6 overflow-hidden"
                 style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12)' }}>
                 <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%)' }} />
                 <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(27,101,53,0.10) 0%, transparent 70%)' }} />
-                
-                {currentTime && (
-                  <div className="text-5xl sm:text-6xl font-black text-[#D4AF37] tracking-tight tabular-nums drop-shadow-md select-none">
-                    {format(currentTime, 'hh:mm:ss a')}
+
+                {/* LEFT: QR Code */}
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <span className="text-[7.5px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
+                    <QrCode className="h-2.5 w-2.5" /> Scan to Open App
+                  </span>
+                  <div className="bg-white p-3 rounded-xl shadow-inner w-[150px] h-[150px] flex items-center justify-center overflow-hidden">
+                    {registrationQrCodeUrl ? (
+                      <img src={registrationQrCodeUrl} alt="RSU Attendance App QR" className="w-full h-full object-contain" />
+                    ) : (
+                      <Loader2 className="h-7 w-7 animate-spin text-[#1B6535]" />
+                    )}
                   </div>
-                )}
-                {currentTime && (
-                  <p className="text-[9px] sm:text-[10px] font-extrabold text-slate-300 uppercase tracking-[0.2em] mt-1 mb-2">
-                    {format(currentTime, 'EEEE, MMMM dd, yyyy')}
+                  <p className="text-[6.5px] font-bold text-slate-400 text-center uppercase tracking-wide leading-tight max-w-[150px]">
+                    RSU Attendance Portal
                   </p>
-                )}
-                <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-white drop-shadow">RSU Attendance Kiosk Active</h2>
-                <p className="text-[8px] sm:text-[9px] text-emerald-300 uppercase tracking-widest font-black max-w-lg mt-1.5 px-3 py-1 rounded-full"
-                  style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}>
-                  ★ Align your mobile QR Code inside the scanner on the right ★
-                </p>
-                {/* Statistics Grid */}
-                <div className="grid grid-cols-3 gap-3 mt-4 w-full max-w-2xl">
-                  {[{ label: 'Total Present', val: sortedLogs.length, color: 'text-[#D4AF37]' }, { label: 'On Time', val: sortedLogs.filter(l => l.status === 'ON_TIME').length, color: 'text-emerald-400' }, { label: 'Late', val: sortedLogs.filter(l => l.status === 'LATE').length, color: 'text-amber-400' }].map(({ label, val, color }) => (
-                    <div key={label} className="flex flex-col items-center justify-center py-3 rounded-xl"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)' }}>
-                      <span className={`block text-xl sm:text-2xl lg:text-3xl font-black ${color} tracking-tight`}>{val}</span>
-                      <span className="block text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mt-0.5">{label}</span>
+                </div>
+
+                {/* RIGHT: Clock + content */}
+                <div className="flex-1 flex flex-col items-start text-left">
+                  {currentTime && (
+                    <div className="text-5xl sm:text-6xl font-black text-[#D4AF37] tracking-tight tabular-nums drop-shadow-md select-none">
+                      {format(currentTime, 'hh:mm:ss a')}
                     </div>
-                  ))}
+                  )}
+                  {currentTime && (
+                    <p className="text-[9px] sm:text-[10px] font-extrabold text-slate-300 uppercase tracking-[0.2em] mt-1 mb-2">
+                      {format(currentTime, 'EEEE, MMMM dd, yyyy')}
+                    </p>
+                  )}
+                  <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-white drop-shadow">RSU Attendance Kiosk Active</h2>
+                  <p className="text-[8px] sm:text-[9px] text-emerald-300 uppercase tracking-widest font-black max-w-lg mt-1.5 px-3 py-1 rounded-full"
+                    style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}>
+                    ★ Align your mobile QR Code inside the scanner on the right ★
+                  </p>
+                  {/* Statistics Grid */}
+                  <div className="grid grid-cols-3 gap-3 mt-4 w-full max-w-2xl">
+                    {[{ label: 'Total Present', val: sortedLogs.length, color: 'text-[#D4AF37]' }, { label: 'On Time', val: sortedLogs.filter(l => l.status === 'ON_TIME').length, color: 'text-emerald-400' }, { label: 'Late', val: sortedLogs.filter(l => l.status === 'LATE').length, color: 'text-amber-400' }].map(({ label, val, color }) => (
+                      <div key={label} className="flex flex-col items-center justify-center py-3 rounded-xl"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)' }}>
+                        <span className={`block text-xl sm:text-2xl lg:text-3xl font-black ${color} tracking-tight`}>{val}</span>
+                        <span className="block text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mt-0.5">{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1215,44 +1235,6 @@ function UnitActivityScannerTerminal() {
           </div>
         </section>
       </main>
-
-      {/* ================================================================== */}
-      {/* FLOATING QR CODE — bottom-left, overlaps content                   */}
-      {/* ================================================================== */}
-      <div
-        className="absolute bottom-5 left-5 z-20 flex flex-col items-center gap-2 p-4 rounded-2xl animate-in slide-in-from-left duration-500"
-        style={{
-          background: 'rgba(10, 25, 15, 0.55)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.20)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.14)',
-        }}
-      >
-        {/* Gold top label */}
-        <span className="text-[8px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1.5">
-          <QrCode className="h-3 w-3" />
-          No App? Scan Here!
-        </span>
-
-        {/* QR Image */}
-        <div className="bg-white p-3 rounded-xl shadow-inner w-[170px] h-[170px] flex items-center justify-center overflow-hidden">
-          {registrationQrCodeUrl ? (
-            <img
-              src={registrationQrCodeUrl}
-              alt="RSU Attendance App QR"
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
-          )}
-        </div>
-
-        {/* Caption */}
-        <p className="text-[7.5px] font-bold text-slate-300 text-center uppercase tracking-wider leading-snug max-w-[170px]">
-          Scan to open RSU Attendance Portal
-        </p>
-      </div>
 
       {/* ================================================================== */}
       {/* NO ACTIVITY LOCKED OVERLAY                                          */}
