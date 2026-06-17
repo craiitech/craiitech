@@ -929,23 +929,8 @@ function UnitActivityScannerTerminal() {
           )}
         </div>
 
-        {/* RIGHT: Registration QR Code */}
-        <div className="flex flex-col items-end gap-1.5 min-w-0 flex-1">
-          <div className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl"
-            style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', border: '1px solid rgba(255,255,255,0.18)' }}>
-            <span className="text-[7px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
-              <QrCode className="h-2.5 w-2.5" /> Scan to Open App
-            </span>
-            <div className="bg-white p-1.5 rounded-xl shadow-inner w-[90px] h-[90px] flex items-center justify-center overflow-hidden">
-              {registrationQrCodeUrl ? (
-                <img src={registrationQrCodeUrl} alt="RSU Attendance App QR" className="w-full h-full object-contain" />
-              ) : (
-                <Loader2 className="h-5 w-5 animate-spin text-[#1B6535]" />
-              )}
-            </div>
-            <p className="text-[6.5px] font-bold text-slate-400 text-center uppercase tracking-wide leading-tight">RSU Attendance Portal</p>
-          </div>
-        </div>
+        {/* RIGHT: spacer to balance 3-col header */}
+        <div className="flex-1" />
       </header>
 
       {/* ================================================================== */}
@@ -1230,6 +1215,44 @@ function UnitActivityScannerTerminal() {
           </div>
         </section>
       </main>
+
+      {/* ================================================================== */}
+      {/* FLOATING QR CODE — bottom-left, overlaps content                   */}
+      {/* ================================================================== */}
+      <div
+        className="absolute bottom-5 left-5 z-20 flex flex-col items-center gap-2 p-4 rounded-2xl animate-in slide-in-from-left duration-500"
+        style={{
+          background: 'rgba(10, 25, 15, 0.55)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.20)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.14)',
+        }}
+      >
+        {/* Gold top label */}
+        <span className="text-[8px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1.5">
+          <QrCode className="h-3 w-3" />
+          No App? Scan Here!
+        </span>
+
+        {/* QR Image */}
+        <div className="bg-white p-3 rounded-xl shadow-inner w-[170px] h-[170px] flex items-center justify-center overflow-hidden">
+          {registrationQrCodeUrl ? (
+            <img
+              src={registrationQrCodeUrl}
+              alt="RSU Attendance App QR"
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
+          )}
+        </div>
+
+        {/* Caption */}
+        <p className="text-[7.5px] font-bold text-slate-300 text-center uppercase tracking-wider leading-snug max-w-[170px]">
+          Scan to open RSU Attendance Portal
+        </p>
+      </div>
 
       {/* ================================================================== */}
       {/* NO ACTIVITY LOCKED OVERLAY                                          */}
