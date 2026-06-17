@@ -74,12 +74,30 @@ function EvaluationForm() {
   const [contact, setContact] = useState('');
   const [ratingObjectives, setRatingObjectives] = useState(0);
   const [ratingSpeaker, setRatingSpeaker] = useState(0);
+  const [ratingTopic, setRatingTopic] = useState(0); // Speaker/Topic relevance sub-criteria
   const [ratingVenue, setRatingVenue] = useState(0);
   const [ratingFood, setRatingFood] = useState(0);
   const [ratingMaterials, setRatingMaterials] = useState(0);
   const [ratingOverall, setRatingOverall] = useState(0);
+  
+  // Per-category qualitative comments
+  const [commentsObjectives, setCommentsObjectives] = useState('');
+  const [commentsSpeaker, setCommentsSpeaker] = useState('');
+  const [commentsVenue, setCommentsVenue] = useState('');
+  const [commentsFood, setCommentsFood] = useState('');
+  const [commentsMaterials, setCommentsMaterials] = useState('');
+  const [commentsOverall, setCommentsOverall] = useState('');
   const [comments, setComments] = useState('');
   const [pinInput, setPinInput] = useState('');
+
+  // 7 Open-ended answers
+  const [ansTakeaways, setAnsTakeaways] = useState('');
+  const [ansExpectations, setAnsExpectations] = useState('');
+  const [ansFeelings, setAnsFeelings] = useState('');
+  const [ansValuable, setAnsValuable] = useState('');
+  const [ansMissed, setAnsMissed] = useState('');
+  const [ansChange, setAnsChange] = useState('');
+  const [ansSuggestions, setAnsSuggestions] = useState('');
 
   // Extract strategy settings
   const strategy = activity?.evaluationStrategy;
@@ -126,7 +144,7 @@ function EvaluationForm() {
     // Dynamic Category Ratings Validation
     const validationFailed = focusList.some(cat => {
       if (cat === 'objectives' && ratingObjectives === 0) return true;
-      if (cat === 'speaker' && ratingSpeaker === 0) return true;
+      if (cat === 'speaker' && (ratingSpeaker === 0 || ratingTopic === 0)) return true;
       if (cat === 'venue' && ratingVenue === 0) return true;
       if (cat === 'food' && ratingFood === 0) return true;
       if (cat === 'materials' && ratingMaterials === 0) return true;
@@ -163,12 +181,40 @@ function EvaluationForm() {
         submittedAt: serverTimestamp(),
       };
 
-      if (focusList.includes('objectives')) evaluationData.ratingObjectives = ratingObjectives;
-      if (focusList.includes('speaker')) evaluationData.ratingSpeaker = ratingSpeaker;
-      if (focusList.includes('venue')) evaluationData.ratingVenue = ratingVenue;
-      if (focusList.includes('food')) evaluationData.ratingFood = ratingFood;
-      if (focusList.includes('materials')) evaluationData.ratingMaterials = ratingMaterials;
-      if (focusList.includes('overall')) evaluationData.ratingOverall = ratingOverall;
+      if (focusList.includes('objectives')) {
+        evaluationData.ratingObjectives = ratingObjectives;
+        evaluationData.commentsObjectives = commentsObjectives.trim();
+      }
+      if (focusList.includes('speaker')) {
+        evaluationData.ratingSpeaker = ratingSpeaker;
+        evaluationData.ratingTopic = ratingTopic;
+        evaluationData.commentsSpeaker = commentsSpeaker.trim();
+      }
+      if (focusList.includes('venue')) {
+        evaluationData.ratingVenue = ratingVenue;
+        evaluationData.commentsVenue = commentsVenue.trim();
+      }
+      if (focusList.includes('food')) {
+        evaluationData.ratingFood = ratingFood;
+        evaluationData.commentsFood = commentsFood.trim();
+      }
+      if (focusList.includes('materials')) {
+        evaluationData.ratingMaterials = ratingMaterials;
+        evaluationData.commentsMaterials = commentsMaterials.trim();
+      }
+      if (focusList.includes('overall')) {
+        evaluationData.ratingOverall = ratingOverall;
+        evaluationData.commentsOverall = commentsOverall.trim();
+      }
+
+      // 7 Open-ended answers
+      evaluationData.ansTakeaways = ansTakeaways.trim();
+      evaluationData.ansExpectations = ansExpectations.trim();
+      evaluationData.ansFeelings = ansFeelings.trim();
+      evaluationData.ansValuable = ansValuable.trim();
+      evaluationData.ansMissed = ansMissed.trim();
+      evaluationData.ansChange = ansChange.trim();
+      evaluationData.ansSuggestions = ansSuggestions.trim();
 
       await addDoc(collection(firestore, 'unitActivityEvaluations'), evaluationData);
       setSubmitted(true);
@@ -243,12 +289,26 @@ function EvaluationForm() {
                 setContact('');
                 setRatingObjectives(0);
                 setRatingSpeaker(0);
+                setRatingTopic(0);
                 setRatingVenue(0);
                 setRatingFood(0);
                 setRatingMaterials(0);
                 setRatingOverall(0);
+                setCommentsObjectives('');
+                setCommentsSpeaker('');
+                setCommentsVenue('');
+                setCommentsFood('');
+                setCommentsMaterials('');
+                setCommentsOverall('');
                 setComments('');
                 setPinInput('');
+                setAnsTakeaways('');
+                setAnsExpectations('');
+                setAnsFeelings('');
+                setAnsValuable('');
+                setAnsMissed('');
+                setAnsChange('');
+                setAnsSuggestions('');
                 setSubmitted(false);
               }}
             >
@@ -314,61 +374,206 @@ function EvaluationForm() {
             </div>
           </div>
 
+          {/* Structured Rating Questions */}
           <div className="space-y-5">
             {focusList.includes('objectives') && (
-              <StarRating 
-                value={ratingObjectives} 
-                onChange={setRatingObjectives} 
-                label="1. Objectives Met" 
-              />
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingObjectives} 
+                  onChange={setRatingObjectives} 
+                  label="1. Objectives Met" 
+                />
+                <Input
+                  placeholder="Additional feedback about the event objectives..."
+                  value={commentsObjectives}
+                  onChange={(e) => setCommentsObjectives(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
             )}
+
             {focusList.includes('speaker') && (
-              <StarRating 
-                value={ratingSpeaker} 
-                onChange={setRatingSpeaker} 
-                label="2. Speaker & Facilitator Delivery" 
-              />
+              <div className="space-y-4 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <div className="space-y-3">
+                  <StarRating 
+                    value={ratingSpeaker} 
+                    onChange={setRatingSpeaker} 
+                    label="2. Speaker & Facilitator Delivery" 
+                  />
+                  <StarRating 
+                    value={ratingTopic} 
+                    onChange={setRatingTopic} 
+                    label="2.1. Topic Relevance & Presentation Content" 
+                  />
+                </div>
+                <Input
+                  placeholder="Additional feedback about the speaker or the topic..."
+                  value={commentsSpeaker}
+                  onChange={(e) => setCommentsSpeaker(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
             )}
+
             {focusList.includes('venue') && (
-              <StarRating 
-                value={ratingVenue} 
-                onChange={setRatingVenue} 
-                label="3. Venue and Organization Quality" 
-              />
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingVenue} 
+                  onChange={setRatingVenue} 
+                  label="3. Venue and Organization Quality" 
+                />
+                <Input
+                  placeholder="Additional feedback about the venue, comfort, or organization..."
+                  value={commentsVenue}
+                  onChange={(e) => setCommentsVenue(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
             )}
+
             {focusList.includes('food') && (
-              <StarRating 
-                value={ratingFood} 
-                onChange={setRatingFood} 
-                label="4. Food & Refreshments Quality" 
-              />
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingFood} 
+                  onChange={setRatingFood} 
+                  label="4. Food & Refreshments Quality" 
+                />
+                <Input
+                  placeholder="Additional feedback about the food or refreshments served..."
+                  value={commentsFood}
+                  onChange={(e) => setCommentsFood(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
             )}
+
             {focusList.includes('materials') && (
-              <StarRating 
-                value={ratingMaterials} 
-                onChange={setRatingMaterials} 
-                label="5. Materials & Handouts Quality" 
-              />
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingMaterials} 
+                  onChange={setRatingMaterials} 
+                  label="5. Materials & Handouts Quality" 
+                />
+                <Input
+                  placeholder="Additional feedback about reference files or digital materials..."
+                  value={commentsMaterials}
+                  onChange={(e) => setCommentsMaterials(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
             )}
+
             {focusList.includes('overall') && (
-              <StarRating 
-                value={ratingOverall} 
-                onChange={setRatingOverall} 
-                label="6. Overall Satisfaction" 
-              />
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <StarRating 
+                  value={ratingOverall} 
+                  onChange={setRatingOverall} 
+                  label="6. Overall Satisfaction" 
+                />
+                <Input
+                  placeholder="Additional feedback about your overall experience..."
+                  value={commentsOverall}
+                  onChange={(e) => setCommentsOverall(e.target.value)}
+                  className="bg-white border-slate-200 text-xs h-9"
+                />
+              </div>
             )}
+          </div>
+
+          {/* Qualitative Open-Ended Feedback Section */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
+            <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Qualitative Feedback (Optional)</h4>
+            
+            <div className="space-y-3.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="q1" className="text-xs font-bold text-slate-600">1. What was your single biggest takeaway from this event?</Label>
+                <Textarea
+                  id="q1"
+                  placeholder="Type your takeaway here..."
+                  value={ansTakeaways}
+                  onChange={(e) => setAnsTakeaways(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="q2" className="text-xs font-bold text-slate-600">2. Did this activity meet your expectations? Why or why not?</Label>
+                <Textarea
+                  id="q2"
+                  placeholder="Type your expectations review here..."
+                  value={ansExpectations}
+                  onChange={(e) => setAnsExpectations(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="q3" className="text-xs font-bold text-slate-600">3. How did this activity make you feel?</Label>
+                <Textarea
+                  id="q3"
+                  placeholder="Type your feelings/reflections here..."
+                  value={ansFeelings}
+                  onChange={(e) => setAnsFeelings(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="q4" className="text-xs font-bold text-slate-600">4. Which part was most valuable to you and why?</Label>
+                <Textarea
+                  id="q4"
+                  placeholder="Type the most valuable part here..."
+                  value={ansValuable}
+                  onChange={(e) => setAnsValuable(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="q5" className="text-xs font-bold text-slate-600">5. Was there a specific topic or activity you wish had been included?</Label>
+                <Textarea
+                  id="q5"
+                  placeholder="Type missed opportunities here..."
+                  value={ansMissed}
+                  onChange={(e) => setAnsMissed(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="q6" className="text-xs font-bold text-slate-600">6. If you could change one thing about this event, what would it be?</Label>
+                <Textarea
+                  id="q6"
+                  placeholder="Type suggested changes here..."
+                  value={ansChange}
+                  onChange={(e) => setAnsChange(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="q7" className="text-xs font-bold text-slate-600">7. What are your suggestions for making the next activity even better?</Label>
+                <Textarea
+                  id="q7"
+                  placeholder="Type suggestions/recommendations here..."
+                  value={ansSuggestions}
+                  onChange={(e) => setAnsSuggestions(e.target.value)}
+                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="comments" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-              <MessageSquare className="h-3 w-3" /> Comments & Suggestions
+              <MessageSquare className="h-3 w-3" /> General Comments & Suggestions
             </Label>
             <Textarea
               id="comments"
-              placeholder="What did you like about the activity? How can we improve it next time?"
+              placeholder="Any other comments or feedback about the event..."
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              className="bg-slate-50/50 border-slate-200 shadow-inner text-xs min-h-[100px]"
+              className="bg-slate-50/50 border-slate-200 shadow-inner text-xs min-h-[80px]"
             />
           </div>
 

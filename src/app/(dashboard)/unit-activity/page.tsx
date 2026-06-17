@@ -52,6 +52,8 @@ import {
   Check,
   Pencil,
   StopCircle,
+  Star,
+  MessageSquare,
   X
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
@@ -140,6 +142,7 @@ export default function UnitActivityPage() {
   const [evalFeedbackFocus, setEvalFeedbackFocus] = useState<string[]>(['objectives', 'speaker', 'venue', 'overall']);
   const [evalFormMode, setEvalFormMode] = useState<'open' | 'strict'>('open');
   const [isSavingStrategy, setIsSavingStrategy] = useState(false);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<ActivityEvaluation | null>(null);
 
   const openEvalWizard = (act: AttendanceActivity) => {
     setSelectedEvalActivity(act);
@@ -530,23 +533,58 @@ export default function UnitActivityPage() {
     }));
   }, [sortedLogs, selectedActivityId]);
 
+  const averageRatingsObj = useMemo(() => {
+    if (filteredEvaluations.length === 0) {
+      return { objectives: 0, speaker: 0, topic: 0, venue: 0, food: 0, materials: 0, overall: 0 };
+    }
+    let sumObj = 0, countObj = 0;
+    let sumSpk = 0, countSpk = 0;
+    let sumTop = 0, countTop = 0;
+    let sumVen = 0, countVen = 0;
+    let sumFood = 0, countFood = 0;
+    let sumMat = 0, countMat = 0;
+    let sumOvr = 0, countOvr = 0;
+
+    filteredEvaluations.forEach(e => {
+      if (e.ratingObjectives) { sumObj += e.ratingObjectives; countObj++; }
+      if (e.ratingSpeaker) { sumSpk += e.ratingSpeaker; countSpk++; }
+      if (e.ratingTopic) { sumTop += e.ratingTopic; countTop++; }
+      if (e.ratingVenue) { sumVen += e.ratingVenue; countVen++; }
+      if (e.ratingFood) { sumFood += e.ratingFood; countFood++; }
+      if (e.ratingMaterials) { sumMat += e.ratingMaterials; countMat++; }
+      if (e.ratingOverall) { sumOvr += e.ratingOverall; countOvr++; }
+    });
+
+    return {
+      objectives: countObj > 0 ? parseFloat((sumObj / countObj).toFixed(2)) : 0,
+      speaker: countSpk > 0 ? parseFloat((sumSpk / countSpk).toFixed(2)) : 0,
+      topic: countTop > 0 ? parseFloat((sumTop / countTop).toFixed(2)) : 0,
+      venue: countVen > 0 ? parseFloat((sumVen / countVen).toFixed(2)) : 0,
+      food: countFood > 0 ? parseFloat((sumFood / countFood).toFixed(2)) : 0,
+      materials: countMat > 0 ? parseFloat((sumMat / countMat).toFixed(2)) : 0,
+      overall: countOvr > 0 ? parseFloat((sumOvr / countOvr).toFixed(2)) : 0,
+    };
+  }, [filteredEvaluations]);
+
+  const focusList = useMemo(() => {
+    return activeActivity?.evaluationStrategy?.feedbackFocus || ['objectives', 'speaker', 'venue', 'overall'];
+  }, [activeActivity]);
+
   const averageRatings = useMemo(() => {
     if (filteredEvaluations.length === 0) return [];
-    let sumObj = 0, sumSpk = 0, sumVen = 0, sumOvr = 0;
-    filteredEvaluations.forEach(e => {
-      sumObj += e.ratingObjectives || 0;
-      sumSpk += e.ratingSpeaker || 0;
-      sumVen += e.ratingVenue || 0;
-      sumOvr += e.ratingOverall || 0;
-    });
-    const count = filteredEvaluations.length;
-    return [
-      { category: 'Objectives Met', rating: parseFloat((sumObj / count).toFixed(2)) },
-      { category: 'Speaker performance', rating: parseFloat((sumSpk / count).toFixed(2)) },
-      { category: 'Venue Quality', rating: parseFloat((sumVen / count).toFixed(2)) },
-      { category: 'Overall Satisfaction', rating: parseFloat((sumOvr / count).toFixed(2)) },
-    ];
-  }, [filteredEvaluations]);
+    
+    const { objectives, speaker, topic, venue, food, materials, overall } = averageRatingsObj;
+    const result = [];
+    if (focusList.includes('objectives') && objectives > 0) result.push({ category: 'Objectives Met', rating: objectives });
+    if (focusList.includes('speaker') && speaker > 0) result.push({ category: 'Speaker Delivery', rating: speaker });
+    if (focusList.includes('speaker') && topic > 0) result.push({ category: 'Topic Relevance', rating: topic });
+    if (focusList.includes('venue') && venue > 0) result.push({ category: 'Venue Quality', rating: venue });
+    if (focusList.includes('food') && food > 0) result.push({ category: 'Food Quality', rating: food });
+    if (focusList.includes('materials') && materials > 0) result.push({ category: 'Materials Quality', rating: materials });
+    if (focusList.includes('overall') && overall > 0) result.push({ category: 'Overall Satisfaction', rating: overall });
+
+    return result;
+  }, [filteredEvaluations, averageRatingsObj, focusList]);
 
   // --- 3. CAMERA QR SCANNING MODULE (CDN LOADED) ---
   const [isScannerLibLoaded, setIsScannerLibLoaded] = useState(false);
@@ -1958,13 +1996,19 @@ export default function UnitActivityPage() {
           ) : (
             <div className="space-y-6">
               {/* Average Ratings Dashboard Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
                 {[
-                  { title: 'Objectives Met', val: averageRatings[0]?.rating || 0 },
-                  { title: 'Speaker / Facilitator', val: averageRatings[1]?.rating || 0 },
-                  { title: 'Venue & Organization', val: averageRatings[2]?.rating || 0 },
-                  { title: 'Overall Satisfaction', val: averageRatings[3]?.rating || 0 },
-                ].map((item, idx) => (
+                  { id: 'objectives', title: 'Objectives Met', val: averageRatingsObj.objectives },
+                  { id: 'speaker', title: 'Speaker Delivery', val: averageRatingsObj.speaker },
+                  { id: 'topic', title: 'Topic Relevance', val: averageRatingsObj.topic },
+                  { id: 'venue', title: 'Venue Quality', val: averageRatingsObj.venue },
+                  { id: 'food', title: 'Food Quality', val: averageRatingsObj.food },
+                  { id: 'materials', title: 'Materials Quality', val: averageRatingsObj.materials },
+                  { id: 'overall', title: 'Overall Rating', val: averageRatingsObj.overall },
+                ].filter(item => {
+                  if (item.id === 'topic') return focusList.includes('speaker');
+                  return focusList.includes(item.id);
+                }).map((item, idx) => (
                   <Card key={idx} className="shadow-sm border-slate-200 bg-white">
                     <CardHeader className="p-4 pb-2">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.title}</p>
@@ -2060,7 +2104,7 @@ export default function UnitActivityPage() {
                           <Tooltip />
                           <Bar dataKey="rating" fill="#3b82f6" radius={[0, 4, 4, 0]}>
                             {averageRatings.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={index === 3 ? '#10b981' : '#3b82f6'} />
+                              <Cell key={`cell-${index}`} fill={index === averageRatings.length - 1 ? '#10b981' : '#3b82f6'} />
                             ))}
                           </Bar>
                         </BarChart>
@@ -2084,20 +2128,29 @@ export default function UnitActivityPage() {
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {filteredEvaluations.map((evalItem) => (
-                        <div key={evalItem.id} className="p-4 space-y-1 hover:bg-slate-50/30 transition-colors">
+                        <div 
+                          key={evalItem.id} 
+                          className="p-4 space-y-1 hover:bg-slate-100/50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedEvaluation(evalItem)}
+                        >
                           <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-slate-700 uppercase">{evalItem.participantName || 'Anonymous'}</span>
+                            <span className="text-xs font-extrabold text-slate-700 uppercase flex items-center gap-1.5">
+                              {evalItem.participantName || 'Anonymous'}
+                              {evalItem.ratingOverall && (
+                                <span className="text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                  ★ {evalItem.ratingOverall}
+                                </span>
+                              )}
+                            </span>
                             <span className="text-[9px] font-bold text-slate-400">
                               {evalItem.submittedAt?.toDate
                                 ? format(evalItem.submittedAt.toDate(), 'MM/dd/yyyy hh:mm a')
                                 : 'N/A'}
                             </span>
                           </div>
-                          {evalItem.comments ? (
-                            <p className="text-xs text-slate-600 italic font-medium">"{evalItem.comments}"</p>
-                          ) : (
-                            <p className="text-xs text-slate-400 italic">No text comments provided.</p>
-                          )}
+                          <p className="text-xs text-slate-600 font-medium line-clamp-2">
+                            {evalItem.comments || evalItem.commentsOverall || evalItem.ansTakeaways || "Click to view detailed feedback ratings & open-ended comments."}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -2583,6 +2636,120 @@ export default function UnitActivityPage() {
               )}
             </DialogFooter>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* EVALUATION DETAIL DIALOG */}
+      <Dialog open={!!selectedEvaluation} onOpenChange={(open) => { if (!open) setSelectedEvaluation(null); }}>
+        <DialogContent className="max-w-2xl bg-white border-slate-200 text-slate-900 rounded-2xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
+            <DialogTitle className="text-base font-black uppercase text-slate-800 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#D4AF37]" />
+              Participant Evaluation Details
+            </DialogTitle>
+            <DialogDescription className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+              Submitted by {selectedEvaluation?.participantName || 'Anonymous'} on {selectedEvaluation?.submittedAt?.toDate ? format(selectedEvaluation.submittedAt.toDate(), 'MM/dd/yyyy hh:mm a') : 'N/A'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+            {/* Demographics Card */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Participant Name</p>
+                <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantName || 'Anonymous'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Contact details</p>
+                <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedEvaluation?.participantContact || 'Not Provided'}</p>
+              </div>
+            </div>
+
+            {/* Structured Ratings */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Structured Category Ratings</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: 'Objectives Met', rating: selectedEvaluation?.ratingObjectives, comment: selectedEvaluation?.commentsObjectives },
+                  { label: 'Speaker & Facilitator', rating: selectedEvaluation?.ratingSpeaker, comment: selectedEvaluation?.commentsSpeaker },
+                  { label: 'Topic Relevance (Speaker Sub-Criteria)', rating: selectedEvaluation?.ratingTopic },
+                  { label: 'Venue & Organization', rating: selectedEvaluation?.ratingVenue, comment: selectedEvaluation?.commentsVenue },
+                  { label: 'Food & Refreshments', rating: selectedEvaluation?.ratingFood, comment: selectedEvaluation?.commentsFood },
+                  { label: 'Materials & Handouts', rating: selectedEvaluation?.ratingMaterials, comment: selectedEvaluation?.commentsMaterials },
+                  { label: 'Overall Satisfaction', rating: selectedEvaluation?.ratingOverall, comment: selectedEvaluation?.commentsOverall }
+                ].filter(r => r.rating !== undefined && r.rating > 0).map((r, idx) => (
+                  <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-extrabold text-slate-700">{r.label}</span>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star 
+                            key={s} 
+                            className={cn(
+                              "h-3.5 w-3.5", 
+                              s <= (r.rating || 0) ? "text-amber-400 fill-amber-400" : "text-slate-200"
+                            )} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {r.comment && (
+                      <p className="text-[11px] text-slate-600 italic bg-slate-50/50 p-2 rounded-lg border border-slate-50">
+                        "{r.comment}"
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Qualitative Feedback Answers */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Qualitative Feedback Responses</h4>
+              <div className="divide-y divide-slate-100 bg-slate-50 rounded-xl border border-slate-200/60 overflow-hidden">
+                {[
+                  { q: '1. What was your single biggest takeaway from this event?', val: selectedEvaluation?.ansTakeaways },
+                  { q: '2. Did this activity meet your expectations? Why or why not?', val: selectedEvaluation?.ansExpectations },
+                  { q: '3. How did this activity make you feel?', val: selectedEvaluation?.ansFeelings },
+                  { q: '4. Which part was most valuable to you and why?', val: selectedEvaluation?.ansValuable },
+                  { q: '5. Was there a specific topic or activity you wish had been included?', val: selectedEvaluation?.ansMissed },
+                  { q: '6. If you could change one thing about this event, what would it be?', val: selectedEvaluation?.ansChange },
+                  { q: '7. What are your suggestions for making the next activity even better?', val: selectedEvaluation?.ansSuggestions }
+                ].map((item, idx) => (
+                  <div key={idx} className="p-4 space-y-1.5 hover:bg-slate-100/30 transition-colors">
+                    <p className="text-xs font-bold text-slate-700">{item.q}</p>
+                    {item.val ? (
+                      <p className="text-xs text-slate-600 bg-white p-2.5 rounded-lg border shadow-sm whitespace-pre-line leading-relaxed font-medium">
+                        {item.val}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No answer provided.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* General comments */}
+            {selectedEvaluation?.comments && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">General Comments & Suggestions</h4>
+                <p className="text-xs text-slate-600 italic bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl shadow-inner whitespace-pre-line leading-relaxed font-semibold">
+                  "{selectedEvaluation.comments}"
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4">
+            <Button
+              type="button"
+              onClick={() => setSelectedEvaluation(null)}
+              className="h-10 px-6 font-black uppercase tracking-wider text-xs w-full sm:w-auto"
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

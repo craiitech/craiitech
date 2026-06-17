@@ -1179,10 +1179,31 @@ export type ActivityEvaluation = {
   activityId: string;
   participantName?: string;
   participantContact?: string;
-  ratingObjectives: number;
-  ratingSpeaker: number;
-  ratingVenue: number;
-  ratingOverall: number;
-  comments: string;
+  ratingObjectives?: number;
+  ratingSpeaker?: number;
+  ratingTopic?: number; // Sub-criteria under Speaker & Facilitator for the Topic
+  ratingVenue?: number;
+  ratingFood?: number;
+  ratingMaterials?: number;
+  ratingOverall?: number;
+  
+  // Per-category qualitative comments
+  commentsObjectives?: string;
+  commentsSpeaker?: string;
+  commentsVenue?: string;
+  commentsFood?: string;
+  commentsMaterials?: string;
+  commentsOverall?: string;
+  comments: string; // fallback or general comments
+
+  // Open-ended qualitative answers
+  ansTakeaways?: string;
+  ansExpectations?: string;
+  ansFeelings?: string;
+  ansValuable?: string;
+  ansMissed?: string;
+  ansChange?: string;
+  ansSuggestions?: string;
+
   submittedAt: any; // Timestamp
 };
