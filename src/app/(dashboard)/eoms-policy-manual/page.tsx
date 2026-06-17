@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from '@/firebase/firestore-wrapper';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

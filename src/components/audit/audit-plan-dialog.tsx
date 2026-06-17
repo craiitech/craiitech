@@ -52,7 +52,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types';

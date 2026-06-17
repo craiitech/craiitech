@@ -63,7 +63,7 @@ import {
   orderBy,
   limit,
   updateDoc,
-} from 'firebase/firestore';
+} from '@/firebase/firestore-wrapper';
 import { Progress } from '@/components/ui/progress';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';

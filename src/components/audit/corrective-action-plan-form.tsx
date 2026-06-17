@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, query, where } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, query, where } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import type { User } from '@/lib/types';

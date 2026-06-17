@@ -2,7 +2,7 @@
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Risk, Submission, Cycle, Unit } from '@/lib/types';
-import { collection } from 'firebase/firestore';
+import { collection } from '@/firebase/firestore-wrapper';
 import { Loader2, CalendarSearch } from 'lucide-react';
 import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-over-time';
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';

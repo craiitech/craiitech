@@ -29,7 +29,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { User, Role, Campus, Unit } from '@/lib/types';

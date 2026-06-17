@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch, Edit, Trash2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { cn } from '@/lib/utils';
 
 interface RiskTableProps {

@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 
 interface RiskDashboardProps {
   risks: Risk[];

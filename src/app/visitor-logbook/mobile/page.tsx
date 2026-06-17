@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, addDoc, Timestamp, doc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, updateDoc, query, where } from '@/firebase/firestore-wrapper';
 import type { Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

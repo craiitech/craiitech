@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest, Risk, ProgramComplianceRecord, ManagementReviewOutput } from '@/lib/types';
-import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw, Loader2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';

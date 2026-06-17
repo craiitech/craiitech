@@ -19,7 +19,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { StrategicSwotAnalysis } from '../submissions/strategic-swot-analysis';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 interface UnitSubmissionDetailCardProps {

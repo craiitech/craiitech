@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import { signOut, User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from '@/firebase/firestore-wrapper';
 import { Loader2, CheckCircle, ShieldAlert } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 

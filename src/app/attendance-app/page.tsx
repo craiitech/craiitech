@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
-import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit, updateDoc } from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

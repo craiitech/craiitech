@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from '@/firebase/firestore-wrapper';
 import type { Unit, Submission, Comment, User as AppUser, Campus, Risk } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';

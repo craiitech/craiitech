@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, deleteDoc, updateDoc, query, where } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

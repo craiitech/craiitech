@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, Info, Users, GraduationCap, TrendingUp, BarChart3, ChevronRight, Calculator, CheckCircle2 } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';

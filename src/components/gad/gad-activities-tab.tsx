@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from '@/firebase/firestore-wrapper';
 import type { GADActivity, Campus, Unit, GADSector } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

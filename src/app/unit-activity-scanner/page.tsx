@@ -12,7 +12,7 @@ import {
   updateDoc,
   orderBy,
   limit
-} from 'firebase/firestore';
+} from '@/firebase/firestore-wrapper';
 import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

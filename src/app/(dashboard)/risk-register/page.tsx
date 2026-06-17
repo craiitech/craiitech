@@ -43,7 +43,7 @@ import type {
     Cycle
 } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';

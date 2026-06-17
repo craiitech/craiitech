@@ -3,7 +3,7 @@
 import React from 'react';
 import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { cn, parseDate } from '@/lib/utils';
 import { Check } from 'lucide-react';

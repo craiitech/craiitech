@@ -17,7 +17,7 @@ import {
     waitForPendingWrites,
     limit,
     getDocsFromCache,
-} from 'firebase/firestore';
+} from '@/firebase/firestore-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';

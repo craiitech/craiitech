@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Campus, Unit, ProgramComplianceRecord, GADInitiative, GadSettings, GADPlan, GADActivity } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

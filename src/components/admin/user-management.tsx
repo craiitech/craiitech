@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc } from '@/firebase/firestore-wrapper';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { EditUserDialog } from './edit-user-dialog';

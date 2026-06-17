@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Campus, Unit } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

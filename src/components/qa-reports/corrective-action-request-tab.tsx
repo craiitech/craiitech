@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from 'firebase/firestore';
+import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, Timestamp, arrayUnion, orderBy } from '@/firebase/firestore-wrapper';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories, Comment, AuditFinding, AuditSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc, setDoc } from 'firebase/firestore';
+import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp, getDoc, setDoc } from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { AuditSchedule, AuditFinding, ISOClause, Signatories, CorrectiveActionRequest, AuditPlan, Campus, Submission } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

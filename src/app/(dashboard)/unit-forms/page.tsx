@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, serverTimestamp, updateDoc, addDoc } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Unit, UnitForm, CampusSetting, UnitFormRequest, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

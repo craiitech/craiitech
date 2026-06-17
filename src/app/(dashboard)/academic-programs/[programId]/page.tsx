@@ -1,7 +1,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc } from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { AcademicProgram, Campus } from '@/lib/types';
 import { Button } from '@/components/ui/button';

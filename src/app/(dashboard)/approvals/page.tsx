@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/card';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import { useMemo } from 'react';
 import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';

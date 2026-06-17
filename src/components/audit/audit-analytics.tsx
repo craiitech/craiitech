@@ -68,7 +68,7 @@ import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
 import { AuditReceivingPrintTemplate } from './audit-receiving-print-template';
 import { AuditorRegistryPrintTemplate } from './auditor-registry-print-template';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { doc, Timestamp } from '@/firebase/firestore-wrapper';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 

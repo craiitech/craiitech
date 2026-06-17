@@ -24,7 +24,7 @@ import {
     FileText,
     Loader2
 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';

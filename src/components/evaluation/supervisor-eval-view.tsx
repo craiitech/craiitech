@@ -2,7 +2,7 @@
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import type { User, EvaluationCycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

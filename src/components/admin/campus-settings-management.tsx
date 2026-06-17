@@ -12,7 +12,7 @@ import {
   useUser,
   useDoc,
 } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Card,

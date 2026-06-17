@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Building, CalendarOff } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { submissionTypes } from '@/lib/constants';
 import { isAfter } from 'date-fns';
 

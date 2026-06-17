@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building, School, AlertTriangle, ListFilter, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { cn } from '@/lib/utils';
 
 interface MonitoringFindingsProps {

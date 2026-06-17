@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { parseDate } from '@/lib/utils';
 
 const getSiteNumber = (name: string): number => {

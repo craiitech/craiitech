@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from '@/firebase/firestore-wrapper';
 import {
   AlertDialog,
   AlertDialogAction,

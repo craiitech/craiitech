@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, Timestamp } from '@/firebase/firestore-wrapper';
 import type { Submission, Campus, Unit, User as AppUser, Cycle, Risk } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';

@@ -78,9 +78,9 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
-import { Timestamp, collection, query, where } from 'firebase/firestore';
+import { Timestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from '@/firebase/firestore-wrapper';
 import { format } from 'date-fns';
 
 interface ProgramPerformanceViewProps {

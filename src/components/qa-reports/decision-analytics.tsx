@@ -34,7 +34,7 @@ import {
     Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 
 interface DecisionAnalyticsProps {
   outputs: ManagementReviewOutput[];

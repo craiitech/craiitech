@@ -10,7 +10,7 @@ import {
   enableMultiTabIndexedDbPersistence, 
   Firestore,
   CACHE_SIZE_UNLIMITED
-} from 'firebase/firestore'
+} from '@/firebase/firestore-wrapper'
 import { useMemo, type DependencyList } from 'react';
 
 // Singleton to hold initialized SDKs

@@ -22,7 +22,7 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server';
 import { GADAccomplishmentReportTemplate } from './gad-print-templates';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { doc, Timestamp } from '@/firebase/firestore-wrapper';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';

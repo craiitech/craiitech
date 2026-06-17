@@ -20,7 +20,7 @@ import {
   UserCredential,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from '@/firebase/firestore-wrapper';
 import { Loader2, Mail, X, Eye, EyeOff, AlertCircle, Users, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';

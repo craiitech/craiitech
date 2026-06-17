@@ -30,7 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection } from '@/firebase/firestore-wrapper';
 import type { Unit } from '@/lib/types';
 import { MultiSelector } from '@/components/qa-reports/multi-selector';
 

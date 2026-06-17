@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from '@/firebase/firestore-wrapper';
 import type { AttendanceActivity } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { 

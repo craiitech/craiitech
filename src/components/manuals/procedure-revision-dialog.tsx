@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 

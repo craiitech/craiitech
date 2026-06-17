@@ -65,7 +65,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance, CampusNoticeOfCompliance, CampusNoticeOfNonCompliance } from './notices-print-templates';
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
-import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
+import { doc, Timestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

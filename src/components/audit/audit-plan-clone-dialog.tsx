@@ -30,7 +30,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
-import { doc, collection, writeBatch, Timestamp } from 'firebase/firestore';
+import { doc, collection, writeBatch, Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import type { AuditPlan, AuditSchedule, Campus } from '@/lib/types';
 import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight, PlusCircle, FileText, ShieldCheck } from 'lucide-react';

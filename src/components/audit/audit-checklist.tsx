@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk } from '@/lib/types';
-import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc } from '@/firebase/firestore-wrapper';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle } from 'lucide-react';

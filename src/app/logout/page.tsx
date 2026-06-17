@@ -15,7 +15,7 @@ import {
 import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck, Database, RefreshCw, ShieldCheck, Download, AlertTriangle, ExternalLink, ChevronRight, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import { collection, addDoc, serverTimestamp, doc, getDocs, Timestamp, query, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDocs, Timestamp, query, where } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';

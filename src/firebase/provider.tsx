@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, collection } from 'firebase/firestore';
+import { Firestore, doc, collection } from '@/firebase/firestore-wrapper';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { useDoc } from './firestore/use-doc';

@@ -44,7 +44,7 @@ import {
     Calendar,
     Clock
 } from 'lucide-react';
-import { Timestamp, collection, doc, query, where, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { Timestamp, collection, doc, query, where, updateDoc, serverTimestamp, deleteDoc } from '@/firebase/firestore-wrapper';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn, parseDate } from '@/lib/utils';
 import { format } from 'date-fns';

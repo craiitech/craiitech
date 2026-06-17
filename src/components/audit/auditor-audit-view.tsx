@@ -3,7 +3,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc } from '@/firebase/firestore-wrapper';
 import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest, Signatories } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff, School } from 'lucide-react';

@@ -32,7 +32,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { AcademicProgram, Campus, Unit } from '@/lib/types';

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { Submission, Cycle } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { isAfter, differenceInDays } from 'date-fns';
 import { submissionTypes } from '@/lib/constants';
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 
 interface RORPrintTemplateProps {
   risks: Risk[];

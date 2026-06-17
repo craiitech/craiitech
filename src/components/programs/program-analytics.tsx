@@ -72,7 +72,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { doc, Timestamp } from '@/firebase/firestore-wrapper';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';

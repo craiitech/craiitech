@@ -1,6 +1,6 @@
 'use client';
 
-import { Firestore, collection, doc, writeBatch, getDocs, limit, query } from 'firebase/firestore';
+import { Firestore, collection, doc, writeBatch, getDocs, limit, query } from '@/firebase/firestore-wrapper';
 import isoClausesData from './iso-clauses.json';
 
 /**

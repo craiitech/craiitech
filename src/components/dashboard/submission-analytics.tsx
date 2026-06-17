@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LabelList } from 'recharts';
 import { Skeleton } from '../ui/skeleton';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection } from '@/firebase/firestore-wrapper';
 import type { Campus } from '@/lib/types';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import { Info, Zap, Target, Activity, Timer, ShieldCheck, CheckCircle2 } from 'lucide-react';

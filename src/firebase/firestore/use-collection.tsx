@@ -8,7 +8,7 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
-} from 'firebase/firestore';
+} from '@/firebase/firestore-wrapper';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 

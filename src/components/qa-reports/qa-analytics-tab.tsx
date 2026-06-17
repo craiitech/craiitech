@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import type { CorrectiveActionRequest, ManagementReview, ManagementReviewOutput, QaAuditReport } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
@@ -41,7 +41,7 @@ import {
     History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 
 const CAR_STATUS_COLORS: Record<string, string> = {
   Open: 'hsl(var(--destructive))',

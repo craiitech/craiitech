@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import type { Unit, ProcedureManual } from '@/lib/types';
 import {
   Table,

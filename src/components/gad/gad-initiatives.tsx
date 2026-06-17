@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from '@/firebase/firestore-wrapper';
 import type { GADInitiative, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

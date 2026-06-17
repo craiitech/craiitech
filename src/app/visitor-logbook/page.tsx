@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useNetworkStatus } from '@/hooks/use-network-status';
-import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import type { Campus, Unit, SystemSettings, Employee } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

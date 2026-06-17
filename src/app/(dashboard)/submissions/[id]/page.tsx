@@ -2,7 +2,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where, getDoc, deleteDoc } from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
 import {

@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from '@/firebase/firestore-wrapper';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

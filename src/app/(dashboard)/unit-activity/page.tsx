@@ -14,7 +14,7 @@ import {
   where, 
   orderBy, 
   serverTimestamp 
-} from 'firebase/firestore';
+} from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog, ActivitySession, ActivityEvaluation } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

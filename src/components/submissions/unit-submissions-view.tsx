@@ -53,7 +53,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
+import { doc, Timestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 

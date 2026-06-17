@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Calendar, Clock, ClipboardList, Info, Printer, Loader2, FileText, Award, GraduationCap, TriangleAlert, ListChecks, Zap } from 'lucide-react';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

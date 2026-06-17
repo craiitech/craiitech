@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import type { Risk } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, ArrowRight, HelpCircle, ChevronDown, ChevronUp, Info, ShieldCheck } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';

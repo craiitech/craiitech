@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
 import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck, Printer, Briefcase, Users, ExternalLink } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, doc, deleteDoc } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding, CorrectiveActionRequest, Signatories } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';

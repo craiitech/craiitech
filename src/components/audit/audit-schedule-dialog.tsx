@@ -33,7 +33,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup, Campus } from '@/lib/types';

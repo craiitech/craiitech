@@ -31,7 +31,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, where } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, where } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';

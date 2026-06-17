@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc } from '@/firebase/firestore-wrapper';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

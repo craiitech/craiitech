@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import type { Campus, Unit, Submission, User as AppUser, Cycle, Risk, ProgramComplianceRecord, CsmSettings, CsmDeployment } from '@/lib/types';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc } from '@/firebase/firestore-wrapper';
 import { CsmReportDashboard } from '@/components/reports/csm-report-dashboard';
 import { Smile, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, writeBatch, collection, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, writeBatch, collection, arrayUnion } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 

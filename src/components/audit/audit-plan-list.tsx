@@ -37,7 +37,7 @@ import {
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn, parseDate } from '@/lib/utils';
-import { Timestamp, doc } from 'firebase/firestore';
+import { Timestamp, doc } from '@/firebase/firestore-wrapper';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';

@@ -6,7 +6,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, deleteDoc, updateDoc } from '@/firebase/firestore-wrapper';
 import type { Campus, CampusSetting } from '@/lib/types';
 import {
   Card,

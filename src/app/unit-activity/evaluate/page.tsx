@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

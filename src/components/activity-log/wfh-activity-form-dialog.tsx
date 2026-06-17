@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, setDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc, Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 

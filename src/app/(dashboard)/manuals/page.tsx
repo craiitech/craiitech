@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import type { ProcedureManual, Unit, ProcedureRevisionRequest, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

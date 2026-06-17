@@ -1,7 +1,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc } from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { AuditFinding } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

@@ -56,7 +56,7 @@ import {
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from '@/firebase/firestore-wrapper';
 import {
   Select,
   SelectContent,

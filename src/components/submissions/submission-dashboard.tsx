@@ -42,7 +42,7 @@ import {
     ChevronRight,
     Circle
 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/firebase/firestore-wrapper';
 import { isBefore, isAfter } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';

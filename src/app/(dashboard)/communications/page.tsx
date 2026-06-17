@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, Communication, CommunicationKind } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

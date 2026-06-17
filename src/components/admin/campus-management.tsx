@@ -10,7 +10,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

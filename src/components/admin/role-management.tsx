@@ -11,7 +11,7 @@ import {
   useMemoFirebase,
   useUser,
 } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

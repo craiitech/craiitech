@@ -5,7 +5,7 @@ import type { AcademicProgram, ProgramComplianceRecord, Cycle } from '@/lib/type
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, FormProvider } from 'react-hook-form';

@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import type { AuditFinding, AuditSchedule, CorrectiveActionPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
