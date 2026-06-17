@@ -829,114 +829,122 @@ function UnitActivityScannerTerminal() {
     <div className="relative w-full h-screen overflow-hidden bg-[#0d2a18] font-sans text-white flex flex-col">
 
       {/* ================================================================== */}
-      {/* BACKGROUND: rsupage.png with Ken Burns Animation                   */}
+      {/* BACKGROUND: rsupage.png VIVID full-screen + Ken Burns + glass overlay */}
       {/* ================================================================== */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        {/* The campus photo — full visibility with Ken Burns slow zoom */}
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center"
           style={{
             backgroundImage: "url('/rsupage.png')",
-            opacity: 0.12,
-            animation: "kenBurnsBackground 40s ease-in-out infinite",
-            mixBlendMode: "overlay"
+            opacity: 0.55,
+            animation: "kenBurnsBackground 45s ease-in-out infinite",
           }}
         />
-        {/* Soft layout overlay to keep UI text/cards perfectly legible */}
-        <div className="absolute inset-0 bg-[#0d2a18]/90" />
+        {/* Deep green tint overlay — keeps text legible while letting photo show */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(13,42,24,0.80) 0%, rgba(10,30,18,0.72) 50%, rgba(18,48,30,0.80) 100%)' }} />
+        {/* Luminous ambient glows */}
+        <div className="absolute top-0 left-0 w-[700px] h-[700px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(27,101,53,0.25) 0%, transparent 70%)', transform: 'translate(-30%, -30%)' }} />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
       </div>
 
-      {/* Decorative shimmers */}
-      <div className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-[#1B6535]/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-1/4 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none" />
-
       {/* ================================================================== */}
-      {/* TOP HEADER BAR — floats over layout                                */}
+      {/* TOP HEADER BAR — 3-column: controls | branding | QR code           */}
       {/* ================================================================== */}
-      <header className="relative z-20 flex flex-col items-center px-6 pt-5 pb-3 bg-black/40 backdrop-blur-md border-b border-white/10 shrink-0 animate-in slide-in-from-top duration-300 gap-2">
+      <header className="relative z-20 flex items-center justify-between px-5 py-3 shrink-0 animate-in slide-in-from-top duration-300"
+        style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', borderBottom: '1px solid rgba(255,255,255,0.12)' }}
+      >
+        {/* LEFT: Controls cluster */}
+        <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+          {/* Clock */}
+          {currentTime && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full w-fit"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
+              <Clock className="h-3 w-3 text-[#D4AF37] shrink-0" />
+              <span className="text-[10px] font-black text-white tabular-nums">{format(currentTime, 'hh:mm:ss a')}</span>
+              <div className="h-3 w-px bg-white/20" />
+              <span className="text-[9px] font-bold text-slate-300">{format(currentTime, 'EEE, MMM dd yyyy')}</span>
+            </div>
+          )}
+          {/* Session + action buttons row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {sessions.length > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <span className="text-[7.5px] font-black text-[#D4AF37] uppercase tracking-wider">Session:</span>
+                <select
+                  value={selectedSessionId}
+                  onChange={async (e) => {
+                    const newSessionId = e.target.value;
+                    setSelectedSessionId(newSessionId);
+                    if (firestore && paramActivityId) {
+                      try {
+                        await updateDoc(doc(firestore, 'unitActivities', paramActivityId), { activeSessionId: newSessionId });
+                      } catch (err) { console.error(err); }
+                    }
+                  }}
+                  className="bg-transparent border-none text-[8.5px] font-black text-white focus:outline-none cursor-pointer uppercase pr-1 max-w-[130px]"
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id} className="bg-slate-950 text-white">{s.label} ({s.date})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)' }}>
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[7.5px] font-black text-emerald-300 uppercase tracking-widest">Live</span>
+            </div>
+            <button onClick={toggleFullscreen}
+              className="inline-flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest text-[#D4AF37]/80 hover:text-[#D4AF37] px-2.5 py-0.5 rounded-full transition-all"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}>
+              {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+              Fullscreen
+            </button>
+            <button onClick={handleExitTerminal}
+              className="inline-flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 px-2.5 py-0.5 rounded-full transition-all"
+              style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
+              <ArrowLeft className="h-3 w-3" />
+              Exit
+            </button>
+          </div>
+        </div>
 
-        {/* ---- CENTERED BRANDING BLOCK ---- */}
-        <div className="flex flex-col items-center gap-2 text-center">
-          <img src="/rsulogo.png" alt="RSU Logo" className="h-16 w-16 object-contain drop-shadow-2xl" />
-          <h1 className="text-lg sm:text-xl font-black tracking-tight text-white uppercase flex items-center gap-2 drop-shadow">
-            <Sparkles className="h-4 w-4 text-[#D4AF37] animate-pulse shrink-0" />
+        {/* CENTER: Logo + Title + Event Name */}
+        <div className="flex flex-col items-center gap-1 text-center px-4 shrink-0">
+          <img src="/rsulogo.png" alt="RSU Logo" className="h-14 w-14 object-contain drop-shadow-2xl" />
+          <h1 className="text-base sm:text-lg font-black tracking-tight text-white uppercase flex items-center gap-2 drop-shadow">
+            <Sparkles className="h-3.5 w-3.5 text-[#D4AF37] animate-pulse shrink-0" />
             RSU Attendance Terminal
-            <Sparkles className="h-4 w-4 text-[#D4AF37] animate-pulse shrink-0" />
+            <Sparkles className="h-3.5 w-3.5 text-[#D4AF37] animate-pulse shrink-0" />
           </h1>
           {activeActivity && (
-            <p className="text-base sm:text-lg md:text-2xl font-black text-[#D4AF37] tracking-widest uppercase drop-shadow leading-tight text-center max-w-4xl">
+            <p className="text-sm sm:text-base md:text-xl font-black text-[#D4AF37] tracking-wide uppercase drop-shadow leading-tight text-center max-w-2xl">
               {activeActivity.name}
             </p>
           )}
           {activeActivity && (
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-              {activeActivityUnit}
-            </span>
+            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{activeActivityUnit}</span>
           )}
         </div>
 
-        {/* ---- CONTROLS ROW ---- */}
-        <div className="flex items-center gap-2 flex-wrap justify-center mt-1">
-          {/* Clock widget */}
-          {currentTime && (
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 shadow-xl">
-              <Clock className="h-3 w-3 text-[#D4AF37] shrink-0" />
-              <span className="text-[10px] font-black text-white tabular-nums">{format(currentTime, 'hh:mm:ss a')}</span>
-              <div className="h-3 w-px bg-white/15" />
-              <Calendar className="h-3 w-3 text-[#D4AF37] shrink-0" />
-              <span className="text-[9px] font-bold text-white">{format(currentTime, 'EEE, MMM dd')}</span>
+        {/* RIGHT: Registration QR Code */}
+        <div className="flex flex-col items-end gap-1.5 min-w-0 flex-1">
+          <div className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', border: '1px solid rgba(255,255,255,0.18)' }}>
+            <span className="text-[7px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
+              <QrCode className="h-2.5 w-2.5" /> Scan to Open App
+            </span>
+            <div className="bg-white p-1.5 rounded-xl shadow-inner w-[90px] h-[90px] flex items-center justify-center overflow-hidden">
+              {registrationQrCodeUrl ? (
+                <img src={registrationQrCodeUrl} alt="RSU Attendance App QR" className="w-full h-full object-contain" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-[#1B6535]" />
+              )}
             </div>
-          )}
-
-          {/* Session Selector */}
-          {sessions.length > 0 && (
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 shadow-xl">
-              <span className="text-[8px] font-black text-[#D4AF37] uppercase tracking-wider">Session:</span>
-              <select
-                value={selectedSessionId}
-                onChange={async (e) => {
-                  const newSessionId = e.target.value;
-                  setSelectedSessionId(newSessionId);
-                  if (firestore && paramActivityId) {
-                    try {
-                      await updateDoc(doc(firestore, 'unitActivities', paramActivityId), {
-                        activeSessionId: newSessionId
-                      });
-                    } catch (err) {
-                      console.error("Error updating active session:", err);
-                    }
-                  }
-                }}
-                className="bg-transparent border-none text-[9px] font-black text-white focus:outline-none cursor-pointer uppercase pr-2 max-w-[150px]"
-              >
-                {sessions.map((s) => (
-                  <option key={s.id} value={s.id} className="bg-slate-950 text-white text-[9px] font-bold">
-                    {s.label} ({s.date})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[8px] font-black text-white/85 uppercase tracking-widest">Live</span>
+            <p className="text-[6.5px] font-bold text-slate-400 text-center uppercase tracking-wide leading-tight">RSU Attendance Portal</p>
           </div>
-
-          <button
-            onClick={toggleFullscreen}
-            className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/80 hover:text-[#D4AF37] bg-black/40 hover:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 transition-all"
-          >
-            {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
-            Fullscreen
-          </button>
-
-          <button
-            onClick={handleExitTerminal}
-            className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md px-3 py-1 rounded-full border border-rose-500/30 transition-all"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            Exit
-          </button>
         </div>
       </header>
 
@@ -946,145 +954,122 @@ function UnitActivityScannerTerminal() {
       <main className="relative z-10 flex-1 flex overflow-hidden w-full">
         
         {/* ==================== LEFT COLUMN: MAIN ATTENDANCE DISPLAY ==================== */}
-        <section className="flex-1 flex flex-col p-6 gap-6 overflow-hidden min-w-0">
+        <section className="flex-1 flex flex-col p-4 gap-4 overflow-hidden min-w-0">
           
-          {/* ---- ATTENDANCE INFORMATION (GIANT VALIDATION CARD) ---- */}
+          {/* ---- ATTENDANCE INFORMATION (VALIDATION CARD) ---- */}
           <div className="shrink-0 animate-in slide-in-from-left duration-300">
             {scanResult.status === 'none' ? (
-              // STANDBY WELCOME PANEL (OVERHAULED & MUCH BIGGER)
-              <div className="relative min-h-[380px] rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl flex flex-col items-center justify-center p-8 text-center overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#1B6535]/5 rounded-full blur-3xl pointer-events-none" />
+              // STANDBY WELCOME PANEL
+              <div className="relative rounded-2xl flex flex-col items-center justify-center p-5 text-center overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12)' }}>
+                <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%)' }} />
+                <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(27,101,53,0.10) 0%, transparent 70%)' }} />
                 
                 {currentTime && (
-                  <div className="text-6xl sm:text-7xl lg:text-8xl font-black text-[#D4AF37] tracking-tight tabular-nums drop-shadow-md select-none">
+                  <div className="text-5xl sm:text-6xl font-black text-[#D4AF37] tracking-tight tabular-nums drop-shadow-md select-none">
                     {format(currentTime, 'hh:mm:ss a')}
                   </div>
                 )}
-                
                 {currentTime && (
-                  <p className="text-[10px] sm:text-xs font-extrabold text-slate-300 uppercase tracking-[0.25em] mb-4">
+                  <p className="text-[9px] sm:text-[10px] font-extrabold text-slate-300 uppercase tracking-[0.2em] mt-1 mb-2">
                     {format(currentTime, 'EEEE, MMMM dd, yyyy')}
                   </p>
                 )}
-
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-wider text-white drop-shadow">
-                  RSU Attendance Kiosk Active
-                </h2>
-                
-                <p className="text-[9px] sm:text-[10px] text-emerald-300 uppercase tracking-widest font-black max-w-lg mt-2 px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-white drop-shadow">RSU Attendance Kiosk Active</h2>
+                <p className="text-[8px] sm:text-[9px] text-emerald-300 uppercase tracking-widest font-black max-w-lg mt-1.5 px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}>
                   ★ Align your mobile QR Code inside the scanner on the right ★
                 </p>
-                
                 {/* Statistics Grid */}
-                <div className="grid grid-cols-3 gap-4 sm:gap-6 mt-8 w-full max-w-2xl">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center shadow-inner">
-                    <span className="block text-[8px] sm:text-[9.5px] font-black text-slate-400 uppercase tracking-widest text-center">Total Present</span>
-                    <span className="block text-2xl sm:text-3xl lg:text-4xl font-black text-[#D4AF37] tracking-tight mt-1">{sortedLogs.length}</span>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center shadow-inner">
-                    <span className="block text-[8px] sm:text-[9.5px] font-black text-slate-400 uppercase tracking-widest text-center">On Time</span>
-                    <span className="block text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400 tracking-tight mt-1">
-                      {sortedLogs.filter(l => l.status === 'ON_TIME').length}
-                    </span>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center shadow-inner">
-                    <span className="block text-[8px] sm:text-[9.5px] font-black text-slate-400 uppercase tracking-widest text-center">Late</span>
-                    <span className="block text-2xl sm:text-3xl lg:text-4xl font-black text-amber-400 tracking-tight mt-1">
-                      {sortedLogs.filter(l => l.status === 'LATE').length}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-3 gap-3 mt-4 w-full max-w-2xl">
+                  {[{ label: 'Total Present', val: sortedLogs.length, color: 'text-[#D4AF37]' }, { label: 'On Time', val: sortedLogs.filter(l => l.status === 'ON_TIME').length, color: 'text-emerald-400' }, { label: 'Late', val: sortedLogs.filter(l => l.status === 'LATE').length, color: 'text-amber-400' }].map(({ label, val, color }) => (
+                    <div key={label} className="flex flex-col items-center justify-center py-3 rounded-xl"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)' }}>
+                      <span className={`block text-xl sm:text-2xl lg:text-3xl font-black ${color} tracking-tight`}>{val}</span>
+                      <span className="block text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mt-0.5">{label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : (
-              // ACTIVE SCAN RESULT DISPLAY (OVERHAULED & GIANT ATTENDANCE DETAILS)
-              <div className={`relative min-h-[380px] rounded-3xl border backdrop-blur-md shadow-2xl flex items-center p-8 transition-all duration-300 overflow-hidden ${
-                scanResult.status === 'success'
-                  ? 'bg-emerald-500/15 border-emerald-400/40 shadow-emerald-950/20'
-                  : scanResult.status === 'warning'
-                  ? 'bg-amber-500/15 border-amber-400/40 shadow-amber-950/20'
-                  : 'bg-rose-500/15 border-rose-400/40 shadow-rose-950/20'
-              }`}>
-                {/* Glow ring */}
-                <div className={`absolute -inset-1 rounded-3xl border-2 pointer-events-none opacity-45 ${
-                  scanResult.status === 'success' ? 'border-emerald-400/45 animate-pulse'
-                  : scanResult.status === 'warning' ? 'border-amber-400/45 animate-pulse'
-                  : 'border-rose-400/45 animate-pulse'
-                }`} />
+              // ACTIVE SCAN RESULT DISPLAY
+              <div className={`relative rounded-2xl flex items-center p-6 transition-all duration-300 overflow-hidden ${
+                scanResult.status === 'success' ? '' : scanResult.status === 'warning' ? '' : ''
+              }`}
+                style={{
+                  background: scanResult.status === 'success' ? 'rgba(16,185,129,0.12)' : scanResult.status === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: scanResult.status === 'success' ? '1px solid rgba(52,211,153,0.40)' : scanResult.status === 'warning' ? '1px solid rgba(251,191,36,0.40)' : '1px solid rgba(248,113,113,0.40)',
+                  boxShadow: scanResult.status === 'success' ? '0 0 40px rgba(52,211,153,0.12), inset 0 1px 0 rgba(255,255,255,0.10)' : scanResult.status === 'warning' ? '0 0 40px rgba(251,191,36,0.10), inset 0 1px 0 rgba(255,255,255,0.10)' : '0 0 40px rgba(248,113,113,0.12), inset 0 1px 0 rgba(255,255,255,0.08)'
+                }}>
+                {/* Animated glow pulse ring */}
+                <div className={`absolute -inset-px rounded-2xl pointer-events-none animate-pulse opacity-30`}
+                  style={{ border: scanResult.status === 'success' ? '2px solid rgba(52,211,153,0.6)' : scanResult.status === 'warning' ? '2px solid rgba(251,191,36,0.6)' : '2px solid rgba(248,113,113,0.6)' }} />
 
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 w-full z-10">
-                  {/* Big Status Icon */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 w-full z-10">
+                  {/* Status Icon */}
                   <div className="shrink-0">
                     {scanResult.status === 'success' ? (
-                      <div className="h-28 w-28 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shadow-xl animate-bounce">
-                        <CheckCircle2 className="h-14 w-14" />
+                      <div className="h-24 w-24 rounded-2xl flex items-center justify-center text-emerald-300 animate-bounce"
+                        style={{ background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', boxShadow: '0 0 24px rgba(52,211,153,0.3)' }}>
+                        <CheckCircle2 className="h-12 w-12" />
                       </div>
                     ) : scanResult.status === 'warning' ? (
-                      <div className="h-28 w-28 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-xl animate-pulse">
-                        <Clock className="h-14 w-14" />
+                      <div className="h-24 w-24 rounded-2xl flex items-center justify-center text-amber-300 animate-pulse"
+                        style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', boxShadow: '0 0 24px rgba(245,158,11,0.3)' }}>
+                        <Clock className="h-12 w-12" />
                       </div>
                     ) : (
-                      <div className="h-28 w-28 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shadow-xl animate-shake">
-                        <XCircle className="h-14 w-14" />
+                      <div className="h-24 w-24 rounded-2xl flex items-center justify-center text-rose-300 animate-shake"
+                        style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', boxShadow: '0 0 24px rgba(239,68,68,0.3)' }}>
+                        <XCircle className="h-12 w-12" />
                       </div>
                     )}
                   </div>
 
                   {/* Giant Attendance Details */}
-                  <div className="flex-1 min-w-0 text-center sm:text-left space-y-3">
-                    <span className={`inline-block text-[10px] sm:text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
-                      scanResult.status === 'success' ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
-                      : scanResult.status === 'warning' ? 'bg-amber-500/25 text-amber-300 border-amber-500/30'
-                      : 'bg-rose-500/25 text-rose-300 border-rose-500/30'
-                    }`}>
+                  <div className="flex-1 min-w-0 text-center sm:text-left space-y-2">
+                    <span className={`inline-block text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full ${
+                      scanResult.status === 'success' ? 'text-emerald-300' : scanResult.status === 'warning' ? 'text-amber-300' : 'text-rose-300'
+                    }`}
+                      style={{ background: scanResult.status === 'success' ? 'rgba(52,211,153,0.15)' : scanResult.status === 'warning' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)', border: scanResult.status === 'success' ? '1px solid rgba(52,211,153,0.3)' : scanResult.status === 'warning' ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(239,68,68,0.3)' }}>
                       {scanResult.status === 'success' ? '✓ Scan Approved' : scanResult.status === 'warning' ? '⚠ Scan Warning' : '✗ Scan Rejected'}
                     </span>
 
                     {scanResult.details ? (
-                      // Success/Warning details in giant fonts
-                      <div className="space-y-2">
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight truncate leading-tight select-all">
+                      <div className="space-y-1.5">
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase tracking-tight truncate leading-tight select-all drop-shadow-lg">
                           {scanResult.details.name}
                         </h2>
-                        <p className="text-base sm:text-lg md:text-xl font-extrabold text-[#D4AF37] uppercase tracking-wide">
+                        <p className="text-base sm:text-lg font-extrabold text-[#D4AF37] uppercase tracking-wide">
                           {scanResult.details.office}
                         </p>
-                        
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 pt-4 text-xs sm:text-sm font-black text-slate-300 uppercase tracking-widest">
-                          <span className="flex items-center gap-2 bg-black/30 border border-white/5 px-3 py-1 rounded-lg">
-                            <Clock className="h-4 w-4 text-slate-400" />
-                            Time: {scanResult.details.time}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 pt-2 text-[10px] sm:text-xs font-black text-slate-300 uppercase tracking-widest">
+                          <span className="flex items-center gap-2 px-3 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Clock className="h-3.5 w-3.5 text-slate-400" /> Time: {scanResult.details.time}
                           </span>
-                          <span className="flex items-center gap-2 bg-black/30 border border-white/5 px-3 py-1 rounded-lg">
-                            <Users className="h-4 w-4 text-slate-400" />
-                            Log type: <strong className={scanResult.details.status === 'LOGOUT' ? 'text-cyan-300' : 'text-emerald-300'}>{scanResult.details.status}</strong>
+                          <span className="flex items-center gap-2 px-3 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Users className="h-3.5 w-3.5 text-slate-400" /> Log type: <strong className={scanResult.details.status === 'LOGOUT' ? 'text-cyan-300' : 'text-emerald-300'}>{scanResult.details.status}</strong>
                           </span>
                         </div>
                       </div>
                     ) : (
-                      // Error Message details
-                      <div className="space-y-3">
-                        <h2 className="text-2xl sm:text-3xl font-black text-rose-300 uppercase tracking-tight animate-shake">
-                          Verification Error
-                        </h2>
-                        <p className="text-sm sm:text-base text-slate-200 font-bold max-w-2xl leading-relaxed">
-                          {scanResult.message}
-                        </p>
+                      <div className="space-y-2">
+                        <h2 className="text-2xl sm:text-3xl font-black text-rose-300 uppercase tracking-tight animate-shake">Verification Error</h2>
+                        <p className="text-sm text-slate-200 font-bold max-w-2xl leading-relaxed">{scanResult.message}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Shrinking Countdown Progress Bar */}
-                <div className="absolute bottom-0 left-0 right-0 h-2 bg-white/10 overflow-hidden rounded-b-3xl">
-                  <div 
-                    className={`h-full transition-all duration-300 ${
-                      scanResult.status === 'success' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
-                      : scanResult.status === 'warning' ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
-                      : 'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-                    }`}
+                {/* Countdown Progress Bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden rounded-b-2xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className={`h-full`}
                     style={{
-                      animation: 'shrinkProgress 4.5s linear forwards'
+                      background: scanResult.status === 'success' ? 'linear-gradient(to right, #34d399, #6ee7b7)' : scanResult.status === 'warning' ? 'linear-gradient(to right, #f59e0b, #fcd34d)' : 'linear-gradient(to right, #ef4444, #fca5a5)',
+                      animation: 'shrinkProgress 4.5s linear forwards',
+                      boxShadow: scanResult.status === 'success' ? '0 0 8px rgba(52,211,153,0.6)' : scanResult.status === 'warning' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)'
                     }}
                   />
                 </div>
@@ -1092,56 +1077,53 @@ function UnitActivityScannerTerminal() {
             )}
           </div>
 
-          {/* ---- CHECKED-IN REGISTRY (GIANT CENTRAL LOG LIST) ---- */}
-          <div className="flex-1 min-h-0 bg-white/5 border border-white/10 rounded-3xl flex flex-col p-5 backdrop-blur-md overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#1B6535]/5 rounded-full blur-2xl pointer-events-none" />
+          {/* ---- CHECKED-IN REGISTRY ---- */}
+          <div className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden relative animate-in slide-in-from-bottom duration-300 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)' }}>
             
             {/* List Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
+            <div className="flex items-center justify-between pb-3 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.10)' }}>
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-emerald-400" />
+                <Users className="h-3.5 w-3.5 text-emerald-400" />
                 <div>
-                  <h3 className="text-xs font-black uppercase text-white tracking-wider">Checked-In Registry Logs</h3>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Real-time attendance record</p>
+                  <h3 className="text-[10px] font-black uppercase text-white tracking-wider">Checked-In Registry Logs</h3>
+                  <p className="text-[7.5px] text-slate-400 font-bold uppercase tracking-widest">Real-time attendance record</p>
                 </div>
               </div>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-black px-2.5 py-0.5 rounded-full">
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[8px] font-black px-2 py-0.5 rounded-full">
                 {sortedLogs.length} Checked In
               </Badge>
             </div>
 
             {/* List Body */}
-            <div className="flex-1 overflow-y-auto mt-4 pr-1">
+            <div className="flex-1 overflow-y-auto mt-3 pr-1">
               {sortedLogs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48 text-slate-500 text-xs font-black uppercase tracking-wider italic gap-3 opacity-60">
-                  <Users className="h-8 w-8 opacity-30" />
+                <div className="flex flex-col items-center justify-center h-32 text-slate-500 text-[10px] font-black uppercase tracking-wider italic gap-2 opacity-60">
+                  <Users className="h-6 w-6 opacity-30" />
                   No records logged for this session yet
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pb-2">
                   {sortedLogs.map((log) => (
-                    <div 
-                      key={log.id} 
-                      className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-3 hover:bg-white/10 transition-all shadow"
+                    <div key={log.id}
+                      className="p-3 rounded-xl flex items-center justify-between gap-2 transition-all"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)' }}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-[12px] text-white uppercase truncate leading-tight">{log.userName}</p>
-                        <p className="text-[10px] text-[#D4AF37] uppercase truncate mt-1 font-bold">{log.unitName}</p>
-                        <p className="text-[9.5px] text-slate-400 mt-2 font-semibold flex items-center gap-1.5">
-                          <Clock className="h-3 w-3 text-slate-500" />
+                        <p className="font-extrabold text-[11px] text-white uppercase truncate leading-tight">{log.userName}</p>
+                        <p className="text-[9px] text-[#D4AF37] uppercase truncate mt-0.5 font-bold">{log.unitName}</p>
+                        <p className="text-[8.5px] text-slate-400 mt-1 font-semibold flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5 text-slate-500" />
                           In: {formatTimeSafe(log.scannedAt)}
                           {log.logoutAt && ` • Out: ${formatTimeSafe(log.logoutAt)}`}
                         </p>
                       </div>
                       <Badge className={`shrink-0 ${
-                        log.synced === false
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 animate-pulse'
-                          : log.status === 'ON_TIME'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : log.status === 'LATE'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                      } text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full`}>
+                        log.synced === false ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 animate-pulse'
+                        : log.status === 'ON_TIME' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : log.status === 'LATE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      } text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full`}>
                         {log.synced === false ? 'OFFLINE' : log.status.replace('_', ' ')}
                       </Badge>
                     </div>
@@ -1153,181 +1135,96 @@ function UnitActivityScannerTerminal() {
         </section>
 
         {/* ==================== RIGHT COLUMN: SCANNER & CONTROLS ==================== */}
-        <section className="w-[300px] shrink-0 border-l border-white/10 bg-black/20 backdrop-blur-2xl flex flex-col p-5 gap-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+        <section className="w-[280px] shrink-0 flex flex-col p-4 gap-3 overflow-hidden animate-in slide-in-from-right duration-300"
+          style={{ borderLeft: '1px solid rgba(255,255,255,0.10)', background: 'rgba(0,0,0,0.20)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
           
-          {/* ---- SMALL COMPACT SCANNER CARD ---- */}
-          <div className="flex flex-col gap-2.5 items-center">
-            <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest self-start">
-              Scan Camera Viewport
-            </span>
-            <div className="relative w-64 h-64 rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-2xl flex items-center justify-center">
+          {/* ---- COMPACT SCANNER CARD ---- */}
+          <div className="flex flex-col gap-2 items-center">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest self-start">Scan Camera Viewport</span>
+            <div className="relative w-60 h-60 rounded-2xl overflow-hidden flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,0.60)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
               
-              {/* Camera Mount Element */}
-              <div
-                ref={readerBgRef}
-                id="reader-bg"
-                className="absolute inset-0 w-full h-full"
-                style={{ zIndex: 0 }}
-              />
+              {/* Camera Mount */}
+              <div ref={readerBgRef} id="reader-bg" className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
 
-              {/* Dynamic Compact Targeting Reticle Overlay */}
+              {/* Reticle */}
               {scannerActive && (() => {
                 const hasResult = scanResult.status === 'success' || scanResult.status === 'warning';
-                const isError = scanResult.status === 'error';
-                
-                const colorClass = hasResult 
-                  ? 'border-emerald-400 text-emerald-400' 
-                  : 'border-rose-500 text-rose-500';
-
-                const sweepBg = hasResult
-                  ? 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)'
-                  : 'linear-gradient(to right, transparent, #f43f5e, #fda4af, #f43f5e, transparent)';
-
-                const sweepShadow = hasResult
-                  ? '0 0 8px 2px rgba(52,211,153,0.5)'
-                  : '0 0 8px 2px rgba(244,63,94,0.5)';
-
-                const dotColor = hasResult
-                  ? 'bg-emerald-400/90 shadow-[0_0_8px_3px_rgba(52,211,153,0.8)]'
-                  : 'bg-rose-500/90 shadow-[0_0_8px_3px_rgba(244,63,94,0.8)]';
-
+                const colorClass = hasResult ? 'border-emerald-400' : 'border-rose-500';
+                const sweepBg = hasResult ? 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)' : 'linear-gradient(to right, transparent, #f43f5e, #fda4af, #f43f5e, transparent)';
+                const sweepShadow = hasResult ? '0 0 8px 2px rgba(52,211,153,0.5)' : '0 0 8px 2px rgba(244,63,94,0.5)';
+                const dotColor = hasResult ? 'bg-emerald-400/90 shadow-[0_0_8px_3px_rgba(52,211,153,0.8)]' : 'bg-rose-500/90 shadow-[0_0_8px_3px_rgba(244,63,94,0.8)]';
                 return (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                    <div
-                      className="relative transition-all duration-300"
-                      style={{
-                        width: '75%',
-                        height: '75%',
-                      }}
-                    >
-                      {/* Corner brackets */}
-                      <div className={`absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 rounded-tl-md transition-all duration-300 ${colorClass}`} />
-                      <div className={`absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 rounded-tr-md transition-all duration-300 ${colorClass}`} />
-                      <div className={`absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 rounded-bl-md transition-all duration-300 ${colorClass}`} />
-                      <div className={`absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 rounded-br-md transition-all duration-300 ${colorClass}`} />
-
-                      {/* Sweep line */}
-                      <div
-                        className="absolute left-2 right-2 transition-all duration-300"
-                        style={{
-                          height: 2,
-                          background: sweepBg,
-                          animation: 'scanSweep 2s ease-in-out infinite',
-                          top: '50%',
-                          boxShadow: sweepShadow,
-                        }}
-                      />
-
-                      {/* Center crosshair dot */}
+                    <div className="relative" style={{ width: '75%', height: '75%' }}>
+                      <div className={`absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 rounded-tl-md ${colorClass}`} />
+                      <div className={`absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 rounded-tr-md ${colorClass}`} />
+                      <div className={`absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 rounded-bl-md ${colorClass}`} />
+                      <div className={`absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 rounded-br-md ${colorClass}`} />
+                      <div className="absolute left-2 right-2" style={{ height: 2, background: sweepBg, animation: 'scanSweep 2s ease-in-out infinite', top: '50%', boxShadow: sweepShadow }} />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${dotColor}`} />
+                        <div className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
                       </div>
                     </div>
                   </div>
                 );
               })()}
-
-              {/* Dim vignette to make content readable inside preview card */}
-              <div className="absolute inset-0 pointer-events-none bg-slate-950/20 z-0" />
+              <div className="absolute inset-0 pointer-events-none z-0" style={{ background: 'rgba(15,23,42,0.15)' }} />
             </div>
 
-            {/* Instruction Labels */}
-            <div className="text-center p-2 rounded-xl bg-white/5 border border-white/10 w-full">
-              <span className={`text-[8.5px] font-black uppercase tracking-wider ${
-                scanResult.status === 'success' || scanResult.status === 'warning'
-                  ? 'text-emerald-300'
-                  : scanResult.status === 'error'
-                  ? 'text-rose-300'
-                  : 'text-rose-300/80'
+            {/* Status label */}
+            <div className="text-center px-3 py-1.5 rounded-xl w-full"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
+              <span className={`text-[8px] font-black uppercase tracking-wider ${
+                scanResult.status === 'success' || scanResult.status === 'warning' ? 'text-emerald-300'
+                : scanResult.status === 'error' ? 'text-rose-300' : 'text-rose-300/80'
               }`}>
-                {scanResult.status === 'success'
-                  ? '✓ Logged'
-                  : scanResult.status === 'warning'
-                  ? '⚠ Logged (Warning)'
-                  : scanResult.status === 'error'
-                  ? '✗ Rejected'
-                  : '⚠ Align QR Code inside Box'}
+                {scanResult.status === 'success' ? '✓ Logged' : scanResult.status === 'warning' ? '⚠ Logged (Warning)' : scanResult.status === 'error' ? '✗ Rejected' : '⚠ Align QR Code in Box'}
               </span>
-              <p className="text-[7.5px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                {scanResult.status === 'none' ? 'Hold device steady' : 'Ready for next scan'}
+              <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                {scanResult.status === 'none' ? 'Hold device steady & center QR' : 'Ready for next scan'}
               </p>
             </div>
-            
-            {/* Compact zoom slider */}
+
+            {/* Zoom slider */}
             {scannerActive && supportsZoom && (
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1 shadow w-full">
+              <div className="flex items-center gap-2 rounded-xl px-3 py-1 w-full"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
                 <ZoomOut className="h-3 w-3 text-slate-400 shrink-0 cursor-pointer" onClick={() => handleZoomChange(Math.max(1, zoomLevel - 0.5))} />
-                <input
-                  type="range"
-                  min={1}
-                  max={5}
-                  step={0.1}
-                  value={zoomLevel}
-                  onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
-                  className="flex-1 h-0.5 accent-emerald-400"
-                />
+                <input type="range" min={1} max={5} step={0.1} value={zoomLevel} onChange={(e) => handleZoomChange(parseFloat(e.target.value))} className="flex-1 h-0.5 accent-emerald-400" />
                 <ZoomIn className="h-3 w-3 text-slate-400 shrink-0 cursor-pointer" onClick={() => handleZoomChange(Math.min(5, zoomLevel + 0.5))} />
-                <span className="text-[8px] font-black text-emerald-400 w-6 text-right shrink-0">{zoomLevel.toFixed(1)}×</span>
+                <span className="text-[7.5px] font-black text-emerald-400 w-6 text-right shrink-0">{zoomLevel.toFixed(1)}×</span>
               </div>
             )}
           </div>
 
           {/* ---- ATTENDANCE OTP CARD ---- */}
           {activeActivity && activeCode && (
-            <div className="p-4 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-3xl flex flex-col gap-2 shadow-lg relative overflow-hidden shrink-0">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#D4AF37]/5 rounded-full blur-md pointer-events-none" />
-              <div className="flex justify-between items-center pb-1 border-b border-[#D4AF37]/20">
-                <span className="text-[8px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
-                  <KeyRound className="h-3 w-3" />
-                  Attendance Code
+            <div className="p-3 rounded-2xl flex flex-col gap-2 relative overflow-hidden shrink-0"
+              style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.28)', backdropFilter: 'blur(16px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }}>
+              <div className="flex justify-between items-center pb-1 border-b" style={{ borderColor: 'rgba(212,175,55,0.20)' }}>
+                <span className="text-[7.5px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1">
+                  <KeyRound className="h-2.5 w-2.5" /> Attendance Code
                 </span>
-                <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                  <Clock className="h-2.5 w-2.5 text-[#D4AF37]/80 animate-pulse" />
-                  Code rolls in {codeSecondsLeft}s
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <Clock className="h-2 w-2 text-[#D4AF37]/80 animate-pulse" /> Rolls in {codeSecondsLeft}s
                 </span>
               </div>
-              
-              <div className="flex items-center justify-center gap-2.5 py-1.5">
+              <div className="flex items-center justify-center gap-2 py-1">
                 {activeCode.split('').map((char, index) => (
-                  <div 
-                    key={index}
-                    className="w-9 h-10 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center text-base font-black text-[#D4AF37] shadow-inner font-mono animate-in zoom-in-50 duration-200"
-                  >
+                  <div key={index} className="w-8 h-9 rounded-lg flex items-center justify-center text-sm font-black text-[#D4AF37] font-mono"
+                    style={{ background: 'rgba(0,0,0,0.40)', border: '1px solid rgba(255,255,255,0.10)' }}>
                     {char}
                   </div>
                 ))}
               </div>
-              <p className="text-[7.5px] font-bold text-slate-400 text-center uppercase tracking-wider leading-normal">
-                Enter code on RSU App to check in
-              </p>
+              <p className="text-[7px] font-bold text-slate-400 text-center uppercase tracking-wide">Enter code on RSU App to check in</p>
             </div>
           )}
 
-          {/* ---- REGISTRATION QR CODE CARD ---- */}
-          <div className="border border-white/15 bg-white/5 p-4 rounded-3xl flex flex-col items-center gap-3 shrink-0 shadow">
-            <Badge className="bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 text-[8px] font-black tracking-widest uppercase px-3 py-1 rounded-full">
-              <QrCode className="h-3 w-3 mr-1.5" />
-              No App? Scan Here!
-            </Badge>
-            <div className="bg-white p-3 rounded-2xl shadow-inner w-[190px] h-[190px] flex items-center justify-center overflow-hidden">
-              {registrationQrCodeUrl ? (
-                <img
-                  src={registrationQrCodeUrl}
-                  alt="RSU Attendance App QR"
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
-              )}
-            </div>
-            <p className="text-[8px] font-bold text-slate-300 text-center leading-normal uppercase tracking-wider">
-              Scan to open RSU Attendance Portal
-            </p>
-          </div>
-
           {/* Footer brand label */}
-          <div className="mt-auto pt-4 border-t border-white/5">
-            <p className="text-[7.5px] font-black uppercase tracking-widest text-slate-500 text-center leading-none">
+          <div className="mt-auto pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 text-center leading-none">
               RSU EOMS &bull; CRAIITech
             </p>
           </div>
