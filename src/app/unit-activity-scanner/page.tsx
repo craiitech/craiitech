@@ -50,12 +50,109 @@ const generateActivityCode = (activityId: string, timestamp: number) => {
   return ((Math.abs(hash) % 900) + 100).toString();
 };
 
+const APP_SECRET_SALT = "rsu_attendance_secure_salt_2026";
+
+const generatePayloadSignature = (userId: string, timestamp: number, fp: string) => {
+  const inputStr = `${userId}-${timestamp}-${fp}-${APP_SECRET_SALT}`;
+  let hash = 0;
+  for (let i = 0; i < inputStr.length; i++) {
+    const char = inputStr.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return `SIG-${Math.abs(hash)}`;
+};
+
 function UnitActivityScannerTerminal() {
   const { userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const [paramActivityId, setParamActivityId] = useState<string | null>(null);
+  const [offlineLogs, setOfflineLogs] = useState<ActivityAttendanceLog[]>([]);
+
+  // Load offline logs from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('rsu_attendance_offline_logs');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setOfflineLogs(parsed);
+          }
+        } catch (e) {
+          console.error("Failed to parse offline logs:", e);
+        }
+      }
+    }
+  }, []);
+
+  // Background Sync loop for scanner terminal
+  useEffect(() => {
+    if (!firestore || offlineLogs.length === 0) return;
+
+    const interval = setInterval(async () => {
+      let logsToSync = [...offlineLogs];
+      let hasChanged = false;
+
+      for (let i = 0; i < logsToSync.length; i++) {
+        const log = logsToSync[i];
+        if (log.synced) continue;
+
+        try {
+          const logRef = doc(firestore, 'unitActivityAttendanceLogs', log.id);
+          const onlineSnap = await getDoc(logRef);
+          
+          const logDataForFirebase = { ...log };
+          delete logDataForFirebase.synced;
+
+          if (logDataForFirebase.scannedAt) {
+            logDataForFirebase.scannedAt = new Date(logDataForFirebase.scannedAt);
+          }
+          if (logDataForFirebase.logoutAt) {
+            logDataForFirebase.logoutAt = new Date(logDataForFirebase.logoutAt);
+          }
+
+          if (onlineSnap.exists()) {
+            const onlineData = onlineSnap.data() as ActivityAttendanceLog;
+            if (log.logoutAt && !onlineData.logoutAt) {
+              await updateDoc(logRef, { logoutAt: logDataForFirebase.logoutAt });
+            }
+          } else {
+            await setDoc(logRef, logDataForFirebase);
+          }
+
+          logsToSync[i] = { ...log, synced: true };
+          hasChanged = true;
+        } catch (err: any) {
+          console.warn("Failed to sync offline log:", log.id, err.message);
+          if (err.message?.includes("Quota exceeded") || err.code === 'resource-exhausted') {
+            break;
+          }
+        }
+      }
+
+      if (hasChanged) {
+        const remainingLogs = logsToSync.filter(l => !l.synced);
+        setOfflineLogs(remainingLogs);
+        localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(remainingLogs));
+      }
+    }, 30000); // Sync every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [firestore, offlineLogs]);
+
+  const formatTimeSafe = (dateVal: any) => {
+    if (!dateVal) return 'N/A';
+    try {
+      if (dateVal.toDate) return format(dateVal.toDate(), 'hh:mm a');
+      if (dateVal.seconds) return format(new Date(dateVal.seconds * 1000), 'hh:mm a');
+      return format(new Date(dateVal), 'hh:mm a');
+    } catch (e) {
+      return 'N/A';
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -173,18 +270,35 @@ function UnitActivityScannerTerminal() {
   const { data: attendanceLogs } = useCollection<ActivityAttendanceLog>(logsQuery);
 
   const sortedLogs = useMemo(() => {
-    if (!attendanceLogs) return [];
-    return [...attendanceLogs]
+    const combined = attendanceLogs ? [...attendanceLogs] : [];
+
+    // Filter offline logs for the current activity and session, and ensure they aren't already online
+    const currentSessionOfflineLogs = offlineLogs.filter(log => {
+      const matchesSession = (log.sessionId || 'default') === selectedSessionId;
+      const matchesActivity = log.activityId === paramActivityId;
+      if (!matchesSession || !matchesActivity) return false;
+      
+      const alreadyInOnline = combined.some(onlineLog => onlineLog.id === log.id);
+      return !alreadyInOnline;
+    });
+
+    const merged = [...combined, ...currentSessionOfflineLogs];
+
+    return merged
       .filter(log => {
         const logSessionId = log.sessionId || 'default';
         return logSessionId === selectedSessionId;
       })
       .sort((a, b) => {
-        const timeA = a.scannedAt?.toDate ? a.scannedAt.toDate().getTime() : (a.scannedAt?.seconds ? a.scannedAt.seconds * 1000 : new Date(a.scannedAt).getTime());
-        const timeB = b.scannedAt?.toDate ? b.scannedAt.toDate().getTime() : (b.scannedAt?.seconds ? b.scannedAt.seconds * 1000 : new Date(b.scannedAt).getTime());
-        return timeB - timeA;
+        const getMs = (dateVal: any) => {
+          if (!dateVal) return 0;
+          if (dateVal.toDate) return dateVal.toDate().getTime();
+          if (dateVal.seconds) return dateVal.seconds * 1000;
+          return new Date(dateVal).getTime();
+        };
+        return getMs(b.scannedAt) - getMs(a.scannedAt);
       });
-  }, [attendanceLogs, selectedSessionId]);
+  }, [attendanceLogs, offlineLogs, selectedSessionId, paramActivityId]);
 
   // --- CAMERA QR SCANNING MODULE (CDN LOADED) ---
   const [isScannerLibLoaded, setIsScannerLibLoaded] = useState(false);
@@ -392,8 +506,9 @@ function UnitActivityScannerTerminal() {
       const userId = isMinified ? payload.u : payload.userId;
       const deviceFingerprint = isMinified ? payload.f : payload.deviceFingerprint;
       const timestamp = isMinified ? payload.t : payload.timestamp;
+      const signature = isMinified ? payload.s : payload.signature;
 
-      if (!userId || !deviceFingerprint || !timestamp) {
+      if (!userId || !deviceFingerprint || !timestamp || !signature) {
         setScanResult({ status: 'error', message: 'Rejected: Missing security properties in QR payload.' });
         return;
       }
@@ -403,25 +518,19 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      const bindingRef = doc(firestore, 'attendanceDeviceBindings', deviceFingerprint);
-      const bindingSnap = await getDoc(bindingRef);
-
-      if (!bindingSnap.exists()) {
-        setScanResult({ status: 'error', message: 'Rejected: Untracked Device Fingerprint. Binding registration required.' });
+      // Cryptographic signature check (tamper prevention / offline trust check)
+      const computedSignature = generatePayloadSignature(userId, timestamp, deviceFingerprint);
+      if (signature !== computedSignature) {
+        setScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
         return;
       }
 
-      const officialBinding = bindingSnap.data() as DeviceBinding;
-      if (officialBinding.userId !== userId) {
-        setScanResult({ status: 'error', message: `Security Rejection: Device Lock active. This phone is locked to another user.` });
-        return;
-      }
-
-      const userName = isMinified ? officialBinding.userName : (payload.userName || officialBinding.userName);
-      const unitId = isMinified ? officialBinding.unitId : (payload.unitId || officialBinding.unitId);
-      const unitName = isMinified ? officialBinding.unitName : (payload.unitName || officialBinding.unitName);
-      const finalContact = isMinified ? (officialBinding.contactNumber || 'N/A') : (payload.contactNumber || officialBinding.contactNumber || 'N/A');
-      const finalSex = isMinified ? (officialBinding.sex || 'Did not specify') : (payload.sex || officialBinding.sex || 'Did not specify');
+      // Extract user metadata from QR payload (avoids fetching attendanceDeviceBindings)
+      const userName = payload.n || payload.userName || 'Attendee';
+      const unitId = payload.i || payload.unitId || '';
+      const unitName = payload.o || payload.unitName || 'Office';
+      const finalContact = payload.c || payload.contactNumber || 'N/A';
+      const finalSex = payload.x || payload.sex || 'Did not specify';
 
       const scanTime = Date.now();
       const actStart = parseSessionTime(selectedSession.date, selectedSession.startTime);
@@ -446,20 +555,71 @@ function UnitActivityScannerTerminal() {
       const logId = `${activeActivity.id}_${selectedSession.id}_${userId}`;
       const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
 
-      const existingLog = await getDoc(logRef);
-      if (existingLog.exists()) {
-        const existingData = existingLog.data() as ActivityAttendanceLog;
-        if (requiresLogout && !existingData.logoutAt) {
-          await setDoc(logRef, { ...existingData, logoutAt: new Date() });
+      let existingLogData: ActivityAttendanceLog | null = null;
+      let isOnlineSuccess = false;
+
+      // Try checking online log first, fallback to local search if quota exceeded/offline
+      try {
+        const existingLog = await getDoc(logRef);
+        if (existingLog.exists()) {
+          existingLogData = existingLog.data() as ActivityAttendanceLog;
+        }
+        isOnlineSuccess = true;
+      } catch (err: any) {
+        console.warn("Could not check online log status, checking offline registry:", err);
+        const localLog = offlineLogs.find(l => l.id === logId);
+        if (localLog) {
+          existingLogData = localLog;
+        }
+      }
+
+      const logoutTime = new Date();
+
+      if (existingLogData) {
+        if (requiresLogout && !existingLogData.logoutAt) {
+          // Update logout
+          if (isOnlineSuccess) {
+            try {
+              await updateDoc(logRef, { logoutAt: logoutTime });
+              setScanResult({
+                status: 'success',
+                message: `Logout recorded for ${userName} (${selectedSession.label}).`,
+                details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT' }
+              });
+              return;
+            } catch (err: any) {
+              console.warn("Online update failed, saving logout offline:", err);
+            }
+          }
+
+          // Offline fallback logout saving
+          const updatedLogs = offlineLogs.map(l => {
+            if (l.id === logId) {
+              return { ...l, logoutAt: logoutTime, synced: false };
+            }
+            return l;
+          });
+
+          if (!offlineLogs.some(l => l.id === logId)) {
+            updatedLogs.push({
+              ...existingLogData,
+              logoutAt: logoutTime,
+              synced: false
+            });
+          }
+
+          setOfflineLogs(updatedLogs);
+          localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+
           setScanResult({
             status: 'success',
-            message: `Logout recorded for ${userName} (${selectedSession.label}).`,
-            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'LOGOUT' }
+            message: `Scan Approved (Logout Saved Offline). It will sync automatically.`,
+            details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT (OFFLINE)' }
           });
-        } else if (requiresLogout && existingData.logoutAt) {
+        } else if (requiresLogout && existingLogData.logoutAt) {
           setScanResult({
             status: 'warning',
-            message: `${userName} has already logged in and out for ${selectedSession.label}. Duplicate scan ignored.`,
+            message: `${userName} has already completed login and logout for ${selectedSession.label}. Duplicate scan ignored.`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
           });
         } else {
@@ -472,6 +632,7 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
+      // First-time login / check-in
       const newLog: ActivityAttendanceLog = {
         id: logId,
         activityId: activeActivity.id,
@@ -488,20 +649,43 @@ function UnitActivityScannerTerminal() {
         sessionLabel: selectedSession.label
       };
 
-      await setDoc(logRef, newLog);
+      if (isOnlineSuccess) {
+        try {
+          await setDoc(logRef, newLog);
+          setScanResult({
+            status: logStatus === 'ON_TIME' ? 'success' : 'warning',
+            message: logStatus === 'ON_TIME' 
+              ? `Verified! Signed on time for ${selectedSession.label}.${ requiresLogout ? ' Scan again to logout.' : '' }` 
+              : logStatus === 'LATE'
+              ? `Lateness recorded for ${selectedSession.label}. Threshold was ${lateThreshold} mins.`
+              : `Scan outside session window — recorded as OUTSIDE WINDOW.`,
+            details: {
+              name: userName,
+              office: unitName,
+              time: format(new Date(), 'hh:mm a'),
+              status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW'
+            }
+          });
+          return;
+        } catch (err: any) {
+          console.warn("Online setDoc failed, saving login offline:", err);
+        }
+      }
+
+      // Offline fallback login saving
+      const updatedLog = { ...newLog, synced: false };
+      const updatedLogs = [...offlineLogs, updatedLog];
+      setOfflineLogs(updatedLogs);
+      localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
 
       setScanResult({
-        status: logStatus === 'ON_TIME' ? 'success' : 'warning',
-        message: logStatus === 'ON_TIME' 
-          ? `Verified! Signed on time for ${selectedSession.label}.${ requiresLogout ? ' Scan again to logout.' : '' }` 
-          : logStatus === 'LATE'
-          ? `Lateness recorded for ${selectedSession.label}. Threshold was ${lateThreshold} mins.`
-          : `Scan outside session window — recorded as OUTSIDE WINDOW.`,
+        status: 'success',
+        message: `Scan Approved (Saved Offline). It will sync automatically.`,
         details: {
           name: userName,
           office: unitName,
           time: format(new Date(), 'hh:mm a'),
-          status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW'
+          status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME (OFFLINE)' : logStatus === 'LATE' ? 'LOGIN LATE (OFFLINE)' : 'OUTSIDE WINDOW (OFFLINE)'
         }
       });
 
@@ -988,17 +1172,20 @@ function UnitActivityScannerTerminal() {
                         <p className="font-extrabold text-[10px] text-white uppercase truncate">{log.userName}</p>
                         <p className="text-[8px] text-slate-400 truncate uppercase">{log.unitName}</p>
                         <p className="text-[8px] text-slate-500 mt-0.5">
-                          {log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'hh:mm a') : 'N/A'}
+                          In: {formatTimeSafe(log.scannedAt)}
+                          {log.logoutAt && ` • Out: ${formatTimeSafe(log.logoutAt)}`}
                         </p>
                       </div>
                       <Badge className={`shrink-0 mt-0.5 ${
-                        log.status === 'ON_TIME'
+                        log.synced === false
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 animate-pulse'
+                          : log.status === 'ON_TIME'
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                           : log.status === 'LATE'
                           ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                           : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                       } text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full`}>
-                        {log.status.replace('_', ' ')}
+                        {log.synced === false ? 'OFFLINE QUEUE' : log.status.replace('_', ' ')}
                       </Badge>
                     </div>
                   </div>

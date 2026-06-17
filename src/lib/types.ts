@@ -1175,6 +1175,7 @@ export type ActivityAttendanceLog = {
   sex?: string;
   sessionId?: string;
   sessionLabel?: string;
+  synced?: boolean;
 };
 
 export type ActivityEvaluation = {

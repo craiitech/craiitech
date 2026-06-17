@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
-import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit, updateDoc } from 'firebase/firestore';
 import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -131,6 +131,107 @@ export default function RsuAttendanceApp() {
   }, [firestore, paramActivityId, chosenActivityId]);
   const { data: selectedActivity } = useDoc<AttendanceActivity>(selectedActivityRef);
 
+  const [offlineLogs, setOfflineLogs] = useState<ActivityAttendanceLog[]>([]);
+
+  // Load offline logs on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('rsu_attendance_offline_logs');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setOfflineLogs(parsed);
+          }
+        } catch (e) {
+          console.error("Failed to parse offline logs:", e);
+        }
+      }
+    }
+  }, []);
+
+  // Background Sync loop for bindings and logs
+  useEffect(() => {
+    if (!firestore) return;
+
+    const interval = setInterval(async () => {
+      // 1. Sync binding if unsynced
+      if (typeof window !== 'undefined') {
+        const storedLocalBinding = localStorage.getItem('rsu_attendance_local_binding');
+        if (storedLocalBinding) {
+          try {
+            const parsed = JSON.parse(storedLocalBinding);
+            if (!parsed.synced && parsed.id) {
+              const bindingRef = doc(firestore, 'attendanceDeviceBindings', parsed.id);
+              const bindingToUpload = { ...parsed };
+              delete bindingToUpload.synced;
+              if (bindingToUpload.boundAt) {
+                bindingToUpload.boundAt = new Date(bindingToUpload.boundAt);
+              }
+              await setDoc(bindingRef, bindingToUpload);
+              parsed.synced = true;
+              localStorage.setItem('rsu_attendance_local_binding', JSON.stringify(parsed));
+              console.log("Device binding synced online successfully.");
+            }
+          } catch (err: any) {
+            console.warn("Failed to sync local device binding:", err.message);
+          }
+        }
+      }
+
+      // 2. Sync offline logs if any
+      if (offlineLogs.length > 0) {
+        let logsToSync = [...offlineLogs];
+        let hasChanged = false;
+
+        for (let i = 0; i < logsToSync.length; i++) {
+          const log = logsToSync[i];
+          if (log.synced) continue;
+
+          try {
+            const logRef = doc(firestore, 'unitActivityAttendanceLogs', log.id);
+            const onlineSnap = await getDoc(logRef);
+            
+            const logDataForFirebase = { ...log };
+            delete logDataForFirebase.synced;
+
+            if (logDataForFirebase.scannedAt) {
+              logDataForFirebase.scannedAt = new Date(logDataForFirebase.scannedAt);
+            }
+            if (logDataForFirebase.logoutAt) {
+              logDataForFirebase.logoutAt = new Date(logDataForFirebase.logoutAt);
+            }
+
+            if (onlineSnap.exists()) {
+              const onlineData = onlineSnap.data() as ActivityAttendanceLog;
+              if (log.logoutAt && !onlineData.logoutAt) {
+                await updateDoc(logRef, { logoutAt: logDataForFirebase.logoutAt });
+              }
+            } else {
+              await setDoc(logRef, logDataForFirebase);
+            }
+
+            logsToSync[i] = { ...log, synced: true };
+            hasChanged = true;
+          } catch (err: any) {
+            console.warn("Failed to sync offline log:", log.id, err.message);
+            if (err.message?.includes("Quota exceeded") || err.code === 'resource-exhausted') {
+              break;
+            }
+          }
+        }
+
+        if (hasChanged) {
+          const remainingLogs = logsToSync.filter(l => !l.synced);
+          setOfflineLogs(remainingLogs);
+          localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(remainingLogs));
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [firestore, offlineLogs]);
+
   // 1. Calculate device fingerprint (canvas hashing)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -176,14 +277,47 @@ export default function RsuAttendanceApp() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setBinding(docSnap.data() as DeviceBinding);
+          const data = docSnap.data() as DeviceBinding;
+          setBinding(data);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('rsu_attendance_local_binding', JSON.stringify({ ...data, synced: true }));
+          }
           setIsLocked(true);
         } else {
-          setBinding(null);
-          setIsLocked(false);
+          // Check local binding fallback
+          if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('rsu_attendance_local_binding');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed.id === deviceFingerprint) {
+                setBinding(parsed);
+                setIsLocked(true);
+              } else {
+                setBinding(null);
+                setIsLocked(false);
+              }
+            } else {
+              setBinding(null);
+              setIsLocked(false);
+            }
+          } else {
+            setBinding(null);
+            setIsLocked(false);
+          }
         }
       } catch (err) {
         console.error("Error checking device binding:", err);
+        // Fallback to local storage on error
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('rsu_attendance_local_binding');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.id === deviceFingerprint) {
+              setBinding(parsed);
+              setIsLocked(true);
+            }
+          }
+        }
       } finally {
         setIsInitializing(false);
       }
@@ -204,7 +338,12 @@ export default function RsuAttendanceApp() {
       u: binding.userId,
       f: binding.id,
       t: timestamp,
-      s: signature
+      s: signature,
+      n: binding.userName,
+      i: binding.unitId,
+      o: binding.unitName,
+      c: binding.contactNumber || 'N/A',
+      x: binding.sex || 'Did not specify'
     };
 
     const payloadString = JSON.stringify(payloadObj);
@@ -253,14 +392,34 @@ export default function RsuAttendanceApp() {
       const normalizedName = fullName.trim().toLowerCase().replace(/\s+/g, '_');
       const userId = `${normalizedName}_${selectedUnitId}`;
 
-      // A. Assert: Make sure this user name is not already bound to a different device fingerprint
-      const userBindingsQuery = query(
-        collection(firestore, 'attendanceDeviceBindings'),
-        where('userId', '==', userId)
-      );
-      const userBindingsSnap = await getDocs(userBindingsQuery);
+      let nameAlreadyBound = false;
 
-      if (!userBindingsSnap.empty) {
+      try {
+        // A. Assert: Make sure this user name is not already bound to a different device fingerprint
+        const userBindingsQuery = query(
+          collection(firestore, 'attendanceDeviceBindings'),
+          where('userId', '==', userId)
+        );
+        const userBindingsSnap = await getDocs(userBindingsQuery);
+
+        if (!userBindingsSnap.empty) {
+          nameAlreadyBound = true;
+        }
+      } catch (err: any) {
+        console.warn("Could not check user binding online (quota/network issue):", err);
+        // Fallback: check local storage binding if any
+        if (typeof window !== 'undefined') {
+          const storedLocalBinding = localStorage.getItem('rsu_attendance_local_binding');
+          if (storedLocalBinding) {
+            const parsed = JSON.parse(storedLocalBinding);
+            if (parsed.userId === userId && parsed.id !== deviceFingerprint) {
+              nameAlreadyBound = true;
+            }
+          }
+        }
+      }
+
+      if (nameAlreadyBound) {
         setRegError('This name is already registered to another device. RSU policy enforces 1 account per device.');
         setIsRegistering(false);
         return;
@@ -269,8 +428,7 @@ export default function RsuAttendanceApp() {
       // B. Fetch unit name for metadata
       const unitName = units?.find(u => u.id === selectedUnitId)?.name || 'Office';
 
-      // C. Save device binding lock
-      const docRef = doc(firestore, 'attendanceDeviceBindings', deviceFingerprint);
+      // C. Construct device binding lock
       const newBinding: DeviceBinding = {
         id: deviceFingerprint,
         userId,
@@ -283,7 +441,22 @@ export default function RsuAttendanceApp() {
         sex
       };
 
-      await setDoc(docRef, newBinding);
+      let isBoundOnline = false;
+      try {
+        const docRef = doc(firestore, 'attendanceDeviceBindings', deviceFingerprint);
+        await setDoc(docRef, newBinding);
+        isBoundOnline = true;
+      } catch (err: any) {
+        console.warn("Saving device binding lock online failed (quota/network issue), saving locally:", err);
+      }
+
+      // Save binding locally
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rsu_attendance_local_binding', JSON.stringify({
+          ...newBinding,
+          synced: isBoundOnline
+        }));
+      }
       
       setBinding(newBinding);
       setIsLocked(true);
@@ -327,129 +500,250 @@ export default function RsuAttendanceApp() {
 
     try {
       const actRef = doc(firestore, 'unitActivities', actId);
-      
-      const result = await runTransaction(firestore, async (transaction) => {
-        // 1. Read activity document for metadata/session info
-        const actSnap = await transaction.get(actRef);
-        if (!actSnap.exists()) {
-          throw new Error('Activity does not exist or has been deleted.');
-        }
+      let sessionDetails: any = null;
+      let activityData: AttendanceActivity | null = null;
+      let isOnlineSuccess = false;
+      let transactionResult: any = null;
 
-        const activityData = actSnap.data() as AttendanceActivity;
-        if (activityData.status !== 'ACTIVE') {
-          throw new Error('This activity is not currently active for attendance.');
-        }
+      try {
+        transactionResult = await runTransaction(firestore, async (transaction) => {
+          // 1. Read activity document for metadata/session info
+          const actSnap = await transaction.get(actRef);
+          if (!actSnap.exists()) {
+            throw new Error('Activity does not exist or has been deleted.');
+          }
 
-        // 2. Resolve active session
-        const sessionId = activityData.activeSessionId || 'default';
-        
-        // Find session configuration
-        let sessionDetails = activityData.sessions?.find(s => s.id === sessionId);
-        if (!sessionDetails && sessionId === 'default') {
-          const defaultDate = activityData.startDateTime?.toDate 
-            ? format(activityData.startDateTime.toDate(), 'yyyy-MM-dd') 
-            : format(new Date(), 'yyyy-MM-dd');
-          const defaultStart = activityData.startDateTime?.toDate 
-            ? format(activityData.startDateTime.toDate(), 'HH:mm') 
-            : '08:00';
-          const defaultEnd = activityData.endDateTime?.toDate 
-            ? format(activityData.endDateTime.toDate(), 'HH:mm') 
-            : '17:00';
-          sessionDetails = {
-            id: 'default',
-            label: 'Default Session',
-            date: defaultDate,
-            sessionType: 'custom',
-            startTime: defaultStart,
-            endTime: defaultEnd,
-            requiresLogout: activityData.requiresLogout ?? false
-          };
-        }
+          const actData = actSnap.data() as AttendanceActivity;
+          if (actData.status !== 'ACTIVE') {
+            throw new Error('This activity is not currently active for attendance.');
+          }
+          activityData = actData;
 
-        if (!sessionDetails) {
-          throw new Error('The selected session configuration is invalid.');
-        }
+          // 2. Resolve active session
+          const sessionId = actData.activeSessionId || 'default';
+          
+          // Find session configuration
+          let sDetails = actData.sessions?.find(s => s.id === sessionId);
+          if (!sDetails && sessionId === 'default') {
+            const defaultDate = actData.startDateTime?.toDate 
+              ? format(actData.startDateTime.toDate(), 'yyyy-MM-dd') 
+              : format(new Date(), 'yyyy-MM-dd');
+            const defaultStart = actData.startDateTime?.toDate 
+              ? format(actData.startDateTime.toDate(), 'HH:mm') 
+              : '08:00';
+            const defaultEnd = actData.endDateTime?.toDate 
+              ? format(actData.endDateTime.toDate(), 'HH:mm') 
+              : '17:00';
+            sDetails = {
+              id: 'default',
+              label: 'Default Session',
+              date: defaultDate,
+              sessionType: 'custom',
+              startTime: defaultStart,
+              endTime: defaultEnd,
+              requiresLogout: actData.requiresLogout ?? false
+            };
+          }
 
-        // 3. Check if log already exists
-        const logId = `${actId}_${sessionId}_${binding.userId}`;
-        const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
-        const logSnap = await transaction.get(logRef);
+          if (!sDetails) {
+            throw new Error('The selected session configuration is invalid.');
+          }
+          sessionDetails = sDetails;
 
-        const requiresLogout = sessionDetails.requiresLogout;
-        const now = new Date();
+          // 3. Check if log already exists
+          const logId = `${actId}_${sessionId}_${binding.userId}`;
+          const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
+          const logSnap = await transaction.get(logRef);
 
-        if (logSnap.exists()) {
-          const logData = logSnap.data() as ActivityAttendanceLog;
-          if (requiresLogout && !logData.logoutAt) {
-            // Update log document with logout timestamp
-            transaction.update(logRef, { logoutAt: now });
+          const requiresLogout = sessionDetails.requiresLogout;
+          const now = new Date();
+
+          if (logSnap.exists()) {
+            const logData = logSnap.data() as ActivityAttendanceLog;
+            if (requiresLogout && !logData.logoutAt) {
+              // Update log document with logout timestamp
+              transaction.update(logRef, { logoutAt: now });
+
+              return { 
+                type: 'logout', 
+                message: `Logout recorded successfully for ${sessionDetails.label}.` 
+              };
+            } else {
+              throw new Error(`You have already completed attendance (login/logout) for ${sessionDetails.label}.`);
+            }
+          } else {
+            // Calculate lateness status
+            const scanTime = now.getTime();
+            
+            const parseTime = (dateStr: string, timeStr: string) => {
+              const d = new Date(`${dateStr}T${timeStr}:00`);
+              return isNaN(d.getTime()) ? Date.now() : d.getTime();
+            };
+
+            const actStart = parseTime(sessionDetails.date, sessionDetails.startTime);
+            const actEnd = parseTime(sessionDetails.date, sessionDetails.endTime);
+            const lateThreshold = Number(actData.lateThresholdMinutes || 0);
+
+            let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
+            if (lateThreshold === 0) {
+              logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
+            } else {
+              const lateCutoff = actStart + (lateThreshold * 60000);
+              if (scanTime < actStart || scanTime <= lateCutoff) {
+                logStatus = 'ON_TIME';
+              } else if (scanTime <= actEnd) {
+                logStatus = 'LATE';
+              } else {
+                logStatus = 'OUTSIDE_WINDOW';
+              }
+            }
+
+            // Create new log document
+            const newLog: ActivityAttendanceLog = {
+              id: logId,
+              activityId: actId,
+              userId: binding.userId,
+              userName: binding.userName,
+              unitId: binding.unitId,
+              unitName: binding.unitName,
+              deviceFingerprint: binding.id,
+              scannedAt: now,
+              status: logStatus,
+              contactNumber: binding.contactNumber || 'N/A',
+              sex: binding.sex || 'Did not specify',
+              sessionId,
+              sessionLabel: sessionDetails.label
+            };
+
+            transaction.set(logRef, newLog);
 
             return { 
-              type: 'logout', 
-              message: `Logout recorded successfully for ${sessionDetails.label}.` 
+              type: 'login', 
+              message: logStatus === 'ON_TIME' 
+                ? `Check-in recorded on time for ${sessionDetails.label}.` 
+                : logStatus === 'LATE'
+                ? `Lateness recorded for ${sessionDetails.label}.`
+                : `Check-in recorded outside window for ${sessionDetails.label}.` 
             };
-          } else {
-            throw new Error(`You have already completed attendance (login/logout) for ${sessionDetails.label}.`);
           }
-        } else {
-          // Calculate lateness status
-          const scanTime = now.getTime();
-          
-          const parseTime = (dateStr: string, timeStr: string) => {
-            const d = new Date(`${dateStr}T${timeStr}:00`);
-            return isNaN(d.getTime()) ? Date.now() : d.getTime();
-          };
-
-          const actStart = parseTime(sessionDetails.date, sessionDetails.startTime);
-          const actEnd = parseTime(sessionDetails.date, sessionDetails.endTime);
-          const lateThreshold = Number(activityData.lateThresholdMinutes || 0);
-
-          let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
-          if (lateThreshold === 0) {
-            logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
-          } else {
-            const lateCutoff = actStart + (lateThreshold * 60000);
-            if (scanTime < actStart || scanTime <= lateCutoff) {
-              logStatus = 'ON_TIME';
-            } else if (scanTime <= actEnd) {
-              logStatus = 'LATE';
-            } else {
-              logStatus = 'OUTSIDE_WINDOW';
-            }
-          }
-
-          // Create new log document
-          const newLog: ActivityAttendanceLog = {
-            id: logId,
-            activityId: actId,
-            userId: binding.userId,
-            userName: binding.userName,
-            unitId: binding.unitId,
-            unitName: binding.unitName,
-            deviceFingerprint: binding.id,
-            scannedAt: now,
-            status: logStatus,
-            contactNumber: binding.contactNumber || 'N/A',
-            sex: binding.sex || 'Did not specify',
-            sessionId,
-            sessionLabel: sessionDetails.label
-          };
-
-          transaction.set(logRef, newLog);
-
-          return { 
-            type: 'login', 
-            message: logStatus === 'ON_TIME' 
-              ? `Check-in recorded on time for ${sessionDetails.label}.` 
-              : logStatus === 'LATE'
-              ? `Lateness recorded for ${sessionDetails.label}.`
-              : `Check-in recorded outside window for ${sessionDetails.label}.` 
-          };
+        });
+        isOnlineSuccess = true;
+      } catch (err: any) {
+        if (err.message && (err.message.includes("already completed") || err.message.includes("does not exist") || err.message.includes("not currently active"))) {
+          throw err;
         }
-      });
+        console.warn("Online transaction write failed (quota/network issue), falling back to offline check-in:", err);
+      }
 
-      setOtpSuccess(result.message);
+      if (isOnlineSuccess && transactionResult) {
+        setOtpSuccess(transactionResult.message);
+        setOtpCode('');
+        return;
+      }
+
+      // OFFLINE FALLBACK FLOW:
+      const actData = selectedActivity || activityData;
+      if (!actData) {
+        throw new Error('Could not retrieve activity details. Please try again when online.');
+      }
+
+      const sessionId = actData.activeSessionId || 'default';
+      let sDetails = actData.sessions?.find(s => s.id === sessionId);
+      if (!sDetails && sessionId === 'default') {
+        const defaultDate = actData.startDateTime?.toDate 
+          ? format(actData.startDateTime.toDate(), 'yyyy-MM-dd') 
+          : format(new Date(), 'yyyy-MM-dd');
+        const defaultStart = actData.startDateTime?.toDate 
+          ? format(actData.startDateTime.toDate(), 'HH:mm') 
+          : '08:00';
+        const defaultEnd = actData.endDateTime?.toDate 
+          ? format(actData.endDateTime.toDate(), 'HH:mm') 
+          : '17:00';
+        sDetails = {
+          id: 'default',
+          label: 'Default Session',
+          date: defaultDate,
+          sessionType: 'custom',
+          startTime: defaultStart,
+          endTime: defaultEnd,
+          requiresLogout: actData.requiresLogout ?? false
+        };
+      }
+
+      if (!sDetails) {
+        throw new Error('Invalid session configuration.');
+      }
+
+      const logId = `${actId}_${sessionId}_${binding.userId}`;
+      const requiresLogout = sDetails.requiresLogout;
+      const now = new Date();
+
+      const existingOfflineLog = offlineLogs.find(l => l.id === logId);
+      if (existingOfflineLog) {
+        if (requiresLogout && !existingOfflineLog.logoutAt) {
+          const updatedLogs = offlineLogs.map(l => {
+            if (l.id === logId) {
+              return { ...l, logoutAt: now, synced: false };
+            }
+            return l;
+          });
+          setOfflineLogs(updatedLogs);
+          localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+          setOtpSuccess(`Logout recorded offline successfully for ${sDetails.label}. It will sync automatically.`);
+          setOtpCode('');
+          return;
+        } else {
+          throw new Error(`You have already completed attendance (login/logout) for ${sDetails.label} (offline).`);
+        }
+      }
+
+      const parseTime = (dateStr: string, timeStr: string) => {
+        const d = new Date(`${dateStr}T${timeStr}:00`);
+        return isNaN(d.getTime()) ? Date.now() : d.getTime();
+      };
+
+      const actStart = parseTime(sDetails.date, sDetails.startTime);
+      const actEnd = parseTime(sDetails.date, sDetails.endTime);
+      const lateThreshold = Number(actData.lateThresholdMinutes || 0);
+
+      let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
+      if (lateThreshold === 0) {
+        logStatus = now.getTime() <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
+      } else {
+        const lateCutoff = actStart + (lateThreshold * 60000);
+        if (now.getTime() < actStart || now.getTime() <= lateCutoff) {
+          logStatus = 'ON_TIME';
+        } else if (now.getTime() <= actEnd) {
+          logStatus = 'LATE';
+        } else {
+          logStatus = 'OUTSIDE_WINDOW';
+        }
+      }
+
+      const newOfflineLog: ActivityAttendanceLog = {
+        id: logId,
+        activityId: actId,
+        userId: binding.userId,
+        userName: binding.userName,
+        unitId: binding.unitId,
+        unitName: binding.unitName,
+        deviceFingerprint: binding.id,
+        scannedAt: now,
+        status: logStatus,
+        contactNumber: binding.contactNumber || 'N/A',
+        sex: binding.sex || 'Did not specify',
+        sessionId,
+        sessionLabel: sDetails.label,
+        synced: false
+      };
+
+      const updatedLogs = [...offlineLogs, newOfflineLog];
+      setOfflineLogs(updatedLogs);
+      localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+
+      setOtpSuccess(`Check-in (${logStatus.replace('_', ' ')}) recorded offline successfully for ${sDetails.label}. It will sync automatically.`);
       setOtpCode('');
+
     } catch (err: any) {
       console.error("OTP check-in failed:", err);
       setOtpError(err.message || 'Check-in failed. Please verify the code and try again.');
