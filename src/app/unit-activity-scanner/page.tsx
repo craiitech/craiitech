@@ -320,6 +320,26 @@ function UnitActivityScannerTerminal() {
 
   const html5QrCodeScannerRef = useRef<any>(null);
   const readerBgRef = useRef<HTMLDivElement>(null);
+  const resetTimeoutRef = useRef<any>(null);
+
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showScanResult = (result: typeof scanResult) => {
+    setScanResult(result);
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+    resetTimeoutRef.current = setTimeout(() => {
+      setScanResult({ status: 'none', message: 'Ready to scan QR codes.' });
+    }, 4500);
+  };
 
   // Load html5-qrcode library from CDN dynamically
   useEffect(() => {
@@ -405,12 +425,15 @@ function UnitActivityScannerTerminal() {
         scanner.start(
           { facingMode: activeMode },
           {
-            fps: 24,
-            qrbox: (() => {
-              const size = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.60);
+            fps: 30,
+            qrbox: (width: number, height: number) => {
+              const size = Math.round(Math.min(width, height) * 0.65);
               return { width: size, height: size };
-            })(),
+            },
             aspectRatio: window.innerWidth / window.innerHeight,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            }
           },
           (decodedText: string) => {
             handleScanSuccess(decodedText);
@@ -496,7 +519,7 @@ function UnitActivityScannerTerminal() {
       try {
         payload = JSON.parse(decodedText);
       } catch (e) {
-        setScanResult({ status: 'error', message: 'Rejected: Scanned content is not a valid RSU QR payload.' });
+        showScanResult({ status: 'error', message: 'Rejected: Scanned content is not a valid RSU QR payload.' });
         return;
       }
 
@@ -509,19 +532,19 @@ function UnitActivityScannerTerminal() {
       const signature = isMinified ? payload.s : payload.signature;
 
       if (!userId || !deviceFingerprint || !timestamp || !signature) {
-        setScanResult({ status: 'error', message: 'Rejected: Missing security properties in QR payload.' });
+        showScanResult({ status: 'error', message: 'Rejected: Missing security properties in QR payload.' });
         return;
       }
 
       if (Date.now() - timestamp > 70000) {
-        setScanResult({ status: 'error', message: 'Rejected: Expired QR token. Use the rotating code from the active phone app.' });
+        showScanResult({ status: 'error', message: 'Rejected: Expired QR token. Use the rotating code from the active phone app.' });
         return;
       }
 
       // Cryptographic signature check (tamper prevention / offline trust check)
       const computedSignature = generatePayloadSignature(userId, timestamp, deviceFingerprint);
       if (signature !== computedSignature) {
-        setScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
+        showScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
         return;
       }
 
@@ -581,7 +604,7 @@ function UnitActivityScannerTerminal() {
           if (isOnlineSuccess) {
             try {
               await updateDoc(logRef, { logoutAt: logoutTime });
-              setScanResult({
+              showScanResult({
                 status: 'success',
                 message: `Logout recorded for ${userName} (${selectedSession.label}).`,
                 details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT' }
@@ -611,19 +634,19 @@ function UnitActivityScannerTerminal() {
           setOfflineLogs(updatedLogs);
           localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
 
-          setScanResult({
+          showScanResult({
             status: 'success',
             message: `Scan Approved (Logout Saved Offline). It will sync automatically.`,
             details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT (OFFLINE)' }
           });
         } else if (requiresLogout && existingLogData.logoutAt) {
-          setScanResult({
+          showScanResult({
             status: 'warning',
             message: `${userName} has already completed login and logout for ${selectedSession.label}. Duplicate scan ignored.`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
           });
         } else {
-          setScanResult({
+          showScanResult({
             status: 'warning',
             message: `${userName} has already signed in for ${selectedSession.label}. Duplicate scan ignored.`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
@@ -652,7 +675,7 @@ function UnitActivityScannerTerminal() {
       if (isOnlineSuccess) {
         try {
           await setDoc(logRef, newLog);
-          setScanResult({
+          showScanResult({
             status: logStatus === 'ON_TIME' ? 'success' : 'warning',
             message: logStatus === 'ON_TIME' 
               ? `Verified! Signed on time for ${selectedSession.label}.${ requiresLogout ? ' Scan again to logout.' : '' }` 
@@ -678,7 +701,7 @@ function UnitActivityScannerTerminal() {
       setOfflineLogs(updatedLogs);
       localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
 
-      setScanResult({
+      showScanResult({
         status: 'success',
         message: `Scan Approved (Saved Offline). It will sync automatically.`,
         details: {
@@ -691,7 +714,7 @@ function UnitActivityScannerTerminal() {
 
     } catch (err: any) {
       console.error(err);
-      setScanResult({ status: 'error', message: `Internal Verification Error: ${err.message}` });
+      showScanResult({ status: 'error', message: `Internal Verification Error: ${err.message}` });
     }
   };
 
@@ -840,68 +863,119 @@ function UnitActivityScannerTerminal() {
       {/* ================================================================== */}
       {/* QR TARGETING RETICLE — centered scanning frame with corner borders  */}
       {/* ================================================================== */}
-      {scannerActive && (
-        <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{ zIndex: 2 }}
-        >
+      {scannerActive && (() => {
+        const hasResult = scanResult.status === 'success' || scanResult.status === 'warning';
+        const isError = scanResult.status === 'error';
+        
+        // Green color for success/warning, red/rose color for idle or scan errors
+        const colorClass = hasResult 
+          ? 'border-emerald-400 text-emerald-400' 
+          : 'border-rose-500 text-rose-500';
+
+        const sweepBg = hasResult
+          ? 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)'
+          : 'linear-gradient(to right, transparent, #f43f5e, #fda4af, #f43f5e, transparent)';
+
+        const sweepShadow = hasResult
+          ? '0 0 12px 3px rgba(52,211,153,0.5)'
+          : '0 0 12px 3px rgba(244,63,94,0.5)';
+
+        const dotColor = hasResult
+          ? 'bg-emerald-400/90 shadow-[0_0_12px_4px_rgba(52,211,153,0.8)]'
+          : 'bg-rose-500/90 shadow-[0_0_12px_4px_rgba(244,63,94,0.8)]';
+
+        return (
           <div
-            className="relative"
-            style={{
-              width: `min(60vmin, 60vh)`,
-              height: `min(60vmin, 60vh)`,
-            }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ zIndex: 2 }}
           >
-            {/* Corner brackets — large green scanning frame */}
-            {/* Top-left */}
-            <div className="absolute top-0 left-0 w-14 h-14 border-t-[5px] border-l-[5px] border-emerald-400 rounded-tl-xl" />
-            {/* Top-right */}
-            <div className="absolute top-0 right-0 w-14 h-14 border-t-[5px] border-r-[5px] border-emerald-400 rounded-tr-xl" />
-            {/* Bottom-left */}
-            <div className="absolute bottom-0 left-0 w-14 h-14 border-b-[5px] border-l-[5px] border-emerald-400 rounded-bl-xl" />
-            {/* Bottom-right */}
-            <div className="absolute bottom-0 right-0 w-14 h-14 border-b-[5px] border-r-[5px] border-emerald-400 rounded-br-xl" />
-
-            {/* Scanning sweep line */}
             <div
-              className="absolute left-3 right-3"
+              className="relative transition-all duration-300"
               style={{
-                height: 3,
-                background: 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)',
-                animation: 'scanSweep 2s ease-in-out infinite',
-                top: '50%',
-                boxShadow: '0 0 12px 3px rgba(52,211,153,0.5)',
+                width: `min(65vmin, 65vh)`,
+                height: `min(65vmin, 65vh)`,
               }}
-            />
+            >
+              {/* Corner brackets */}
+              {/* Top-left */}
+              <div className={`absolute top-0 left-0 w-16 h-16 border-t-[6px] border-l-[6px] rounded-tl-2xl transition-all duration-300 ${colorClass}`} />
+              {/* Top-right */}
+              <div className={`absolute top-0 right-0 w-16 h-16 border-t-[6px] border-r-[6px] rounded-tr-2xl transition-all duration-300 ${colorClass}`} />
+              {/* Bottom-left */}
+              <div className={`absolute bottom-0 left-0 w-16 h-16 border-b-[6px] border-l-[6px] rounded-bl-2xl transition-all duration-300 ${colorClass}`} />
+              {/* Bottom-right */}
+              <div className={`absolute bottom-0 right-0 w-16 h-16 border-b-[6px] border-r-[6px] rounded-br-2xl transition-all duration-300 ${colorClass}`} />
 
-            {/* Center crosshair dot */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-emerald-400/90 shadow-[0_0_12px_4px_rgba(52,211,153,0.8)]" />
-            </div>
+              {/* Scanning sweep line */}
+              <div
+                className="absolute left-3 right-3 transition-all duration-300"
+                style={{
+                  height: 3,
+                  background: sweepBg,
+                  animation: 'scanSweep 2s ease-in-out infinite',
+                  top: '50%',
+                  boxShadow: sweepShadow,
+                }}
+              />
 
-            {/* Subtle inner dimming to focus on center */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'rgba(0,0,0,0.08)',
-                borderRadius: 4,
-              }}
-            />
+              {/* Center crosshair dot */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className={`h-3.5 w-3.5 rounded-full transition-all duration-300 ${dotColor}`} />
+              </div>
 
-            {/* Camera label — shown below the reticle frame */}
-            {cameraCount > 1 && (
-              <div className="absolute -bottom-10 inset-x-0 flex justify-center">
-                <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
-                  <FlipHorizontal2 className="h-3 w-3 text-cyan-400" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-cyan-300">
-                    {facingMode === 'environment' ? '📷 Back Camera' : '🤳 Front Camera'}
-                  </span>
+              {/* Subtle inner dimming */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'rgba(0,0,0,0.15)',
+                  borderRadius: 16,
+                }}
+              />
+
+              {/* Instruction label overlay below the reticle */}
+              <div className="absolute -bottom-24 inset-x-0 text-center flex flex-col items-center gap-2 px-4 pointer-events-none">
+                <div className={`text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all duration-300 ${
+                  hasResult
+                    ? 'text-emerald-300 border-emerald-500/30 bg-emerald-950/40'
+                    : isError
+                    ? 'text-rose-300 border-rose-500/30 bg-rose-950/40 animate-shake'
+                    : 'text-rose-300 border-rose-500/20 bg-black/60'
+                }`}>
+                  {scanResult.status === 'success'
+                    ? '✓ QR Code Scanned & Approved'
+                    : scanResult.status === 'warning'
+                    ? '⚠ QR Scanned (Warning)'
+                    : isError
+                    ? `✗ Error: ${scanResult.message}`
+                    : '⚠ Position QR Code inside the Box to Scan'}
+                </div>
+                
+                <div className="text-[9px] font-bold text-white/60 bg-black/30 px-3 py-1 rounded-lg uppercase tracking-wider max-w-sm leading-normal">
+                  {scanResult.status === 'none' ? (
+                    <span>Hold device steady &bull; Align corners with the box</span>
+                  ) : isError ? (
+                    <span className="text-rose-400">Please generate a new QR code from your app</span>
+                  ) : (
+                    <span className="text-emerald-400">Logging complete! Ready for next scan.</span>
+                  )}
                 </div>
               </div>
-            )}
+
+              {/* Camera label */}
+              {cameraCount > 1 && (
+                <div className="absolute -bottom-10 inset-x-0 flex justify-center">
+                  <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
+                    <FlipHorizontal2 className="h-3 w-3 text-cyan-400" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-cyan-300">
+                      {facingMode === 'environment' ? '📷 Back Camera' : '🤳 Front Camera'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ================================================================== */}
       {/* TOP HEADER BAR — floats over camera                                 */}
@@ -1280,6 +1354,14 @@ function UnitActivityScannerTerminal() {
         /* Hide the library's built-in green qr box border (we draw our own) */
         #reader-bg canvas {
           display: none !important;
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.3s ease-in-out;
         }
       `}</style>
 
