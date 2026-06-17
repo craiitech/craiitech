@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
+import type { Unit, Submission, User as AppUser, Campus, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, AlertCircle, Send, Loader2, FileX, Info, School, CheckCircle } from 'lucide-react';
@@ -14,7 +14,7 @@ import { doc, writeBatch } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
@@ -22,6 +22,7 @@ interface UnitsWithoutSubmissionsProps {
   allUnits: Unit[] | null;
   allCampuses: Campus[] | null;
   allSubmissions: Submission[] | null;
+  allCycles: Cycle[] | null;
   isLoading: boolean;
   userProfile: AppUser | null;
   isAdmin: boolean;
@@ -34,6 +35,7 @@ export function UnitsWithoutSubmissions({
   allUnits,
   allCampuses,
   allSubmissions,
+  allCycles,
   isLoading,
   userProfile,
   isAdmin,
@@ -72,11 +74,14 @@ export function UnitsWithoutSubmissions({
         const incompleteUnits = campusUnits.map(unit => {
             const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
             
+            const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+            const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+
             const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
-            const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const requiredFirst = isFirstActive ? (firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
 
             const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
-            const requiredFinal = finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const requiredFinal = isFinalActive ? (finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
 
             const totalRequired = requiredFirst + requiredFinal;
 
@@ -90,7 +95,7 @@ export function UnitsWithoutSubmissions({
                 count: approvedSubmissions.size,
                 totalRequired: totalRequired
             };
-        }).filter(unit => unit.count === 0); // Strictly zero approved
+        }).filter(unit => unit.count === 0 && unit.totalRequired > 0); // Strictly zero approved and has required submissions
         
         return {
             campusId: campus.id,
@@ -99,7 +104,7 @@ export function UnitsWithoutSubmissions({
         };
     }).filter(campus => campus.incompleteUnits.length > 0);
 
-  }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile, selectedYear]);
+  }, [allUnits, allCampuses, allSubmissions, allCycles, isCampusSupervisor, userProfile, selectedYear]);
   
   const handleSendReminders = async () => {
     if (!firestore || incompleteSubmissionsByCampus.length === 0) return;

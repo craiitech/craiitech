@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Star, Building, TrendingUp, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Progress } from '../ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
@@ -79,25 +79,28 @@ export function Leaderboard({
                 s.campusId === campus.id
             );
             
+            const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+            const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+
             const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
-            const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const requiredFirst = isFirstActive ? (isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
             
-            const firstCycleApprovedCount = new Set(
+            const firstCycleApprovedCount = isFirstActive ? new Set(
                 campusUnitSubmissions
                     .filter(s => s.cycleId === 'first' && s.statusId === 'approved')
                     .map(s => s.reportType)
-            ).size;
+            ).size : 0;
 
             const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
             const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-            const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const requiredFinal = isFinalActive ? (isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
             
-            const finalCycleApprovedCount = new Set(
+            const finalCycleApprovedCount = isFinalActive ? new Set(
                 campusUnitSubmissions
                     .filter(s => s.cycleId === 'final' && s.statusId === 'approved')
                     .map(s => s.reportType)
-            ).size;
+            ).size : 0;
             
             const totalRequired = requiredFirst + requiredFinal;
             const approvedCount = firstCycleApprovedCount + finalCycleApprovedCount;
@@ -116,7 +119,7 @@ export function Leaderboard({
       .filter(item => item.percentage >= 1) 
       .sort((a, b) => b.percentage - a.percentage);
 
-  }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor, selectedYear]);
+  }, [allSubmissions, allUnits, allCampuses, allCycles, userProfile, isCampusSupervisor, selectedYear]);
 
   if (isLoading) {
     return (

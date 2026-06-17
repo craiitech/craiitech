@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import {
@@ -171,9 +171,10 @@ function calculateEomsScore(
     units: Unit[] | null;
     campuses: Campus[] | null;
     selectedYear: number;
+    cycles?: Cycle[] | null;
   }
 ): EomsScoreResult {
-  const { submissions = [], risks = [], cars = [], allCompliances = [], academicPrograms = [], schedules = [], units = [], campuses = [], selectedYear } = data;
+  const { submissions = [], risks = [], cars = [], allCompliances = [], academicPrograms = [], schedules = [], units = [], campuses = [], selectedYear, cycles = [] } = data;
 
   // Filter collections by scope
   let scopedSubmissions = submissions || [];
@@ -208,7 +209,14 @@ function calculateEomsScore(
   // 1. SUBMISSION COMPLIANCE RATE
   const approvedSubs = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
   const nonIqaUnitsForExpected = scopedUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
-  const expectedSubs = scope === 'unit' ? (isIqaUnit ? 0 : 2) : (nonIqaUnitsForExpected.length || 1) * 2;
+  
+  const isFirstActive = isCycleActive('first', selectedYear, cycles);
+  const isFinalActive = isCycleActive('final', selectedYear, cycles);
+  let expectedCycles = 0;
+  if (isFirstActive) expectedCycles += 1;
+  if (isFinalActive) expectedCycles += 1;
+
+  const expectedSubs = scope === 'unit' ? (isIqaUnit ? 0 : expectedCycles) : (nonIqaUnitsForExpected.length || 1) * expectedCycles;
   const submissionRate = expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0;
 
   // 2. IQA PROGRESS RATE
@@ -832,8 +840,9 @@ export default function HomePage() {
     schedules: dashboardSchedules,
     units: allUnits,
     campuses,
-    selectedYear
-  }), [submissions, risks, allCars, allCompliances, academicPrograms, dashboardSchedules, allUnits, campuses, selectedYear]);
+    selectedYear,
+    cycles: allCycles
+  }), [submissions, risks, allCars, allCompliances, academicPrograms, dashboardSchedules, allUnits, campuses, selectedYear, allCycles]);
 
   const universityRating = useMemo(() => calculateEomsScore('university', undefined, eomsData), [eomsData]);
 
@@ -1325,8 +1334,8 @@ export default function HomePage() {
             <ComplianceHeatmap units={nonIqaUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
           </div>
           <div className="lg:col-span-3 space-y-6">
-            <CompletedSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
-            <UnitsWithoutSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+            <CompletedSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+            <UnitsWithoutSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
             <Card className="shadow-md"><CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoadingSubmissions} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
           </div>
         </div>
@@ -1362,8 +1371,8 @@ export default function HomePage() {
             <SubmissionSchedule cycles={allCycles} isLoading={isLoadingSubmissions} />
           </div>
           <div className="lg:col-span-3 space-y-6">
-            <CompletedSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
-            <UnitsWithoutSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+            <CompletedSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={true} selectedYear={selectedYear} />
+            <UnitsWithoutSubmissions allUnits={nonIqaUnits} allCampuses={campuses} allSubmissions={submissions} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isAdmin={false} isCampusSupervisor={true} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
             <Leaderboard allSubmissions={submissions} allUnits={nonIqaUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoadingSubmissions} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
           </div>
         </div>

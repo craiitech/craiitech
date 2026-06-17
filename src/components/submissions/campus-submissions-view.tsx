@@ -11,7 +11,8 @@ import type {
     ProgramComplianceRecord,
     AuditFinding,
     CorrectiveActionRequest,
-    ManagementReviewOutput 
+    ManagementReviewOutput,
+    Cycle
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,7 +52,7 @@ import {
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -137,6 +138,12 @@ export function CampusSubmissionsView({
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+
+  const cyclesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'cycles') : null),
+    [firestore]
+  );
+  const { data: allCycles } = useCollection<Cycle>(cyclesQuery);
   
   // ADMIN FILTER STATES
   const [sidebarSearch, setSidebarSearch] = useState('');
@@ -235,9 +242,15 @@ export function CampusSubmissionsView({
         const isActionPlanNA = ror?.riskRating === 'low';
         
         const approved = unitSubs.filter(s => s.statusId === 'approved').length;
-        const totalPossible = (submissionTypes.length * 2) - (isActionPlanNA ? 2 : 0);
+        
+        const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+        const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+        let totalPossible = 0;
+        if (isFirstActive) totalPossible += submissionTypes.length - (isActionPlanNA ? 1 : 0);
+        if (isFinalActive) totalPossible += submissionTypes.length - (isActionPlanNA ? 1 : 0);
         
         const getMissing = (cycleId: 'first' | 'final') => {
+            if (!isCycleActive(cycleId, selectedYear, allCycles)) return [];
             const approvedSet = new Set(unitSubs.filter(s => s.cycleId === cycleId && s.statusId === 'approved').map(s => s.reportType));
             return submissionTypes.filter(type => {
                 if (approvedSet.has(type)) return false;
@@ -268,7 +281,7 @@ export function CampusSubmissionsView({
         unitPerformance: unitPerformance.sort((a,b) => b.score - a.score),
         allCampusSubmissions: yearSubmissions
     };
-  }, [selectedCampusId, allSubmissions, allUnits, selectedYear]);
+  }, [selectedCampusId, allSubmissions, allUnits, selectedYear, allCycles]);
 
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !selectedCampusId) return null;
@@ -284,7 +297,8 @@ export function CampusSubmissionsView({
     const finalRegistry = finalSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
     const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
 
-    const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
+    const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean, cycleId: 'first' | 'final') => {
+        if (!isCycleActive(cycleId, selectedYear, allCycles)) return [];
         const approvedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved').map(s => s.reportType));
         return submissionTypes.filter(type => {
             if (approvedSet.has(type)) return false;
@@ -293,14 +307,19 @@ export function CampusSubmissionsView({
         });
     };
 
-    const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA);
-    const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA);
+    const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA, 'first');
+    const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA, 'final');
 
     const approved = unitSubmissions.filter(s => s.statusId === 'approved').length;
     const pending = unitSubmissions.filter(s => s.statusId === 'submitted').length;
     const rejected = unitSubmissions.filter(s => s.statusId === 'rejected').length;
     
-    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
+    const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+    const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+    let totalPossible = 0;
+    if (isFirstActive) totalPossible += submissionTypes.length - (isFirstActionPlanNA ? 1 : 0);
+    if (isFinalActive) totalPossible += submissionTypes.length - (isFinalActionPlanNA ? 1 : 0);
+    
     const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
@@ -325,7 +344,7 @@ export function CampusSubmissionsView({
         approved,
         allUnitSubmissions: unitSubmissions
     };
-  }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear]);
+  }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear, allCycles]);
 
   const handlePrintUnitNotice = (type: 'Compliance' | 'Non-Compliance') => {
     if (!unitData || !selectedUnitId || !allUnits || !selectedCampusId || !allCampuses) return;
@@ -582,6 +601,7 @@ export function CampusSubmissionsView({
                     scope="unit"
                     name={unitMap.get(selectedUnitId) || 'Unit'}
                     selectedYear={Number(selectedYear)}
+                    cycles={allCycles}
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -681,6 +701,7 @@ export function CampusSubmissionsView({
                         scope="campus"
                         name={campusMap.get(selectedCampusId) || 'Campus'}
                         selectedYear={Number(selectedYear)}
+                        cycles={allCycles}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -78,7 +78,8 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function RiskRegisterPage() {
-    const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor } = useUser();
+    const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor, userRole } = useUser();
+    const isUnitOdimo = userRole === 'Unit ODIMO';
     const searchParams = useSearchParams();
     const { toast } = useToast();
     
@@ -112,9 +113,9 @@ export default function RiskRegisterPage() {
     useEffect(() => {
         if (userProfile && !isUserLoading) {
             if (!isAdmin) setCampusFilter(userProfile.campusId);
-            if (!isAdmin && !isSupervisor) setUnitFilter(userProfile.unitId);
+            if (!isAdmin && (!isSupervisor || isUnitOdimo)) setUnitFilter(userProfile.unitId);
         }
-    }, [userProfile, isAdmin, isSupervisor, isUserLoading]);
+    }, [userProfile, isAdmin, isSupervisor, isUnitOdimo, isUserLoading]);
 
     /**
      * ACADEMIC YEAR GENERATION
@@ -168,8 +169,8 @@ export default function RiskRegisterPage() {
     const filteredRisks = useMemo(() => {
         if (!allRisks) return [];
         return allRisks.filter(risk => {
-            if (!isAdmin && !isSupervisor && risk.unitId !== userProfile?.unitId) return false;
-            if (isSupervisor && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
+            if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
+            if ((isSupervisor && !isUnitOdimo) && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
             if (searchTerm) {
                 const lowerSearch = searchTerm.toLowerCase();
                 const matchesSearch = risk.description.toLowerCase().includes(lowerSearch) || 
@@ -183,7 +184,7 @@ export default function RiskRegisterPage() {
             if (ratingFilter !== 'all' && risk.preTreatment.rating !== ratingFilter) return false;
             return true;
         });
-    }, [allRisks, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, userProfile]);
+    }, [allRisks, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
 
     const risksOnly = useMemo(() => filteredRisks.filter(r => r.type === 'Risk'), [filteredRisks]);
     const opportunitiesOnly = useMemo(() => filteredRisks.filter(r => r.type === 'Opportunity'), [filteredRisks]);
@@ -331,7 +332,7 @@ export default function RiskRegisterPage() {
                         )}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handlePrintROR} disabled={isLoading || filteredRisks.length === 0} className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"><Printer className="mr-2 h-4 w-4" />Print Registry</Button>
-                    {!isSupervisor && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}
+                    {(!isSupervisor || isUnitOdimo) && <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" />Log New Entry</Button>}
                 </div>
                 </div>
             </div>
@@ -369,12 +370,12 @@ export default function RiskRegisterPage() {
 
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5"><Building className="h-2.5 w-2.5" /> Unit / Office</label>
-                        <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isAdmin && !isSupervisor}>
+                        <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isAdmin && (!isSupervisor || isUnitOdimo)}>
                             <SelectTrigger className="h-9 text-xs bg-white">
                                 <SelectValue placeholder="All Units" />
                             </SelectTrigger>
                             <SelectContent>
-                                {(isAdmin || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
+                                {(isAdmin || (isSupervisor && !isUnitOdimo)) && <SelectItem value="all">All Units</SelectItem>}
                                 {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
@@ -448,7 +449,7 @@ export default function RiskRegisterPage() {
                             onEdit={handleEditRisk} 
                             onDelete={setDeletingRisk} 
                             isAdmin={isAdmin} 
-                            isSupervisor={isSupervisor} 
+                            isSupervisor={isSupervisor && !isUnitOdimo} 
                             campusMap={campusMap} 
                             unitMap={unitMap} 
                         />
@@ -461,7 +462,7 @@ export default function RiskRegisterPage() {
                             onEdit={handleEditRisk} 
                             onDelete={setDeletingRisk} 
                             isAdmin={isAdmin} 
-                            isSupervisor={isSupervisor} 
+                            isSupervisor={isSupervisor && !isUnitOdimo} 
                             campusMap={campusMap} 
                             unitMap={unitMap} 
                         />
@@ -474,7 +475,7 @@ export default function RiskRegisterPage() {
                             onEdit={handleEditRisk} 
                             onDelete={setDeletingRisk} 
                             isAdmin={isAdmin} 
-                            isSupervisor={isSupervisor} 
+                            isSupervisor={isSupervisor && !isUnitOdimo} 
                             campusMap={campusMap} 
                             unitMap={unitMap} 
                         />

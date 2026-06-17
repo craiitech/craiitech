@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { X, CheckCircle, Circle, AlertCircle, Eye, Info, Building2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import { StrategicSwotAnalysis } from '../submissions/strategic-swot-analysis';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from '@/firebase/firestore-wrapper';
@@ -120,6 +120,12 @@ export function UnitSubmissionDetailCard({
   }, [firestore]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
+  const cyclesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'cycles') : null),
+    [firestore]
+  );
+  const { data: allCycles } = useCollection<any>(cyclesQuery);
+
   const unitSubmissions = useMemo(() => {
     if (!allSubmissions || !unitId || !campusId) {
       return { firstCycle: new Map(), finalCycle: new Map(), yearSubmissions: [] };
@@ -150,49 +156,56 @@ export function UnitSubmissionDetailCard({
   
   if (!unit) return null;
 
-  const renderSubmissionList = (cycleName: 'First' | 'Final', statusMap: Map<string, Submission>, isActionPlanNA: boolean) => (
-    <div className="bg-background rounded-lg border p-3">
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">{cycleName} Cycle Verification</h4>
-        <div className="space-y-2">
-            {submissionTypes.map(reportType => {
-                const submission = statusMap.get(reportType);
-                const status = submission?.statusId;
-                const submissionId = submission?.id;
-                const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
-                return (
-                    <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-2 text-[11px]", isNA && "opacity-50 bg-muted/50")}>
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {getIconForStatus(isNA ? 'n/a' : status)}
-                            <span className={cn("font-medium truncate", !status && !isNA && "text-muted-foreground italic")}>{reportType}</span>
-                        </div>
-                        <div className="flex items-center gap-2 ml-2">
-                            {isNA ? (
-                                <Badge variant="secondary" className="text-[9px] h-4 py-0">N/A</Badge>
-                            ) : status ? (
-                                <>
-                                    <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-[9px] h-4 py-0 font-black">
-                                        {status}
-                                    </Badge>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6" 
-                                        onClick={() => onViewSubmission(submissionId!)}
-                                        title="View Submission"
-                                    >
-                                        <Eye className="h-3 w-3" />
-                                    </Button>
-                                </>
-                            ) : (
-                                <Badge variant="outline" className="text-[9px] h-4 py-0 text-destructive border-destructive/30">PENDING</Badge>
-                            )}
-                        </div>
-                    </div>
-                )
-            })}
-        </div>
-    </div>
-  );
+  const renderSubmissionList = (cycleName: 'First' | 'Final', statusMap: Map<string, Submission>, isActionPlanNA: boolean) => {
+    const cycleKey = cycleName.toLowerCase() as 'first' | 'final';
+    const isCycleLive = isCycleActive(cycleKey, selectedYear, allCycles);
+
+    return (
+      <div className="bg-background rounded-lg border p-3">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">{cycleName} Cycle Verification</h4>
+          <div className="space-y-2">
+              {submissionTypes.map(reportType => {
+                  const submission = statusMap.get(reportType);
+                  const status = submission?.statusId;
+                  const submissionId = submission?.id;
+                  const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
+                  return (
+                      <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-2 text-[11px]", isNA && "opacity-50 bg-muted/50")}>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {getIconForStatus(isNA ? 'n/a' : status)}
+                              <span className={cn("font-medium truncate", !status && !isNA && "text-muted-foreground italic")}>{reportType}</span>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                              {isNA ? (
+                                  <Badge variant="secondary" className="text-[9px] h-4 py-0">N/A</Badge>
+                              ) : status ? (
+                                  <>
+                                      <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-[9px] h-4 py-0 font-black">
+                                          {status}
+                                      </Badge>
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-6 w-6" 
+                                          onClick={() => onViewSubmission(submissionId!)}
+                                          title="View Submission"
+                                      >
+                                          <Eye className="h-3 w-3" />
+                                      </Button>
+                                  </>
+                              ) : (
+                                  <Badge variant="outline" className={cn("text-[9px] h-4 py-0 font-bold", !isCycleLive ? "text-muted-foreground border-slate-200" : "text-destructive border-destructive/30")}>
+                                      {!isCycleLive ? "NOT STARTED" : "PENDING"}
+                                  </Badge>
+                              )}
+                          </div>
+                      </div>
+                  )
+              })}
+          </div>
+      </div>
+    );
+  };
 
   return (
     <Card className="sticky top-4 border-primary/30 shadow-xl animate-in slide-in-from-right-4 duration-300">
@@ -219,6 +232,7 @@ export function UnitSubmissionDetailCard({
                     scope="unit"
                     name={unit.name}
                     selectedYear={selectedYear}
+                    cycles={allCycles}
                 />
                 
                 {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA ?? false)}

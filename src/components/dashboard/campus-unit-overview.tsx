@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Unit, Submission, User as AppUser } from '@/lib/types';
+import type { Unit, Submission, User as AppUser, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,6 +9,9 @@ import { Building, Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '../ui/badge';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
+import { useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { collection } from '@/firebase/firestore-wrapper';
+import { cn, isCycleActive } from '@/lib/utils';
 
 interface CampusUnitOverviewProps {
   allUnits: Unit[] | null;
@@ -25,6 +28,12 @@ export function CampusUnitOverview({
   userProfile,
   selectedYear,
 }: CampusUnitOverviewProps) {
+  const firestore = useFirestore();
+  const cyclesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'cycles') : null),
+    [firestore]
+  );
+  const { data: allCycles } = useCollection<Cycle>(cyclesQuery);
 
   const unitSubmissionProgress = useMemo(() => {
     if (!allUnits || !allSubmissions || !userProfile?.campusId) {
@@ -36,26 +45,29 @@ export function CampusUnitOverview({
     return campusUnits.map(unit => {
       const unitSubmissionsForYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
       
+      const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+      const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+
       const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
       const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
-      const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      const requiredFirst = isFirstActive ? (isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
       
       // CRITICAL: Progress is based on APPROVED status
-      const firstCycleApproved = new Set(
+      const firstCycleApproved = isFirstActive ? new Set(
         unitSubmissionsForYear
             .filter(s => s.cycleId === 'first' && s.statusId === 'approved')
             .map(s => s.reportType)
-      ).size;
+      ).size : 0;
       
       const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
       const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-      const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      const requiredFinal = isFinalActive ? (isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
       
-      const finalCycleApproved = new Set(
+      const finalCycleApproved = isFinalActive ? new Set(
         unitSubmissionsForYear
             .filter(s => s.cycleId === 'final' && s.statusId === 'approved')
             .map(s => s.reportType)
-      ).size;
+      ).size : 0;
       
       const totalRequired = requiredFirst + requiredFinal;
       const approvedCount = firstCycleApproved + finalCycleApproved;
@@ -70,7 +82,7 @@ export function CampusUnitOverview({
       };
     });
 
-  }, [allUnits, allSubmissions, userProfile?.campusId, selectedYear]);
+  }, [allUnits, allSubmissions, allCycles, userProfile?.campusId, selectedYear]);
 
   if (isLoading) {
     return (

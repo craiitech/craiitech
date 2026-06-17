@@ -152,9 +152,38 @@ export function SidebarNav({
               table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
               th { background-color: #F9D05A; border: 1px solid black; padding: 8px; text-align: center; text-transform: uppercase; font-size: 10px; font-weight: bold; }
               td { vertical-align: middle; }
+              
+              .print-btn {
+                background-color: #1B6535;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                font-family: Arial, sans-serif;
+                transition: background-color 0.2s, transform 0.1s;
+              }
+              .print-btn:hover {
+                background-color: #154e29;
+              }
+              .print-btn:active {
+                transform: scale(0.98);
+              }
             </style>
           </head>
           <body>
+            <!-- Print Action Button -->
+            <div class="no-print" style="display: flex; justify-content: center; margin-bottom: 25px;">
+              <button onclick="window.print()" class="print-btn">
+                Click to Print Visitor Logbook
+              </button>
+            </div>
+
             <!-- Official Header matching RSU Document Template -->
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 12px; margin-bottom: 20px;">
               <div style="width: 70px; text-align: left;">
@@ -199,12 +228,6 @@ export function SidebarNav({
             <div style="margin-top: 35px; text-align: right; font-size: 9px; font-weight: bold; text-transform: uppercase; color: #555;">
               Generated via RSU EOMS Portal
             </div>
-            <script>
-              window.onload = function() {
-                window.print();
-                window.close();
-              }
-            </script>
           </body>
         </html>
       `);

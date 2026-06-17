@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
+import type { Unit, Submission, User as AppUser, Campus, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,11 +11,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
+import { isCycleActive } from '@/lib/utils';
 
 interface CompletedSubmissionsProps {
   allUnits: Unit[] | null;
   allCampuses: Campus[] | null;
   allSubmissions: Submission[] | null;
+  allCycles: Cycle[] | null;
   isLoading: boolean;
   userProfile: AppUser | null;
   isCampusSupervisor: boolean;
@@ -26,6 +28,7 @@ export function CompletedSubmissions({
   allUnits,
   allCampuses,
   allSubmissions,
+  allCycles,
   isLoading,
   userProfile,
   isCampusSupervisor,
@@ -56,21 +59,24 @@ export function CompletedSubmissions({
         const completedUnits = campusUnits.map(unit => {
             const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && Number(s.year) === Number(selectedYear));
             
+            const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+            const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+
             const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
-            const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const requiredFirst = isFirstActive ? (isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
             
-            const firstCycleApproved = new Set(
+            const firstCycleApproved = isFirstActive ? new Set(
                 unitSubmissions.filter(s => s.cycleId === 'first' && s.statusId === 'approved').map(s => s.reportType)
-            ).size;
+            ).size : 0;
 
             const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
             const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-            const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const requiredFinal = isFinalActive ? (isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
             
-            const finalCycleApproved = new Set(
+            const finalCycleApproved = isFinalActive ? new Set(
                 unitSubmissions.filter(s => s.cycleId === 'final' && s.statusId === 'approved').map(s => s.reportType)
-            ).size;
+            ).size : 0;
 
             const totalRequired = requiredFirst + requiredFinal;
             const approvedCount = firstCycleApproved + finalCycleApproved;
@@ -90,7 +96,7 @@ export function CompletedSubmissions({
         };
     }).filter(campus => campus.completedUnits.length > 0);
 
-  }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile, selectedYear]);
+  }, [allUnits, allCampuses, allSubmissions, allCycles, isCampusSupervisor, userProfile, selectedYear]);
 
 
   if (isLoading) {

@@ -145,3 +145,26 @@ export function parseDate(d: any): Date {
   return new Date(d);
 }
 
+/**
+ * Checks if a specific submission cycle has started by checking its configured startDate.
+ * If the cycle is not configured or allCycles is null, it defaults to active (true) to ensure backward compatibility.
+ */
+export function isCycleActive(
+  cycleName: 'first' | 'final',
+  year: number | string,
+  allCycles: any[] | null | undefined
+): boolean {
+  if (!allCycles) return true;
+  const cycle = allCycles.find(
+    c => c.name === cycleName && Number(c.year) === Number(year)
+  );
+  if (!cycle) return true;
+  try {
+    const start = parseDate(cycle.startDate);
+    return new Date() >= start;
+  } catch (e) {
+    return true;
+  }
+}
+
+

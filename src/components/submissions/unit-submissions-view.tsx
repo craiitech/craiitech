@@ -13,7 +13,8 @@ import type {
     ProgramComplianceRecord,
     AuditFinding,
     CorrectiveActionRequest,
-    ManagementReviewOutput
+    ManagementReviewOutput,
+    Cycle
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,7 +39,7 @@ import {
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -175,6 +176,12 @@ export function UnitSubmissionsView({
   }, [firestore, selectedUnitId]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
+  const cyclesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'cycles') : null),
+    [firestore]
+  );
+  const { data: allCycles } = useCollection<Cycle>(cyclesQuery);
+
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) return null;
     
@@ -193,7 +200,8 @@ export function UnitSubmissionsView({
     const finalRegistry = finalSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
     const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
 
-    const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
+    const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean, cycleId: 'first' | 'final') => {
+        if (!isCycleActive(cycleId, selectedYear, allCycles)) return [];
         const approvedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved').map(s => s.reportType));
         return submissionTypes.filter(type => {
             if (approvedSet.has(type)) return false;
@@ -202,14 +210,19 @@ export function UnitSubmissionsView({
         });
     };
 
-    const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA);
-    const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA);
+    const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA, 'first');
+    const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA, 'final');
 
     const approved = yearSubmissions.filter(s => s.statusId === 'approved').length;
     const pending = yearSubmissions.filter(s => s.statusId === 'submitted').length;
     const rejected = yearSubmissions.filter(s => s.statusId === 'rejected').length;
     
-    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
+    const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+    const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+    let totalPossible = 0;
+    if (isFirstActive) totalPossible += submissionTypes.length - (isFirstActionPlanNA ? 1 : 0);
+    if (isFinalActive) totalPossible += submissionTypes.length - (isFinalActionPlanNA ? 1 : 0);
+    
     const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
@@ -222,7 +235,7 @@ export function UnitSubmissionsView({
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
     return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved, yearSubmissions };
-  }, [selectedUnitId, allSubmissions, userProfile, selectedYear]);
+  }, [selectedUnitId, allSubmissions, userProfile, selectedYear, allCycles]);
 
   const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance') => {
     if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
@@ -324,6 +337,7 @@ export function UnitSubmissionsView({
                 scope="unit"
                 name={currentUnit.name}
                 selectedYear={Number(selectedYear)}
+                cycles={allCycles}
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

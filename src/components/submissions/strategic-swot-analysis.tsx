@@ -31,7 +31,7 @@ import {
     ListChecks,
     School
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isCycleActive } from '@/lib/utils';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface StrategicSwotAnalysisProps {
@@ -45,6 +45,7 @@ interface StrategicSwotAnalysisProps {
   scope: 'unit' | 'campus';
   name: string;
   selectedYear: number;
+  cycles?: any[] | null;
 }
 
 type SWOTItem = {
@@ -65,7 +66,8 @@ export function StrategicSwotAnalysis({
     mrOutputs = [],
     scope, 
     name, 
-    selectedYear 
+    selectedYear,
+    cycles = []
 }: StrategicSwotAnalysisProps) {
   
   const analysis = useMemo(() => {
@@ -98,7 +100,21 @@ export function StrategicSwotAnalysis({
         if (yearSubmissions.some(s => s.statusId === 'rejected')) {
             weaknesses.push({ title: 'Review Backlog', description: 'Evidence logs have been rejected by ODIMO and require corrective resubmission.', tag: '[Process Correction]', priority: 'High', category: 'Documentation' });
         }
-        const missingCount = (TOTAL_REPORTS_PER_CYCLE * 2) - approvedCount;
+        
+        const isFirstActive = isCycleActive('first', selectedYear, cycles);
+        const isFinalActive = isCycleActive('final', selectedYear, cycles);
+        
+        const firstRegistry = yearSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        const firstIsActionPlanNA = firstRegistry?.riskRating === 'low';
+
+        const finalRegistry = yearSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        const finalIsActionPlanNA = finalRegistry?.riskRating === 'low';
+
+        let totalPossible = 0;
+        if (isFirstActive) totalPossible += TOTAL_REPORTS_PER_CYCLE - (firstIsActionPlanNA ? 1 : 0);
+        if (isFinalActive) totalPossible += TOTAL_REPORTS_PER_CYCLE - (finalIsActionPlanNA ? 1 : 0);
+
+        const missingCount = Math.max(0, totalPossible - approvedCount);
         if (missingCount > 4) {
             weaknesses.push({ title: 'Documentation Gaps', description: `Significant documentation gaps detected (${missingCount} items missing/unapproved).`, tag: '[EOMS Gap]', priority: 'High', category: 'Documentation' });
         }
@@ -192,7 +208,7 @@ export function StrategicSwotAnalysis({
     }
 
     return { strengths, weaknesses };
-  }, [submissions, risks, monitoringRecords, programCompliances, auditFindings, correctiveActionRequests, mrOutputs, scope, selectedYear]);
+  }, [submissions, risks, monitoringRecords, programCompliances, auditFindings, correctiveActionRequests, mrOutputs, scope, selectedYear, cycles]);
 
   return (
     <Card className="shadow-lg border-primary/10 overflow-hidden bg-background">

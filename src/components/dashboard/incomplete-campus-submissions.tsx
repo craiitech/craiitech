@@ -9,9 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School, CheckCircle, Building, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Timestamp } from '@/firebase/firestore-wrapper';
+import { Timestamp, collection } from '@/firebase/firestore-wrapper';
 import { Button } from '../ui/button';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
+import { useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { isCycleActive } from '@/lib/utils';
 
 interface IncompleteCampusSubmissionsProps {
   allSubmissions: Submission[] | null;
@@ -33,6 +35,13 @@ export function IncompleteCampusSubmissions({
   onUnitClick
 }: IncompleteCampusSubmissionsProps) {
 
+  const firestore = useFirestore();
+  const cyclesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'cycles') : null),
+    [firestore]
+  );
+  const { data: allCycles } = useCollection<any>(cyclesQuery);
+
   const incompleteSubmissionsByCampus = useMemo(() => {
     if (!allSubmissions || !allCampuses || !allUnits || !selectedYear) {
       return [];
@@ -48,30 +57,32 @@ export function IncompleteCampusSubmissions({
         const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && Number(s.year) === Number(selectedYear));
 
         // --- FIRST CYCLE ---
-        const firstCycleApproved = submissionsForUnitAndYear.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
+        const isFirstActive = isCycleActive('first', selectedYear, allCycles);
+        const firstCycleApproved = isFirstActive ? submissionsForUnitAndYear.filter(s => s.cycleId === 'first' && s.statusId === 'approved') : [];
         const firstCycleApprovedTypes = new Set(firstCycleApproved.map(s => s.reportType));
         const firstRegistry = submissionsForUnitAndYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
         const firstIsActionPlanNA = firstRegistry?.riskRating === 'low';
         
-        let requiredInFirst = TOTAL_REPORTS_PER_CYCLE;
-        if (firstIsActionPlanNA) {
+        let requiredInFirst = isFirstActive ? TOTAL_REPORTS_PER_CYCLE : 0;
+        if (isFirstActive && firstIsActionPlanNA) {
           requiredInFirst = TOTAL_REPORTS_PER_CYCLE - 1;
         }
 
-        const missingFirst = Math.max(0, requiredInFirst - firstCycleApprovedTypes.size);
+        const missingFirst = isFirstActive ? Math.max(0, requiredInFirst - firstCycleApprovedTypes.size) : 0;
 
         // --- FINAL CYCLE ---
-        const finalCycleApproved = submissionsForUnitAndYear.filter(s => s.cycleId === 'final' && s.statusId === 'approved');
+        const isFinalActive = isCycleActive('final', selectedYear, allCycles);
+        const finalCycleApproved = isFinalActive ? submissionsForUnitAndYear.filter(s => s.cycleId === 'final' && s.statusId === 'approved') : [];
         const finalCycleApprovedTypes = new Set(finalCycleApproved.map(s => s.reportType));
         const finalRegistry = submissionsForUnitAndYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
         const finalIsActionPlanNA = finalRegistry?.riskRating === 'low';
 
-        let requiredInFinal = TOTAL_REPORTS_PER_CYCLE;
-        if (finalIsActionPlanNA) {
+        let requiredInFinal = isFinalActive ? TOTAL_REPORTS_PER_CYCLE : 0;
+        if (isFinalActive && finalIsActionPlanNA) {
           requiredInFinal = TOTAL_REPORTS_PER_CYCLE - 1;
         }
         
-        const missingFinal = Math.max(0, requiredInFinal - finalCycleApprovedTypes.size);
+        const missingFinal = isFinalActive ? Math.max(0, requiredInFinal - finalCycleApprovedTypes.size) : 0;
 
         // --- TOTAL ---
         const totalMissing = missingFirst + missingFinal;
@@ -95,7 +106,7 @@ export function IncompleteCampusSubmissions({
     }).filter((c): c is NonNullable<typeof c> => c !== null);
 
     return campusResults;
-  }, [allSubmissions, allCampuses, allUnits, selectedYear]);
+  }, [allSubmissions, allCampuses, allUnits, selectedYear, allCycles]);
 
   if (isLoading) {
     return (
