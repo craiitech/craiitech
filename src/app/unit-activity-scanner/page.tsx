@@ -233,8 +233,12 @@ function UnitActivityScannerTerminal() {
     setScanResult({ status: 'none', message: 'Initializing camera stream...' });
 
     setTimeout(() => {
+      if (!document.getElementById("reader-bg")) {
+        // Container not ready or unmounted, abort gracefully
+        return;
+      }
       try {
-        const scanner = new (window as any).Html5Qrcode(readerBgRef.current);
+        const scanner = new (window as any).Html5Qrcode("reader-bg");
 
         scanner.start(
           { facingMode: { ideal: activeMode } },
@@ -511,7 +515,7 @@ function UnitActivityScannerTerminal() {
   // Manage scanner camera lifecycle — start as soon as library and activityId are ready
   // Camera runs continuously; fullscreen overlay is cosmetic/security UX only
   useEffect(() => {
-    if (isScannerLibLoaded && paramActivityId) {
+    if (isScannerLibLoaded && paramActivityId && !isUserLoading && !isLoadingActivity) {
       startScanning();
     } else {
       stopScanning();
@@ -520,7 +524,7 @@ function UnitActivityScannerTerminal() {
     return () => {
       stopScanning();
     };
-  }, [isScannerLibLoaded, paramActivityId, activeActivity]);
+  }, [isScannerLibLoaded, paramActivityId, activeActivity, isUserLoading, isLoadingActivity]);
 
   const handleExitTerminal = async () => {
     try {
