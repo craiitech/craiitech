@@ -39,12 +39,12 @@ import {
   EyeOff,
   UserPlus,
   UserCheck,
-  X
+  X,
+  Check
 } from 'lucide-react';
 import type { Campus, Unit, Employee, GADSector } from '@/lib/types';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
 const GAD_SECTORS: GADSector[] = ['Solo Parent', 'PWD', 'Senior Citizen', 'Youth/Student', 'Employee', 'LGBTQA++', 'Indigenous People'];
@@ -647,12 +647,15 @@ export default function VisitorLogbookSettingsPage() {
                                   }
                                 }}
                               >
-                                <Checkbox
-                                  id={`sector-${sector}`}
-                                  checked={isChecked}
-                                  className="pointer-events-none"
-                                />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 select-none truncate">
+                                <div
+                                  className={cn(
+                                    "h-4 w-4 shrink-0 rounded border border-[#1B6535]/30 transition-all flex items-center justify-center bg-white",
+                                    isChecked && "bg-[#1B6535] border-[#1B6535] text-white"
+                                  )}
+                                >
+                                  {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-650 select-none truncate">
                                   {sector}
                                 </span>
                               </div>
