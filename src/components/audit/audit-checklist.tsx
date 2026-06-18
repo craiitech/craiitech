@@ -737,8 +737,8 @@ export function AuditChecklist({
   };
 
   return (
-    <Card className="shadow-2xl border-primary/10 overflow-hidden">
-      <CardHeader className="bg-muted/30 border-b py-6">
+    <Card className="shadow-2xl border-primary/10">
+      <CardHeader className="sticky top-16 z-20 bg-muted/30 border-b py-6">
         <div className="flex items-center justify-between">
             <div className="space-y-1">
                 <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Audit Evidence Log</CardTitle>
@@ -748,11 +748,11 @@ export function AuditChecklist({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Fixed Clause Header - Shows current open clause when scrolling (position: fixed for reliability) */}
+        {/* Fixed Clause Header - Shows current open clause when scrolling */}
         {showStickyHeader && openClause && (
           <div 
             className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
-            style={{ top: '64px' }} /* Sit directly below the fixed page header (h-16 = 64px) */
+            style={{ top: '160px' }} /* Below the IQA header (64px) and the sticky card header (~96px) */
           >
             <div className="max-w-7xl mx-auto flex items-center gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
