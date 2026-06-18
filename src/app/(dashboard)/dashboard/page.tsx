@@ -608,7 +608,7 @@ export default function HomePage() {
     const baseRef = collection(firestore, 'risks');
     if (isUniversityExecutive) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+    return query(baseRef, where('unitId', '==', userProfile.unitId));
   }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
@@ -623,7 +623,7 @@ export default function HomePage() {
       return query(baseRef, where('campusId', '==', userProfile.campusId), where('createdAt', '>=', startOfYear), where('createdAt', '<', endOfYear));
     }
     if (userProfile.unitId && userProfile.campusId) {
-      return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId), where('createdAt', '>=', startOfYear), where('createdAt', '<', endOfYear));
+      return query(baseRef, where('unitId', '==', userProfile.unitId));
     }
     return null;
   }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading, selectedYear]);
