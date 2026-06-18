@@ -12,7 +12,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest, Risk, ProgramComplianceRecord, ManagementReviewOutput } from '@/lib/types';
+import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest, Risk, ProgramComplianceRecord, ManagementReviewOutput, Cycle } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw, Loader2 } from 'lucide-react';
@@ -218,6 +218,57 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return collection(firestore, 'communications');
   }, [firestore]);
   const { data: commsNotifications } = useCollection<any>(commsNotifQuery);
+
+  // EOMS Points — unit submissions for current year
+  const currentYear = new Date().getFullYear();
+  const eomsSubsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return query(
+      collection(firestore, 'submissions'),
+      where('unitId', '==', userProfile.unitId)
+    );
+  }, [firestore, userProfile]);
+  const { data: eomsSubmissions } = useCollection<Submission>(eomsSubsQuery);
+
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: cycles } = useCollection<Cycle>(cyclesQuery);
+
+  const eomsPoints = useMemo(() => {
+    if (!eomsSubmissions || !userProfile) return null;
+    const yearSubs = eomsSubmissions.filter(s => s.year === currentYear && s.isDraft !== true);
+
+    const submissionTypes = [
+      'SWOT Analysis',
+      'Needs and Expectation of Interested Parties',
+      'Operational Plan',
+      'Quality Objectives Monitoring',
+      'Risk and Opportunity Registry',
+      'Risk and Opportunity Action Plan'
+    ];
+
+    const calcCycle = (cycleId: 'first' | 'final') => {
+      const cycleDeadline = (cycles || []).find(c => c.name === cycleId && Number(c.year) === currentYear);
+      const rorSub = yearSubs.find(s => s.cycleId === cycleId && s.reportType === 'Risk and Opportunity Registry');
+      const isActionPlanExempt = rorSub?.riskRating === 'low';
+
+      return submissionTypes.reduce((sum, type) => {
+        if (type === 'Risk and Opportunity Action Plan' && isActionPlanExempt) return sum + 1.0;
+        const sub = yearSubs.find(s => s.cycleId === cycleId && s.reportType === type);
+        if (!sub) return sum;
+        if (!cycleDeadline?.endDate) return sum + 1.0;
+        const getMs = (v: any) => v?.toDate ? v.toDate().getTime() : v instanceof Date ? v.getTime() : v?.seconds ? v.seconds * 1000 : new Date(v).getTime();
+        return sum + (getMs(sub.submissionDate) <= getMs(cycleDeadline.endDate) ? 1.0 : 0.5);
+      }, 0);
+    };
+
+    const total = calcCycle('first') + calcCycle('final');
+    let tier: string = 'Unranked';
+    if (total >= 11) tier = 'Gold';
+    else if (total >= 8) tier = 'Silver';
+    else if (total >= 1) tier = 'Bronze';
+
+    return { total, tier };
+  }, [eomsSubmissions, cycles, userProfile, currentYear]);
 
   const subNotificationsCount = useMemo(() => {
     if (!subNotifications) return 0;
@@ -566,6 +617,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                     )}
                   </div>
+                  {eomsPoints && (
+                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-black text-white/70 uppercase tracking-wider">AY {currentYear}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn(
+                          "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm tracking-wider",
+                          eomsPoints.tier === 'Gold' && 'bg-yellow-400 text-yellow-900',
+                          eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800',
+                          eomsPoints.tier === 'Bronze' && 'bg-amber-700 text-amber-100',
+                          eomsPoints.tier === 'Unranked' && 'bg-white/10 text-white/50'
+                        )}>{eomsPoints.tier}</span>
+                        <span className="text-xs font-black text-white">{eomsPoints.total.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </SidebarHeader>
