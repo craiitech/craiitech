@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
+import { VoiceAnnouncements } from './voice-announcements';
 
 type VoiceContextValue = {
   speak: (text: string) => void;
@@ -85,6 +86,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   return (
     <VoiceCtx.Provider value={{ speak, stop, enabled, setEnabled }}>
+      <VoiceAnnouncements />
       {children}
     </VoiceCtx.Provider>
   );
