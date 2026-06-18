@@ -34,6 +34,7 @@ import {
   Activity,
   ArrowRight,
   ChevronRight,
+  Crosshair,
   ShieldAlert,
   AlertTriangle,
   Gavel,
@@ -111,6 +112,7 @@ import { AuditAnalytics } from '@/components/audit/audit-analytics';
 import { AuditResultsView } from '@/components/audit/audit-results-view';
 import { ChedProgramsTab } from '@/components/dashboard/executive/ched-programs-tab';
 import { RiskOpportunityTab } from '@/components/dashboard/executive/risk-opportunity-tab';
+import { ExecutiveRiskIntelligence } from '@/components/dashboard/executive/executive-risk-intelligence';
 import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
 import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
 import { ScheduleTab } from '@/components/dashboard/executive/schedule-tab';
@@ -1155,6 +1157,7 @@ export default function HomePage() {
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
             <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
+            <TabsTrigger value="risk-intelligence"><Crosshair className="mr-2 h-4 w-4" />Risk Intelligence</TabsTrigger>
             <TabsTrigger value="corrective-actions"><ListChecks className="mr-2 h-4 w-4" />Corrective Actions</TabsTrigger>
             <TabsTrigger value="actionable-decisions"><Zap className="mr-2 h-4 w-4" />Actionable Decisions</TabsTrigger>
           </TabsList>
@@ -1275,6 +1278,15 @@ export default function HomePage() {
         />
       </TabsContent>
 
+      <TabsContent value="risk-intelligence" className="space-y-6">
+        <ExecutiveRiskIntelligence
+          risks={risks || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
       <TabsContent value="corrective-actions" className="space-y-6">
         <CorrectiveActionsTab
           cars={allCars || []}
@@ -1324,6 +1336,7 @@ export default function HomePage() {
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
             <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
+            <TabsTrigger value="risk-intelligence"><Crosshair className="mr-2 h-4 w-4" />Risk Intelligence</TabsTrigger>
             <TabsTrigger value="corrective-actions"><ListChecks className="mr-2 h-4 w-4" />Corrective Actions</TabsTrigger>
             <TabsTrigger value="actionable-decisions"><Zap className="mr-2 h-4 w-4" />Actionable Decisions</TabsTrigger>
           </TabsList>
@@ -1444,6 +1457,15 @@ export default function HomePage() {
 
       <TabsContent value="risk-opportunity" className="space-y-6">
         <RiskOpportunityTab
+          risks={risks || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="risk-intelligence" className="space-y-6">
+        <ExecutiveRiskIntelligence
           risks={risks || []}
           allUnits={allUnits || []}
           campuses={campuses || []}
