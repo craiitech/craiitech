@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { useUser } from '@/firebase';
-import { usePathname } from 'next/navigation';
 import { VoiceAnnouncements } from './voice-announcements';
 
 type VoiceContextValue = {
@@ -23,9 +22,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const { userProfile, isUserLoading } = useUser();
-  const pathname = usePathname();
   const welcomed = useRef(false);
-  const prevPath = useRef('');
   const enabledRef = useRef(false);
 
   useEffect(() => {
@@ -71,18 +68,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }, 2000);
     return () => clearTimeout(timer);
   }, [hydrated, isUserLoading, userProfile, speak]);
-
-  useEffect(() => {
-    if (!hydrated || !enabled || !pathname || pathname === prevPath.current) return;
-    prevPath.current = pathname;
-    if (pathname === '/dashboard' || pathname === '/') return;
-    const segment = pathname.split('/').filter(Boolean).pop() || '';
-    const title = segment.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    const timer = setTimeout(() => {
-      speak(`Navigated to ${title}`);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [pathname, hydrated, enabled, speak]);
 
   return (
     <VoiceCtx.Provider value={{ speak, stop, enabled, setEnabled }}>
