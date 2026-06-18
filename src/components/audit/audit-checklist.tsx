@@ -737,7 +737,7 @@ export function AuditChecklist({
   };
 
   return (
-    <Card className="shadow-2xl border-primary/10 overflow-visible hover:translate-y-0">
+    <Card className="shadow-2xl border-primary/10" style={{ overflow: 'visible' }}>
       <CardHeader className="bg-muted/30 border-b py-6">
         <div className="flex items-center justify-between">
             <div className="space-y-1">
