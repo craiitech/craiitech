@@ -93,6 +93,7 @@ function MobileVisitorLogbookContent() {
   const [csmSQD6, setCsmSQD6] = useState<number>(5);
   const [csmSQD7, setCsmSQD7] = useState<number>(5);
   const [csmSQD8, setCsmSQD8] = useState<number>(5);
+  const [csmSQD0, setCsmSQD0] = useState<number>(5);
   const [csmComments, setCsmComments] = useState<string>('');
   const [isSubmittingCsm, setIsSubmittingCsm] = useState<boolean>(false);
   
@@ -162,22 +163,24 @@ function MobileVisitorLogbookContent() {
         "Did not help"
       ],
       sqdTitle: "3. Service Quality Dimensions (SQD)",
+      sqd0: "SQD0. Overall Satisfaction",
+      sqd0D: "I am satisfied with the service that I availed.",
       sqd1: "SQD1. Responsiveness",
       sqd1D: "I spent a reasonable amount of time for my transaction.",
       sqd2: "SQD2. Reliability",
-      sqd2D: "The office followed the transaction's requirements and steps.",
+      sqd2D: "The office followed the transaction's requirements and steps based on the information provided.",
       sqd3: "SQD3. Access & Facilities",
-      sqd3D: "The office location was convenient, clean, and comfortable.",
+      sqd3D: "The steps (including payment) I needed to do for my transaction were easy and simple.",
       sqd4: "SQD4. Communication",
-      sqd4D: "The staff explained the requirements and steps clearly.",
+      sqd4D: "I easily found information about my transaction from the office or its website.",
       sqd5: "SQD5. Costs",
-      sqd5D: "The fees paid were just and reasonable (select N/A if transaction was free).",
+      sqd5D: "I paid a reasonable amount of fees for my transaction (select N/A if transaction was free).",
       sqd6: "SQD6. Integrity",
-      sqd6D: "The transaction was clean (no extra payment/corruption experienced).",
+      sqd6D: "I feel the office was fair to everyone, or 'walang palakasan', during my transaction.",
       sqd7: "SQD7. Assurance",
-      sqd7D: "I felt safe and secure, and the staff was professional/courteous.",
+      sqd7D: "I was treated courteously by the staff, and (if asked for help) the staff was helpful.",
       sqd8: "SQD8. Outcome",
-      sqd8D: "I got what I needed from the office (or got a clear explanation).",
+      sqd8D: "I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.",
       na: "Not Applicable",
       comments: "4. Comments / Suggestions (Optional)",
       commentsPlaceholder: "Share details of your experience or suggestions to improve our service...",
@@ -219,22 +222,24 @@ function MobileVisitorLogbookContent() {
         "Hindi nakatulong"
       ],
       sqdTitle: "3. Mga Dimensyon ng Kalidad ng Serbisyo (SQD)",
+      sqd0: "SQD0. Pangkalahatang Kasiyahan",
+      sqd0D: "Ako ay nasisiyahan sa serbisyong aking natanggap.",
       sqd1: "SQD1. Pagtugon (Responsiveness)",
       sqd1D: "Naglaan ako ng makatwirang oras para sa aking transaksyon.",
       sqd2: "SQD2. Maaasahan (Reliability)",
-      sqd2D: "Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon.",
+      sqd2D: "Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon batay sa ibinigay na impormasyon.",
       sqd3: "SQD3. Pag-access at Pasilidad (Access & Facilities)",
-      sqd3D: "Ang lokasyon ng tanggapan ay maginhawa, malinis, at komportable.",
+      sqd3D: "Ang mga hakbang (kabilang ang pagbabayad) na kailangan kong gawin para sa aking transaksyon ay madali at simple.",
       sqd4: "SQD4. Komunikasyon (Communication)",
-      sqd4D: "Malinaw na ipinaliwanag ng mga kawani ang mga kinakailangan at hakbang.",
+      sqd4D: "Madali kong natagpuan ang impormasyon tungkol sa aking transaksyon mula sa tanggapan o sa website nito.",
       sqd5: "SQD5. Gastos (Costs)",
-      sqd5D: "Ang mga binayarang bayarin ay makatarungan at makatwiran (piliin ang N/A kung libre).",
+      sqd5D: "Nagbayad ako ng makatwirang halaga ng mga bayarin para sa aking transaksyon (piliin ang N/A kung libre ang transaksyon).",
       sqd6: "SQD6. Integridad (Integrity)",
-      sqd6D: "Malinis ang transaksyon (walang labis na bayad/korapsyon na naranasan).",
+      sqd6D: "Pakiramdam ko ay patas ang tanggapan sa lahat, o 'walang palakasan', sa aking transaksyon.",
       sqd7: "SQD7. Pagtitiyak (Assurance)",
-      sqd7D: "Naramdaman kong ligtas ako, at ang mga kawani ay propesyonal at magalang.",
+      sqd7D: "Ako ay magalang na pinakitunguhan ng mga kawani, at (kung humingi ng tulong) ang mga kawani ay nakatulong.",
       sqd8: "SQD8. Kinalabasan (Outcome)",
-      sqd8D: "Nakuha ko ang kailangan ko mula sa tanggapan (o binigyan ng malinaw na paliwanag).",
+      sqd8D: "Nakuha ko ang kailangan ko mula sa tanggapan, o (kung tinanggihan) ang pagtanggi ay sapat na ipinaliwanag sa akin.",
       na: "Hindi Angkop (N/A)",
       comments: "4. Mga Komento / Mungkahi (Opsyonal)",
       commentsPlaceholder: "Ibahagi ang mga detalye ng iyong karanasan o mga mungkahi upang mapabuti ang aming serbisyo...",
@@ -357,6 +362,7 @@ function MobileVisitorLogbookContent() {
           sqd6: Number(csmSQD6),
           sqd7: Number(csmSQD7),
           sqd8: Number(csmSQD8),
+          sqd0: Number(csmSQD0),
           
           comments: csmComments.trim(),
           createdAt: Timestamp.now(),
@@ -727,7 +733,7 @@ function MobileVisitorLogbookContent() {
                   
                   <div className="space-y-4">
                     {[
-                      { id: 1, label: t[csmLanguage].sqd1, desc: t[csmLanguage].sqd1D, val: csmSQD1, setVal: setCsmSQD1 },
+                      { id: 0, label: t[csmLanguage].sqd0, desc: t[csmLanguage].sqd0D, val: csmSQD0, setVal: setCsmSQD0 },
                       { id: 2, label: t[csmLanguage].sqd2, desc: t[csmLanguage].sqd2D, val: csmSQD2, setVal: setCsmSQD2 },
                       { id: 3, label: t[csmLanguage].sqd3, desc: t[csmLanguage].sqd3D, val: csmSQD3, setVal: setCsmSQD3 },
                       { id: 4, label: t[csmLanguage].sqd4, desc: t[csmLanguage].sqd4D, val: csmSQD4, setVal: setCsmSQD4 },

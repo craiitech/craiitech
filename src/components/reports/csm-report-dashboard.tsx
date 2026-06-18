@@ -129,6 +129,7 @@ const BASELINE_2025 = {
     cc3: [0, 850, 150, 0, 0], // counts for option 1 to 4
   },
   sqd: [
+    { id: 0, name: "SQD0. Overall Satisfaction", key: "sqd0", desc: "I am satisfied with the service I availed", avg: 4.60, positivePercent: 92, counts: [0, 5, 15, 60, 120, 800] },
     { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time", avg: 4.40, positivePercent: 88, counts: [0, 10, 30, 80, 130, 750] },
     { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements", avg: 4.50, positivePercent: 90, counts: [0, 15, 25, 60, 120, 780] },
     { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office", avg: 4.35, positivePercent: 87, counts: [0, 20, 40, 70, 150, 720] },
@@ -717,6 +718,7 @@ export function CsmReportDashboard({
 
       // SQD performance
       const dims = [
+        { id: 0, name: "SQD0. Overall Satisfaction", key: "sqd0", desc: "I am satisfied with the service I availed" },
         { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time" },
         { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements" },
         { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office" },
@@ -799,7 +801,8 @@ export function CsmReportDashboard({
           
           // Heuristic theme mapping
           let category = "Outcome (SQD8)";
-          for (let i = 1; i <= 8; i++) {
+          for (let i = 0; i <= 8; i++) {
+            if (i === 0) continue; // Skip SQD0 for heuristic mapping
             if (r[`sqd${i}`] > 0 && r[`sqd${i}`] <= 2) {
               category = i === 1 ? "Responsiveness (SQD1)" :
                          i === 2 ? "Reliability (SQD2)" :
@@ -946,6 +949,14 @@ export function CsmReportDashboard({
         let checklist: string[] = [];
 
         switch(sqd.id) {
+          case 0:
+            recommendation = "Overall Satisfaction Alert: General satisfaction below threshold. Conduct root cause analysis across all dimensions.";
+            checklist = [
+              "Review all SQD dimension scores to identify weakest areas.",
+              "Conduct focus group discussions with frontline staff and clients.",
+              "Implement institution-wide service improvement initiatives."
+            ];
+            break;
           case 1:
             recommendation = "Responsiveness Alert: Transaction time is sub-optimal. Review counter queue management.";
             checklist = [
@@ -1065,7 +1076,7 @@ export function CsmReportDashboard({
       let ratingSum = 0;
 
       uResponses.forEach(res => {
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 0; i <= 8; i++) {
           const rating = res[`sqd${i}`];
           if (rating > 0 && rating <= 5) {
             ratingCount++;

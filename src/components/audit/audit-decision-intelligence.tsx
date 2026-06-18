@@ -61,6 +61,66 @@ export function IqaDecisionIntelligence({
 
   const { yearPlans, yearSchedules, yearFindings } = yearData;
 
+  // Cross-year progression: OFIs in previous year → NCs in current year (same unit, same clause)
+  const crossYearProgression = useMemo(() => {
+    const prevYear = selectedYear - 1;
+    const prevYearPlans = plans.filter(p => p.year === prevYear);
+    const prevPlanIds = new Set(prevYearPlans.map(p => p.id));
+    const prevYearSchedules = schedules.filter(s => prevPlanIds.has(s.auditPlanId));
+    const prevScheduleIds = new Set(prevYearSchedules.map(s => s.id));
+    const prevFindings = findings.filter(f => prevScheduleIds.has(f.auditScheduleId));
+
+    if (prevFindings.length === 0) return [];
+
+    // Map previous year OFIs by unit+clause
+    const prevOfiByUnitClause: Record<string, string[]> = {};
+    prevFindings.forEach(f => {
+      if (f.type !== 'Observation for Improvement') return;
+      const schedule = prevYearSchedules.find(s => s.id === f.auditScheduleId);
+      if (!schedule) return;
+      const key = `${schedule.targetId}-${f.isoClause}`;
+      if (!prevOfiByUnitClause[key]) prevOfiByUnitClause[key] = [];
+      prevOfiByUnitClause[key].push(f.id || f.isoClause);
+    });
+
+    // Find current year NCs on same unit+clause
+    const result: {
+      unitId: string;
+      unitName: string;
+      clauseId: string;
+      clauseTitle: string;
+      prevOfiCount: number;
+      currentNcCount: number;
+    }[] = [];
+
+    yearFindings.forEach(f => {
+      if (f.type !== 'Non-Conformance') return;
+      const schedule = yearSchedules.find(s => s.id === f.auditScheduleId);
+      if (!schedule) return;
+      const key = `${schedule.targetId}-${f.isoClause}`;
+      const prevOfis = prevOfiByUnitClause[key];
+      if (!prevOfis || prevOfis.length === 0) return;
+
+      // Check if this unit+clause already in result
+      const existing = result.find(r => r.unitId === schedule.targetId && r.clauseId === f.isoClause);
+      if (existing) {
+        existing.currentNcCount++;
+      } else {
+        const match = isoClauses.find(c => c.id === f.isoClause || c.title === f.isoClause);
+        result.push({
+          unitId: schedule.targetId,
+          unitName: unitMap.get(schedule.targetId) || 'Unknown',
+          clauseId: f.isoClause,
+          clauseTitle: match ? match.title : `Clause ${f.isoClause}`,
+          prevOfiCount: prevOfis.length,
+          currentNcCount: 1,
+        });
+      }
+    });
+
+    return result.sort((a, b) => b.currentNcCount - a.currentNcCount);
+  }, [findings, plans, schedules, isoClauses, unitMap, selectedYear, yearFindings, yearSchedules]);
+
   // Finding counts by type
   const findingCounts = useMemo(() => {
     const counts: Record<string, number> = { 'Compliance': 0, 'Observation for Improvement': 0, 'Non-Conformance': 0, 'Not Applicable': 0 };
@@ -80,8 +140,9 @@ export function IqaDecisionIntelligence({
     const carsLinked = cars.filter(c =>
       c.source === 'Audit Finding' && c.findingId && ncFindingIds.has(c.findingId)
     );
-    const closedCars = carsLinked.filter(c => c.status === 'Closed');
+    const closedCarsList = carsLinked.filter(c => c.status === 'Closed');
     const carsForNc = carsLinked.length;
+    const closedCars = closedCarsList.length;
 
     // Nc findings without CARs
     const ncWithCarIds = new Set(carsLinked.filter(c => c.findingId).map(c => c.findingId!));
@@ -291,6 +352,18 @@ export function IqaDecisionIntelligence({
       });
     }
 
+    // Cross-year OFI→NC progression
+    if (crossYearProgression.length > 0) {
+      items.push({
+        priority: 'critical',
+        title: `${crossYearProgression.length} Units With OFI→NC Progression`,
+        rationale: `${crossYearProgression.length} unit(s) had Observations for Improvement (OFI) on specific ISO clauses last year that escalated to Non-Conformances (NC) this year. This pattern indicates that previous corrective actions were ineffective or incomplete. ${crossYearProgression.slice(0, 2).map(u => `${u.unitName} (${u.clauseTitle})`).join(', ')} show this progression.`,
+        action: `Mandate root-cause re-analysis for these specific unit-clause combinations. Previous CARs must be reopened and effectiveness audits scheduled within 30 days. Escalate to Campus Director level.`,
+        count: crossYearProgression.length,
+        icon: <TrendingUp className="h-4 w-4" />,
+      });
+    }
+
     // Recurring issues (same unit, same clause)
     const persistentIssues = recurringIssues.filter(r => r.severity === 'critical');
     if (persistentIssues.length > 0) {
@@ -331,7 +404,7 @@ export function IqaDecisionIntelligence({
     }
 
     return items;
-  }, [funnelData, unitScores, clauseRiskData, recurringIssues, cars]);
+  }, [funnelData, unitScores, clauseRiskData, recurringIssues, cars, crossYearProgression]);
 
   // ---- DERIVED METRICS ----
   const iqaCompletionRate = yearSchedules.length > 0
@@ -678,8 +751,43 @@ export function IqaDecisionIntelligence({
           </Card>
         </div>
 
-        {/* Row 3: Recurring Issues + Process Health */}
+        {/* Row 3: Cross-Year Progression + Process Health */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Cross-Year OFI→NC Progression */}
+          {crossYearProgression.length > 0 && (
+            <Card className="shadow-md bg-white border-orange-200 lg:col-span-2">
+              <CardHeader className="border-b bg-orange-50 pb-3">
+                <CardTitle className="text-sm font-black uppercase tracking-wider flex items-center gap-2 text-orange-700">
+                  <TrendingUp className="h-4 w-4" />
+                  OFI → NC Progression Detected
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold text-orange-500">
+                  Observations for Improvement from AY {selectedYear - 1} escalated to Non-Conformances in AY {selectedYear}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 p-0">
+                <div className="divide-y divide-slate-100">
+                  {crossYearProgression.slice(0, 10).map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 bg-red-50/20">
+                      <div className="shrink-0 p-1.5 rounded bg-red-100 text-red-600">
+                        <TrendingUp className="h-3 w-3" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black text-slate-800 truncate">{item.unitName}</p>
+                        <p className="text-[8px] text-slate-500 font-bold">{item.clauseTitle}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-[8px] font-bold">
+                        <span className="text-amber-600">{item.prevOfiCount} OFI (prev)</span>
+                        <ArrowRight className="h-3 w-3 text-slate-300" />
+                        <span className="text-red-600">{item.currentNcCount} NC (now)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recurring Issue Detection */}
           <Card className="shadow-md bg-white border-primary/10">
@@ -689,7 +797,7 @@ export function IqaDecisionIntelligence({
                 Recurring Issue Detection
               </CardTitle>
               <CardDescription className="text-[10px] font-bold text-slate-400">
-                Units with ≥2 OFIs or ≥1 NC on the same ISO clause — indicates ineffective corrective action
+                Units with ≥2 OFIs or ≥1 NC on the same ISO clause this year — indicates ineffective corrective action
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4 p-0">

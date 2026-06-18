@@ -615,15 +615,17 @@ export default function HomePage() {
   const carsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
-    if (isUniversityExecutive) return baseRef;
+    const startOfYear = Timestamp.fromDate(new Date(selectedYear, 0, 1));
+    const endOfYear = Timestamp.fromDate(new Date(selectedYear + 1, 0, 1));
+    if (isUniversityExecutive) return query(baseRef, where('createdAt', '>=', startOfYear), where('createdAt', '<', endOfYear));
     if (isCampusSupervisor && userProfile.campusId) {
-      return query(baseRef, where('campusId', '==', userProfile.campusId));
+      return query(baseRef, where('campusId', '==', userProfile.campusId), where('createdAt', '>=', startOfYear), where('createdAt', '<', endOfYear));
     }
     if (userProfile.unitId && userProfile.campusId) {
-      return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+      return query(baseRef, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId), where('createdAt', '>=', startOfYear), where('createdAt', '<', endOfYear));
     }
     return null;
-  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);
+  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading, selectedYear]);
   const { data: dashboardCars } = useCollection<CorrectiveActionRequest>(carsQuery);
   const allCars = dashboardCars;
   const unitCars = dashboardCars;

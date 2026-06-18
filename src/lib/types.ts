@@ -260,6 +260,7 @@ export type CsmResponse = {
     cc3: number; // 1-4 scale (or N/A)
     
     // Service Quality Dimensions (SQD) - ratings 1-5, or 0 for N/A
+    sqd0: number; // Overall Satisfaction
     sqd1: number; // Responsiveness
     sqd2: number; // Reliability
     sqd3: number; // Access & Facilities
