@@ -16,6 +16,7 @@ import {
   serverTimestamp 
 } from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog, ActivitySession, ActivityEvaluation } from '@/lib/types';
+import { generatePayloadSignature, resolveActiveSession, parseSessionTime } from '@/lib/unit-activity-crypto';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,8 @@ import {
   ClipboardCopy
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
+
+const pieLabel = ({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`;
 
 export default function UnitActivityPage() {
   const { userProfile, isAdmin, isSupervisor } = useUser();
@@ -530,7 +533,7 @@ export default function UnitActivityPage() {
       const sex = l.sex || 'Did not specify';
       counts[sex] = (counts[sex] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value]) => ({
+    return Object.entries(counts || {}).map(([name, value]) => ({
       name,
       value,
       color: name === 'Male' ? '#3b82f6' : name === 'Female' ? '#ec4899' : '#8b5cf6'
@@ -735,25 +738,29 @@ export default function UnitActivityPage() {
         return;
       }
 
-      // Check if it's the minified/optimized payload format
       const isMinified = 'u' in payload && 'f' in payload && 't' in payload && 's' in payload;
 
       const userId = isMinified ? payload.u : payload.userId;
       const deviceFingerprint = isMinified ? payload.f : payload.deviceFingerprint;
       const timestamp = isMinified ? payload.t : payload.timestamp;
+      const signature = isMinified ? payload.s : payload.signature;
 
-      if (!userId || !deviceFingerprint || !timestamp) {
+      if (!userId || !deviceFingerprint || !timestamp || !signature) {
         setScanResult({ status: 'error', message: 'Rejected: Missing security properties in QR payload.' });
         return;
       }
 
-      // 2. Validate QR rotation expiration (60s grace + 10s buffer for network differences)
       if (Date.now() - timestamp > 70000) {
         setScanResult({ status: 'error', message: 'Rejected: Expired QR token. Use the rotating code from the active phone app.' });
         return;
       }
 
-      // 3. Verify strict Device Binding Lock in Firestore
+      const computedSignature = await generatePayloadSignature(userId, timestamp, deviceFingerprint);
+      if (signature !== computedSignature) {
+        setScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
+        return;
+      }
+
       const bindingRef = doc(firestore, 'attendanceDeviceBindings', deviceFingerprint);
       const bindingSnap = await getDoc(bindingRef);
 
@@ -764,25 +771,23 @@ export default function UnitActivityPage() {
 
       const officialBinding = bindingSnap.data() as DeviceBinding;
       if (officialBinding.userId !== userId) {
-        setScanResult({ status: 'error', message: `Security Rejection: Device Lock active. This phone is locked to another user.` });
+        setScanResult({ status: 'error', message: 'Security Rejection: Device Lock active. This phone is locked to another user.' });
         return;
       }
 
-      // Fallback demographics from database binding if not present in payload
-      const userName = isMinified ? officialBinding.userName : (payload.userName || officialBinding.userName);
-      const unitId = isMinified ? officialBinding.unitId : (payload.unitId || officialBinding.unitId);
-      const unitName = isMinified ? officialBinding.unitName : (payload.unitName || officialBinding.unitName);
-      const finalContact = isMinified ? (officialBinding.contactNumber || 'N/A') : (payload.contactNumber || officialBinding.contactNumber || 'N/A');
-      const finalSex = isMinified ? (officialBinding.sex || 'Did not specify') : (payload.sex || officialBinding.sex || 'Did not specify');
+      const userName = officialBinding.userName;
+      const unitId = officialBinding.unitId;
+      const unitName = officialBinding.unitName;
+      const finalContact = officialBinding.contactNumber || 'N/A';
+      const finalSex = officialBinding.sex || 'Did not specify';
 
-      // 4. Calculate Attendance Status (login)
+      const session = resolveActiveSession(activeActivity);
       const scanTime = Date.now();
-      const actStart = activeActivity.startDateTime.toDate ? activeActivity.startDateTime.toDate().getTime() : new Date(activeActivity.startDateTime).getTime();
-      const actEnd = activeActivity.endDateTime.toDate ? activeActivity.endDateTime.toDate().getTime() : new Date(activeActivity.endDateTime).getTime();
+      const actStart = parseSessionTime(session.date, session.startTime);
+      const actEnd = parseSessionTime(session.date, session.endTime);
 
       let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
       if (activeActivity.lateThresholdMinutes === 0) {
-        // threshold=0 means no late marking — everyone within window is ON_TIME
         logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
       } else {
         const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
@@ -795,20 +800,19 @@ export default function UnitActivityPage() {
         }
       }
 
-      // 5. Write to Firestore
-      const logId = `${activeActivity.id}_${userId}`;
+      const logId = `${activeActivity.id}_${session.id}_${userId}`;
       const logRef = doc(firestore, 'unitActivityAttendanceLogs', logId);
 
       const existingLog = await getDoc(logRef);
       if (existingLog.exists()) {
         const existingData = existingLog.data() as ActivityAttendanceLog;
-        // Login+Logout mode: second scan = logout
         if (activeActivity.requiresLogout && !existingData.logoutAt) {
-          await setDoc(logRef, { ...existingData, logoutAt: new Date() });
+          const logoutTime = new Date();
+          await setDoc(logRef, { ...existingData, logoutAt: logoutTime });
           setScanResult({
             status: 'success',
-            message: `Logout recorded for ${userName}.`,
-            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'LOGOUT' }
+            message: `Logout recorded for ${userName} (${session.label}).`,
+            details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT' }
           });
         } else if (activeActivity.requiresLogout && existingData.logoutAt) {
           setScanResult({
@@ -819,7 +823,7 @@ export default function UnitActivityPage() {
         } else {
           setScanResult({
             status: 'warning',
-            message: `${userName} has already signed in for this session. Duplicate scan ignored.`,
+            message: `${userName} has already signed in for ${session.label}. Duplicate scan ignored.`,
             details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
           });
         }
@@ -837,7 +841,9 @@ export default function UnitActivityPage() {
         scannedAt: new Date(),
         status: logStatus,
         contactNumber: finalContact,
-        sex: finalSex
+        sex: finalSex,
+        sessionId: session.id,
+        sessionLabel: session.label
       };
 
       await setDoc(logRef, newLog);
@@ -845,10 +851,10 @@ export default function UnitActivityPage() {
       setScanResult({
         status: logStatus === 'ON_TIME' ? 'success' : 'warning',
         message: logStatus === 'ON_TIME'
-          ? `Login verified! Signed in on time.${ activeActivity.requiresLogout ? ' Scan again to logout.' : '' }`
+          ? `Login verified! Signed in on time (${session.label}).${ activeActivity.requiresLogout ? ' Scan again to logout.' : '' }`
           : logStatus === 'LATE'
-          ? `Late login recorded. Threshold was ${activeActivity.lateThresholdMinutes} mins.`
-          : `Scan outside activity window — recorded as OUTSIDE WINDOW.`,
+          ? `Late login recorded (${session.label}). Threshold was ${activeActivity.lateThresholdMinutes} mins.`
+          : `Scan outside session window — recorded as OUTSIDE WINDOW.`,
         details: {
           name: userName,
           office: unitName,
@@ -1247,6 +1253,10 @@ export default function UnitActivityPage() {
 
   return (
     <div className="space-y-6">
+      <style>{`
+        .recharts-text.recharts-label { font-size: 11px; font-weight: 700; fill: #64748b; }
+        @media (max-width: 640px) { .recharts-text.recharts-label { font-size: 8px; } }
+      `}</style>
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
         <div>
@@ -2085,7 +2095,7 @@ export default function UnitActivityPage() {
                             cx="50%"
                             cy="50%"
                             outerRadius={80}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            label={pieLabel}
                           >
                             {punctualityData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
@@ -2116,7 +2126,7 @@ export default function UnitActivityPage() {
                             cx="50%"
                             cy="50%"
                             outerRadius={80}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            label={pieLabel}
                           >
                             {genderData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />

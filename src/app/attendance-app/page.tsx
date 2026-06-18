@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
 import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit, updateDoc } from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
+import { generatePayloadSignature, generateActivityCode, signOfflineLog, verifyOfflineLog } from '@/lib/unit-activity-crypto';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,33 +32,6 @@ import {
   KeyRound,
   Calendar
 } from 'lucide-react';
-
-// Client-side secure hash/signature key for tamper-prevention
-const APP_SECRET_SALT = "rsu_attendance_secure_salt_2026";
-
-// Custom SHA-256 equivalent hash function for browser environments without native crypto dependencies
-const generatePayloadSignature = (userId: string, timestamp: number, fp: string) => {
-  const inputStr = `${userId}-${timestamp}-${fp}-${APP_SECRET_SALT}`;
-  let hash = 0;
-  for (let i = 0; i < inputStr.length; i++) {
-    const char = inputStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return `SIG-${Math.abs(hash)}`;
-};
-
-const generateActivityCode = (activityId: string, timestamp: number) => {
-  const windowId = Math.floor(timestamp / 60000); // 60-second window
-  const inputStr = `${activityId}-${windowId}-rsu-secure-otp`;
-  let hash = 0;
-  for (let i = 0; i < inputStr.length; i++) {
-    const char = inputStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return ((Math.abs(hash) % 900) + 100).toString();
-};
 
 export default function RsuAttendanceApp() {
   const firestore = useFirestore();
@@ -112,15 +86,15 @@ export default function RsuAttendanceApp() {
     }
   }, []);
 
-  // Fetch active / upcoming activities for manual selector (limited to top 20, fetched once)
   const activitiesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !binding) return null;
     return query(
       collection(firestore, 'unitActivities'),
       where('status', 'in', ['ACTIVE', 'UPCOMING']),
+      where('unitId', '==', binding.unitId),
       limit(20)
     );
-  }, [firestore]);
+  }, [firestore, binding]);
   const { data: activeActivities } = useGetCollection<AttendanceActivity>(activitiesQuery);
 
   // Fetch specific selected activity document
@@ -133,7 +107,6 @@ export default function RsuAttendanceApp() {
 
   const [offlineLogs, setOfflineLogs] = useState<ActivityAttendanceLog[]>([]);
 
-  // Load offline logs on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('rsu_attendance_offline_logs');
@@ -141,7 +114,21 @@ export default function RsuAttendanceApp() {
         try {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            setOfflineLogs(parsed);
+            (async () => {
+              const valid = [];
+              for (const log of parsed) {
+                const sig = log._sig;
+                if (!sig) continue;
+                const logData = { ...log };
+                delete logData._sig;
+                const ok = await verifyOfflineLog(logData, sig);
+                if (ok) valid.push(log);
+              }
+              if (valid.length !== parsed.length) {
+                localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(valid));
+              }
+              setOfflineLogs(valid);
+            })();
           }
         } catch (e) {
           console.error("Failed to parse offline logs:", e);
@@ -149,6 +136,15 @@ export default function RsuAttendanceApp() {
       }
     }
   }, []);
+
+  const saveOfflineLogsSigned = async (logs: ActivityAttendanceLog[]) => {
+    const signed = await Promise.all(logs.map(async (log) => {
+      const { _sig, ...logData } = log as any;
+      const sig = await signOfflineLog(logData);
+      return { ...logData, _sig: sig, synced: log.synced };
+    }));
+    localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(signed));
+  };
 
   // Background Sync loop for bindings and logs
   useEffect(() => {
@@ -224,7 +220,7 @@ export default function RsuAttendanceApp() {
         if (hasChanged) {
           const remainingLogs = logsToSync.filter(l => !l.synced);
           setOfflineLogs(remainingLogs);
-          localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(remainingLogs));
+          await saveOfflineLogsSigned(remainingLogs);
         }
       }
     }, 30000);
@@ -326,45 +322,40 @@ export default function RsuAttendanceApp() {
     checkBinding();
   }, [firestore, deviceFingerprint]);
 
-  // 3. Generate signed rotating QR payload
-  const generateNewQR = () => {
+  const [qrRefreshCounter, setQrRefreshCounter] = useState(0);
+
+  const generateNewQR = async () => {
     if (!binding) return;
 
     const timestamp = Date.now();
-    const signature = generatePayloadSignature(binding.userId, timestamp, binding.id);
+    const signature = await generatePayloadSignature(binding.userId, timestamp, binding.id);
 
-    // Construct signed token payload (highly optimized/minified for fast, low-density QR scans)
     const payloadObj = {
       u: binding.userId,
       f: binding.id,
       t: timestamp,
-      s: signature,
-      n: binding.userName,
-      i: binding.unitId,
-      o: binding.unitName,
-      c: binding.contactNumber || 'N/A',
-      x: binding.sex || 'Did not specify'
+      s: signature
     };
 
     const payloadString = JSON.stringify(payloadObj);
     setQrPayload(payloadString);
-    
-    // Construct QR rendering URL from API server (optimized size & Low ECC for maximum speed)
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=L&data=${encodeURIComponent(payloadString)}`;
     setQrCodeUrl(qrUrl);
     setTimeLeft(60);
   };
 
-  // 4. Trigger QR rotation on timer
   useEffect(() => {
     if (!isLocked || !binding) return;
-
     generateNewQR();
+  }, [isLocked, binding, qrRefreshCounter]);
+
+  useEffect(() => {
+    if (!isLocked || !binding) return;
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          generateNewQR();
+          setQrRefreshCounter(c => c + 1);
           return 60;
         }
         return prev - 1;
@@ -487,9 +478,11 @@ export default function RsuAttendanceApp() {
 
     // 1. Math-based rolling code verification (client-side matching)
     const nowMs = Date.now();
-    const codeCurrent = generateActivityCode(actId, nowMs);
-    const codePrev = generateActivityCode(actId, nowMs - 60000);
-    const codeNext = generateActivityCode(actId, nowMs + 60000);
+    const [codeCurrent, codePrev, codeNext] = await Promise.all([
+      generateActivityCode(actId, nowMs),
+      generateActivityCode(actId, nowMs - 60000),
+      generateActivityCode(actId, nowMs + 60000)
+    ]);
 
     if (trimmedOtp !== codeCurrent && trimmedOtp !== codePrev && trimmedOtp !== codeNext) {
       setOtpError('Invalid code. The code may have already rolled or is incorrect.');
@@ -688,7 +681,7 @@ export default function RsuAttendanceApp() {
             return l;
           });
           setOfflineLogs(updatedLogs);
-          localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+          await saveOfflineLogsSigned(updatedLogs);
           setOtpSuccess(`Logout recorded offline successfully for ${sDetails.label}. It will sync automatically.`);
           setOtpCode('');
           return;
@@ -739,7 +732,7 @@ export default function RsuAttendanceApp() {
 
       const updatedLogs = [...offlineLogs, newOfflineLog];
       setOfflineLogs(updatedLogs);
-      localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+      await saveOfflineLogsSigned(updatedLogs);
 
       setOtpSuccess(`Check-in (${logStatus.replace('_', ' ')}) recorded offline successfully for ${sDetails.label}. It will sync automatically.`);
       setOtpCode('');

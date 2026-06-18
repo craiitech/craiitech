@@ -14,6 +14,7 @@ import {
   limit
 } from '@/firebase/firestore-wrapper';
 import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
+import { generatePayloadSignature, generateActivityCode, signOfflineLog, verifyOfflineLog, parseSessionTime } from '@/lib/unit-activity-crypto';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -38,31 +39,6 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-const generateActivityCode = (activityId: string, timestamp: number) => {
-  const windowId = Math.floor(timestamp / 60000); // 60-second window
-  const inputStr = `${activityId}-${windowId}-rsu-secure-otp`;
-  let hash = 0;
-  for (let i = 0; i < inputStr.length; i++) {
-    const char = inputStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return ((Math.abs(hash) % 900) + 100).toString();
-};
-
-const APP_SECRET_SALT = "rsu_attendance_secure_salt_2026";
-
-const generatePayloadSignature = (userId: string, timestamp: number, fp: string) => {
-  const inputStr = `${userId}-${timestamp}-${fp}-${APP_SECRET_SALT}`;
-  let hash = 0;
-  for (let i = 0; i < inputStr.length; i++) {
-    const char = inputStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return `SIG-${Math.abs(hash)}`;
-};
-
 function UnitActivityScannerTerminal() {
   const { userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -71,7 +47,6 @@ function UnitActivityScannerTerminal() {
   const [paramActivityId, setParamActivityId] = useState<string | null>(null);
   const [offlineLogs, setOfflineLogs] = useState<ActivityAttendanceLog[]>([]);
 
-  // Load offline logs from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('rsu_attendance_offline_logs');
@@ -79,7 +54,21 @@ function UnitActivityScannerTerminal() {
         try {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            setOfflineLogs(parsed);
+            (async () => {
+              const valid = [];
+              for (const log of parsed) {
+                const sig = log._sig;
+                if (!sig) continue;
+                const logData = { ...log };
+                delete logData._sig;
+                const ok = await verifyOfflineLog(logData, sig);
+                if (ok) valid.push(log);
+              }
+              if (valid.length !== parsed.length) {
+                localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(valid));
+              }
+              setOfflineLogs(valid);
+            })();
           }
         } catch (e) {
           console.error("Failed to parse offline logs:", e);
@@ -87,6 +76,15 @@ function UnitActivityScannerTerminal() {
       }
     }
   }, []);
+
+  const saveOfflineLogsSigned = async (logs: ActivityAttendanceLog[]) => {
+    const signed = await Promise.all(logs.map(async (log) => {
+      const { _sig, ...logData } = log as any;
+      const sig = await signOfflineLog(logData);
+      return { ...logData, _sig: sig, synced: log.synced };
+    }));
+    localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(signed));
+  };
 
   // Background Sync loop for scanner terminal
   useEffect(() => {
@@ -136,7 +134,7 @@ function UnitActivityScannerTerminal() {
       if (hasChanged) {
         const remainingLogs = logsToSync.filter(l => !l.synced);
         setOfflineLogs(remainingLogs);
-        localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(remainingLogs));
+        await saveOfflineLogsSigned(remainingLogs);
       }
     }, 30000); // Sync every 30 seconds
 
@@ -182,13 +180,12 @@ function UnitActivityScannerTerminal() {
     }
   }, [activeActivity?.activeSessionId]);
 
-  // Compute purely client-side mathematical rolling OTP code
   useEffect(() => {
     if (!paramActivityId) return;
 
-    const updateCode = () => {
+    const updateCode = async () => {
       const now = Date.now();
-      const code = generateActivityCode(paramActivityId, now);
+      const code = await generateActivityCode(paramActivityId, now);
       setActiveCode(code);
       setCodeSecondsLeft(60 - (Math.floor(now / 1000) % 60));
     };
@@ -197,18 +194,6 @@ function UnitActivityScannerTerminal() {
     const interval = setInterval(updateCode, 1000);
     return () => clearInterval(interval);
   }, [paramActivityId]);
-
-  const parseSessionTime = (dateStr: string, timeStr: string) => {
-    try {
-      const d = new Date(`${dateStr}T${timeStr}:00`);
-      if (isNaN(d.getTime())) {
-        return Date.now();
-      }
-      return d.getTime();
-    } catch (e) {
-      return Date.now();
-    }
-  };
 
   const sessions = useMemo(() => {
     if (activeActivity?.sessions && activeActivity.sessions.length > 0) {
@@ -538,8 +523,7 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      // Cryptographic signature check (tamper prevention / offline trust check)
-      const computedSignature = generatePayloadSignature(userId, timestamp, deviceFingerprint);
+      const computedSignature = await generatePayloadSignature(userId, timestamp, deviceFingerprint);
       if (signature !== computedSignature) {
         showScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
         return;
@@ -629,7 +613,7 @@ function UnitActivityScannerTerminal() {
           }
 
           setOfflineLogs(updatedLogs);
-          localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+          await saveOfflineLogsSigned(updatedLogs);
 
           showScanResult({
             status: 'success',
@@ -696,7 +680,7 @@ function UnitActivityScannerTerminal() {
       const updatedLog = { ...newLog, synced: false };
       const updatedLogs = [...offlineLogs, updatedLog];
       setOfflineLogs(updatedLogs);
-      localStorage.setItem('rsu_attendance_offline_logs', JSON.stringify(updatedLogs));
+      await saveOfflineLogsSigned(updatedLogs);
 
       showScanResult({
         status: 'success',

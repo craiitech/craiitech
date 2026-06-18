@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from '@/firebase/firestore-wrapper';
-import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2, Calendar } from 'lucide-react';
+import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2, Calendar, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -109,12 +109,15 @@ function EvaluationForm() {
   const [ansMissed, setAnsMissed] = useState('');
   const [ansSuggestions, setAnsSuggestions] = useState('');
 
-  // Extract strategy settings
+  const [pinAttempts, setPinAttempts] = useState(0);
+  const [pinCooldownUntil, setPinCooldownUntil] = useState(0);
+
   const strategy = activity?.evaluationStrategy;
   const focusList = strategy?.feedbackFocus || ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall'];
   const isPinRequired = strategy?.requirePin === true;
   const activePin = strategy?.pinCode || '';
   const evalFormMode = strategy?.formMode || 'open';
+  const isPinLocked = pinCooldownUntil > Date.now();
 
   // Load saved binding info from device to pre-fill demographic fields
   useEffect(() => {
@@ -219,14 +222,37 @@ function EvaluationForm() {
       return;
     }
 
-    // Security PIN Check
-    if (isPinRequired && pinInput.trim() !== activePin) {
-      toast({
-        title: 'Security PIN Mismatch',
-        description: 'The PIN code entered does not match the active event security PIN.',
-        variant: 'destructive'
-      });
-      return;
+    if (isPinRequired) {
+      if (isPinLocked) {
+        const waitSeconds = Math.ceil((pinCooldownUntil - Date.now()) / 1000);
+        toast({
+          title: 'Too Many Attempts',
+          description: `Please wait ${waitSeconds}s before trying again.`,
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (pinInput.trim() !== activePin) {
+        const newAttempts = pinAttempts + 1;
+        setPinAttempts(newAttempts);
+        if (newAttempts >= 5) {
+          const cooldown = Date.now() + 30000;
+          setPinCooldownUntil(cooldown);
+          setPinAttempts(0);
+          toast({
+            title: 'PIN Locked',
+            description: 'Too many incorrect attempts. Please wait 30 seconds.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Security PIN Mismatch',
+            description: `Incorrect PIN (${newAttempts}/5 attempts).`,
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -717,24 +743,26 @@ function EvaluationForm() {
             />
           </div>
 
-          {/* Secure PIN code entry at bottom */}
           {isPinRequired && (
             <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2 animate-in fade-in duration-300">
               <Label htmlFor="pin" className="text-xs font-black uppercase text-amber-700 flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-                Security Verification PIN
+                {isPinLocked ? <ShieldAlert className="h-3.5 w-3.5 text-rose-500 animate-pulse" /> : <Lock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />}
+                {isPinLocked ? 'PIN Locked — Wait to Retry' : 'Security Verification PIN'}
               </Label>
               <Input
                 id="pin"
                 type="text"
                 maxLength={4}
-                placeholder="Enter 4-digit Event PIN"
+                placeholder={isPinLocked ? 'Locked' : 'Enter 4-digit Event PIN'}
                 value={pinInput}
+                disabled={isPinLocked}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                className="bg-white border-amber-300 shadow-sm text-center font-mono font-bold tracking-widest text-lg h-10 w-full max-w-[200px] mx-auto block"
+                className={`bg-white border-amber-300 shadow-sm text-center font-mono font-bold tracking-widest text-lg h-10 w-full max-w-[200px] mx-auto block ${isPinLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               <p className="text-[10px] text-center text-amber-600/80 font-bold uppercase tracking-wider leading-relaxed">
-                Please get the active PIN code from the main kiosk screen at the venue to submit.
+                {isPinLocked
+                  ? `Too many incorrect attempts. Cooldown: ${Math.ceil((pinCooldownUntil - Date.now()) / 1000)}s`
+                  : 'Please get the active PIN code from the main kiosk screen at the venue to submit.'}
               </p>
             </div>
           )}
@@ -742,7 +770,7 @@ function EvaluationForm() {
         <CardFooter className="flex flex-col gap-3 pb-8 pt-4 border-t">
           <Button 
             type="submit" 
-            disabled={isSubmitting} 
+            disabled={isSubmitting || (isPinRequired && isPinLocked)} 
             className="w-full h-12 font-black uppercase tracking-wider shadow-lg shadow-primary/20 text-xs"
           >
             {isSubmitting ? (
