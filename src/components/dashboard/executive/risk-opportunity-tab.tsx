@@ -45,7 +45,7 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
   const unitMap = useMemo(() => new Map(allUnits.map(u => [u.id, u.name])), [allUnits]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
-  const yearRisks = useMemo(() => risks.filter(r => r.year === selectedYear), [risks, selectedYear]);
+  const yearRisks = useMemo(() => risks.filter(r => Number(r.year) === Number(selectedYear)), [risks, selectedYear]);
 
   const openRisks = useMemo(() => yearRisks.filter(r => r.type === 'Risk' && r.status !== 'Closed'), [yearRisks]);
   const opportunities = useMemo(() => yearRisks.filter(r => r.type === 'Opportunity'), [yearRisks]);

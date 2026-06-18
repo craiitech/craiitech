@@ -134,7 +134,7 @@ export function ExecutiveOverview({
     }
 
     return nonIqaUnitsForExpected.reduce((total, unit) => {
-      const unitSubs = scopedSubmissions.filter(s => s.unitId === unit.id);
+      const unitSubs = scopedSubmissions.filter(s => s.unitId === unit.id && Number(s.year) === Number(selectedYear));
       if (isFirstActive) {
         const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
         total += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
@@ -191,7 +191,7 @@ export function ExecutiveOverview({
   const copcComplianceRate = useMemo(() => totalProgramsCount > 0 ? Math.min(100, Math.round((copcCompliant.length / totalProgramsCount) * 100)) : 0, [copcCompliant, totalProgramsCount]);
 
   // 6. RISK MITIGATION RATE
-  const yearRisks = useMemo(() => scopedRisks.filter(r => r.year === selectedYear), [scopedRisks, selectedYear]);
+  const yearRisks = useMemo(() => scopedRisks.filter(r => Number(r.year) === Number(selectedYear)), [scopedRisks, selectedYear]);
   const mitigatedRisks = useMemo(() => yearRisks.filter(r => r.status === 'Closed' || r.preTreatment?.rating === 'low' || r.postTreatment?.rating === 'low'), [yearRisks]);
   const riskControlRate = useMemo(() => yearRisks.length > 0 ? Math.min(100, Math.round((mitigatedRisks.length / yearRisks.length) * 100)) : 0, [mitigatedRisks, yearRisks]);
 
@@ -229,7 +229,7 @@ export function ExecutiveOverview({
     const isFinalActive = isCycleActive('final', selectedYear, cycles);
 
     const getUnitExpected = (unitId: string) => {
-      const unitSubs = (submissions || []).filter(s => s.unitId === unitId);
+      const unitSubs = (submissions || []).filter(s => s.unitId === unitId && Number(s.year) === Number(selectedYear));
       let total = 0;
       if (isFirstActive) {
         const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');

@@ -16,7 +16,7 @@ export function RiskFunnel({ allRisks, selectedYear }: RiskFunnelProps) {
   const funnelData = useMemo(() => {
     if (!allRisks) return [];
 
-    const yearRisks = allRisks.filter(r => r.year === selectedYear);
+    const yearRisks = allRisks.filter(r => Number(r.year) === Number(selectedYear));
 
     const highRiskOpen = yearRisks.filter(r => r.preTreatment.rating === 'High' && r.status === 'Open').length;
     const mediumRiskOpen = yearRisks.filter(r => r.preTreatment.rating === 'Medium' && r.status === 'Open').length;

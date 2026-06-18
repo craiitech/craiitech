@@ -22,7 +22,7 @@ export function RiskMatrix({ allRisks, selectedYear }: RiskMatrixProps) {
   const riskData = useMemo(() => {
     if (!allRisks) return [];
     return allRisks
-        .filter(risk => risk.year === selectedYear && risk.type === 'Risk' && risk.status !== 'Closed')
+        .filter(risk => Number(risk.year) === Number(selectedYear) && risk.type === 'Risk' && risk.status !== 'Closed')
         .map(risk => ({
             x: risk.preTreatment.consequence,
             y: risk.preTreatment.likelihood,

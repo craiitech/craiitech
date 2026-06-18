@@ -22,7 +22,7 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
 
     return campuses.map(campus => {
       const campusSubmissions = submissions.filter(s => s.campusId === campus.id && s.year === selectedYear);
-      const campusRisks = risks.filter(r => r.campusId === campus.id && r.year === selectedYear);
+      const campusRisks = risks.filter(r => r.campusId === campus.id && Number(r.year) === Number(selectedYear));
       const campusActions = mrOutputs.filter(o => o.assignments?.some(a => a.campusId === campus.id));
 
       // Axis 1: Documentation Maturity (Approved / Required)

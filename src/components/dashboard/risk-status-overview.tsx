@@ -47,7 +47,7 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
     };
     if (!risks) return defaultStats;
     
-    const yearRisks = risks.filter(r => r.year === selectedYear);
+    const yearRisks = risks.filter(r => Number(r.year) === Number(selectedYear));
 
     const openRisks = yearRisks.filter(r => r.status === 'Open' || r.status === 'In Progress').length;
     const closedRisks = yearRisks.filter(r => r.status === 'Closed').length;

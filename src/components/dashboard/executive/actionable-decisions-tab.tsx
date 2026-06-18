@@ -52,7 +52,7 @@ const SEVERITY_CONFIG: Record<FlagSeverity, { border: string; bg: string; badge:
 export function ActionableDecisionsTab({
   risks, cars, allCompliances, academicPrograms, auditSchedules, submissions, campuses, allUnits, selectedYear
 }: ActionableDecisionsTabProps) {
-  const yearRisks = useMemo(() => risks.filter(r => r.year === selectedYear), [risks, selectedYear]);
+  const yearRisks = useMemo(() => risks.filter(r => Number(r.year) === Number(selectedYear)), [risks, selectedYear]);
   const yearSubs = useMemo(() => submissions.filter(s => s.year === selectedYear), [submissions, selectedYear]);
   const yearSchedules = useMemo(() => auditSchedules.filter(s => {
     const d = s.scheduledDate?.toDate ? s.scheduledDate.toDate() : s.scheduledDate ? new Date(s.scheduledDate) : null;

@@ -227,7 +227,7 @@ function calculateEomsScore(
     if (isIqaUnit) {
       expectedSubs = 0;
     } else {
-      const unitSubs = scopedSubmissions.filter(s => s.unitId === scopeId);
+      const unitSubs = scopedSubmissions.filter(s => s.unitId === scopeId && Number(s.year) === Number(selectedYear));
       expectedSubs = 0;
       if (isFirstActive) {
         const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
@@ -240,7 +240,7 @@ function calculateEomsScore(
     }
   } else {
     expectedSubs = nonIqaUnitsForExpected.reduce((total, unit) => {
-      const unitSubs = scopedSubmissions.filter(s => s.unitId === unit.id);
+      const unitSubs = scopedSubmissions.filter(s => s.unitId === unit.id && Number(s.year) === Number(selectedYear));
       if (isFirstActive) {
         const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
         total += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
@@ -292,7 +292,7 @@ function calculateEomsScore(
   const chedRate = totalPrograms > 0 ? Math.round((copcCompliant.length / totalPrograms) * 100) : 0;
 
   // 6. RISK MITIGATION RATE
-  const yearRisks = scopedRisks.filter(r => r.year === selectedYear);
+  const yearRisks = scopedRisks.filter(r => Number(r.year) === Number(selectedYear));
   const mitigatedRisks = yearRisks.filter(r => r.status === 'Closed' || r.preTreatment?.rating === 'low' || r.postTreatment?.rating === 'low');
   const riskRate = yearRisks.length > 0 ? Math.round((mitigatedRisks.length / yearRisks.length) * 100) : 0;
 
@@ -947,9 +947,14 @@ export default function HomePage() {
       };
     } else {
       const approved = yearSubs.filter(s => s.statusId === 'approved');
+      const firstRor = yearSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+      const finalRor = yearSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+      const expected = TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT
+        - (firstRor?.riskRating === 'low' ? 1 : 0)
+        - (finalRor?.riskRating === 'low' ? 1 : 0);
       return {
-        stat1: { title: 'Verified Compliance', value: `${approved.length} / ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`, icon: <ShieldCheck /> },
-        stat2: { title: 'Quality Pulse', value: `${Math.round((approved.length / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100)}%`, icon: <TrendingUp /> },
+        stat1: { title: 'Verified Compliance', value: `${approved.length} / ${expected}`, icon: <ShieldCheck /> },
+        stat2: { title: 'Quality Pulse', value: `${Math.round((approved.length / (expected || 1)) * 100)}%`, icon: <TrendingUp /> },
         stat3: { title: 'Pending Review', value: yearSubs.filter(s => s.statusId === 'submitted').length, icon: <Clock /> },
       };
     }
