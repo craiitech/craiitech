@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, Communication, CommunicationKind } from '@/lib/types';
@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -83,19 +82,12 @@ export default function CommunicationsPage() {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  const activeTab = (searchParams.get('tab') as 'incoming' | 'outgoing') || 'incoming';
 
-  const setActiveTab = (tab: 'incoming' | 'outgoing') => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', tab);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  };
-  const [searchTerm, setSearchTerm] = useState('');
-  const [kindFilter, setKindFilter] = useState('all');
+  const [searchTermIncoming, setSearchTermIncoming] = useState('');
+  const [searchTermOutgoing, setSearchTermOutgoing] = useState('');
+  const [kindFilterIncoming, setKindFilterIncoming] = useState('all');
+  const [kindFilterOutgoing, setKindFilterOutgoing] = useState('all');
   const [editingCommId, setEditingCommId] = useState<string | null>(null);
   const [deleteConfirmCommId, setDeleteConfirmCommId] = useState<string | null>(null);
   const [senderNameText, setSenderNameText] = useState('');
@@ -104,6 +96,7 @@ export default function CommunicationsPage() {
   const [isLogFormOpen, setIsLogFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedComm, setSelectedComm] = useState<Communication | null>(null);
+  const [detailContext, setDetailContext] = useState<'incoming' | 'outgoing'>('incoming');
 
   // Form State
   const [commsMode, setCommsMode] = useState<'digital' | 'manual'>('digital');
@@ -181,15 +174,14 @@ export default function CommunicationsPage() {
     if (!userProfile) return false;
     if (isAdmin) return true;
     if (!isOdimo) return false;
-    // Can manage comms sent by their unit/campus or addressed to their unit/campus
     if (isCampusOdimo) {
-      return (
+      return !!(
         comm.senderUnitId === userProfile.campusId ||
         comm.recipientIds?.includes(userProfile.campusId) ||
         (comm.manual && comm.recipientIds?.includes(userProfile.campusId))
       );
     }
-    return (
+    return !!(
       comm.senderUnitId === userProfile.unitId ||
       (comm.manual && comm.recipientIds?.includes(userProfile.unitId))
     );
@@ -255,16 +247,18 @@ export default function CommunicationsPage() {
     return { incoming, outgoing };
   }, [rawComms, userProfile, isOdimo, isCampusOdimo, receivingKey, units]);
 
-  const filteredComms = useMemo(() => {
-    const list = processedComms[activeTab];
+  const filterComms = (list: Communication[], search: string, kind: string) => {
     return list.filter(c => {
-      const matchesSearch = c.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.senderRefNum?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesKind = kindFilter === 'all' || c.kind === kindFilter;
+      const matchesSearch = c.subject?.toLowerCase().includes(search.toLowerCase()) ||
+                            c.senderRefNum?.toLowerCase().includes(search.toLowerCase()) ||
+                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(search.toLowerCase());
+      const matchesKind = kind === 'all' || c.kind === kind;
       return matchesSearch && matchesKind;
     });
-  }, [processedComms, activeTab, searchTerm, kindFilter, receivingKey]);
+  };
+
+  const incomingFiltered = useMemo(() => filterComms(processedComms.incoming, searchTermIncoming, kindFilterIncoming), [processedComms.incoming, searchTermIncoming, kindFilterIncoming, receivingKey]);
+  const outgoingFiltered = useMemo(() => filterComms(processedComms.outgoing, searchTermOutgoing, kindFilterOutgoing), [processedComms.outgoing, searchTermOutgoing, kindFilterOutgoing, receivingKey]);
 
   const unreadCount = useMemo(() => {
     if (!userProfile) return 0;
@@ -309,8 +303,9 @@ export default function CommunicationsPage() {
     return url;
   };
 
-  const handleOpenDetail = async (comm: Communication) => {
+  const handleOpenDetail = async (comm: Communication, context: 'incoming' | 'outgoing') => {
     setSelectedComm(comm);
+    setDetailContext(context);
     // Mark as read in Firestore if not read yet
     if (firestore && userProfile && comm.id) {
       const hasRead = comm.readBy?.includes(userProfile.id) || (userProfile.unitId && comm.readBy?.includes(userProfile.unitId));
@@ -336,7 +331,7 @@ export default function CommunicationsPage() {
       const lastIncomingWithRef = processedComms.incoming.find(
         (c) => c.recipientRefNums?.[receivingKey]
       );
-      if (lastIncomingWithRef) {
+      if (lastIncomingWithRef?.recipientRefNums) {
         const lastRef = lastIncomingWithRef.recipientRefNums[receivingKey];
         if (lastRef) return incrementReferenceNumber(lastRef);
       }
@@ -360,7 +355,7 @@ export default function CommunicationsPage() {
     const lastIncomingWithRef = processedComms.incoming.find(
       (c) => c.recipientRefNums?.[receivingKey]
     );
-    if (lastIncomingWithRef) {
+    if (lastIncomingWithRef?.recipientRefNums) {
       const lastRef = lastIncomingWithRef.recipientRefNums[receivingKey];
       if (lastRef) return incrementReferenceNumber(lastRef);
     }
@@ -651,11 +646,13 @@ export default function CommunicationsPage() {
     if (!userProfile) return;
 
     const list = processedComms[type];
+    const search = type === 'incoming' ? searchTermIncoming : searchTermOutgoing;
+    const kind = type === 'incoming' ? kindFilterIncoming : kindFilterOutgoing;
     const printList = [...list].filter(c => {
-      const matchesSearch = c.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.senderRefNum?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesKind = kindFilter === 'all' || c.kind === kindFilter;
+      const matchesSearch = c.subject?.toLowerCase().includes(search.toLowerCase()) ||
+                            c.senderRefNum?.toLowerCase().includes(search.toLowerCase()) ||
+                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(search.toLowerCase());
+      const matchesKind = kind === 'all' || c.kind === kind;
       return matchesSearch && matchesKind;
     }).sort((a, b) => {
       const tA = a.createdAt?.seconds || 0;
@@ -997,6 +994,180 @@ export default function CommunicationsPage() {
         variant: 'destructive'
       });
     }
+  };
+
+  const renderCommTable = (comms: Communication[], tab: 'incoming' | 'outgoing', loading: boolean) => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 bg-white rounded-2xl border border-slate-200/60 shadow-md">
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600 opacity-40" />
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading records...</span>
+        </div>
+      );
+    }
+    if (comms.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center gap-2 bg-white rounded-2xl border border-slate-200/60 shadow-md">
+          <Mail className="h-8 w-8 text-slate-300 stroke-[1.5]" />
+          <div>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">No logs recorded</h4>
+            <p className="text-[9px] text-slate-400 font-medium mt-1">There are no records matching your current filter settings.</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <Card className="shadow-md border-slate-200/60 overflow-hidden bg-white rounded-2xl">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-slate-50/70 border-b">
+              <TableRow>
+                <TableHead className="pl-6 py-3 text-[9px] font-black uppercase text-slate-500 tracking-wider">Reference No.</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Date Logged</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Category</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">{tab === 'incoming' ? 'From' : 'To'}</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider max-w-sm">Subject</TableHead>
+                <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">Document</TableHead>
+                {isOdimo && (
+                  <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider w-28">Actions</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {comms.map((comm) => {
+                const hasRead = comm.readBy?.includes(userProfile?.id || '') || (receivingKey && comm.readBy?.includes(receivingKey));
+                const isUnread = tab === 'incoming' && !hasRead && comm.senderUnitId !== (isCampusOdimo ? userProfile?.campusId : userProfile?.unitId);
+                const dateStr = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MMM dd, yyyy') : '...';
+                const receiverRef = comm.recipientRefNums?.[receivingKey];
+                const originRef = comm.senderRefNum;
+
+                return (
+                  <TableRow
+                    key={comm.id}
+                    onClick={() => handleOpenDetail(comm, tab)}
+                    className={cn(
+                      "cursor-pointer hover:bg-slate-50/80 transition-all border-b relative group",
+                      isUnread && "bg-indigo-50/10 hover:bg-indigo-50/20 font-bold"
+                    )}
+                  >
+                    <TableCell className="pl-6 py-3 relative">
+                      {isUnread && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 rounded-r bg-indigo-600 transition-all" />
+                      )}
+                      <div className="flex flex-col gap-1">
+                        {tab === 'incoming' ? (
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              {isUnread && (
+                                <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse shrink-0" />
+                              )}
+                              <span className="text-[9px] font-black uppercase text-slate-400">Rec. Ref:</span>
+                              {receiverRef ? (
+                                <span className="font-mono font-black text-[10px] text-slate-800 uppercase tabular-nums transition-transform group-hover:translate-x-1">
+                                  {receiverRef}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-205">
+                                  Pending Receipt
+                                </span>
+                              )}
+                            </div>
+                            {originRef && (
+                              <div className="text-[9px] text-slate-500 font-medium">
+                                <span className="uppercase text-slate-400 font-bold">Orig. Ref:</span>{' '}
+                                <span className="font-mono">{originRef}</span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-[10px] text-slate-800 uppercase tabular-nums transition-transform group-hover:translate-x-1">
+                              {originRef || 'N/A'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[10px] text-slate-500 font-medium tabular-nums">{dateStr}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="h-4 text-[7px] font-black uppercase bg-slate-100 text-slate-700 border-none px-2 rounded-full">
+                        {comm.kind}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-[10px] text-slate-800 font-black">
+                      {tab === 'incoming' ? (
+                        comm.manual ? comm.senderText : resolveUnitName(comm.senderUnitId || comm.senderText)
+                      ) : (
+                        comm.toText
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-md py-3">
+                      <p className={cn("text-[10px] text-slate-700 truncate", isUnread ? "font-bold text-slate-900" : "font-medium")}>
+                        {comm.subject}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                      {comm.driveLink ? (
+                        <a
+                          href={comm.driveLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[8px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest"
+                        >
+                          Open Drive <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      ) : (
+                        <span className="text-[8px] text-slate-400 font-bold uppercase italic">No Link</span>
+                      )}
+                    </TableCell>
+                    {isOdimo && (
+                      <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                        <div className="inline-flex items-center gap-1.5 justify-end w-full">
+                          {tab === 'incoming' && !comm.recipientRefNums?.[receivingKey] ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenReceiveDialog(comm)}
+                              className="h-7 px-2 text-[8px] font-black uppercase tracking-wider text-emerald-600 border-emerald-250 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg flex items-center gap-1 shrink-0"
+                            >
+                              <CheckCircle2 className="h-3 w-3" /> Receive
+                            </Button>
+                          ) : null}
+                          {canManageComm(comm) ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditComm(comm)}
+                                className="h-7 w-7 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg"
+                              >
+                                <Edit2 className="h-3.5 w-3.5 shrink-0" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteConfirmCommId(comm.id)}
+                                className="h-7 w-7 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                              </Button>
+                            </>
+                          ) : (
+                            !(!comm.recipientRefNums?.[receivingKey] && tab === 'incoming') && (
+                              <span className="text-[8px] text-slate-400 font-bold uppercase italic">Locked</span>
+                            )
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -1414,261 +1585,88 @@ export default function CommunicationsPage() {
         </Card>
       )}
 
-      {/* Primary Logbook Workspace */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-          <TabsList className="bg-slate-100 p-1 border rounded-xl h-10 w-max shadow-sm">
-            <TabsTrigger value="incoming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 rounded-lg">
+      {/* Primary Logbook Workspace - Dual Column */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* --- Incoming Column --- */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600">
               <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
               Incoming Logbook
               {unreadCount > 0 && (
-                <span className="ml-1.5 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black tabular-nums transition-all hover:scale-105">
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black tabular-nums">
                   {unreadCount}
                 </span>
               )}
-            </TabsTrigger>
-            <TabsTrigger value="outgoing" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 rounded-lg">
-              <ArrowUpRight className="h-4 w-4 text-indigo-600" /> Outgoing Logbook
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Search and Filters */}
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search by subject or ref number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 text-xs bg-white border-slate-200 focus-visible:ring-indigo-500 rounded-xl"
-              />
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className="relative w-48">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  placeholder="Search incoming..."
+                  value={searchTermIncoming}
+                  onChange={(e) => setSearchTermIncoming(e.target.value)}
+                  className="pl-8 h-8 text-[10px] bg-white border-slate-200 focus-visible:ring-indigo-500 rounded-lg"
+                />
+              </div>
+              <Select value={kindFilterIncoming} onValueChange={setKindFilterIncoming}>
+                <SelectTrigger className="h-8 text-[10px] bg-white border-slate-200 rounded-lg w-[130px] focus:ring-0">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-[10px] font-bold">All Categories</SelectItem>
+                  <SelectItem value="Memorandum Order" className="text-[10px] font-medium">Memorandum Order</SelectItem>
+                  <SelectItem value="Office Order" className="text-[10px] font-medium">Office Order</SelectItem>
+                  <SelectItem value="Office Memorandum" className="text-[10px] font-medium">Office Memorandum</SelectItem>
+                  <SelectItem value="Communication Letter / Request" className="text-[10px] font-medium">Communication Letter / Request</SelectItem>
+                  <SelectItem value="Invitation" className="text-[10px] font-medium">Invitation</SelectItem>
+                  <SelectItem value="Transmittal Document" className="text-[10px] font-medium">Transmittal Document</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={kindFilter} onValueChange={setKindFilter}>
-              <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 rounded-xl">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs font-bold">All Categories</SelectItem>
-                <SelectItem value="Memorandum Order" className="text-xs font-medium">Memorandum Order</SelectItem>
-                <SelectItem value="Office Order" className="text-xs font-medium">Office Order</SelectItem>
-                <SelectItem value="Office Memorandum" className="text-xs font-medium">Office Memorandum</SelectItem>
-                <SelectItem value="Communication Letter / Request" className="text-xs font-medium">Communication Letter / Request</SelectItem>
-                <SelectItem value="Invitation" className="text-xs font-medium">Invitation</SelectItem>
-                <SelectItem value="Transmittal Document" className="text-xs font-medium">Transmittal Document</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
+
+          {renderCommTable(incomingFiltered, 'incoming', isLoadingComms)}
         </div>
 
-        {/* Operational Guide for Logbook Workspace */}
-        <div className="border border-slate-150 rounded-xl bg-slate-50/50 p-4">
-          <details className="group">
-            <summary className="flex items-center justify-between cursor-pointer list-none">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-indigo-650" />
-                <span className="text-xs font-black uppercase tracking-wider text-slate-705">
-                  Operational Guide: {activeTab === 'incoming' ? 'Incoming Correspondence Logbook' : 'Outgoing Correspondence Logbook'}
-                </span>
+        {/* --- Outgoing Column --- */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600">
+              <ArrowUpRight className="h-4 w-4 text-indigo-600" />
+              Outgoing Logbook
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className="relative w-48">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  placeholder="Search outgoing..."
+                  value={searchTermOutgoing}
+                  onChange={(e) => setSearchTermOutgoing(e.target.value)}
+                  className="pl-8 h-8 text-[10px] bg-white border-slate-200 focus-visible:ring-indigo-500 rounded-lg"
+                />
               </div>
-              <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
-            </summary>
-            
-            <div className="mt-3.5 pt-3.5 border-t border-slate-200/60 text-xs text-slate-600 space-y-2.5 text-left">
-              {activeTab === 'incoming' ? (
-                <>
-                  <p className="font-semibold text-slate-700">
-                    The <strong>Incoming Logbook</strong> registers all official communications received from external agencies (e.g. CHED, SOCOTEC) or other campuses.
-                  </p>
-                  <ul className="list-disc pl-4 space-y-1.5 font-medium">
-                    <li><strong>Tracking Receipt:</strong> Items requiring action are listed below. Unread items display a prominent blue dot status indicator.</li>
-                    <li><strong>Receive Action:</strong> If a record displays a <span className="text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-black">Pending Receipt</span> status, click **"Receive"** to log the official local date of receipt and local tracking number.</li>
-                    <li><strong>Document Access:</strong> Click **"Open Drive"** to view and download the verified attachment files.</li>
-                  </ul>
-                </>
-              ) : (
-                <>
-                  <p className="font-semibold text-slate-700">
-                    The <strong>Outgoing Logbook</strong> tracks all communications dispatched from this office to academic units, campuses, or individual system recipients.
-                  </p>
-                  <ul className="list-disc pl-4 space-y-1.5 font-medium">
-                    <li><strong>Digital vs Manual:</strong> Directly sent digital correspondence shows the destination units. Manually logged hardcopy mail shows the custom destination text.</li>
-                    <li><strong>Traceability:</strong> Outgoing reference numbers are logged as `Orig. Ref` and can be utilized to audit document routing.</li>
-                    <li><strong>Recipients:</strong> Verify the target scope (individual or unit-wide) to make sure documents were dispatched correctly.</li>
-                  </ul>
-                </>
-              )}
+              <Select value={kindFilterOutgoing} onValueChange={setKindFilterOutgoing}>
+                <SelectTrigger className="h-8 text-[10px] bg-white border-slate-200 rounded-lg w-[130px] focus:ring-0">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-[10px] font-bold">All Categories</SelectItem>
+                  <SelectItem value="Memorandum Order" className="text-[10px] font-medium">Memorandum Order</SelectItem>
+                  <SelectItem value="Office Order" className="text-[10px] font-medium">Office Order</SelectItem>
+                  <SelectItem value="Office Memorandum" className="text-[10px] font-medium">Office Memorandum</SelectItem>
+                  <SelectItem value="Communication Letter / Request" className="text-[10px] font-medium">Communication Letter / Request</SelectItem>
+                  <SelectItem value="Invitation" className="text-[10px] font-medium">Invitation</SelectItem>
+                  <SelectItem value="Transmittal Document" className="text-[10px] font-medium">Transmittal Document</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </details>
+          </div>
+
+          {renderCommTable(outgoingFiltered, 'outgoing', isLoadingComms)}
         </div>
-
-        {/* Tab Contents */}
-        <Card className="shadow-md border-slate-200/60 overflow-hidden bg-white rounded-2xl">
-          <CardContent className="p-0">
-            {isLoadingComms ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600 opacity-40" />
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading records...</span>
-              </div>
-            ) : filteredComms.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center gap-3 bg-slate-50/50">
-                <Mail className="h-10 w-10 text-slate-300 stroke-[1.5]" />
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">No logs recorded</h4>
-                  <p className="text-[10px] text-slate-400 font-medium mt-1">There are no records matching your current filter settings.</p>
-                </div>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader className="bg-slate-50/70 border-b">
-                  <TableRow>
-                    <TableHead className="pl-6 py-4 text-[10px] font-black uppercase text-slate-500 tracking-wider">Reference No.</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Date Logged</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Category</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider">{activeTab === 'incoming' ? 'From' : 'To'}</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider max-w-sm">Subject</TableHead>
-                    <TableHead className="text-right pr-6 text-[10px] font-black uppercase text-slate-500 tracking-wider">Document</TableHead>
-                    {isOdimo && (
-                      <TableHead className="text-right pr-6 text-[10px] font-black uppercase text-slate-500 tracking-wider w-28">Actions</TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredComms.map((comm) => {
-                    const hasRead = comm.readBy?.includes(userProfile?.id || '') || (receivingKey && comm.readBy?.includes(receivingKey));
-                    const isUnread = activeTab === 'incoming' && !hasRead && comm.senderUnitId !== (isCampusOdimo ? userProfile?.campusId : userProfile?.unitId);
-                    const dateStr = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MMM dd, yyyy') : '...';
-                    // Ref num variables for render
-                    const receiverRef = comm.recipientRefNums?.[receivingKey];
-                    const originRef = comm.senderRefNum;
-
-                    return (
-                      <TableRow
-                        key={comm.id}
-                        onClick={() => handleOpenDetail(comm)}
-                        className={cn(
-                          "cursor-pointer hover:bg-slate-50/80 transition-all border-b relative group",
-                          isUnread && "bg-indigo-50/10 hover:bg-indigo-50/20 font-bold"
-                        )}
-                      >
-                        <TableCell className="pl-6 py-4 relative">
-                          {isUnread && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 rounded-r bg-indigo-600 transition-all" />
-                          )}
-                          <div className="flex flex-col gap-1">
-                            {activeTab === 'incoming' ? (
-                              <>
-                                <div className="flex items-center gap-1.5">
-                                  {isUnread && (
-                                    <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 animate-pulse shrink-0" />
-                                  )}
-                                  <span className="text-[10px] font-black uppercase text-slate-400">Rec. Ref:</span>
-                                  {receiverRef ? (
-                                    <span className="font-mono font-black text-xs text-slate-800 uppercase tabular-nums transition-transform group-hover:translate-x-1">
-                                      {receiverRef}
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-205">
-                                      Pending Receipt
-                                    </span>
-                                  )}
-                                </div>
-                                {originRef && (
-                                  <div className="text-[10px] text-slate-500 font-medium">
-                                    <span className="uppercase text-slate-400 font-bold">Orig. Ref:</span>{' '}
-                                    <span className="font-mono">{originRef}</span>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-xs text-slate-800 uppercase tabular-nums transition-transform group-hover:translate-x-1">
-                                  {originRef || 'N/A'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-500 font-medium tabular-nums">{dateStr}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="h-5 text-[8px] font-black uppercase bg-slate-100 text-slate-700 border-none px-2 rounded-full">
-                            {comm.kind}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-800 font-black">
-                          {activeTab === 'incoming' ? (
-                            comm.manual ? comm.senderText : resolveUnitName(comm.senderUnitId || comm.senderText)
-                          ) : (
-                            comm.toText
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-md py-4">
-                          <p className={cn("text-xs text-slate-700 truncate", isUnread ? "font-bold text-slate-900" : "font-medium")}>
-                            {comm.subject}
-                          </p>
-                        </TableCell>
-                        <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                          {comm.driveLink ? (
-                            <a
-                              href={comm.driveLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest"
-                            >
-                              Open Drive <ExternalLink className="h-3 w-3" />
-                            </a>
-                          ) : (
-                            <span className="text-[9px] text-slate-400 font-bold uppercase italic">No Link</span>
-                          )}
-                        </TableCell>
-                        {isOdimo && (
-                          <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                            <div className="inline-flex items-center gap-2 justify-end w-full">
-                              {activeTab === 'incoming' && !comm.recipientRefNums?.[receivingKey] ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleOpenReceiveDialog(comm)}
-                                  className="h-8 px-3 text-[9px] font-black uppercase tracking-wider text-emerald-600 border-emerald-250 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg flex items-center gap-1 shrink-0"
-                                >
-                                  <CheckCircle2 className="h-3.5 w-3.5" /> Receive
-                                </Button>
-                              ) : null}
-                              {canManageComm(comm) ? (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleEditComm(comm)}
-                                    className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg"
-                                  >
-                                    <Edit2 className="h-4 w-4 shrink-0" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setDeleteConfirmCommId(comm.id)}
-                                    className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg"
-                                  >
-                                    <Trash2 className="h-4 w-4 shrink-0" />
-                                  </Button>
-                                </>
-                              ) : (
-                                !(!comm.recipientRefNums?.[receivingKey] && activeTab === 'incoming') && (
-                                  <span className="text-[9px] text-slate-400 font-bold uppercase italic">Locked</span>
-                                )
-                              )}
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </Tabs>
+      </div>
 
 
 
@@ -1685,7 +1683,7 @@ export default function CommunicationsPage() {
                       {selectedComm.kind}
                     </Badge>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      Reference: {activeTab === 'incoming' ? (selectedComm.recipientRefNums?.[receivingKey] || 'Pending') : (selectedComm.senderRefNum || 'N/A')}
+                      Reference: {detailContext === 'incoming' ? (selectedComm.recipientRefNums?.[receivingKey] || 'Pending') : (selectedComm.senderRefNum || 'N/A')}
                     </span>
                   </div>
                   <h3 className="text-sm font-black text-slate-800 leading-snug uppercase">
@@ -1788,7 +1786,7 @@ export default function CommunicationsPage() {
                     )}
                   </div>
 
-                  {activeTab === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[receivingKey] && (
+                  {detailContext === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[receivingKey] && (
                     <div className="pt-4 border-t space-y-2">
                       <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Incoming Receipt</h5>
                       <Button
