@@ -737,6 +737,29 @@ export function AuditChecklist({
   };
 
   return (
+    <>
+      {/* Fixed Clause Header - outside the Card to avoid Card's hover:-translate-y-2 breaking position:fixed */}
+      {showStickyHeader && openClause && (
+        <div 
+          className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
+          style={{ top: '64px' }}
+        >
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
+              {openClause.id}
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
+              <p className="text-sm font-black text-slate-800 truncate max-w-[400px]">{openClause.title}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2 text-[10px] font-medium text-primary">
+              <ChevronDown className="h-3.5 w-3.5" />
+              Scroll to top to close
+            </div>
+          </div>
+        </div>
+      )}
+
     <Card className="shadow-2xl border-primary/10 overflow-hidden">
       <CardHeader className="bg-muted/30 border-b py-6">
         <div className="flex items-center justify-between">
@@ -748,28 +771,6 @@ export function AuditChecklist({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Fixed Clause Header - Shows current open clause while scrolling */}
-        {showStickyHeader && openClause && (
-          <div 
-            className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
-            style={{ top: '64px' }} /* Below the IQA page header (h-16 = 64px) */
-          >
-            <div className="max-w-7xl mx-auto flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
-                {openClause.id}
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
-                <p className="text-sm font-black text-slate-800 truncate max-w-[400px]">{openClause.title}</p>
-              </div>
-              <div className="ml-auto flex items-center gap-2 text-[10px] font-medium text-primary">
-                <ChevronDown className="h-3.5 w-3.5" />
-                Scroll to top to close
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Spacer to prevent content from being hidden behind fixed header */}
         {showStickyHeader && <div className="h-14" aria-hidden="true" />}
 
@@ -880,5 +881,6 @@ export function AuditChecklist({
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }
