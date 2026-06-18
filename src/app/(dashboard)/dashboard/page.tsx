@@ -116,6 +116,7 @@ import { ExecutiveRiskIntelligence } from '@/components/dashboard/executive/exec
 import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
 import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
 import { ScheduleTab } from '@/components/dashboard/executive/schedule-tab';
+import { AccreditationPerformanceTab } from '@/components/dashboard/executive/accreditation-performance-tab';
 import type {
   Submission,
   User as AppUser,
@@ -1158,6 +1159,7 @@ export default function HomePage() {
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
+            <TabsTrigger value="accreditation-performance"><Award className="mr-2 h-4 w-4" />Accreditation Performance</TabsTrigger>
             <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
             <TabsTrigger value="risk-intelligence"><Crosshair className="mr-2 h-4 w-4" />Risk Intelligence</TabsTrigger>
             <TabsTrigger value="corrective-actions"><ListChecks className="mr-2 h-4 w-4" />Corrective Actions</TabsTrigger>
@@ -1271,6 +1273,15 @@ export default function HomePage() {
         />
       </TabsContent>
 
+      <TabsContent value="accreditation-performance" className="space-y-6">
+        <AccreditationPerformanceTab
+          academicPrograms={academicPrograms || []}
+          allCompliances={allCompliances || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
       <TabsContent value="risk-opportunity" className="space-y-6">
         <RiskOpportunityTab
           risks={risks || []}
@@ -1337,6 +1348,7 @@ export default function HomePage() {
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
+            <TabsTrigger value="accreditation-performance"><Award className="mr-2 h-4 w-4" />Accreditation Performance</TabsTrigger>
             <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
             <TabsTrigger value="risk-intelligence"><Crosshair className="mr-2 h-4 w-4" />Risk Intelligence</TabsTrigger>
             <TabsTrigger value="corrective-actions"><ListChecks className="mr-2 h-4 w-4" />Corrective Actions</TabsTrigger>
@@ -1450,6 +1462,15 @@ export default function HomePage() {
 
       <TabsContent value="ched-programs" className="space-y-6">
         <ChedProgramsTab
+          academicPrograms={filteredAcademicPrograms || []}
+          allCompliances={filteredCompliances || []}
+          campuses={campuses || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="accreditation-performance" className="space-y-6">
+        <AccreditationPerformanceTab
           academicPrograms={filteredAcademicPrograms || []}
           allCompliances={filteredCompliances || []}
           campuses={campuses || []}
