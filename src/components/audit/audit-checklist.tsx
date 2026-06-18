@@ -692,38 +692,38 @@ export function AuditChecklist({
   const [openClause, setOpenClause] = useState<OpenClauseInfo | null>(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const accordionWrapperRef = useRef<HTMLDivElement>(null);
+  const stickyActivatedRef = useRef(false);
 
   const handleAccordionChange = (value: string) => {
     if (value === '') {
       setOpenClause(null);
       setShowStickyHeader(false);
+      stickyActivatedRef.current = false;
     } else {
       const clause = sortedClauses.find(c => c.id === value);
       if (clause) {
         setOpenClause({ id: clause.id, title: clause.title });
         setShowStickyHeader(false);
+        stickyActivatedRef.current = false;
       }
     }
   };
 
-  // Show sticky clause header when the open accordion content scrolls past the IQA header
+  // Activate sticky header once when the open clause's accordion trigger scrolls past the IQA header
+  // Once activated, stays visible until the clause is closed or a new one is opened
   useEffect(() => {
     if (!openClause || !accordionWrapperRef.current) return;
 
     const handleScroll = () => {
-      const accordionContent = accordionWrapperRef.current?.querySelector('[data-radix-accordion-content][data-state="open"]');
-      if (!accordionContent) {
-        setShowStickyHeader(false);
-        return;
-      }
+      if (stickyActivatedRef.current) return;
 
-      const contentRect = accordionContent.getBoundingClientRect();
-      const iqaHeaderHeight = 64;
+      const accordionTrigger = accordionWrapperRef.current?.querySelector(`[data-radix-accordion-trigger][data-state="open"]`);
+      if (!accordionTrigger) return;
 
-      if (contentRect.top < iqaHeaderHeight && contentRect.bottom > iqaHeaderHeight) {
+      const triggerRect = accordionTrigger.getBoundingClientRect();
+      if (triggerRect.top < 64) {
+        stickyActivatedRef.current = true;
         setShowStickyHeader(true);
-      } else {
-        setShowStickyHeader(false);
       }
     };
 
