@@ -21,21 +21,24 @@ export function VoiceAnnouncements() {
       const unitId = userProfile.unitId;
       const campusId = userProfile.campusId;
 
+      // 1. Open CARs — fetch by unitId (single-field query, no composite index needed)
       try {
         const carsSnap = await getDocs(query(
           collection(firestore, 'correctiveActionRequests'),
-          where('unitId', '==', unitId),
-          where('campusId', '==', campusId),
-          where('status', 'in', ['Open', 'Awaiting Response/Update'])
+          where('unitId', '==', unitId)
         ));
-        if (carsSnap.size > 0) items.push(`${carsSnap.size} open corrective action request${carsSnap.size > 1 ? 's' : ''}`);
-      } catch { /* no index or collection */ }
+        const open = carsSnap.docs.filter(d => {
+          const s = d.data().status;
+          return s === 'Open' || s === 'Awaiting Response/Update';
+        });
+        if (open.length > 0) items.push(`${open.length} open corrective action request${open.length > 1 ? 's' : ''}`);
+      } catch { /* silent */ }
 
+      // 2. Overdue risks — fetch by unitId only
       try {
         const risksSnap = await getDocs(query(
           collection(firestore, 'risks'),
-          where('unitId', '==', unitId),
-          where('campusId', '==', campusId)
+          where('unitId', '==', unitId)
         ));
         if (!risksSnap.empty) {
           const overdue = risksSnap.docs.filter(d => {
@@ -48,16 +51,19 @@ export function VoiceAnnouncements() {
         }
       } catch { /* silent */ }
 
+      // 3. Submissions pending review (admin/supervisor)
       if (isAdmin || userRole === 'Supervisor' || userRole === 'VP') {
         try {
           const pendingQuery = isAdmin
             ? query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'))
-            : query(collection(firestore, 'submissions'), where('campusId', '==', campusId), where('statusId', '==', 'submitted'));
+            : query(collection(firestore, 'submissions'), where('campusId', '==', campusId));
           const pendingSnap = await getDocs(pendingQuery);
-          if (pendingSnap.size > 0) items.push(`${pendingSnap.size} submission${pendingSnap.size > 1 ? 's' : ''} pending review`);
+          const pending = pendingSnap.docs.filter(d => d.data().statusId === 'submitted');
+          if (pending.length > 0) items.push(`${pending.length} submission${pending.length > 1 ? 's' : ''} pending review`);
         } catch { /* silent */ }
       }
 
+      // 4. Verification-ready CARs (admin/auditor)
       if (isAdmin || userRole === 'Auditor') {
         try {
           const verifySnap = await getDocs(query(
@@ -68,6 +74,7 @@ export function VoiceAnnouncements() {
         } catch { /* silent */ }
       }
 
+      // 5. Open MR decisions — fetch by single field
       try {
         const mroSnap = await getDocs(query(
           collection(firestore, 'managementReviewOutputs'),
@@ -80,7 +87,6 @@ export function VoiceAnnouncements() {
         if (open.length > 0) items.push(`${open.length} pending management review decision${open.length > 1 ? 's' : ''}`);
       } catch { /* silent */ }
 
-      // Always speak, even if nothing pending
       setTimeout(() => {
         if (items.length > 0) {
           speak(`Here is your summary. You have ${items.join('. ')}.`);

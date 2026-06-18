@@ -169,10 +169,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isSupervisor) {
         if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
             if (!userProfile.campusId) return null;
-            return query(col, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+            return query(col, where('campusId', '==', userProfile.campusId));
         }
     }
-    return query(col, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
+    return query(col, where('userId', '==', userProfile.id));
   }
 
   const getCarNotificationQuery = (): Query | null => {
@@ -181,14 +181,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isInstitutionalViewer = isAdmin || isAuditor;
       if (isInstitutionalViewer) return query(col, where('status', '==', 'For Final Verification'));
       if (isSupervisor) return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
-      return query(col, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId), where('status', 'in', ['Open', 'Awaiting Response/Update']));
+      return query(col, where('unitId', '==', userProfile.unitId));
   }
 
   const getRisksNotificationQuery = (): Query | null => {
       if (!firestore || !userProfile || !userRole) return null;
       const col = collection(firestore, 'risks');
       if (isAdmin || isSupervisor) return col;
-      if (userProfile.unitId && userProfile.campusId) return query(col, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+      if (userProfile.unitId && userProfile.campusId) return query(col, where('unitId', '==', userProfile.unitId));
       return null;
   }
 
@@ -223,15 +223,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!subNotifications) return 0;
     if (isAdmin) return subNotifications.length;
     if (isSupervisor && userProfile) {
-      return subNotifications.filter(s => s.userId !== userProfile.id).length;
+      return subNotifications.filter(s => s.userId !== userProfile.id && s.statusId === 'submitted').length;
     }
-    return subNotifications.length;
+    return subNotifications.filter(s => s.statusId === 'rejected').length;
   }, [subNotifications, userProfile, isAdmin, isSupervisor]);
 
   const carNotificationsCount = useMemo(() => {
     if (!carNotifications) return 0;
-    return carNotifications.length;
-  }, [carNotifications]);
+    if (isAdmin || isSupervisor) return carNotifications.length;
+    return carNotifications.filter(c => c.status === 'Open' || c.status === 'Awaiting Response/Update').length;
+  }, [carNotifications, isAdmin, isSupervisor]);
 
   const riskNotificationsCount = useMemo(() => {
     if (!riskNotifications) return 0;
@@ -241,7 +242,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (isSupervisor && userProfile) {
          return r.campusId === userProfile.campusId;
       }
-      return r.unitId === userProfile?.unitId;
+      return r.unitId === userProfile?.unitId && r.campusId === userProfile?.campusId;
     }).length;
   }, [riskNotifications, userProfile, isAdmin, isSupervisor]);
 
