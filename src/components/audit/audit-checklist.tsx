@@ -701,40 +701,10 @@ export function AuditChecklist({
       const clause = sortedClauses.find(c => c.id === value);
       if (clause) {
         setOpenClause({ id: clause.id, title: clause.title });
+        setShowStickyHeader(true);
       }
     }
   };
-
-  // Handle scroll to show/hide fixed clause header
-  useEffect(() => {
-    if (!openClause || !accordionWrapperRef.current) return;
-
-    const handleScroll = () => {
-      const accordionContent = accordionWrapperRef.current?.querySelector('[data-radix-accordion-content][data-state="open"]');
-      if (!accordionContent) {
-        setShowStickyHeader(false);
-        return;
-      }
-
-      const contentRect = accordionContent.getBoundingClientRect();
-      const fixedHeaderHeight = 64; // h-16 = 64px fixed header
-      
-      // Show fixed header when the open accordion content has scrolled past the fixed header
-      // i.e., when the top of the content goes above the fixed header
-      // Keep showing while there's still content below the fixed header
-      if (contentRect.top < fixedHeaderHeight && contentRect.bottom > fixedHeaderHeight) {
-        setShowStickyHeader(true);
-      } else {
-        setShowStickyHeader(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    // Initial check
-    handleScroll();
-    
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [openClause]);
 
   const handleAddAdditionalResult = async (clauseId: string) => {
     if (!firestore || !user) {
