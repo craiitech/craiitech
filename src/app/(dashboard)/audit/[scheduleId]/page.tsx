@@ -129,6 +129,7 @@ export default function AuditExecutionPage() {
   const summarySaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoadRef = useRef(true);
   const [isForcedOffline, setIsForcedOffline] = useState(false);
+  const [currentClause, setCurrentClause] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
@@ -588,6 +589,11 @@ export default function AuditExecutionPage() {
             <div>
                 <h2 className="text-2xl font-bold tracking-tight">IQA - Evidence Log Sheet</h2>
                 <p className="text-muted-foreground flex items-center gap-2 text-sm"><Building2 className="h-3.5 w-3.5" />{schedule.targetName} & bull; {format(conductDate, 'PPP')} @ {format(conductDate, 'hh:mm a')}</p>
+                {currentClause && (
+                  <p className="text-center text-xs font-black text-red-600 uppercase tracking-wider mt-1">
+                    Current Clause: {currentClause.id} - {currentClause.title}
+                  </p>
+                )}
             </div>
         </div>
         <div className="flex items-center gap-2">
@@ -682,6 +688,7 @@ export default function AuditExecutionPage() {
                   previousYearOfis={previousYearOfis} 
                   scheduleTargetId={schedule.targetId} 
                   scheduleCampusId={schedule.campusId} 
+                  onOpenClauseChange={setCurrentClause}
                 />
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">

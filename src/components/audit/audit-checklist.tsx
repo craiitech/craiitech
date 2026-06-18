@@ -39,6 +39,7 @@ interface AuditChecklistProps {
   previousYearOfis?: AuditFinding[];
   scheduleTargetId?: string;
   scheduleCampusId?: string;
+  onOpenClauseChange?: (clause: { id: string; title: string } | null) => void;
 }
 
 interface OpenClauseInfo {
@@ -680,7 +681,8 @@ export function AuditChecklist({
   isIqaUnit = false,
   previousYearOfis = [],
   scheduleTargetId,
-  scheduleCampusId
+  scheduleCampusId,
+  onOpenClauseChange,
 }: AuditChecklistProps) {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -699,12 +701,15 @@ export function AuditChecklist({
       setOpenClause(null);
       setShowStickyHeader(false);
       stickyActivatedRef.current = false;
+      onOpenClauseChange?.(null);
     } else {
       const clause = sortedClauses.find(c => c.id === value);
       if (clause) {
-        setOpenClause({ id: clause.id, title: clause.title });
+        const info = { id: clause.id, title: clause.title };
+        setOpenClause(info);
         setShowStickyHeader(false);
         stickyActivatedRef.current = false;
+        onOpenClauseChange?.(info);
       }
     }
   };
