@@ -615,7 +615,7 @@ export function QaAnalyticsTab() {
                 <div className="h-[220px]">
                   <ResponsiveContainer>
                     <PieChart>
-                      <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                      <RechartsTooltip content={<CustomTooltip />} />
                       <Pie
                         data={analytics.carStatusData}
                         cx="50%" cy="50%"
