@@ -20,7 +20,6 @@ const VoiceCtx = createContext<VoiceContextValue>({
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const { userProfile, isUserLoading } = useUser();
   const welcomed = useRef(false);
   const enabledRef = useRef(false);
@@ -31,26 +30,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     const initial = stored !== null ? stored === 'true' : !prefersReduced;
     setEnabledState(initial);
     enabledRef.current = initial;
-    setHydrated(true);
-  }, []);
-
-  // Unlock speech synthesis on first user gesture (browser autoplay policy)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const unlock = () => {
-      const msg = new SpeechSynthesisUtterance('');
-      msg.volume = 0;
-      window.speechSynthesis?.speak(msg);
-      window.speechSynthesis?.cancel();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
   }, []);
 
   const setEnabled = useCallback((val: boolean) => {
@@ -67,7 +46,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     window.speechSynthesis?.cancel();
     const msg = new SpeechSynthesisUtterance(text);
     msg.rate = 0.85;
-    msg.pitch = 1;
     window.speechSynthesis?.speak(msg);
   }, []);
 
@@ -77,16 +55,40 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Speak welcome immediately on first user click (satisfies browser autoplay policy)
   useEffect(() => {
-    if (!hydrated || isUserLoading || !userProfile || userProfile.verified === false) return;
-    if (welcomed.current) return;
-    welcomed.current = true;
-    const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
-    const timer = setTimeout(() => {
-      speak(`Welcome to RSU EOMS Portal, ${name}`);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [hydrated, isUserLoading, userProfile, speak]);
+    if (typeof window === 'undefined') return;
+    const onInteraction = () => {
+      if (welcomed.current || !enabledRef.current) return;
+      if (!userProfile || isUserLoading || userProfile.verified === false) return;
+      welcomed.current = true;
+      const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+      try {
+        window.speechSynthesis?.cancel();
+        const msg = new SpeechSynthesisUtterance(`Welcome to RSU EOMS Portal, ${name}`);
+        msg.rate = 0.85;
+        window.speechSynthesis?.speak(msg);
+      } catch {}
+    };
+    window.addEventListener('pointerdown', onInteraction, { once: true });
+    window.addEventListener('keydown', onInteraction, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', onInteraction);
+      window.removeEventListener('keydown', onInteraction);
+    };
+  }, [userProfile, isUserLoading]);
+
+  // Fallback: if profile loads after the click, speak welcome once ready
+  useEffect(() => {
+    if (!isUserLoading && userProfile && userProfile.verified !== false && !welcomed.current && enabledRef.current) {
+      welcomed.current = true;
+      const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+      const timer = setTimeout(() => {
+        speak(`Welcome to RSU EOMS Portal, ${name}`);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isUserLoading, userProfile, speak]);
 
   return (
     <VoiceCtx.Provider value={{ speak, stop, enabled, setEnabled }}>
