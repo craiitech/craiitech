@@ -327,75 +327,137 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const notificationsList = useMemo(() => {
     const list: any[] = [];
-    
-    if (subNotificationsCount > 0) {
-      list.push({
-        id: 'submissions',
-        module: 'submissions',
-        label: 'Submissions Hub',
-        count: subNotificationsCount,
-        description: isAdmin || isSupervisor ? `${subNotificationsCount} pending approvals` : `${subNotificationsCount} rejected submissions`,
-        link: isAdmin || isSupervisor ? '/approvals' : '/submissions'
-      });
-    }
-    
-    if (carNotificationsCount > 0) {
-      list.push({
-        id: 'car',
-        module: 'car',
-        label: 'Corrective Actions (CAR)',
-        count: carNotificationsCount,
-        description: isAdmin || isAuditor ? `${carNotificationsCount} for final verification` : `${carNotificationsCount} open corrective actions`,
-        link: '/qa-reports?tab=car'
+    const MAX_ITEMS = 30;
+
+    // 1. Submissions — individual items
+    if (subNotifications && userProfile) {
+      subNotifications.forEach(sub => {
+        if (!isAdmin && ((isSupervisor && (sub.userId === userProfile.id || sub.statusId !== 'submitted')) || (!isSupervisor && sub.statusId !== 'rejected'))) return;
+        list.push({
+          id: `sub-${sub.id}`,
+          module: 'submissions',
+          label: sub.controlNumber || `${sub.reportType || 'Submission'} — ${sub.unitName || ''}`,
+          description: isAdmin || isSupervisor ? 'Pending approval' : 'Rejected — resubmit required',
+          link: isAdmin || isSupervisor ? '/approvals' : '/submissions'
+        });
       });
     }
 
-    if (riskNotificationsCount > 0) {
-      list.push({
-        id: 'risk',
-        module: 'risk',
-        label: 'Risk Register',
-        count: riskNotificationsCount,
-        description: `${riskNotificationsCount} open/treatment risks`,
-        link: '/risk-register'
+    // 2. CARs — individual items
+    if (carNotifications) {
+      carNotifications.forEach(car => {
+        if (!isAdmin && !isSupervisor && !isAuditor && car.status !== 'Open' && car.status !== 'Awaiting Response/Update') return;
+        list.push({
+          id: `car-${car.id}`,
+          module: 'car',
+          label: `${car.carNumber} — ${car.natureOfFinding}`,
+          description: car.status,
+          link: '/qa-reports?tab=car'
+        });
       });
     }
 
-    if (accreditationNotificationsCount > 0) {
-      list.push({
-        id: 'accreditation',
-        module: 'accreditation',
-        label: 'Accreditation Gaps',
-        count: accreditationNotificationsCount,
-        description: `${accreditationNotificationsCount} open accreditor gaps`,
-        link: isAdmin || isSupervisor ? '/dashboard#overview' : '/academic-programs'
+    // 3. Risks — individual items
+    if (riskNotifications && userProfile) {
+      riskNotifications.forEach(r => {
+        if (r.status === 'Closed') return;
+        if (isSupervisor && r.campusId !== userProfile.campusId) return;
+        if (!isAdmin && !isSupervisor && (r.unitId !== userProfile.unitId || r.campusId !== userProfile.campusId)) return;
+        list.push({
+          id: `risk-${r.id}`,
+          module: 'risk',
+          label: r.objective || r.description?.substring(0, 80) || 'Risk item',
+          description: `${r.status} — ${r.type || 'Risk'}`,
+          link: '/risk-register'
+        });
       });
     }
 
-    if (decisionNotificationsCount > 0) {
-      list.push({
-        id: 'decisions',
-        module: 'decisions',
-        label: 'Actionable Decisions',
-        count: decisionNotificationsCount,
-        description: `${decisionNotificationsCount} open MR decisions`,
-        link: '/qa-reports?tab=decisions'
+    // 4. Accreditation recommendations — individual items
+    if (complianceNotifications && userProfile) {
+      complianceNotifications.forEach(c => {
+        c.accreditationRecords?.forEach(m => {
+          m.recommendations?.forEach(reco => {
+            if (reco.status === 'Closed') return;
+            let isRelevant = false;
+            if (isAdmin) isRelevant = true;
+            else if (isSupervisor) {
+              isRelevant = reco.assignedUnitIds?.some(uid => {
+                const unit = allUnits?.find(u => u.id === uid);
+                return unit?.campusIds?.includes(userProfile.campusId);
+              }) || false;
+            } else {
+              isRelevant = reco.assignedUnitIds?.includes(userProfile.unitId) || false;
+            }
+            if (!isRelevant) return;
+            list.push({
+              id: `accred-${c.id}-${m.id}-${reco.id}`,
+              module: 'accreditation',
+              label: reco.text?.substring(0, 80) || 'Accreditation gap',
+              description: `${reco.type === 'Mandatory' ? 'Mandatory — ' : ''}${reco.status}`,
+              link: isAdmin || isSupervisor ? '/dashboard#overview' : '/academic-programs'
+            });
+          });
+        });
       });
     }
 
-    if (commNotificationsCount > 0) {
-      list.push({
-        id: 'communications',
-        module: 'communications',
-        label: 'Communication',
-        count: commNotificationsCount,
-        description: `${commNotificationsCount} new incoming communications`,
-        link: '/communications'
+    // 5. MR Decisions — individual items
+    if (decisionNotifications && userProfile) {
+      decisionNotifications.forEach(d => {
+        if (d.status === 'Closed') return;
+        let isRelevant = false;
+        if (isAdmin) isRelevant = true;
+        else if (isSupervisor) {
+          isRelevant = d.assignments?.some((a: any) => {
+            const unit = allUnits?.find(u => u.id === a.unitId);
+            return unit?.campusIds?.includes(userProfile.campusId);
+          }) || false;
+        } else {
+          isRelevant = d.assignments?.some((a: any) => a.unitId === userProfile.unitId) || false;
+        }
+        if (!isRelevant) return;
+        list.push({
+          id: `decision-${d.id}`,
+          module: 'decisions',
+          label: d.description?.substring(0, 80) || 'MR decision',
+          description: d.status,
+          link: '/qa-reports?tab=decisions'
+        });
       });
     }
-    
-    return list;
-  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, commNotificationsCount, isAdmin, isSupervisor, isAuditor]);
+
+    // 6. Communications — individual items
+    if (commsNotifications && userProfile) {
+      const roleLower = userRole?.toLowerCase() || '';
+      const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
+      const currentYear = new Date().getFullYear();
+      commsNotifications.forEach(c => {
+        if (c.senderUnitId === userProfile.unitId) return;
+        const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
+        if (date && date.getFullYear() !== currentYear) return;
+        let isRecipient = false;
+        if (c.recipientType === 'all') isRecipient = true;
+        else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) isRecipient = true;
+        else if (c.recipientType === 'unit' && c.recipientIds?.includes(userProfile.unitId)) isRecipient = true;
+        else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) isRecipient = true;
+        if (!isRecipient) return;
+        const isReceivedByUnit = !!c.recipientRefNums?.[userProfile.unitId];
+        if (!isOdimo && !isReceivedByUnit) return;
+        const hasRead = c.readBy?.includes(userProfile.id) || (userProfile.unitId && c.readBy?.includes(userProfile.unitId));
+        if (hasRead) return;
+        list.push({
+          id: `comm-${c.id}`,
+          module: 'communications',
+          label: c.subject || c.kind || 'Communication',
+          description: 'Unread',
+          link: '/communications'
+        });
+      });
+    }
+
+    return list.slice(0, MAX_ITEMS);
+  }, [subNotifications, carNotifications, riskNotifications, complianceNotifications, decisionNotifications, commsNotifications, userProfile, userRole, isAdmin, isSupervisor, isAuditor, allUnits]);
 
   const notificationCount = subNotificationsCount;
 

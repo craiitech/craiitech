@@ -159,8 +159,8 @@ export function UserNav({
                                             <p className="text-[10px] font-medium text-muted-foreground mt-0.5 leading-tight">{item.description}</p>
                                         </div>
                                     </div>
-                                    <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-primary h-5 w-5 bg-primary/5 rounded-full flex items-center justify-center">
-                                        {item.count}
+                                    <span className="shrink-0 text-[8px] font-black uppercase tracking-widest h-5 px-1.5 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+                                        NEW
                                     </span>
                                 </DropdownMenuItem>
                             );
