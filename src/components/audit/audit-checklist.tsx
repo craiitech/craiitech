@@ -691,7 +691,7 @@ export function AuditChecklist({
   // Track the currently open clause for sticky header
   const [openClause, setOpenClause] = useState<OpenClauseInfo | null>(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
-  const accordionRef = useRef<HTMLDivElement>(null);
+  const accordionWrapperRef = useRef<HTMLDivElement>(null);
 
   const handleAccordionChange = (value: string) => {
     if (value === '') {
@@ -707,10 +707,10 @@ export function AuditChecklist({
 
   // Handle scroll to show/hide sticky header
   useEffect(() => {
-    if (!openClause || !accordionRef.current) return;
+    if (!openClause || !accordionWrapperRef.current) return;
 
     const handleScroll = () => {
-      const accordionContent = accordionRef.current?.querySelector('[data-radix-accordion-content][data-state="open"]');
+      const accordionContent = accordionWrapperRef.current?.querySelector('[data-radix-accordion-content][data-state="open"]');
       if (!accordionContent) {
         setShowStickyHeader(false);
         return;
@@ -780,7 +780,6 @@ export function AuditChecklist({
         {/* Sticky Clause Header - Shows current open clause when scrolling */}
         {showStickyHeader && openClause && (
           <div 
-            ref={accordionRef}
             className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
             style={{ top: '64px' }} /* Account for fixed page header */
           >
@@ -800,7 +799,7 @@ export function AuditChecklist({
           </div>
         )}
 
-        <div ref={accordionRef} className="relative">
+        <div ref={accordionWrapperRef} className="relative">
           <Accordion 
             type="single" 
             collapsible 
