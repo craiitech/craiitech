@@ -97,9 +97,9 @@ export function UserNav({
 
             {/* Notification Bell Dropdown */}
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -115,12 +115,12 @@ export function UserNav({
                                     </span>
                                 )}
                             </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p className="text-[10px] font-bold uppercase">Notifications ({totalNotificationsCount})</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </DropdownMenuTrigger>
+                        </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className="text-[10px] font-bold uppercase">Notifications ({totalNotificationsCount})</p>
+                    </TooltipContent>
+                </Tooltip>
                 
                 <DropdownMenuContent className="w-80 p-0 rounded-2xl border border-primary/10 shadow-2xl overflow-hidden bg-white/95 backdrop-blur-md" align="end" forceMount>
                     <div className="bg-primary/5 p-4 border-b border-primary/10">
