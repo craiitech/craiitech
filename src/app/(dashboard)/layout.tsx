@@ -511,17 +511,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarContent>
           </Sidebar>
           <SidebarInset className="overflow-hidden">
-            <Header 
-                notificationCount={notificationCount} 
-                totalNotificationsCount={totalNotificationsCount}
-                notificationsList={notificationsList}
-                isGuidanceVisible={isGuidanceVisible}
-                onToggleGuidance={handleToggleGuidance}
-            />
-            <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
-                <div className="flex-1 min-w-0 overflow-auto h-full pr-2">
-                    <VoiceProvider>{children}</VoiceProvider>
-                </div>
+            <VoiceProvider>
+              <Header 
+                  notificationCount={notificationCount} 
+                  totalNotificationsCount={totalNotificationsCount}
+                  notificationsList={notificationsList}
+                  isGuidanceVisible={isGuidanceVisible}
+                  onToggleGuidance={handleToggleGuidance}
+              />
+              <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
+                  <div className="flex-1 min-w-0 overflow-auto h-full pr-2">
+                      {children}
+                  </div>
                 
                 {hasHydrated && isGuidanceVisible && (
                     <Suspense fallback={<div className="w-80 shrink-0" />}>
@@ -531,6 +532,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
             <Chatbot />
             <GuidedTour />
+            </VoiceProvider>
           </SidebarInset>
         </SidebarProvider>
       </div>

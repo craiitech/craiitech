@@ -34,6 +34,25 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
+  // Unlock speech synthesis on first user gesture (browser autoplay policy)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const unlock = () => {
+      const msg = new SpeechSynthesisUtterance('');
+      msg.volume = 0;
+      window.speechSynthesis?.speak(msg);
+      window.speechSynthesis?.cancel();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
   const setEnabled = useCallback((val: boolean) => {
     setEnabledState(val);
     enabledRef.current = val;
