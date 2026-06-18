@@ -21,10 +21,13 @@ import {
   AlertTriangle,
   ArrowUpRight,
   TrendingDown,
-  ShieldAlert
+  ShieldAlert,
+  Info
 } from 'lucide-react';
-import type { Submission, Risk, CorrectiveActionRequest, ProgramComplianceRecord, AcademicProgram, AuditSchedule, Unit, Campus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import type { Submission, Risk, CorrectiveActionRequest, ProgramComplianceRecord, AcademicProgram, AuditSchedule, Unit, Campus, Cycle } from '@/lib/types';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn, isCycleActive } from '@/lib/utils';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 
 interface ExecutiveOverviewProps {
   submissions: Submission[] | null;
@@ -35,6 +38,7 @@ interface ExecutiveOverviewProps {
   schedules: AuditSchedule[] | null;
   units: Unit[] | null;
   campuses: Campus[] | null;
+  cycles?: Cycle[] | null;
   selectedYear: number;
   scope?: 'university' | 'campus' | 'unit';
   scopeId?: string;
@@ -49,6 +53,7 @@ export function ExecutiveOverview({
   schedules = [],
   units = [],
   campuses = [],
+  cycles = [],
   selectedYear,
   scope = 'university',
   scopeId
@@ -95,7 +100,6 @@ export function ExecutiveOverview({
   }, [submissions, risks, cars, allCompliances, academicPrograms, schedules, units, scope, scopeId]);
 
   // 1. SUBMISSION COMPLIANCE RATE
-  const approvedSubs = useMemo(() => scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved'), [scopedSubmissions, selectedYear]);
   const pendingSubs = useMemo(() => scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'submitted'), [scopedSubmissions, selectedYear]);
   
   const isIqaUnit = useMemo(() => {
@@ -106,8 +110,44 @@ export function ExecutiveOverview({
     return scopedUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
   }, [scopedUnits]);
 
-  const expectedSubs = useMemo(() => scope === 'unit' ? (isIqaUnit ? 0 : 2) : (nonIqaUnitsForExpected.length || 0) * 2, [nonIqaUnitsForExpected, scope, isIqaUnit]); // 2 cycles per unit
-  const submissionRate = useMemo(() => expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0, [approvedSubs, expectedSubs]);
+  const approvedComboCount = useMemo(() => {
+    const yearApproved = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
+    return new Set(yearApproved.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)).size;
+  }, [scopedSubmissions, selectedYear]);
+
+  const expectedSubs = useMemo(() => {
+    const isFirstActive = isCycleActive('first', selectedYear, cycles);
+    const isFinalActive = isCycleActive('final', selectedYear, cycles);
+
+    if (scope === 'unit') {
+      if (isIqaUnit) return 0;
+      let total = 0;
+      if (isFirstActive) {
+        const firstRor = scopedSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
+      }
+      if (isFinalActive) {
+        const finalRor = scopedSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (finalRor?.riskRating === 'low' ? 1 : 0);
+      }
+      return total;
+    }
+
+    return nonIqaUnitsForExpected.reduce((total, unit) => {
+      const unitSubs = scopedSubmissions.filter(s => s.unitId === unit.id);
+      if (isFirstActive) {
+        const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
+      }
+      if (isFinalActive) {
+        const finalRor = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (finalRor?.riskRating === 'low' ? 1 : 0);
+      }
+      return total;
+    }, 0) || 1;
+  }, [scopedSubmissions, nonIqaUnitsForExpected, scope, isIqaUnit, selectedYear, cycles]);
+
+  const submissionRate = useMemo(() => expectedSubs > 0 ? Math.min(100, Math.round((approvedComboCount / expectedSubs) * 100)) : 0, [approvedComboCount, expectedSubs]);
 
   // 2. IQA PROGRESS RATE
   const yearSchedules = useMemo(() => scopedSchedules.filter(s => {
@@ -128,10 +168,11 @@ export function ExecutiveOverview({
   const closedCars = useMemo(() => yearCars.filter(c => c.status === 'Closed'), [yearCars]);
   const carResolutionRate = useMemo(() => yearCars.length > 0 ? Math.min(100, Math.round((closedCars.length / yearCars.length) * 100)) : 0, [closedCars, yearCars]);
 
-  // 4. ACCREDITATION GAPS RESOLUTION RATE
+  // 4. ACCREDITATION GAPS RESOLUTION RATE (Mandatory only - Enhancement excluded)
   const recommendationsList = useMemo(() => scopedCompliances.reduce((acc: any[], c) => {
     c.accreditationRecords?.forEach(ar => {
       ar.recommendations?.forEach(rec => {
+        if (rec.type !== 'Mandatory') return;
         acc.push({
           ...rec,
           programName: units?.find(u => u.id === c.programId)?.name || 'Academic Program',
@@ -184,39 +225,53 @@ export function ExecutiveOverview({
 
   // Scoped standings/comparison rate
   const complianceStandings = useMemo(() => {
+    const isFirstActive = isCycleActive('first', selectedYear, cycles);
+    const isFinalActive = isCycleActive('final', selectedYear, cycles);
+
+    const getUnitExpected = (unitId: string) => {
+      const unitSubs = (submissions || []).filter(s => s.unitId === unitId);
+      let total = 0;
+      if (isFirstActive) {
+        const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
+      }
+      if (isFinalActive) {
+        const finalRor = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (finalRor?.riskRating === 'low' ? 1 : 0);
+      }
+      return total;
+    };
+
+    const getUnitApprovedComboCount = (unitId: string) => {
+      const unitApproved = (submissions || []).filter(s => s.unitId === unitId && Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
+      return new Set(unitApproved.map(s => `${s.reportType}-${s.cycleId}`)).size;
+    };
+
     if (scope === 'campus' && scopeId) {
-      // Find all units belonging to this campus (excluding IQA)
       const campusUnits = units?.filter(u => u.campusIds?.includes(scopeId) && u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa') || [];
       return campusUnits.map(unit => {
-        const unitApproved = submissions?.filter(s => s.unitId === unit.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
-        const expected = 2; // 2 cycles per unit
-        const rate = Math.min(100, Math.round((unitApproved / expected) * 100));
-        return {
-          name: unit.name,
-          approved: unitApproved,
-          expected,
-          rate
-        };
+        const approved = getUnitApprovedComboCount(unit.id);
+        const expected = getUnitExpected(unit.id);
+        const rate = expected > 0 ? Math.min(100, Math.round((approved / expected) * 100)) : 0;
+        return { name: unit.name, approved, expected, rate };
       }).sort((a, b) => b.rate - a.rate);
     } else if (scope === 'unit' && scopeId) {
       return [];
     } else {
-      // University scope (excluding IQA from expected counts)
       if (!campuses?.length) return [];
       return campuses.map(campus => {
-        const campusApproved = submissions?.filter(s => s.campusId === campus.id && Number(s.year) === Number(selectedYear) && s.statusId === 'approved').length || 0;
-        const campusUnitsCount = units?.filter(u => u.campusIds?.includes(campus.id) && u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa').length || 0;
-        const campusExpected = campusUnitsCount * 2;
-        const rate = campusExpected > 0 ? Math.min(100, Math.round((campusApproved / campusExpected) * 100)) : 0;
-        return {
-          name: campus.name,
-          approved: campusApproved,
-          expected: campusExpected,
-          rate
-        };
+        const campusUnits = units?.filter(u => u.campusIds?.includes(campus.id) && u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa') || [];
+        let totalApproved = 0;
+        let totalExpected = 0;
+        campusUnits.forEach(unit => {
+          totalApproved += getUnitApprovedComboCount(unit.id);
+          totalExpected += getUnitExpected(unit.id);
+        });
+        const rate = totalExpected > 0 ? Math.min(100, Math.round((totalApproved / totalExpected) * 100)) : 0;
+        return { name: campus.name, approved: totalApproved, expected: totalExpected, rate };
       }).sort((a, b) => b.rate - a.rate);
     }
-  }, [scope, scopeId, campuses, units, submissions, selectedYear]);
+  }, [scope, scopeId, campuses, units, submissions, selectedYear, cycles]);
 
   const maxVal = useMemo(() => Math.max(0, complianceStandings.length - 10), [complianceStandings]);
   const currentStartIndex = Math.min(startIndex, maxVal);
@@ -301,17 +356,17 @@ export function ExecutiveOverview({
       }
     }
 
-    // 6. Analyze Accreditation Gaps
+    // 6. Analyze Accreditation Gaps (Mandatory only - Enhancement excluded)
     if (recommendationsList.length > 0) {
       const openRecs = recommendationsList.length - closedRecs.length;
       if (accreditationResolutionRate === 100) {
-        analysis.push("All accreditation recommendation gaps have been resolved.");
+        analysis.push("All mandatory accreditation recommendation gaps have been resolved.");
       } else if (accreditationResolutionRate >= 50) {
-        analysis.push(`Accreditation recommendations are ${accreditationResolutionRate}% resolved.`);
-        recommendations.push(`Action and close the remaining ${openRecs} pending accreditation survey recommendations.`);
+        analysis.push(`Mandatory accreditation recommendations are ${accreditationResolutionRate}% resolved.`);
+        recommendations.push(`Action and close the remaining ${openRecs} pending mandatory accreditation survey recommendations.`);
       } else {
-        analysis.push(`None of the logged accreditation recommendation gaps have been resolved (0/${recommendationsList.length}).`);
-        recommendations.push(`Resolve and document compliance evidence for the ${openRecs} pending accreditation gaps.`);
+        analysis.push(`None of the logged mandatory accreditation gaps have been resolved (0/${recommendationsList.length}).`);
+        recommendations.push(`Resolve and document compliance evidence for the ${openRecs} pending mandatory accreditation gaps.`);
       }
     }
 
@@ -554,19 +609,19 @@ export function ExecutiveOverview({
       }
     }
 
-    // 6. Accreditation Resolution Rate
+    // 6. Accreditation Resolution Rate (Mandatory only - Enhancement excluded)
     if (recommendationsList.length > 0) {
       if (accreditationResolutionRate >= 75) {
         strengthsList.push({
-          title: 'Accreditation Gap Closure',
-          desc: `High efficiency in resolving survey recommendation gaps (${accreditationResolutionRate}% resolved).`,
+          title: 'Mandatory Gap Closure',
+          desc: `High efficiency in resolving mandatory accreditation survey gaps (${accreditationResolutionRate}% resolved).`,
           tag: '[Accreditation]',
           icon: Award,
         });
       } else {
         weaknessesList.push({
-          title: 'Accreditation Gaps Backlog',
-          desc: `Accreditation survey recommendations are only ${accreditationResolutionRate}% resolved, requiring urgent focus.`,
+          title: 'Mandatory Gaps Backlog',
+          desc: `Mandatory accreditation survey recommendations are only ${accreditationResolutionRate}% resolved, requiring urgent focus.`,
           tag: '[Accreditation Gap]',
           icon: AlertTriangle,
           priority: accreditationResolutionRate < 50 ? 'High' : 'Medium',
@@ -933,10 +988,25 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Accreditation</span>
               <Award className="h-4 w-4 text-teal-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">Gaps Logged</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2 flex items-center gap-1.5">
+              Mandatory Gaps Logged
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label="Metric scope information">
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
+                    <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation Gaps</p>
+                    <p className="text-slate-200">Only <span className="font-bold text-white">Mandatory</span> recommendations are counted. Enhancement recommendations are excluded as they are optional advisories that do not affect accreditation level.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{recommendationsList.length} <span className="text-[10px] text-muted-foreground font-bold">Gaps</span></div>
+            <div className="text-2xl font-black text-slate-900 tracking-tight">{recommendationsList.length} <span className="text-[10px] text-muted-foreground font-bold">Mandatory</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
               <span>Resolved</span>
               <span className="text-slate-900 font-extrabold">{closedRecs.length} ({accreditationResolutionRate}%)</span>

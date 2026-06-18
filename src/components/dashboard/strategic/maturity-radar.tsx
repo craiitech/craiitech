@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { Submission, Risk, Campus, ManagementReviewOutput } from '@/lib/types';
 import { ShieldCheck, Info, Target, Activity } from 'lucide-react';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
 
 interface MaturityRadarProps {
   campuses: Campus[];
@@ -26,7 +27,10 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
 
       // Axis 1: Documentation Maturity (Approved / Required)
       const approvedCount = campusSubmissions.filter(s => s.statusId === 'approved').length;
-      const docMaturity = Math.min(100, (approvedCount / 50) * 100); 
+      const campusUnitIds = new Set(campusSubmissions.map(s => s.unitId));
+      const unitCount = Math.max(1, campusUnitIds.size);
+      const expectedApproved = unitCount * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
+      const docMaturity = Math.min(100, (approvedCount / expectedApproved) * 100);
 
       // Axis 2: Risk Proactivity (Closed / Total)
       const totalRisks = campusRisks.length;

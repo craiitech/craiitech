@@ -102,7 +102,7 @@ import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
 import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/lib/constants';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 import { AuditorOfflineManager } from '@/components/audit/auditor-offline-manager';
 import { AuditorPortfolioDialog } from '@/components/dashboard/auditor-portfolio-dialog';
@@ -207,7 +207,6 @@ function calculateEomsScore(
   const isSubmissionActive = !isIqaUnit;
 
   // 1. SUBMISSION COMPLIANCE RATE
-  const approvedSubs = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
   const nonIqaUnitsForExpected = scopedUnits.filter(u => u.name?.toLowerCase() !== 'internal quality audit' && u.name?.toLowerCase() !== 'iqa');
   
   const isFirstActive = isCycleActive('first', selectedYear, cycles);
@@ -216,8 +215,45 @@ function calculateEomsScore(
   if (isFirstActive) expectedCycles += 1;
   if (isFinalActive) expectedCycles += 1;
 
-  const expectedSubs = scope === 'unit' ? (isIqaUnit ? 0 : expectedCycles) : (nonIqaUnitsForExpected.length || 1) * expectedCycles;
-  const submissionRate = expectedSubs > 0 ? Math.min(100, Math.round((approvedSubs.length / expectedSubs) * 100)) : 0;
+  // Count unique (unitId, reportType, cycleId) approved combos per active cycle
+  // This correctly measures completeness across all 6 required document types
+  const yearApprovedSubs = scopedSubmissions.filter(s => Number(s.year) === Number(selectedYear) && s.statusId === 'approved');
+  const approvedComboCount = new Set(yearApprovedSubs.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)).size;
+
+  // Calculate expected total: units × activeCycles × TOTAL_REPORTS_PER_CYCLE
+  // Accounting for Action Plan N/A when ROR riskRating is 'low'
+  let expectedSubs = 0;
+  if (scope === 'unit') {
+    if (isIqaUnit) {
+      expectedSubs = 0;
+    } else {
+      const unitSubs = scopedSubmissions.filter(s => s.unitId === scopeId);
+      expectedSubs = 0;
+      if (isFirstActive) {
+        const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        expectedSubs += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
+      }
+      if (isFinalActive) {
+        const finalRor = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        expectedSubs += TOTAL_REPORTS_PER_CYCLE - (finalRor?.riskRating === 'low' ? 1 : 0);
+      }
+    }
+  } else {
+    expectedSubs = nonIqaUnitsForExpected.reduce((total, unit) => {
+      const unitSubs = scopedSubmissions.filter(s => s.unitId === unit.id);
+      if (isFirstActive) {
+        const firstRor = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (firstRor?.riskRating === 'low' ? 1 : 0);
+      }
+      if (isFinalActive) {
+        const finalRor = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        total += TOTAL_REPORTS_PER_CYCLE - (finalRor?.riskRating === 'low' ? 1 : 0);
+      }
+      return total;
+    }, 0) || 1;
+  }
+
+  const submissionRate = expectedSubs > 0 ? Math.min(100, Math.round((approvedComboCount / expectedSubs) * 100)) : 0;
 
   // 2. IQA PROGRESS RATE
   const yearSchedules = scopedSchedules.filter(s => {
@@ -237,10 +273,11 @@ function calculateEomsScore(
   const closedCars = yearCars.filter(c => c.status === 'Closed');
   const carResolutionRate = yearCars.length > 0 ? Math.round((closedCars.length / yearCars.length) * 100) : 0;
 
-  // 4. ACCREDITATION GAPS RESOLUTION RATE
+  // 4. ACCREDITATION GAPS RESOLUTION RATE (Mandatory only - Enhancement excluded)
   const recs = scopedCompliances.reduce((acc: any[], c) => {
     c.accreditationRecords?.forEach(ar => {
       ar.recommendations?.forEach(rec => {
+        if (rec.type !== 'Mandatory') return;
         acc.push(rec);
       });
     });
@@ -993,6 +1030,7 @@ export default function HomePage() {
             schedules={dashboardSchedules}
             units={allUnits}
             campuses={campuses}
+            cycles={allCycles}
             selectedYear={selectedYear}
             scope="unit"
             scopeId={userProfile?.unitId}
@@ -1128,9 +1166,10 @@ export default function HomePage() {
           schedules={dashboardSchedules}
           units={allUnits}
           campuses={campuses}
+          cycles={allCycles}
           selectedYear={selectedYear}
         />
-
+        
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
           <div className="lg:col-span-4">
             <UnitAuditSchedule
@@ -1296,6 +1335,7 @@ export default function HomePage() {
           schedules={dashboardSchedules}
           units={allUnits}
           campuses={campuses}
+          cycles={allCycles}
           selectedYear={selectedYear}
           scope="campus"
           scopeId={userProfile?.campusId}
@@ -1738,6 +1778,7 @@ export default function HomePage() {
           schedules={dashboardSchedules}
           units={allUnits}
           campuses={campuses}
+          cycles={allCycles}
           selectedYear={selectedYear}
           scope="university"
         />

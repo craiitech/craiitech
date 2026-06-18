@@ -10,6 +10,7 @@ import type {
     UnitMonitoringRecord,
     ProgramComplianceRecord,
     AuditFinding,
+    AuditSchedule,
     CorrectiveActionRequest,
     ManagementReviewOutput,
     Cycle
@@ -191,6 +192,12 @@ export function CampusSubmissionsView({
   }, [firestore, selectedCampusId]);
   const { data: auditFindings } = useCollection<AuditFinding>(auditFindingsQuery);
 
+  const campusSchedulesQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId) return null;
+    return query(collection(firestore, 'auditSchedules'), where('campusId', '==', selectedCampusId));
+  }, [firestore, selectedCampusId]);
+  const { data: campusSchedules } = useCollection<AuditSchedule>(campusSchedulesQuery);
+
   const campusMap = useMemo(() => {
     const map = new Map(allCampuses?.map(c => [c.id, c.name]));
     map.set('university-wide', 'University-Wide');
@@ -198,6 +205,20 @@ export function CampusSubmissionsView({
   }, [allCampuses]);
 
   const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
+
+  const campusScopeFindings = useMemo(() => {
+    if (!campusSchedules || !auditFindings) return [];
+    const campusScheduleIds = new Set(campusSchedules.map(s => s.id));
+    return auditFindings.filter(f => campusScheduleIds.has(f.auditScheduleId));
+  }, [campusSchedules, auditFindings]);
+
+  const unitScopeFindings = useMemo(() => {
+    if (!campusSchedules || !auditFindings || !selectedUnitId) return [];
+    const unitScheduleIds = new Set(
+      campusSchedules.filter(s => s.targetType === 'Unit' && s.targetId === selectedUnitId).map(s => s.id)
+    );
+    return auditFindings.filter(f => unitScheduleIds.has(f.auditScheduleId));
+  }, [campusSchedules, auditFindings, selectedUnitId]);
 
   /**
    * FILTERED CAMPUS GROUPS
@@ -595,7 +616,7 @@ export function CampusSubmissionsView({
                     risks={campusRisks?.filter(r => r.unitId === selectedUnitId) || []}
                     monitoringRecords={campusMonitoring?.filter(r => r.unitId === selectedUnitId) || []}
                     programCompliances={campusCompliances?.filter(c => c.unitId === selectedUnitId) || []}
-                    auditFindings={auditFindings || []}
+                    auditFindings={unitScopeFindings}
                     correctiveActionRequests={campusCars?.filter(c => c.unitId === selectedUnitId) || []}
                     mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === selectedUnitId)) || []}
                     scope="unit"
@@ -695,7 +716,7 @@ export function CampusSubmissionsView({
                         risks={campusRisks || []}
                         monitoringRecords={campusMonitoring || []}
                         programCompliances={campusCompliances || []}
-                        auditFindings={auditFindings || []}
+                        auditFindings={campusScopeFindings}
                         correctiveActionRequests={campusCars || []}
                         mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === selectedCampusId)) || []}
                         scope="campus"

@@ -339,13 +339,60 @@ export function ActionableDecisionsTab({
   // Quality score gauge data
   const gaugeData = [{ name: 'Quality Score', value: qualityScore, fill: qualityScore >= 75 ? '#10b981' : qualityScore >= 50 ? '#f59e0b' : '#ef4444' }];
 
-  // Historical trend (simplified — use yearly data)
-  const trendData = [
-    { period: 'Q1', 'Submission Compliance': Math.max(0, submission_compliance - 15), 'CAR Closure': Math.max(0, car_closure - 20), 'Risk Treatment': Math.max(0, risk_treatment - 10) },
-    { period: 'Q2', 'Submission Compliance': Math.max(0, submission_compliance - 8), 'CAR Closure': Math.max(0, car_closure - 12), 'Risk Treatment': Math.max(0, risk_treatment - 5) },
-    { period: 'Q3', 'Submission Compliance': Math.max(0, submission_compliance - 3), 'CAR Closure': Math.max(0, car_closure - 5), 'Risk Treatment': Math.max(0, risk_treatment - 2) },
-    { period: 'Current', 'Submission Compliance': submission_compliance, 'CAR Closure': car_closure, 'Risk Treatment': risk_treatment },
-  ];
+  // Historical trend — derived from actual submission/CAR/risk timestamps
+  const getQuarter = (d: Date) => {
+    const m = d.getMonth();
+    if (m < 3) return 'Q1';
+    if (m < 6) return 'Q2';
+    if (m < 9) return 'Q3';
+    return 'Q4';
+  };
+  const toDate = (v: any): Date | null => {
+    if (!v) return null;
+    if (typeof v.toDate === 'function') return v.toDate();
+    if (v instanceof Date) return v;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const trendData = useMemo(() => {
+    const qKeys = ['Q1', 'Q2', 'Q3', 'Q4'];
+    const acc: Record<string, { subApproved: number; subTotal: number; carClosed: number; carTotal: number; riskTreated: number; riskTotal: number }> = {};
+    qKeys.forEach(k => { acc[k] = { subApproved: 0, subTotal: 0, carClosed: 0, carTotal: 0, riskTreated: 0, riskTotal: 0 }; });
+
+    yearSubs.forEach(s => {
+      const d = toDate(s.submissionDate);
+      if (!d) return;
+      const q = getQuarter(d);
+      if (!acc[q]) return;
+      acc[q].subTotal++;
+      if (s.statusId === 'approved') acc[q].subApproved++;
+    });
+
+    cars.forEach(c => {
+      const d = toDate(c.createdAt);
+      if (!d || d.getFullYear() !== selectedYear) return;
+      const q = getQuarter(d);
+      if (!acc[q]) return;
+      acc[q].carTotal++;
+      if (c.status === 'Closed') acc[q].carClosed++;
+    });
+
+    yearRisks.forEach(r => {
+      const d = toDate(r.createdAt);
+      if (!d) return;
+      const q = getQuarter(d);
+      if (!acc[q]) return;
+      acc[q].riskTotal++;
+      if (r.postTreatment) acc[q].riskTreated++;
+    });
+
+    return qKeys.map(q => ({
+      period: q,
+      'Submission Compliance': acc[q].subTotal > 0 ? Math.round((acc[q].subApproved / acc[q].subTotal) * 100) : 0,
+      'CAR Closure': acc[q].carTotal > 0 ? Math.round((acc[q].carClosed / acc[q].carTotal) * 100) : 0,
+      'Risk Treatment': acc[q].riskTotal > 0 ? Math.round((acc[q].riskTreated / acc[q].riskTotal) * 100) : 0,
+    }));
+  }, [yearSubs, cars, yearRisks, selectedYear]);
 
   const quadrants = [
     { id: 'urgent-high', label: 'High Impact & Urgent', sub: 'Act Now', color: 'border-red-300 bg-red-50/40', labelColor: 'text-red-700' },
@@ -567,7 +614,7 @@ export function ActionableDecisionsTab({
             Institutional Quality Trend (AY {selectedYear})
           </CardTitle>
           <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            Estimated quarterly progression of key quality KPIs — upward trends indicate system improvement
+            Actual quarterly progression of key quality KPIs derived from submission, audit, and risk timestamps
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">

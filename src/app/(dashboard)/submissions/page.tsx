@@ -111,6 +111,7 @@ export default function SubmissionsPage() {
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [modeFilter, setModeFilter] = useState<'all' | 'draft' | 'final'>('all');
+  const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
@@ -204,9 +205,19 @@ export default function SubmissionsPage() {
     return years.sort((a,b) => b.localeCompare(a));
   }, [normalizedSubmissions]);
 
+  const availableCyclesForYear = useMemo(() => {
+    if (!cycles || yearFilter === 'all') return [];
+    const year = parseInt(yearFilter);
+    return cycles.filter(c => c.year === year).map(c => c.name);
+  }, [cycles, yearFilter]);
+
   useEffect(() => {
     if (isInstitutionalViewer) setUnitFilter('all');
   }, [campusFilter, isInstitutionalViewer]);
+
+  useEffect(() => {
+    setCycleFilter('all');
+  }, [yearFilter]);
 
   const dashboardSubmissions = useMemo(() => {
     if (!normalizedSubmissions) return [];
@@ -251,6 +262,7 @@ export default function SubmissionsPage() {
     if (campusFilter !== 'all') filtered = filtered.filter(s => s.campusId === campusFilter);
     if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
     if (statusFilter !== 'all') filtered = filtered.filter(s => s.statusId === statusFilter);
+    if (cycleFilter !== 'all') filtered = filtered.filter(s => s.cycleId === cycleFilter);
     
     // Draft vs Final Filtering
     if (modeFilter === 'draft') filtered = filtered.filter(s => s.isDraft === true);
@@ -266,7 +278,7 @@ export default function SubmissionsPage() {
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder, modeFilter, searchTerm, userMap]);
+  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, cycleFilter, sortOrder, modeFilter, searchTerm, userMap]);
 
   const isRiskRegistered = (unitId: string, year: number) => {
     if (!allRisks) return false;
@@ -385,7 +397,7 @@ export default function SubmissionsPage() {
                                 className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
                             />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                                     <School className="h-2.5 w-2.5" /> Campus Site
@@ -445,6 +457,22 @@ export default function SubmissionsPage() {
                                         <SelectItem value="all">All (Drafts & Finals)</SelectItem>
                                         <SelectItem value="draft">Drafts Only</SelectItem>
                                         <SelectItem value="final">Final Records Only</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                    <CalendarIcon className="h-2.5 w-2.5" /> Submission Cycle
+                                </label>
+                                <Select value={cycleFilter} onValueChange={setCycleFilter} disabled={yearFilter === 'all' || availableCyclesForYear.length === 0}>
+                                    <SelectTrigger className="h-9 text-xs bg-white">
+                                        <SelectValue placeholder="All Cycles" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Cycles</SelectItem>
+                                        {availableCyclesForYear.includes('first') && <SelectItem value="first">First Cycle</SelectItem>}
+                                        {availableCyclesForYear.includes('final') && <SelectItem value="final">Final Cycle</SelectItem>}
                                     </SelectContent>
                                 </Select>
                             </div>
