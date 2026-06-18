@@ -87,6 +87,33 @@ export function VoiceAnnouncements() {
         if (open.length > 0) items.push(`${open.length} pending management review decision${open.length > 1 ? 's' : ''}`);
       } catch { /* silent */ }
 
+      // 6. Unread communications
+      try {
+        const commsSnap = await getDocs(query(
+          collection(firestore, 'communications')
+        ));
+        const roleLower = userRole?.toLowerCase() || '';
+        const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
+        const currentYear = new Date().getFullYear();
+        const unreadCount = commsSnap.docs.filter(d => {
+          const c = d.data();
+          if (c.senderUnitId === unitId) return false;
+          const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
+          if (date && date.getFullYear() !== currentYear) return false;
+          let isRecipient = false;
+          if (c.recipientType === 'all') isRecipient = true;
+          else if (c.recipientType === 'campus' && c.recipientIds?.includes(campusId)) isRecipient = true;
+          else if (c.recipientType === 'unit' && c.recipientIds?.includes(unitId)) isRecipient = true;
+          else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) isRecipient = true;
+          if (!isRecipient) return false;
+          const isReceivedByUnit = !!c.recipientRefNums?.[unitId];
+          if (!isOdimo && !isReceivedByUnit) return false;
+          const hasRead = c.readBy?.includes(userProfile.id) || (unitId && c.readBy?.includes(unitId));
+          return !hasRead;
+        }).length;
+        if (unreadCount > 0) items.push(`${unreadCount} unread communication${unreadCount > 1 ? 's' : ''}`);
+      } catch { /* silent */ }
+
       setTimeout(() => {
         if (items.length > 0) {
           speak(`Here is your summary. You have ${items.join('. ')}.`);
