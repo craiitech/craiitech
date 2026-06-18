@@ -265,6 +265,11 @@ service cloud.firestore {
       allow get, list: if isAdmin();
     }
 
+    match /formDownloadLogs/{id} {
+      allow create: if isSignedIn();
+      allow get, list: if isAdmin();
+    }
+
     match /softwareEvaluations/{id} {
       allow create: if true; // Allow stakeholders to evaluate
       allow get, list: if isSignedIn();
