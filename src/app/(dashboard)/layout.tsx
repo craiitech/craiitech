@@ -30,6 +30,7 @@ import { SoftwareEvaluationGate } from '@/components/evaluation/software-evaluat
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { VoiceProvider } from '@/components/voice/voice-provider';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; 
 
@@ -519,7 +520,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
             <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-auto h-full pr-2">
-                    {children}
+                    <VoiceProvider>{children}</VoiceProvider>
                 </div>
                 
                 {hasHydrated && isGuidanceVisible && (

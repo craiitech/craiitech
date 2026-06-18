@@ -49,10 +49,12 @@ import {
   X,
   Loader2,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  Volume2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useVoice } from '@/components/voice/voice-provider';
 import { cn } from '@/lib/utils';
 
 function incrementReferenceNumber(refNum: string): string {
@@ -996,6 +998,8 @@ export default function CommunicationsPage() {
     }
   };
 
+  const { speak: speakVoice, enabled: voiceEnabled } = useVoice();
+
   const renderCommTable = (comms: Communication[], tab: 'incoming' | 'outgoing', loading: boolean) => {
     if (loading) {
       return (
@@ -1182,6 +1186,16 @@ export default function CommunicationsPage() {
             </div>
             <h3 className="text-2xl font-black uppercase tracking-tight">Communications Logbook</h3>
             <p className="text-sm text-white/70 font-medium mt-1">Official incoming and outgoing records for <span className="font-black text-white">{receivingLabel}</span></p>
+            {voiceEnabled && (
+              <button
+                onClick={() => {
+                  speakVoice('Communications Logbook. This page shows incoming and outgoing correspondence records. Use the search bar to filter by subject or reference number, and the category dropdown to filter by document type. Click any row to view full details. To log a new record, click the Log or Send Communication button.');
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white/90 transition-colors"
+              >
+                <Volume2 className="h-3.5 w-3.5" /> Listen to Guide
+              </button>
+            )}
           </div>
           {isOdimo && (
             <div className="flex flex-wrap items-center gap-3">

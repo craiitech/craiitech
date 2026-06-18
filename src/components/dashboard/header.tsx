@@ -6,8 +6,9 @@ import { useFirebase, useUser } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
+import { useVoice } from '@/components/voice/voice-provider';
 import { Button } from '@/components/ui/button';
-import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock, Sun, Moon } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock, Sun, Moon, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ export function Header({
   const { theme, toggleTheme } = useTheme();
 
   const isAuditor = userRole === 'Auditor';
+  const { enabled: voiceEnabled, setEnabled: setVoiceEnabled } = useVoice();
 
   useEffect(() => {
     const checkState = () => {
@@ -137,6 +139,28 @@ export function Header({
                     </TooltipTrigger>
                     <TooltipContent>
                         <p className="text-[10px] font-black uppercase">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                "h-9 w-9 rounded-full transition-all",
+                                voiceEnabled ? "text-primary bg-primary/5" : "text-muted-foreground"
+                            )}
+                            onClick={() => setVoiceEnabled(!voiceEnabled)}
+                            title={voiceEnabled ? 'Disable Voice' : 'Enable Voice'}
+                        >
+                            {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className="text-[10px] font-black uppercase">{voiceEnabled ? 'Disable Voice' : 'Enable Voice'}</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
