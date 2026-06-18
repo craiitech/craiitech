@@ -168,7 +168,7 @@ export function ExecutiveOverview({
   const closedCars = useMemo(() => yearCars.filter(c => c.status === 'Closed'), [yearCars]);
   const carResolutionRate = useMemo(() => yearCars.length > 0 ? Math.min(100, Math.round((closedCars.length / yearCars.length) * 100)) : 0, [closedCars, yearCars]);
 
-  // 4. ACCREDITATION GAPS RESOLUTION RATE (Mandatory only - Enhancement excluded)
+  // 4. ACCREDITATION PERFORMANCE RATE (level achievement + mandatory gap closure combined)
   const recommendationsList = useMemo(() => scopedCompliances.reduce((acc: any[], c) => {
     c.accreditationRecords?.forEach(ar => {
       ar.recommendations?.forEach(rec => {
@@ -184,6 +184,63 @@ export function ExecutiveOverview({
   }, []) || [], [scopedCompliances, units]);
   const closedRecs = useMemo(() => recommendationsList.filter(r => r.status === 'Closed'), [recommendationsList]);
   const accreditationResolutionRate = useMemo(() => recommendationsList.length > 0 ? Math.min(100, Math.round((closedRecs.length / recommendationsList.length) * 100)) : 0, [closedRecs, recommendationsList]);
+
+  // Accreditation Level Achievement Score (per-program level mapped to score)
+  const levelScoreMap: Record<string, number> = {
+    'Level IV': 100, 'Level III': 80, 'Level II': 60, 'Level I': 40, 'Candidate': 20, 'PSV': 20,
+  };
+  const accreditationLevelRate = useMemo(() => {
+    const scored = scopedPrograms.filter(p => p.isActive).map(p => {
+      const compliance = scopedCompliances.find(c => c.programId === p.id);
+      const records = compliance?.accreditationRecords || [];
+      const current = records.find(r => r.lifecycleStatus === 'Current') || records[records.length - 1];
+      const level = current?.level?.trim() || 'Non Accredited';
+      for (const [key, score] of Object.entries(levelScoreMap)) {
+        if (level.includes(key) || level === key) return score;
+      }
+      if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 20;
+      return 0;
+    });
+    return scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : 0;
+  }, [scopedPrograms, scopedCompliances]);
+
+  // Combined Accreditation Rate (50% level achievement + 50% gap closure)
+  const accreditationRate = useMemo(() => {
+    const hasRecommends = recommendationsList.length > 0;
+    const hasPrograms = scopedPrograms.filter(p => p.isActive).length > 0;
+    if (!hasRecommends && !hasPrograms) return 0;
+    if (!hasRecommends) return accreditationLevelRate;
+    if (!hasPrograms) return accreditationResolutionRate;
+    return Math.round((accreditationLevelRate * 0.5) + (accreditationResolutionRate * 0.5));
+  }, [accreditationLevelRate, accreditationResolutionRate, recommendationsList, scopedPrograms]);
+
+  // Undergrad vs Graduate breakdown for display
+  const accreditationByLevel = useMemo(() => {
+    const undergrad: { level: string; count: number }[] = [];
+    const graduate: { level: string; count: number }[] = [];
+    const levelOrder = ['Level IV', 'Level III', 'Level II', 'Level I', 'Candidate', 'Non Accredited'];
+    const countByLevel = (programs: typeof scopedPrograms) => {
+      const counts: Record<string, number> = {};
+      levelOrder.forEach(l => counts[l] = 0);
+      programs.filter(p => p.isActive).forEach(p => {
+        const compliance = scopedCompliances.find(c => c.programId === p.id);
+        const records = compliance?.accreditationRecords || [];
+        const current = records.find(r => r.lifecycleStatus === 'Current') || records[records.length - 1];
+        const level = current?.level?.trim() || 'Non Accredited';
+        let matched = 'Non Accredited';
+        for (const key of levelOrder) {
+          if (level.includes(key) || level === key) { matched = key; break; }
+        }
+        if (level.toLowerCase().includes('candidate') || level.includes('PSV')) matched = 'Candidate';
+        counts[matched] = (counts[matched] || 0) + 1;
+      });
+      return levelOrder.map(l => ({ level: l, count: counts[l] || 0 })).filter(x => x.count > 0);
+    };
+    return {
+      undergrad: countByLevel(scopedPrograms.filter(p => p.level === 'Undergraduate' || p.level === 'TVET')),
+      graduate: countByLevel(scopedPrograms.filter(p => p.level === 'Graduate')),
+    };
+  }, [scopedPrograms, scopedCompliances]);
 
   // 5. CHED COPC RATE
   const copcCompliant = useMemo(() => scopedCompliances.filter(c => c.ched?.copcStatus === 'With COPC'), [scopedCompliances]);
@@ -203,10 +260,10 @@ export function ExecutiveOverview({
       { name: 'CAR Resolution Rate', value: carResolutionRate, weight: 0.20, color: 'bg-rose-500', active: yearCars.length > 0 },
       { name: 'Risk Control Index', value: riskControlRate, weight: 0.15, color: 'bg-amber-500', active: yearRisks.length > 0 },
       { name: 'CHED Program COPC', value: copcComplianceRate, weight: 0.10, color: 'bg-blue-500', active: totalProgramsCount > 0 },
-      { name: 'Accreditation Gaps Closed', value: accreditationResolutionRate, weight: 0.10, color: 'bg-teal-500', active: recommendationsList.length > 0 },
+      { name: 'Accreditation Performance', value: accreditationRate, weight: 0.10, color: 'bg-teal-500', active: scopedPrograms.filter(p => p.isActive).length > 0 },
     ];
     return metrics.filter(m => m.active);
-  }, [submissionRate, iqaProgressRate, carResolutionRate, riskControlRate, copcComplianceRate, accreditationResolutionRate, yearSchedules, yearCars, yearRisks, totalProgramsCount, recommendationsList, isIqaUnit]);
+  }, [submissionRate, iqaProgressRate, carResolutionRate, riskControlRate, copcComplianceRate, accreditationRate, yearSchedules, yearCars, yearRisks, totalProgramsCount, scopedPrograms, isIqaUnit]);
 
   const eomsQualityScore = useMemo(() => {
     const totalWeight = activeMetrics.reduce((sum, m) => sum + m.weight, 0);
@@ -356,17 +413,20 @@ export function ExecutiveOverview({
       }
     }
 
-    // 6. Analyze Accreditation Gaps (Mandatory only - Enhancement excluded)
-    if (recommendationsList.length > 0) {
-      const openRecs = recommendationsList.length - closedRecs.length;
-      if (accreditationResolutionRate === 100) {
-        analysis.push("All mandatory accreditation recommendation gaps have been resolved.");
-      } else if (accreditationResolutionRate >= 50) {
-        analysis.push(`Mandatory accreditation recommendations are ${accreditationResolutionRate}% resolved.`);
-        recommendations.push(`Action and close the remaining ${openRecs} pending mandatory accreditation survey recommendations.`);
+    // 6. Analyze Accreditation Performance
+    if (recommendationsList.length > 0 || scopedPrograms.filter(p => p.isActive).length > 0) {
+      if (accreditationRate === 100) {
+        analysis.push("All programs meet the highest accreditation standards.");
+      } else if (accreditationRate >= 75) {
+        analysis.push(`Accreditation performance is strong at ${accreditationRate}%, combining level achievement and gap resolution.`);
+      } else if (accreditationRate >= 50) {
+        analysis.push(`Accreditation performance is at ${accreditationRate}%. Programs need improvement in accreditation level or gap closure.`);
+        const openRecs = recommendationsList.length - closedRecs.length;
+        if (openRecs > 0) recommendations.push(`Action and close the remaining ${openRecs} pending mandatory accreditation survey recommendations.`);
       } else {
-        analysis.push(`None of the logged mandatory accreditation gaps have been resolved (0/${recommendationsList.length}).`);
-        recommendations.push(`Resolve and document compliance evidence for the ${openRecs} pending mandatory accreditation gaps.`);
+        analysis.push(`Accreditation performance is at ${accreditationRate}%, requiring significant improvement in program accreditation levels and gap resolution.`);
+        const openRecs = recommendationsList.length - closedRecs.length;
+        if (openRecs > 0) recommendations.push(`Resolve and document compliance evidence for the ${openRecs} pending mandatory accreditation gaps.`);
       }
     }
 
@@ -384,7 +444,7 @@ export function ExecutiveOverview({
         { name: "CAR Resolution Rate", rate: carResolutionRate, active: yearCars.length > 0 },
         { name: "Risk Control Index", rate: riskControlRate, active: yearRisks.length > 0 },
         { name: "CHED COPC", rate: copcComplianceRate, active: totalProgramsCount > 0 },
-        { name: "Accreditation Gaps", rate: accreditationResolutionRate, active: recommendationsList.length > 0 }
+        { name: "Accreditation Performance", rate: accreditationRate, active: scopedPrograms.filter(p => p.isActive).length > 0 }
       ].filter(m => m.active).sort((a, b) => a.rate - b.rate);
 
       if (activeStats.length > 0) {
@@ -469,13 +529,32 @@ export function ExecutiveOverview({
       });
     }
 
-    // 4. Critical Accreditation Recommendations
+    // 4. Critical Accreditation Gaps
     const openRecommendations = recommendationsList.filter(r => r.status !== 'Closed' && r.type === 'Mandatory');
     if (openRecommendations.length > 0) {
       alerts.push({
         title: `${openRecommendations.length} Mandatory Accreditation Gaps`,
         subtitle: 'Pending directives assigned to academic units require closure.',
         severity: 'high',
+        icon: Award,
+        section: 'Accreditation'
+      });
+    }
+
+    // 4b. Non-Accredited Programs
+    const nonAccredited = scopedPrograms.filter(ap => {
+      if (!ap.isActive) return false;
+      const comp = scopedCompliances.find(c => c.programId === ap.id);
+      const records = comp?.accreditationRecords || [];
+      const current = records.find(r => r.lifecycleStatus === 'Current') || records[records.length - 1];
+      const level = current?.level || 'Non Accredited';
+      return level === 'Non Accredited' || level.toLowerCase().includes('non accredited');
+    });
+    if (nonAccredited.length > 0) {
+      alerts.push({
+        title: `${nonAccredited.length} Non-Accredited Program${nonAccredited.length > 1 ? 's' : ''}`,
+        subtitle: 'Programs without active accreditation status require immediate attention.',
+        severity: nonAccredited.length > 3 ? 'high' : 'medium',
         icon: Award,
         section: 'Accreditation'
       });
@@ -609,22 +688,22 @@ export function ExecutiveOverview({
       }
     }
 
-    // 6. Accreditation Resolution Rate (Mandatory only - Enhancement excluded)
-    if (recommendationsList.length > 0) {
-      if (accreditationResolutionRate >= 75) {
+    // 6. Accreditation Performance (Level Achievement + Mandatory Gap Closure)
+    if (scopedPrograms.filter(p => p.isActive).length > 0) {
+      if (accreditationRate >= 75) {
         strengthsList.push({
-          title: 'Mandatory Gap Closure',
-          desc: `High efficiency in resolving mandatory accreditation survey gaps (${accreditationResolutionRate}% resolved).`,
+          title: 'Accreditation Performance',
+          desc: `Strong overall accreditation performance at ${accreditationRate}%, with level achievement at ${accreditationLevelRate}% and gap resolution at ${accreditationResolutionRate}%.`,
           tag: '[Accreditation]',
           icon: Award,
         });
       } else {
         weaknessesList.push({
-          title: 'Mandatory Gaps Backlog',
-          desc: `Mandatory accreditation survey recommendations are only ${accreditationResolutionRate}% resolved, requiring urgent focus.`,
+          title: 'Accreditation Performance Gap',
+          desc: `Accreditation performance is at ${accreditationRate}%. Level achievement is ${accreditationLevelRate}% and mandatory gap resolution is ${accreditationResolutionRate}%.`,
           tag: '[Accreditation Gap]',
           icon: AlertTriangle,
-          priority: accreditationResolutionRate < 50 ? 'High' : 'Medium',
+          priority: accreditationRate < 50 ? 'High' : 'Medium',
         });
       }
     }
@@ -988,30 +1067,39 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Accreditation</span>
               <Award className="h-4 w-4 text-teal-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2 flex items-center gap-1.5">
-              Mandatory Gaps Logged
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label="Metric scope information">
-                      <Info className="h-3.5 w-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-[220px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md">
-                    <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation Gaps</p>
-                    <p className="text-slate-200">Only <span className="font-bold text-white">Mandatory</span> recommendations are counted. Enhancement recommendations are excluded as they are optional advisories that do not affect accreditation level.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">Program Performance</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{recommendationsList.length} <span className="text-[10px] text-muted-foreground font-bold">Mandatory</span></div>
+            <div className="text-2xl font-black text-slate-900 tracking-tight">{accreditationRate}% <span className="text-[10px] text-muted-foreground font-bold">Score</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
-              <span>Resolved</span>
-              <span className="text-slate-900 font-extrabold">{closedRecs.length} ({accreditationResolutionRate}%)</span>
+              <span>Level Achievement</span>
+              <span className="text-slate-900 font-extrabold">{accreditationLevelRate}%</span>
             </div>
-            <Progress value={accreditationResolutionRate} className="h-1 bg-teal-50" />
+            <Progress value={accreditationRate} className="h-1 bg-teal-50" />
+            {accreditationByLevel.undergrad.length > 0 && (
+              <div className="pt-1.5 border-t border-slate-100">
+                <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-1">Undergrad / TVET</p>
+                <div className="flex flex-wrap gap-1">
+                  {accreditationByLevel.undergrad.map(item => (
+                    <Badge key={item.level} variant="outline" className="text-[7px] font-black px-1.5 py-0 rounded-full bg-white">
+                      {item.level}: {item.count}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {accreditationByLevel.graduate.length > 0 && (
+              <div className="pt-1.5 border-t border-slate-100">
+                <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-1">Graduate</p>
+                <div className="flex flex-wrap gap-1">
+                  {accreditationByLevel.graduate.map(item => (
+                    <Badge key={item.level} variant="outline" className="text-[7px] font-black px-1.5 py-0 rounded-full bg-white">
+                      {item.level}: {item.count}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
