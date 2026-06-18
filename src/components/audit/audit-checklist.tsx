@@ -701,10 +701,37 @@ export function AuditChecklist({
       const clause = sortedClauses.find(c => c.id === value);
       if (clause) {
         setOpenClause({ id: clause.id, title: clause.title });
-        setShowStickyHeader(true);
+        setShowStickyHeader(false);
       }
     }
   };
+
+  // Show sticky clause header when the open accordion content scrolls past the IQA header
+  useEffect(() => {
+    if (!openClause || !accordionWrapperRef.current) return;
+
+    const handleScroll = () => {
+      const accordionContent = accordionWrapperRef.current?.querySelector('[data-radix-accordion-content][data-state="open"]');
+      if (!accordionContent) {
+        setShowStickyHeader(false);
+        return;
+      }
+
+      const contentRect = accordionContent.getBoundingClientRect();
+      const iqaHeaderHeight = 64;
+
+      if (contentRect.top < iqaHeaderHeight && contentRect.bottom > iqaHeaderHeight) {
+        setShowStickyHeader(true);
+      } else {
+        setShowStickyHeader(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [openClause]);
 
   const handleAddAdditionalResult = async (clauseId: string) => {
     if (!firestore || !user) {
@@ -737,7 +764,26 @@ export function AuditChecklist({
   };
 
   return (
-    <Card className="shadow-2xl border-primary/10" style={{ overflow: 'visible' }}>
+    <>
+    {/* Fixed Clause Header - attaches to IQA Evidence Log header when scrolling into the open clause */}
+    {showStickyHeader && openClause && (
+      <div 
+        className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3"
+        style={{ top: '64px' }}
+      >
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
+            {openClause.id}
+          </div>
+          <div>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
+            <p className="text-sm font-black text-slate-800 truncate max-w-[400px]">{openClause.title}</p>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <Card className="shadow-2xl border-primary/10 overflow-hidden">
       <CardHeader className="bg-muted/30 border-b py-6">
         <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -748,6 +794,8 @@ export function AuditChecklist({
         </div>
       </CardHeader>
       <CardContent className="p-0">
+        {/* Spacer to prevent content from being hidden behind the fixed header */}
+        {showStickyHeader && <div className="h-14" aria-hidden="true" />}
         <div ref={accordionWrapperRef} className="relative">
           <Accordion 
             type="single" 
@@ -778,7 +826,7 @@ export function AuditChecklist({
 
             return (
               <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
-                <AccordionTrigger className={cn("hover:no-underline py-6", openClause?.id === clause.id && "sticky top-16 z-30 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-sm")}>
+                <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex items-center justify-between w-full pr-6 text-left">
                     <div className="flex items-center gap-4">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">{clause.id}</div>
@@ -855,5 +903,6 @@ export function AuditChecklist({
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }
