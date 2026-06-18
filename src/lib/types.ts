@@ -235,6 +235,9 @@ export type BackupSettings = {
 
 export type CsmSettings = {
     managingUnitId?: string;
+    csmDirector?: string;
+    csmQualityHead?: string;
+    csmCampusCoordinator?: string;
     updatedAt?: any;
     updatedBy?: string;
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { Campus, Unit, User as AppUser, Cycle, CsmDeployment } from '@/lib/types';
+import { useMemo, useState, useEffect } from 'react';
+import type { Campus, Unit, User as AppUser, Cycle, CsmDeployment, CsmSettings } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,7 +54,7 @@ import {
   Search,
   ExternalLink
 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, serverTimestamp, collection } from '@/firebase/firestore-wrapper';
 import {
@@ -210,6 +210,7 @@ export function CsmReportDashboard({
   const [dataSource, setDataSource] = useState<'live' | 'baseline25'>('live');
   const [unitSearchQuery, setUnitSearchQuery] = useState('');
   const [commentSearch, setCommentSearch] = useState('');
+  const [selectedCampusForExport, setSelectedCampusForExport] = useState<string>('Main Campus');
 
   useMemo(() => {
     if (selectedCampusId) {
@@ -237,6 +238,13 @@ export function CsmReportDashboard({
 
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  // Fetch CSM Settings for signatories
+  const csmSettingsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'csmSettings') : null),
+    [firestore]
+  );
+  const { data: csmSettings } = useDoc<CsmSettings>(csmSettingsRef);
 
   const deploymentsMap = useMemo(() => {
     const dMap = new Map<string, boolean>();
@@ -1181,6 +1189,12 @@ export function CsmReportDashboard({
 
     const campusText = activeCampusName === 'all' ? "RSU SYSTEM-WIDE" : activeCampusName;
     const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
+    const unitText = selectedUnitId === 'all' ? "ALL OFFICES / UNITS" : (units.find(u => u.id === selectedUnitId)?.name || "Office");
+    
+    // CSM Signatories from settings
+    const csmDirector = csmSettings?.csmDirector || '____________________';
+    const csmQualityHead = csmSettings?.csmQualityHead || '____________________';
+    const csmCampusCoordinator = csmSettings?.csmCampusCoordinator || '____________________';
 
     let serviceRows = '';
     displayStats.services.forEach(s => {
@@ -1210,6 +1224,9 @@ export function CsmReportDashboard({
             td { border: 1px solid black; padding: 5px; }
             .header-block { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; }
             .meta-info { margin-bottom: 20px; font-size: 11px; background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; }
+            .signatory-block { margin-top: 60px; display: flex; justify-content: space-between; font-size: 11px; }
+            .signatory-col { width: 30%; text-align: center; }
+            .signatory-line { border-bottom: 1px solid black; font-weight: bold; margin-top: 40px; padding-bottom: 2px; min-height: 20px; }
           </style>
         </head>
         <body>
@@ -1220,9 +1237,10 @@ export function CsmReportDashboard({
             <p style="margin: 2px 0; font-weight: bold;">COMPLIANT WITH ARTA MC NO. 2022-05 & RESOLUTION NO. 2023-01</p>
           </div>
 
-          <div class="meta-info">
+          <div class="meta-info>
             <div><strong>REPORTING CYCLE:</strong> Calendar Year ${selectedYear} (Annual)</div>
             <div><strong>SCOPE:</strong> ${campusText.toUpperCase()}</div>
+            <div><strong>OFFICE/UNIT:</strong> ${unitText.toUpperCase()}</div>
             <div><strong>DATA SOURCE:</strong> ${titleLabel}</div>
             <div><strong>TOTAL CUSTOMER EVALUATIONS:</strong> ${displayStats.totalResponses}</div>
             <div><strong>OVERALL CUSTOMER SATISFACTION SCORE:</strong> ${displayStats.overallSatisfactionRate}%</div>
@@ -1286,18 +1304,21 @@ export function CsmReportDashboard({
             However, critical friction points were identified in specific service categories. Corrective actions will include deploying queue scheduling algorithms, regular air-conditioning maintenance for visitor lounges, and customer relations seminars for counter coordinators to maintain standard professional service quality.
           </p>
 
-          <div style="margin-top: 50px; display: flex; justify-content: space-between; font-size: 11px;">
-            <div style="width: 45%; text-align: center;">
-              <p>Compiled By:</p>
-              <div style="border-bottom: 1px solid black; font-weight: bold; margin-top: 30px; padding-bottom: 2px;">
-                ${userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "CSM Officer"}
-              </div>
-              <p>${userProfile?.role || "Unit Coordinator"}</p>
+          <div class="signatory-block">
+            <div class="signatory-col">
+              <p>Prepared By:</p>
+              <div class="signatory-line">${csmDirector}</div>
+              <p>CSM Director</p>
             </div>
-            <div style="width: 45%; text-align: center;">
+            <div class="signatory-col">
+              <p>Reviewed By:</p>
+              <div class="signatory-line">${csmQualityHead}</div>
+              <p>CSM Quality Assurance Head</p>
+            </div>
+            <div class="signatory-col">
               <p>Noted By:</p>
-              <div style="border-bottom: 1px solid black; font-weight: bold; margin-top: 30px; padding-bottom: 2px; height: 16px;"></div>
-              <p>IPDO Director / Quality Assurance Head</p>
+              <div class="signatory-line">${csmCampusCoordinator}</div>
+              <p>Campus CSM Coordinator</p>
             </div>
           </div>
 
@@ -1316,6 +1337,11 @@ export function CsmReportDashboard({
     // Filter services and comments by campus name
     const campusServices = displayStats.services.filter(s => s.campus.toLowerCase().includes(campusName.toLowerCase()));
     const campusComments = displayStats.comments.filter(c => c.campus.toLowerCase().includes(campusName.toLowerCase()));
+    
+    // CSM Signatories from settings
+    const csmDirector = csmSettings?.csmDirector || '____________________';
+    const csmQualityHead = csmSettings?.csmQualityHead || '____________________';
+    const csmCampusCoordinator = csmSettings?.csmCampusCoordinator || '____________________';
 
     let serviceRows = '';
     campusServices.forEach(s => {
@@ -1353,12 +1379,15 @@ export function CsmReportDashboard({
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th { background-color: #f2f2f2; border: 1px solid black; padding: 6px; text-align: center; text-transform: uppercase; font-weight: bold; }
             td { border: 1px solid black; padding: 5px; }
+            .signatory-block { margin-top: 50px; display: flex; justify-content: space-between; font-size: 11px; }
+            .signatory-col { width: 30%; text-align: center; }
+            .signatory-line { border-bottom: 1px solid black; font-weight: bold; margin-top: 40px; padding-bottom: 2px; min-height: 20px; }
           </style>
         </head>
         <body>
           <h2 style="text-align: center; margin: 0;">ROMBLON STATE UNIVERSITY</h2>
           <h1>CAMPUS SATISFACTION AUDIT REPORT - ${campusName.toUpperCase()}</h1>
-          <p><strong>REPORT PERIOD:</strong> Academic Year ${selectedYear} &bull; <strong>SOURCE:</strong> ${dataSource === 'baseline25' ? "FY 2025 baseline" : "Live logs"}</p>
+          <p><strong>REPORT PERIOD:</strong> Calendar Year ${selectedYear} &bull; <strong>SOURCE:</strong> ${dataSource === 'baseline25' ? "FY 2025 baseline" : "Live logs"}</p>
           
           <h3>I. CAMPUS SERVICE RATINGS</h3>
           <table>
@@ -1390,6 +1419,24 @@ export function CsmReportDashboard({
               ${commentRows || '<tr><td colspan="5" style="text-align:center;">No comments recorded for this campus</td></tr>'}
             </tbody>
           </table>
+
+          <div class="signatory-block">
+            <div class="signatory-col">
+              <p>Prepared By:</p>
+              <div class="signatory-line">${csmDirector}</div>
+              <p>CSM Director</p>
+            </div>
+            <div class="signatory-col">
+              <p>Reviewed By:</p>
+              <div class="signatory-line">${csmQualityHead}</div>
+              <p>CSM Quality Assurance Head</p>
+            </div>
+            <div class="signatory-col">
+              <p>Noted By:</p>
+              <div class="signatory-line">${csmCampusCoordinator}</div>
+              <p>Campus CSM Coordinator</p>
+            </div>
+          </div>
 
           <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script>
         </body>
@@ -2234,7 +2281,7 @@ export function CsmReportDashboard({
               </CardHeader>
               <CardContent className="pt-4">
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={displayStats.demographics.age} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <BarChart data={displayStats.demographics.ageData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
@@ -2657,7 +2704,7 @@ export function CsmReportDashboard({
                   <span>Isolation Print</span>
                 </div>
                 <div className="flex gap-2">
-                  <Select defaultValue="Main Campus" id="campus-specific-select">
+                  <Select value={selectedCampusForExport} onValueChange={setSelectedCampusForExport}>
                     <SelectTrigger className="h-8 bg-white text-[10px] font-bold w-full">
                       <SelectValue placeholder="Select Campus" />
                     </SelectTrigger>
@@ -2669,12 +2716,7 @@ export function CsmReportDashboard({
                   </Select>
                   <Button 
                     size="sm" 
-                    onClick={() => {
-                      const selectEl = document.getElementById('campus-specific-select');
-                      const selectedVal = selectEl?.getAttribute('data-value') || activeCampusName === 'all' ? 'Main Campus' : activeCampusName;
-                      // Fallback selection finder: we can just grab from selector or active campus
-                      handlePrintCampusReport(selectedVal);
-                    }} 
+                    onClick={() => handlePrintCampusReport(selectedCampusForExport)} 
                     className="h-8 text-[9px] font-black uppercase tracking-wider px-3 bg-blue-600 hover:bg-blue-700 border-none"
                   >
                     <Printer className="h-3.5 w-3.5" />

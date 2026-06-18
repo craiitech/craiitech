@@ -16,7 +16,7 @@ import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk
 import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc } from '@/firebase/firestore-wrapper';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -39,6 +39,11 @@ interface AuditChecklistProps {
   previousYearOfis?: AuditFinding[];
   scheduleTargetId?: string;
   scheduleCampusId?: string;
+}
+
+interface OpenClauseInfo {
+  id: string;
+  title: string;
 }
 
 const CLAUSE_EOMS_MAPPING: Record<string, string[]> = {
@@ -683,6 +688,53 @@ export function AuditChecklist({
   
   const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
 
+  // Track the currently open clause for sticky header
+  const [openClause, setOpenClause] = useState<OpenClauseInfo | null>(null);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const accordionRef = useRef<HTMLDivElement>(null);
+
+  const handleAccordionChange = (value: string) => {
+    if (value === '') {
+      setOpenClause(null);
+      setShowStickyHeader(false);
+    } else {
+      const clause = sortedClauses.find(c => c.id === value);
+      if (clause) {
+        setOpenClause({ id: clause.id, title: clause.title });
+      }
+    }
+  };
+
+  // Handle scroll to show/hide sticky header
+  useEffect(() => {
+    if (!openClause || !accordionRef.current) return;
+
+    const handleScroll = () => {
+      const accordionContent = accordionRef.current?.querySelector('[data-radix-accordion-content][data-state="open"]');
+      if (!accordionContent) {
+        setShowStickyHeader(false);
+        return;
+      }
+
+      const contentRect = accordionContent.getBoundingClientRect();
+      const viewportTop = 80; // Account for fixed page header (approx 64px + buffer)
+      
+      // Show sticky header when the open accordion content has scrolled past the viewport top
+      // i.e., when the top of the content is above the fixed header area
+      if (contentRect.top < viewportTop && contentRect.bottom > viewportTop) {
+        setShowStickyHeader(true);
+      } else {
+        setShowStickyHeader(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Initial check
+    handleScroll();
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [openClause]);
+
   const handleAddAdditionalResult = async (clauseId: string) => {
     if (!firestore || !user) {
       toast({ title: "Error", description: "You must be authenticated to add results.", variant: "destructive" });
@@ -725,7 +777,37 @@ export function AuditChecklist({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Accordion type="single" collapsible className="w-full">
+        {/* Sticky Clause Header - Shows current open clause when scrolling */}
+        {showStickyHeader && openClause && (
+          <div 
+            ref={accordionRef}
+            className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
+            style={{ top: '64px' }} /* Account for fixed page header */
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
+                {openClause.id}
+              </div>
+              <div>
+                <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
+                <p className="text-sm font-black text-slate-800 truncate max-w-[400px]">{openClause.title}</p>
+              </div>
+              <div className="ml-auto flex items-center gap-2 text-[10px] font-medium text-primary">
+                <ChevronDown className="h-3.5 w-3.5" />
+                Scroll to top to close
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={accordionRef} className="relative">
+          <Accordion 
+            type="single" 
+            collapsible 
+            className="w-full"
+            value={openClause?.id || ''}
+            onValueChange={handleAccordionChange}
+          >
           {sortedClauses.map((clause) => {
             const clauseFindings = existingFindings.filter(f => f.isoClause === clause.id);
             const activeFindings = clauseFindings.filter(f => f.type);
@@ -822,6 +904,7 @@ export function AuditChecklist({
             );
           })}
         </Accordion>
+        </div>
       </CardContent>
     </Card>
   );

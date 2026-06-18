@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, getDocs } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -51,6 +52,9 @@ import { Separator } from '@/components/ui/separator';
 
 const csmSettingsSchema = z.object({
   managingUnitId: z.string().min(1, 'Please select the designated CSM managing unit.'),
+  csmDirector: z.string().min(1, 'CSM Director name is required.'),
+  csmQualityHead: z.string().min(1, 'CSM Quality Head name is required.'),
+  csmCampusCoordinator: z.string().min(1, 'CSM Campus Coordinator name is required.'),
 });
 
 export function CsmSettingsManagement() {
@@ -88,6 +92,9 @@ export function CsmSettingsManagement() {
     resolver: zodResolver(csmSettingsSchema),
     defaultValues: {
       managingUnitId: '',
+      csmDirector: '',
+      csmQualityHead: '',
+      csmCampusCoordinator: '',
     },
   });
 
@@ -101,16 +108,28 @@ export function CsmSettingsManagement() {
 
   // Sync state from database settings
   useEffect(() => {
-    if (currentSettings?.managingUnitId && units && units.length > 0) {
-      const targetUnit = units.find(u => u.id === currentSettings.managingUnitId);
-      if (targetUnit && targetUnit.campusIds && targetUnit.campusIds.length > 0) {
-        if (!selectedCampusId || !targetUnit.campusIds.includes(selectedCampusId)) {
-          setSelectedCampusId(targetUnit.campusIds[0]);
+    if (currentSettings) {
+      if (currentSettings.managingUnitId && units && units.length > 0) {
+        const targetUnit = units.find(u => u.id === currentSettings.managingUnitId);
+        if (targetUnit && targetUnit.campusIds && targetUnit.campusIds.length > 0) {
+          if (!selectedCampusId || !targetUnit.campusIds.includes(selectedCampusId)) {
+            setSelectedCampusId(targetUnit.campusIds[0]);
+          }
+          
+          if (form.getValues('managingUnitId') !== targetUnit.id) {
+            form.setValue('managingUnitId', targetUnit.id);
+          }
         }
-        
-        if (form.getValues('managingUnitId') !== targetUnit.id) {
-          form.setValue('managingUnitId', targetUnit.id);
-        }
+      }
+      
+      if (currentSettings.csmDirector && form.getValues('csmDirector') !== currentSettings.csmDirector) {
+        form.setValue('csmDirector', currentSettings.csmDirector);
+      }
+      if (currentSettings.csmQualityHead && form.getValues('csmQualityHead') !== currentSettings.csmQualityHead) {
+        form.setValue('csmQualityHead', currentSettings.csmQualityHead);
+      }
+      if (currentSettings.csmCampusCoordinator && form.getValues('csmCampusCoordinator') !== currentSettings.csmCampusCoordinator) {
+        form.setValue('csmCampusCoordinator', currentSettings.csmCampusCoordinator);
       }
     }
   }, [currentSettings, units, form, selectedCampusId]);
@@ -225,9 +244,64 @@ export function CsmSettingsManagement() {
                   </p>
                 </div>
               </div>
+
+              {/* STEP 3: CSM SIGNATORIES */}
+              <div className="space-y-4 pt-4 border-t">
+                <FormLabel className="text-xs font-black uppercase text-slate-700">Step 3: CSM Report Signatories</FormLabel>
+                <FormDescription className="text-[10px]">
+                  These names will appear as official signatories on all generated CSM reports (Harmonized Agency Report, Campus Performance Export, CAIP Matrix).
+                </FormDescription>
+                
+                <FormField
+                  control={form.control}
+                  name="csmDirector"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase text-slate-700">CSM Director (Prepared By)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., DR. JUAN DELA CRUZ" {...field} className="font-bold" />
+                      </FormControl>
+                      <FormDescription className="text-[10px]">Overall responsible official for CSM program implementation.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="csmQualityHead"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-slate-700">CSM Quality Assurance Head (Reviewed By)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter name" {...field} className="font-semibold" />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">Reviews and validates CSM data quality and compliance.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="csmCampusCoordinator"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-slate-700">Campus CSM Coordinator (Noted By)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter name" {...field} className="font-semibold" />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">Campus-level coordinator for CSM deployment and monitoring.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
             </CardContent>
             <CardFooter className="bg-muted/10 border-t py-4">
-              <Button type="submit" disabled={isSubmitting || !selectedCampusId || !form.watch('managingUnitId')} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]">
+              <Button type="submit" disabled={isSubmitting || !selectedCampusId || !form.watch('managingUnitId') || !form.watch('csmDirector') || !form.watch('csmQualityHead') || !form.watch('csmCampusCoordinator')} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]">
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
