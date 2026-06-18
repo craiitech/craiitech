@@ -236,8 +236,8 @@ export function QaAnalyticsTab() {
     // --- Decision Trend ---
     const mrYearMap = new Map<string, number>();
     mrs.forEach(mr => {
-        const date = mr.startDate instanceof Timestamp ? mr.startDate.toDate() : new Date(mr.startDate);
-        mrYearMap.set(mr.id, date.getFullYear());
+        const date = mr.startDate instanceof Timestamp ? mr.startDate.toDate() : mr.startDate ? new Date(mr.startDate) : null;
+        mrYearMap.set(mr.id, date && !isNaN(date.getTime()) ? date.getFullYear() : new Date().getFullYear());
     });
     const yearlyDecisionStats: Record<number, { year: number; Open: number; 'On-going': number; Closed: number }> = {};
     outputs.forEach(output => {

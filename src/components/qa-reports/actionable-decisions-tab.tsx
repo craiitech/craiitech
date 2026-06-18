@@ -135,10 +135,10 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const reviewMap = useMemo(() => {
     const map = new Map<string, { title: string; year: string }>();
     reviews?.forEach(r => {
-      const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : new Date(r.startDate);
+      const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : r.startDate ? new Date(r.startDate) : null;
       map.set(r.id, { 
         title: r.title, 
-        year: date.getFullYear().toString() 
+        year: date && !isNaN(date.getTime()) ? date.getFullYear().toString() : ''
       });
     });
     return map;
@@ -148,8 +148,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     if (!reviews) return [];
     const years = new Set<string>();
     reviews.forEach(r => {
-      const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : new Date(r.startDate);
-      years.add(date.getFullYear().toString());
+      const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : r.startDate ? new Date(r.startDate) : null;
+      if (date && !isNaN(date.getTime())) years.add(date.getFullYear().toString());
     });
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [reviews]);

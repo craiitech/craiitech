@@ -1050,7 +1050,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <div key={index} className="space-y-2">
                                         <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
                                             <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">{comment.authorName}</span>
-                                            <span className="text-[8px] font-mono text-muted-foreground">{format(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as any).toDate(), 'MMM dd, p')}</span>
+                                            <span className="text-[8px] font-mono text-muted-foreground">{(() => {
+                                                const c = comment.createdAt;
+                                                if (!c) return '';
+                                                const d = c instanceof Date ? c : (c as any).toDate?.();
+                                                return d && !isNaN(d.getTime()) ? format(d, 'MMM dd, p') : '';
+                                            })()}</span>
                                         </div>
                                         <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700">
                                             "{comment.text}"

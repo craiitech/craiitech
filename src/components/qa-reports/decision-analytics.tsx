@@ -62,8 +62,8 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
 
     const mrYearMap = new Map<string, string>();
     reviews.forEach(r => {
-        const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : new Date(r.startDate);
-        mrYearMap.set(r.id, date.getFullYear().toString());
+        const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : r.startDate ? new Date(r.startDate) : null;
+        mrYearMap.set(r.id, date && !isNaN(date.getTime()) ? date.getFullYear().toString() : '');
     });
 
     const total = outputs.length;
