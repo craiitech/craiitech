@@ -3,8 +3,8 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, Timestamp } from '@/firebase/firestore-wrapper';
-import type { ManagementReviewOutput, Campus, Unit, ManagementReview } from '@/lib/types';
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, Timestamp, arrayUnion } from '@/firebase/firestore-wrapper';
+import type { ManagementReviewOutput, Campus, Unit, ManagementReview, ActionEntry } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,13 @@ import {
     ArrowUpDown,
     ClipboardList,
     Undo2,
-    Check
+    Check,
+    Plus,
+    FileText,
+    Link2,
+    MessageSquare,
+    CheckCircle2,
+    XCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -48,6 +54,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DecisionAnalytics } from './decision-analytics';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 
 interface ActionableDecisionsTabProps {
   campuses: Campus[];
@@ -81,6 +89,13 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>('all');
+  
+  // Action Entry States
+  const [isActionEntryDialogOpen, setIsActionEntryDialogOpen] = useState(false);
+  const [selectedActionEntry, setSelectedActionEntry] = useState<ActionEntry | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+  const [confirmationFeedback, setConfirmationFeedback] = useState('');
   
   // UI Functional States
   const [searchTerm, setSearchTerm] = useState('');
@@ -235,6 +250,21 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     }
   });
 
+  const actionEntrySchema = z.object({
+    description: z.string().min(10, 'Please provide a detailed description of the action taken (minimum 10 characters).'),
+    implementationDate: z.string().min(1, 'Date of implementation is required.'),
+    googleDriveLink: z.string().url('Please enter a valid Google Drive link.').optional().or(z.literal('')),
+  });
+
+  const actionEntryForm = useForm<z.infer<typeof actionEntrySchema>>({
+    resolver: zodResolver(actionEntrySchema),
+    defaultValues: {
+      description: '',
+      implementationDate: format(new Date(), 'yyyy-MM-dd'),
+      googleDriveLink: '',
+    }
+  });
+
   const handleOpenUpdate = (output: ManagementReviewOutput) => {
     setSelectedOutput(output);
     const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
@@ -273,6 +303,89 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       toast({ title: 'Update Failed', description: 'Could not save the update.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenActionEntry = (output: ManagementReviewOutput) => {
+    setSelectedOutput(output);
+    actionEntryForm.reset({
+      description: '',
+      implementationDate: format(new Date(), 'yyyy-MM-dd'),
+      googleDriveLink: '',
+    });
+    setIsActionEntryDialogOpen(true);
+  };
+
+  const handleOpenActionConfirmation = (output: ManagementReviewOutput, action: ActionEntry) => {
+    setSelectedOutput(output);
+    setSelectedActionEntry(action);
+    setConfirmationFeedback('');
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleAddActionEntry = async (values: z.infer<typeof actionEntrySchema>) => {
+    if (!firestore || !selectedOutput || !userProfile) return;
+    setIsActionSubmitting(true);
+    try {
+      const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
+      const newAction: ActionEntry = {
+        id: crypto.randomUUID(),
+        description: values.description,
+        implementationDate: Timestamp.fromDate(new Date(values.implementationDate)),
+        googleDriveLink: values.googleDriveLink || undefined,
+        submittedBy: `${userProfile.firstName} ${userProfile.lastName}`,
+        submittedById: userProfile.id,
+        submittedAt: Timestamp.now(),
+        isConfirmed: false,
+      };
+
+      const existingActions = selectedOutput.actionEntries || [];
+      await updateDoc(docRef, {
+        actionEntries: [...existingActions, newAction],
+        updatedAt: serverTimestamp(),
+        status: 'On-going',
+      });
+
+      toast({ title: 'Action Added', description: 'Action entry has been successfully recorded.' });
+      setIsActionEntryDialogOpen(false);
+    } catch (error) {
+      toast({ title: 'Failed', description: 'Could not add action entry.', variant: 'destructive' });
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!firestore || !selectedOutput || !selectedActionEntry || !userProfile) return;
+    setIsActionSubmitting(true);
+    try {
+      const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
+      const updatedActions = (selectedOutput.actionEntries || []).map(a => 
+        a.id === selectedActionEntry.id 
+          ? { 
+              ...a, 
+              isConfirmed: true, 
+              confirmationRemarks: confirmationFeedback || undefined,
+              confirmationDate: Timestamp.now(),
+              confirmedBy: `${userProfile.firstName} ${userProfile.lastName}`,
+              confirmedById: userProfile.id,
+            }
+          : a
+      );
+
+      await updateDoc(docRef, {
+        actionEntries: updatedActions,
+        updatedAt: serverTimestamp(),
+      });
+
+      toast({ title: 'Action Confirmed', description: 'Action has been confirmed by admin.' });
+      setIsConfirmDialogOpen(false);
+      setSelectedActionEntry(null);
+      setConfirmationFeedback('');
+    } catch (error) {
+      toast({ title: 'Failed', description: 'Could not confirm action.', variant: 'destructive' });
+    } finally {
+      setIsActionSubmitting(false);
     }
   };
 
@@ -484,6 +597,15 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         <Button 
                                             variant="outline" 
                                             size="sm" 
+                                            onClick={() => handleOpenActionEntry(output)} 
+                                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm text-primary border-primary hover:bg-primary/5"
+                                            title="Add Action Entry"
+                                        >
+                                            <Plus className="h-3.5 w-3.5 mr-1" /> ACTION
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
                                             onClick={() => handleOpenUpdate(output)} 
                                             className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
                                         >
@@ -628,6 +750,97 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                     <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
                                         <span className="text-[10px] font-bold text-slate-700 uppercase">Action by: {previewOutput.actionTakenBy}</span>
                                         <span className="text-[10px] font-bold text-slate-700 uppercase">{safeFormatDateLocal(previewOutput.actionDate)}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {previewOutput.actionEntries && previewOutput.actionEntries.length > 0 && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <ListChecks className="h-4 w-4 text-primary" />
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Action Entries</h4>
+                                        <Badge className="text-[9px] h-5 bg-primary/10 text-primary border-none ml-1">
+                                            {previewOutput.actionEntries.length} record{previewOutput.actionEntries.length > 1 ? 's' : ''}
+                                        </Badge>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {previewOutput.actionEntries.map((entry) => (
+                                            <div key={entry.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex-1 space-y-2">
+                                                        <p className="text-sm font-semibold text-slate-900 leading-relaxed">
+                                                            {entry.description}
+                                                        </p>
+                                                        <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                                                            <span className="flex items-center gap-1">
+                                                                <Calendar className="h-3 w-3" />
+                                                                Implemented: {safeFormatDateLocal(entry.implementationDate)}
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <User className="h-3 w-3" />
+                                                                By: {entry.submittedBy}
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <History className="h-3 w-3" />
+                                                                Submitted: {safeFormatDateLocal(entry.submittedAt)}
+                                                            </span>
+                                                            {entry.googleDriveLink && (
+                                                                <a href={entry.googleDriveLink} target="_blank" rel="noopener noreferrer"
+                                                                    className="flex items-center gap-1 text-primary hover:underline font-black"
+                                                                >
+                                                                    <Link2 className="h-3 w-3" />
+                                                                    Drive File
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="shrink-0">
+                                                        {entry.isConfirmed ? (
+                                                            <Badge className="bg-emerald-600 text-white text-[9px] font-black uppercase border-none px-2 py-1">
+                                                                <CheckCircle2 className="h-3 w-3 mr-1" /> Confirmed
+                                                            </Badge>
+                                                        ) : isAdmin ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleOpenActionConfirmation(previewOutput, entry);
+                                                                }}
+                                                                className="h-7 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm text-amber-600 border-amber-300 hover:bg-amber-50"
+                                                            >
+                                                                <Check className="h-3 w-3 mr-1" /> Confirm
+                                                            </Button>
+                                                        ) : (
+                                                            <Badge className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase border-none px-2 py-1">
+                                                                Pending Confirmation
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {entry.isConfirmed && entry.confirmationRemarks && (
+                                                    <div className="mt-2 pt-3 border-t border-slate-100">
+                                                        <div className="flex items-start gap-2">
+                                                            <MessageSquare className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+                                                            <div>
+                                                                <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-1">Admin Feedback</p>
+                                                                <p className="text-xs text-slate-700 leading-relaxed">{entry.confirmationRemarks}</p>
+                                                                <div className="flex items-center gap-3 mt-2 text-[9px] font-bold text-muted-foreground">
+                                                                    <span className="flex items-center gap-1">
+                                                                        <ShieldCheck className="h-2.5 w-2.5" />
+                                                                        Confirmed by: {entry.confirmedBy}
+                                                                    </span>
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Calendar className="h-2.5 w-2.5" />
+                                                                        {safeFormatDateLocal(entry.confirmationDate)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -807,6 +1020,149 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* --- Action Entry Dialog --- */}
+      <Dialog open={isActionEntryDialogOpen} onOpenChange={setIsActionEntryDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-primary mb-1">
+              <Plus className="h-5 w-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Action Entry</span>
+            </div>
+            <DialogTitle>Add Action Taken</DialogTitle>
+            <DialogDescription className="text-xs">
+              Record a specific action your unit has taken to address this management decision.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-2">
+            <div className="p-4 bg-muted/30 rounded-lg border space-y-2 mb-6">
+              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Management Decision</p>
+              <p className="text-sm font-bold leading-relaxed">{selectedOutput?.description}</p>
+            </div>
+
+            <Form {...actionEntryForm}>
+              <form onSubmit={actionEntryForm.handleSubmit(handleAddActionEntry)} className="space-y-5">
+                <FormField control={actionEntryForm.control} name="description" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase">Action Taken Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} placeholder="Describe the specific action taken by your unit..." rows={4} className="bg-slate-50 text-xs" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={actionEntryForm.control} name="implementationDate" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase">Date of Implementation</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} className="bg-slate-50 h-9 text-xs" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={actionEntryForm.control} name="googleDriveLink" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase">Google Drive Link</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="https://drive.google.com/..." className="bg-slate-50 h-9 text-xs" />
+                      </FormControl>
+                      <FormDescription className="text-[9px]">Optional evidence file link</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <DialogFooter className="gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsActionEntryDialogOpen(false)} disabled={isActionSubmitting}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isActionSubmitting} className="shadow-lg shadow-primary/20 font-black">
+                    {isActionSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
+                    Record Action
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Admin Confirmation AlertDialog --- */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 text-amber-600 mb-1">
+              <ShieldCheck className="h-5 w-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Admin Confirmation</span>
+            </div>
+            <AlertDialogTitle>Confirm Action Entry</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              Review the action taken and confirm its implementation. Provide feedback to the unit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {selectedActionEntry && (
+            <div className="space-y-4 py-2">
+              <div className="border rounded-lg p-4 bg-slate-50 space-y-3">
+                <div>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Action Description</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedActionEntry.description}</p>
+                </div>
+                <div className="flex flex-wrap gap-4 text-[10px] font-bold text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Implementation: {safeFormatDateLocal(selectedActionEntry.implementationDate)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    Submitted by: {selectedActionEntry.submittedBy}
+                  </span>
+                  {selectedActionEntry.googleDriveLink && (
+                    <a href={selectedActionEntry.googleDriveLink} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary hover:underline font-black"
+                    >
+                      <Link2 className="h-3 w-3" />
+                      View Drive File
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-700 flex items-center gap-1.5">
+                  <MessageSquare className="h-3 w-3" />
+                  Admin Feedback / Remarks
+                </Label>
+                <Textarea
+                  value={confirmationFeedback}
+                  onChange={(e) => setConfirmationFeedback(e.target.value)}
+                  placeholder="Provide feedback on the action taken, confirm completion, or request revisions..."
+                  rows={3}
+                  className="bg-white text-xs border-amber-200 focus-visible:ring-amber-500"
+                />
+                <p className="text-[9px] text-muted-foreground">This feedback will be visible to the submitting unit.</p>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setSelectedActionEntry(null); setConfirmationFeedback(''); }} disabled={isActionSubmitting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmAction}
+              disabled={isActionSubmitting}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-black shadow-lg shadow-amber-600/20"
+            >
+              {isActionSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+              Confirm Action
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

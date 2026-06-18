@@ -996,6 +996,23 @@ export type MRAssignment = {
 
 export type ManagementReviewOutputStatus = 'Open' | 'On-going' | 'Submit for Closure Verification' | 'Closed';
 
+export type ActionEntry = {
+  id: string;
+  description: string;
+  implementationDate: any; // Timestamp
+  googleDriveLink?: string;
+  submittedBy: string;
+  submittedById: string;
+  submittedAt: any; // Timestamp
+  
+  // Admin confirmation
+  isConfirmed?: boolean;
+  confirmationRemarks?: string;
+  confirmationDate?: any; // Timestamp
+  confirmedBy?: string;
+  confirmedById?: string;
+};
+
 export type ManagementReviewOutput = {
   id: string;
   mrId: string; // Linked to ManagementReview
@@ -1017,6 +1034,9 @@ export type ManagementReviewOutput = {
   verificationRemarks?: string;
   verificationDate?: any; // Timestamp
   verifiedBy?: string;
+
+  // New: Multiple action entries for follow-up tracking
+  actionEntries?: ActionEntry[];
 };
 
 export type EvaluationCycle = {
