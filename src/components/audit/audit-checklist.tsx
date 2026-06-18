@@ -717,11 +717,11 @@ export function AuditChecklist({
       }
 
       const contentRect = accordionContent.getBoundingClientRect();
-      const viewportTop = 80; // Account for fixed page header (approx 64px + buffer)
+      const scrollingContainerTop = 64; // Fixed header height (h-16 = 64px), scrolling container starts here
       
-      // Show sticky header when the open accordion content has scrolled past the viewport top
-      // i.e., when the top of the content is above the fixed header area
-      if (contentRect.top < viewportTop && contentRect.bottom > viewportTop) {
+      // Show sticky header when the open accordion content has scrolled past the top of the scrolling container
+      // i.e., when the top of the content reaches the fixed header boundary
+      if (contentRect.top < scrollingContainerTop && contentRect.bottom > scrollingContainerTop) {
         setShowStickyHeader(true);
       } else {
         setShowStickyHeader(false);
@@ -781,7 +781,6 @@ export function AuditChecklist({
         {showStickyHeader && openClause && (
           <div 
             className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
-            style={{ top: '64px' }} /* Account for fixed page header */
           >
             <div className="flex items-center gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
