@@ -7,7 +7,7 @@ import { UserNav } from '@/components/dashboard/user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { Button } from '@/components/ui/button';
-import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/context/theme-provider';
 
 interface HeaderProps {
     notificationCount: number;
@@ -39,6 +40,7 @@ export function Header({
   const isOnline = useNetworkStatus();
   const { user, userProfile, userRole } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const isAuditor = userRole === 'Auditor';
 
@@ -116,6 +118,25 @@ export function Header({
                     </TooltipTrigger>
                     <TooltipContent>
                         <p className="text-[10px] font-black uppercase">{isGuidanceVisible ? 'Hide Guide' : 'Show Guide'}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-9 w-9 rounded-full transition-all text-muted-foreground hover:text-primary hover:bg-primary/5"
+                            onClick={toggleTheme}
+                            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                        >
+                            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className="text-[10px] font-black uppercase">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
