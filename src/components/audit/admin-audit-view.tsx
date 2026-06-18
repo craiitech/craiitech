@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck, Printer, Briefcase, Users, ExternalLink } from 'lucide-react';
+import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy, FileText, ClipboardCheck, Printer, Briefcase, Users, ExternalLink, Target } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, deleteDoc } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -17,6 +17,7 @@ import { AuditPlanCloneDialog } from './audit-plan-clone-dialog';
 import { AuditPlanList } from './audit-plan-list';
 import { AuditAnalytics } from './audit-analytics';
 import { AuditResultsView } from './audit-results-view';
+import { IqaDecisionIntelligence } from './audit-decision-intelligence';
 import { AuditPrintTemplate } from './audit-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -456,6 +457,9 @@ export function AdminAuditView() {
                     <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <BarChart3 className="h-3.5 w-3.5" /> Audit Intelligence
                     </TabsTrigger>
+                    <TabsTrigger value="decision-intel" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+                        <Target className="h-3.5 w-3.5" /> Decision Support
+                    </TabsTrigger>
                     <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <ListChecks className="h-3.5 w-3.5" /> Itinerary Management
                     </TabsTrigger>
@@ -496,6 +500,19 @@ export function AdminAuditView() {
                 campuses={campuses || []}
                 users={users || []}
                 isLoading={isLoading}
+                selectedYear={selectedYear}
+            />
+        </TabsContent>
+
+        <TabsContent value="decision-intel" className="animate-in fade-in duration-500">
+            <IqaDecisionIntelligence
+                plans={auditPlans || []}
+                schedules={schedules || []}
+                findings={findings || []}
+                cars={cars || []}
+                isoClauses={isoClauses || []}
+                units={units || []}
+                campuses={campuses || []}
                 selectedYear={selectedYear}
             />
         </TabsContent>
