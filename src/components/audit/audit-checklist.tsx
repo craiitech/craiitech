@@ -705,7 +705,7 @@ export function AuditChecklist({
     }
   };
 
-  // Handle scroll to show/hide sticky header
+  // Handle scroll to show/hide fixed clause header
   useEffect(() => {
     if (!openClause || !accordionWrapperRef.current) return;
 
@@ -717,11 +717,12 @@ export function AuditChecklist({
       }
 
       const contentRect = accordionContent.getBoundingClientRect();
-      const scrollingContainerTop = 64; // Fixed header height (h-16 = 64px), scrolling container starts here
+      const fixedHeaderHeight = 64; // h-16 = 64px fixed header
       
-      // Show sticky header when the open accordion content has scrolled past the top of the scrolling container
-      // i.e., when the top of the content reaches the fixed header boundary
-      if (contentRect.top < scrollingContainerTop && contentRect.bottom > scrollingContainerTop) {
+      // Show fixed header when the open accordion content has scrolled past the fixed header
+      // i.e., when the top of the content goes above the fixed header
+      // Keep showing while there's still content below the fixed header
+      if (contentRect.top < fixedHeaderHeight && contentRect.bottom > fixedHeaderHeight) {
         setShowStickyHeader(true);
       } else {
         setShowStickyHeader(false);
@@ -777,12 +778,13 @@ export function AuditChecklist({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Sticky Clause Header - Shows current open clause when scrolling */}
+        {/* Fixed Clause Header - Shows current open clause when scrolling (position: fixed for reliability) */}
         {showStickyHeader && openClause && (
           <div 
-            className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
+            className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3 animate-in slide-down fade-in duration-200"
+            style={{ top: '64px' }} /* Sit directly below the fixed page header (h-16 = 64px) */
           >
-            <div className="flex items-center gap-3">
+            <div className="max-w-7xl mx-auto flex items-center gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
                 {openClause.id}
               </div>
@@ -797,6 +799,9 @@ export function AuditChecklist({
             </div>
           </div>
         )}
+
+        {/* Spacer to prevent content from being hidden behind fixed header */}
+        {showStickyHeader && <div className="h-14" aria-hidden="true" />}
 
         <div ref={accordionWrapperRef} className="relative">
           <Accordion 
