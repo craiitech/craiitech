@@ -619,6 +619,10 @@ export function SidebarNav({
             <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
 
+              <p className="text-[9px] text-slate-500 font-medium text-center leading-relaxed">
+                Download the QR code or copy the link below and send it to your online clients so they can evaluate your unit&apos;s service through the CSM survey.
+              </p>
+
               <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
                 {csmQrUrl ? (
                   <img
@@ -679,22 +683,23 @@ export function SidebarNav({
                       const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
                       const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
                       const fullCsmUrl = `${window.location.origin}${csmPath}`;
-                      await navigator.clipboard.writeText(fullCsmUrl);
+                      const message = `CLIENT SATISFACTION MEASUREMENT (CSM) - ONLINE EVALUATION\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nWe value your feedback! Please take a few minutes to complete our online Client Satisfaction Measurement (CSM) survey. Your responses will help us improve the quality of our services.\n\nYou may click the link above or scan the QR code to access the survey. The survey is anonymous and will only take a few minutes to complete.\n\nThank you for your continued support!\n\nRomblon State University\nQuality Assurance Office`;
+                      await navigator.clipboard.writeText(message);
                       toast({
-                        title: 'Link Copied!',
-                        description: 'CSM online link has been copied to your clipboard.',
+                        title: 'Message Copied!',
+                        description: 'Complete message with CSM link has been copied to your clipboard.',
                       });
                     } catch (err) {
                       toast({
                         title: 'Copy Failed',
-                        description: 'Unable to copy link. Please try again.',
+                        description: 'Unable to copy message. Please try again.',
                         variant: 'destructive',
                       });
                     }
                   }}
                   className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200"
                 >
-                  <ExternalLink className="h-4 w-4 mr-1" /> Copy Online CSM Link
+                  <ExternalLink className="h-4 w-4 mr-1" /> Copy Message for Clients
                 </Button>
               </div>
             </div>
