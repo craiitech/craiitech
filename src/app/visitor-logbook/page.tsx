@@ -128,6 +128,7 @@ export default function VisitorLogbookPage() {
   const [localUpdateTrigger, setLocalUpdateTrigger] = useState<number>(0);
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
   const [qrUrl, setQrUrl] = useState<string>('');
+  const [csmQrUrl, setCsmQrUrl] = useState<string>('');
 
   // ARTA CSM survey kiosk states
   const [csmLanguage, setCsmLanguage] = useState<'EN' | 'FIL'>('EN');
@@ -152,6 +153,7 @@ export default function VisitorLogbookPage() {
   const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
   const [showMobileCsmDialog, setShowMobileCsmDialog] = useState<boolean>(false);
   const [pendingMobileVisitor, setPendingMobileVisitor] = useState<any | null>(null);
+
 
   const t: Record<'EN' | 'FIL', any> = {
     EN: {
@@ -366,6 +368,20 @@ export default function VisitorLogbookPage() {
       const fullUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
       
       setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullUrl)}`);
+    }
+  }, [userProfile, unitDoc, isCampusOdimoOrDirector]);
+
+  // Generate CSM offline/evaluation QR code URL
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userProfile) {
+      const officeNameStr = isCampusOdimoOrDirector 
+        ? "OFFICE OF THE CAMPUS DIRECTOR" 
+        : (unitDoc?.name || userProfile.unitName || 'Office');
+        
+      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const fullCsmUrl = `${window.location.origin}${mobilePath}`;
+      
+      setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
     }
   }, [userProfile, unitDoc, isCampusOdimoOrDirector]);
 
@@ -1111,6 +1127,7 @@ export default function VisitorLogbookPage() {
               </div>
             </div>
           )}
+
         </div>
  
         {/* Middle column: Form Card */}
@@ -1485,79 +1502,177 @@ export default function VisitorLogbookPage() {
         </div>
       </div>
 
-      {/* Mobile CSM Confirmation Dialog */}
+      {/* Mobile CSM Confirmation Dialog with QR Code */}
       {showMobileCsmDialog && pendingMobileVisitor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300">
-            <div className="h-16 w-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600 border border-amber-200">
-              <Sparkles className="h-8 w-8" />
+          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-3xl w-full animate-in zoom-in-95 duration-300">
+            
+            {/* Header */}
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <div className="h-10 w-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border border-amber-200 shrink-0">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Send CSM to Visitor&apos;s Mobile?</h3>
+                <p className="text-sm font-semibold text-slate-500">
+                  <span className="font-extrabold text-[#1B6535]">{pendingMobileVisitor.name}</span> registered via mobile device
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-black text-slate-800 uppercase">Send CSM to Visitor&apos;s Mobile?</h3>
-              <p className="text-sm font-semibold text-slate-600 leading-relaxed">
-                <span className="font-extrabold text-[#1B6535]">{pendingMobileVisitor.name}</span> registered via mobile device. 
-                Would you like to send the Client Satisfaction Survey to their phone?
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 pt-2">
-              <Button
-                onClick={async () => {
-                  if (!firestore) return;
-                  try {
-                    await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
-                      csmMode: 'mobile',
-                      csmStatus: 'pending',
-                      csmRequestedAt: Timestamp.now(),
-                    });
-                    toast({
-                      title: 'CSM Sent to Mobile',
-                      description: `${pendingMobileVisitor.name} will receive the survey on their device.`,
-                    });
-                  } catch (err) {
-                    console.error('Failed to request mobile CSM:', err);
-                    toast({ title: 'Error', description: 'Failed to send CSM to mobile.', variant: 'destructive' });
-                  }
-                  setShowMobileCsmDialog(false);
-                  setPendingMobileVisitor(null);
-                }}
-                className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
-              >
-                Yes, Send to Mobile
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowMobileCsmDialog(false);
-                  openCsmOverlay(pendingMobileVisitor);
-                  setPendingMobileVisitor(null);
-                }}
-                className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200"
-              >
-                No, Show Survey Here
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={async () => {
-                  if (!firestore) return;
-                  try {
-                    await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
-                      isLoggedOut: true,
-                      loggedOutAt: Timestamp.now(),
-                    });
-                    toast({
-                      title: 'Visitor Logged Out',
-                      description: `${pendingMobileVisitor.name} has been checked out.`,
-                    });
-                  } catch (err) {
-                    console.error('Failed to logout:', err);
-                  }
-                  setShowMobileCsmDialog(false);
-                  setPendingMobileVisitor(null);
-                }}
-                className="w-full h-12 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600"
-              >
-                Skip & Logout Only
-              </Button>
+
+            {/* Two-column layout */}
+            <div className="flex flex-col md:flex-row gap-6 pt-4">
+              
+              {/* Left column: Mobile CSM actions */}
+              <div className="flex-1 flex flex-col gap-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Visitor Action</p>
+                <Button
+                  onClick={async () => {
+                    if (!firestore) return;
+                    try {
+                      await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
+                        csmMode: 'mobile',
+                        csmStatus: 'pending',
+                        csmRequestedAt: Timestamp.now(),
+                      });
+                      toast({
+                        title: 'CSM Sent to Mobile',
+                        description: `${pendingMobileVisitor.name} will receive the survey on their device.`,
+                      });
+                    } catch (err) {
+                      console.error('Failed to request mobile CSM:', err);
+                      toast({ title: 'Error', description: 'Failed to send CSM to mobile.', variant: 'destructive' });
+                    }
+                    setShowMobileCsmDialog(false);
+                    setPendingMobileVisitor(null);
+                  }}
+                  className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
+                >
+                  Yes, Send to Mobile
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowMobileCsmDialog(false);
+                    openCsmOverlay(pendingMobileVisitor);
+                    setPendingMobileVisitor(null);
+                  }}
+                  className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200"
+                >
+                  No, Show Survey Here
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    if (!firestore) return;
+                    try {
+                      await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
+                        isLoggedOut: true,
+                        loggedOutAt: Timestamp.now(),
+                      });
+                      toast({
+                        title: 'Visitor Logged Out',
+                        description: `${pendingMobileVisitor.name} has been checked out.`,
+                      });
+                    } catch (err) {
+                      console.error('Failed to logout:', err);
+                    }
+                    setShowMobileCsmDialog(false);
+                    setPendingMobileVisitor(null);
+                  }}
+                  className="w-full h-12 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600"
+                >
+                  Skip & Logout Only
+                </Button>
+              </div>
+
+              {/* Right column: QR Code + Link */}
+              <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
+                
+                <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
+                  {csmQrUrl ? (
+                    <img
+                      src={csmQrUrl}
+                      alt="CSM Online Evaluation QR Code"
+                      className="w-[164px] h-[164px] object-contain"
+                    />
+                  ) : (
+                    <div className="w-[164px] h-[164px] flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* CSM Link Display */}
+                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 truncate">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
+                  <p className="text-[10px] font-mono text-slate-700 truncate">
+                    {typeof window !== 'undefined' && userProfile
+                      ? `${window.location.origin}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`
+                      : 'Loading...'}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 w-full">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(csmQrUrl);
+                        const blob = await response.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = 'csm-qr-code.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl);
+                        toast({
+                          title: 'Download Started',
+                          description: 'CSM QR code is being downloaded.',
+                        });
+                      } catch (err) {
+                        toast({
+                          title: 'Download Failed',
+                          description: 'Unable to download QR code. Please try again.',
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                    className="w-full h-10 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg"
+                  >
+                    Download QR Code
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const officeNameStr = isCampusOdimoOrDirector 
+                          ? "OFFICE OF THE CAMPUS DIRECTOR" 
+                          : (unitDoc?.name || userProfile.unitName || 'Office');
+                        const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                        const fullCsmUrl = `${window.location.origin}${mobilePath}`;
+                        await navigator.clipboard.writeText(fullCsmUrl);
+                        toast({
+                          title: 'Link Copied!',
+                          description: 'CSM online link has been copied to your clipboard.',
+                        });
+                      } catch (err) {
+                        toast({
+                          title: 'Copy Failed',
+                          description: 'Unable to copy link. Please try again.',
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                    className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200"
+                  >
+                    Copy Online CSM Link
+                  </Button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
