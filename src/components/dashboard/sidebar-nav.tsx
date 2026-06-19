@@ -683,7 +683,7 @@ export function SidebarNav({
                       const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
                       const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
                       const fullCsmUrl = `${window.location.origin}${csmPath}`;
-                      const message = `CLIENT SATISFACTION MEASUREMENT (CSM) - ONLINE EVALUATION\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nWe value your feedback! Please take a few minutes to complete our online Client Satisfaction Measurement (CSM) survey. Your responses will help us improve the quality of our services.\n\nYou may click the link above or scan the QR code to access the survey. The survey is anonymous and will only take a few minutes to complete.\n\nThank you for your continued support!\n\nRomblon State University\nQuality Assurance Office`;
+                      const message = `CLIENT SATISFACTION MEASUREMENT (CSM) - ONLINE EVALUATION\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nWe value your feedback! Please take a few minutes to complete our online Client Satisfaction Measurement (CSM) survey. Your responses will help us improve the quality of our services.\n\nYou may click the link above or scan the QR code to access the survey. The survey is anonymous and will only take a few minutes to complete.\n\nThank you for your continued support!\n\n${officeNameStr}\nRomblon State University`;
                       await navigator.clipboard.writeText(message);
                       toast({
                         title: 'Message Copied!',
