@@ -560,10 +560,11 @@ export const helpContent: Record<string, PageHelp> = {
   // --- COMMUNICATIONS ---
   '/communications': {
     title: 'Communications Logbook',
-    description: 'Central management registry for official digital and physical correspondence.',
+    description: 'Central management registry for official digital and physical correspondence, including QA Advisories and directives.',
     steps: [
       { title: 'Log or Send', desc: 'Log hardcopy documents under the "Manual Registry Log" or dispatch digital alerts using "Direct Digital Send".' },
       { title: 'Track Correspondence', desc: 'Browse incoming and outgoing logs to trace official document routes.' },
+      { title: 'QA Advisories', desc: 'Access published QA directives and official communications from the Quality Assurance Office.' },
       { title: 'Print Logbooks', desc: 'Generate high-fidelity, printable RSU-standard logbook formats for physical filing.' }
     ],
     buttons: [
@@ -906,6 +907,63 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [
       { label: 'Submit Feedback', labelShort: 'Submit', action: 'Registers your responses in the QMS activity evaluation database.' }
+    ]
+  },
+
+  // --- STRATEGIC DASHBOARD ---
+  '/strategic': {
+    title: 'Strategic Dashboard Hub',
+    description: 'Long-term institutional quality planning, trend analysis, and maturity profiling.',
+    steps: [
+      { title: 'Radar Profile', desc: 'Analyze balance across the 5 core EOMS quality pillars at a glance.' },
+      { title: 'Trend Velocity', desc: 'Monitor Compliance Over Time to track institutional adoption rates.' },
+      { title: 'Risk Funnel', desc: 'Verify the movement of raw threats into controlled or mitigated factors.' }
+    ],
+    buttons: [
+      { label: 'Maturity Radar', labelShort: 'Radar', action: 'Visual map of quality assurance balance across pillars.' }
+    ]
+  },
+
+  // --- REPORTS ---
+  '/reports': {
+    title: 'Reports & Analytics Center',
+    description: 'Centralized institutional report generation and data export hub.',
+    steps: [
+      { title: 'Select Report', desc: 'Choose from available institutional report templates and data summaries.' },
+      { title: 'Configure Filters', desc: 'Set year, campus, or unit parameters to narrow the report scope.' },
+      { title: 'Export or Print', desc: 'Download generated reports in Excel or generate print-ready PDFs.' }
+    ],
+    buttons: [
+      { label: 'Generate Report', labelShort: 'Generate', action: 'Builds the report based on selected parameters.' },
+      { label: 'Export XLSX', labelShort: 'Export', action: 'Downloads the report as an Excel workbook.' }
+    ]
+  },
+
+  // --- SYSTEM AUDIT LOG ---
+  '/audit-log': {
+    title: 'System Audit Log',
+    description: 'Permanent record of all system modifications, user deletions, and administrative actions.',
+    steps: [
+      { title: 'Review Events', desc: 'Browse the chronological list of system transactions and user actions.' },
+      { title: 'Filter Records', desc: 'Use search and date filters to narrow down specific events or time periods.' },
+      { title: 'Export Trail', desc: 'Download the complete audit log for external quality audit evidence.' }
+    ],
+    buttons: [
+      { label: 'Export Log', labelShort: 'Export', action: 'Generates a timestamped Excel backup of the audit trail.' }
+    ]
+  },
+
+  // --- VISITOR LOGBOOK SETTINGS ---
+  '/visitor-logbook/settings': {
+    title: 'CSM Settings & Configuration',
+    description: 'Configure Client Service Management (CSM) parameters, visitor log fields, and login/purpose options.',
+    steps: [
+      { title: 'Customize Fields', desc: 'Add or modify the list of purposes, offices, and login options for the visitor logbook.' },
+      { title: 'Set Defaults', desc: 'Configure default target offices and timezone settings for check-in operations.' },
+      { title: 'Review Log', desc: 'Browse the master visitor log from the CSM kiosk or mobile portal.' }
+    ],
+    buttons: [
+      { label: 'Save Settings', labelShort: 'Save', action: 'Commits CSM configuration changes to the database.' }
     ]
   }
 };

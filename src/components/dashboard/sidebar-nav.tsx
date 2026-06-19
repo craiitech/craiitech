@@ -531,7 +531,7 @@ export function SidebarNav({
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                 <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'dark' ? 'Light Mode' : 'Dark Mode'} className="hover:bg-sidebar-accent">
+                 <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'dark' ? 'Light Mode' : 'Dark Mode'} data-tour="dark-mode-toggle" className="hover:bg-sidebar-accent">
                      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                      <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
                  </SidebarMenuButton>

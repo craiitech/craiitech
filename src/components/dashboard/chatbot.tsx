@@ -404,15 +404,22 @@ export function Chatbot() {
         )}
       </AnimatePresence>
 
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:scale-105 transition-all duration-300 shadow-primary/30 flex items-center justify-center border border-white/20"
-        size="icon"
-        title="Get Help Chatbot"
-        id="tour-chatbot"
-      >
-        {isOpen ? <X className="h-5 w-5 animate-in spin-in duration-300" /> : <MessageSquare className="h-5 w-5 animate-in zoom-in duration-300" />}
-      </Button>
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3">
+        {!isOpen && (
+          <span className="pointer-events-auto select-none animate-in fade-in slide-in-from-right-4 duration-500 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary shadow-lg">
+            Need Help?
+          </span>
+        )}
+        <Button
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:scale-105 transition-all duration-300 shadow-primary/30 flex items-center justify-center border border-white/20 animate-[pulse_3s_ease-in-out_infinite]"
+          size="icon"
+          title="Get Help Chatbot"
+          id="tour-chatbot"
+        >
+          {isOpen ? <X className="h-5 w-5 animate-in spin-in duration-300" /> : <MessageSquare className="h-5 w-5 animate-in zoom-in duration-300" />}
+        </Button>
+      </div>
     </>
   );
 }

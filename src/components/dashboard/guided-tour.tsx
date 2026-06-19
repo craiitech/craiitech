@@ -22,6 +22,12 @@ const tourSteps: TourStep[] = [
     placement: 'right'
   },
   {
+    target: '[data-tour="dark-mode-toggle"]',
+    title: 'Dark / Light Mode Toggle',
+    content: 'Switch between Dark and Light themes using this toggle in the sidebar. Choose the mode that reduces eye strain and suits your working environment.',
+    placement: 'right'
+  },
+  {
     target: 'h1',
     title: 'Dynamic Module Header',
     content: 'Displays the active dashboard page or workflow. Use it as a quick locator tag to know where you are in the compliance hierarchy.',
@@ -40,15 +46,27 @@ const tourSteps: TourStep[] = [
     placement: 'left'
   },
   {
+    target: '.sidebar-submissions-link, a[href*="/submissions"]',
+    title: 'EOMS Submission Hub',
+    content: 'The central workflow for ISO 7.5.3 document control. Upload, revise, and track the 6 mandatory EOMS documents through Draft and Final cycles.',
+    placement: 'right'
+  },
+  {
+    target: 'a[href*="/risk-register"]',
+    title: 'Risk & Opportunity Registry',
+    content: 'Log institutional threats and opportunities with likelihood/consequence ratings. Mandatory Action Plans are auto-triggered for medium-to-high magnitude risks.',
+    placement: 'right'
+  },
+  {
     target: '.user-nav-avatar, button[id*="user-nav"]',
     title: 'User Menu & Accessibility Controls',
-    content: 'Click here to access your profile settings. You can modify names, customize font sizes, switch to high contrast mode, or activate the specialized Dyslexic font (PWD support).',
+    content: 'Click here to access your profile settings. You can modify names, customize font sizes, switch to high contrast mode, activate the Dyslexic font (PWD support), or toggle dark mode.',
     placement: 'bottom'
   },
   {
     target: 'button.fixed.bottom-4.right-4',
-    title: 'RSU Support Chatbot',
-    content: 'Have questions about Let\'s Encrypt SSL setup, RA 10173 account erasure, or EOMS folder linkages? Launch this floatable chatbot for instant support.',
+    title: 'QA Support Chatbot',
+    content: 'Have questions about SSL setup, RA 10173 account erasure, or EOMS folder linkages? Launch this chatbot for instant support. Type your question or pick a suggested query.',
     placement: 'left'
   }
 ];
