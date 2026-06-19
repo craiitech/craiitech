@@ -1164,14 +1164,14 @@ export default function UnitActivityPage() {
               display: flex;
               flex-direction: column;
             }
-            .header-container { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 8px; margin-bottom: 15px; }
-            .header-logo-left { width: 65px; text-align: left; }
-            .header-logo-left img { height: 55px; object-fit: contain; }
-            .header-text { text-align: center; flex: 1; margin: 0 1.1in; }
+            .header-container { display: flex; align-items: center; justify-content: center; gap: 1in; border-bottom: 2px solid black; padding-bottom: 8px; margin-bottom: 15px; }
+            .header-logo-left { width: 65px; text-align: center; flex-shrink: 0; }
+            .header-logo-left img { height: 55px; object-fit: contain; display: block; margin: 0 auto; }
+            .header-text { text-align: center; }
             .header-text p { margin: 0; font-size: 10px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px; }
             .header-text h2 { margin: 2px 0; font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
-            .header-logo-right { width: 95px; text-align: right; }
-            .header-logo-right img { height: 55px; object-fit: contain; }
+            .header-logo-right { width: 95px; text-align: center; flex-shrink: 0; }
+            .header-logo-right img { height: 55px; object-fit: contain; display: block; margin: 0 auto; }
             
             .title-box { text-align: center; margin-bottom: 12px; }
             .title-box h3 { margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
