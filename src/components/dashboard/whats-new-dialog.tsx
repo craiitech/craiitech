@@ -18,7 +18,11 @@ import {
     CheckCircle2, 
     ShieldCheck,
     Sparkles,
-    ChevronRight
+    ChevronRight,
+    Globe,
+    QrCode,
+    SlidersHorizontal,
+    MessageSquareText
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -31,26 +35,32 @@ interface WhatsNewDialogProps {
 
 const updates = [
     {
-        title: "Automated Strategic SWOT",
-        desc: "The system now automatically derives institutional Strengths and Weaknesses based on your verified evidence, CHED compliance, and audit findings.",
-        icon: <Zap className="h-5 w-5 text-amber-500" />,
-        tag: "SYSTEM INTELLIGENCE"
+        title: "Online CSM Evaluation",
+        desc: "Clients can now submit CSM feedback online without logging in or out. Each unit gets a unique shareable link and QR code accessible from the Visitor Logbook Hub dialog — perfect for email and social media distribution.",
+        icon: <Globe className="h-5 w-5 text-sky-500" />,
+        tag: "CSM"
     },
     {
-        title: "Advanced PWD Accessibility",
-        desc: "Enhanced inclusivity features including Font Size Scaling (80% - 140%), High Contrast mode, and Dyslexic-friendly layouts accessible via your Profile.",
-        icon: <Accessibility className="h-5 w-5 text-primary" />,
-        tag: "INCLUSIVITY"
+        title: "Admin CSM QR Management",
+        desc: "Admins and IPDO can generate QR codes and CSM links for all units from the new 'CSM QR Codes' tab under Reports. Includes search, campus filter, and A-Z sorting for easy navigation.",
+        icon: <QrCode className="h-5 w-5 text-emerald-600" />,
+        tag: "ADMIN"
     },
     {
-        title: "Term-Specific Enrollment",
-        desc: "Disaggregated student statistics with separate visualizations for 1st Semester, 2nd Semester, and Summer terms for better GAD reporting.",
-        icon: <BarChart3 className="h-5 w-5 text-emerald-600" />,
-        tag: "ANALYTICS"
+        title: "Per-Unit Service Configuration",
+        desc: "Configure the service offerings for each unit directly from the CSM QR Codes tab. Add or remove services so that online clients see the correct options in their CSM survey dropdown.",
+        icon: <SlidersHorizontal className="h-5 w-5 text-indigo-600" />,
+        tag: "CONFIGURATION"
     },
     {
-        title: "Optimized Layout & Navigation",
-        desc: "A compact, scrollable dashboard grid with Single-Collapse accordions for a cleaner data-dense experience on all screen sizes.",
+        title: "CSM Message Templates",
+        desc: "Copy a complete pre-formatted message with the CSM link and instructions for clients. Available in the Visitor Logbook Hub — paste directly into email or social media.",
+        icon: <MessageSquareText className="h-5 w-5 text-amber-500" />,
+        tag: "COMMUNICATION"
+    },
+    {
+        title: "Streamlined Campus Sorting",
+        desc: "Campuses now display in alphabetical order throughout the system, making selection dropdowns and management tables easier to navigate.",
         icon: <ShieldCheck className="h-5 w-5 text-indigo-600" />,
         tag: "USER INTERFACE"
     }
@@ -69,7 +79,7 @@ export function WhatsNewDialog({ isOpen, onOpenChange, onAcknowledge }: WhatsNew
           </div>
           <DialogTitle className="text-3xl font-black tracking-tight">What's New in RSU EOMS</DialogTitle>
           <DialogDescription className="text-white/70 text-sm font-medium mt-2 leading-relaxed">
-            We've upgraded the portal with new strategic tools and accessibility features to better support our institutional quality assurance mission.
+            New CSM online evaluation tools — generate unit-specific QR codes and shareable links, manage client feedback services, and send pre-formatted evaluation messages to online clients.
           </DialogDescription>
         </DialogHeader>
 
@@ -98,7 +108,7 @@ export function WhatsNewDialog({ isOpen, onOpenChange, onAcknowledge }: WhatsNew
             <div className="flex w-full items-center justify-between">
                 <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                     <Activity className="h-3 w-3" />
-                    v2.5.0 Release Candidate
+                    v2.6.0 Release Candidate
                 </div>
                 <Button 
                     onClick={onAcknowledge}

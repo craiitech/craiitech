@@ -32,7 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { VoiceProvider } from '@/components/voice/voice-provider';
 
-const CURRENT_SYSTEM_VERSION = '2.5.0'; 
+const CURRENT_SYSTEM_VERSION = '2.6.0'; 
 
 const FullScreenLoader = () => (
     <div className="flex h-screen w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
