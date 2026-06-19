@@ -48,4 +48,7 @@ firestore-debug.log
 /capacitor/www
 
 # generated APK (built via scripts/copy-apk.sh)
-/public/downloads/*.apk/android/local.properties
+/public/downloads/*.apk
+
+# Android local SDK path (machine-specific)
+/android/local.properties
