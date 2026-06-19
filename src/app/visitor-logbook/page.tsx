@@ -378,8 +378,8 @@ export default function VisitorLogbookPage() {
         ? "OFFICE OF THE CAMPUS DIRECTOR" 
         : (unitDoc?.name || userProfile.unitName || 'Office');
         
-      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-      const fullCsmUrl = `${window.location.origin}${mobilePath}`;
+      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const fullCsmUrl = `${window.location.origin}${csmPath}`;
       
       setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
     }
@@ -723,12 +723,8 @@ export default function VisitorLogbookPage() {
   };
 
   const handleLogoutVisitor = (visitor: any) => {
-    if (visitor.source === 'mobile' && isOnline && !visitor.id.startsWith('local_')) {
-      setPendingMobileVisitor(visitor);
-      setShowMobileCsmDialog(true);
-      return;
-    }
-    openCsmOverlay(visitor);
+    setPendingMobileVisitor(visitor);
+    setShowMobileCsmDialog(true);
   };
 
   const openCsmOverlay = (visitor: any) => {
@@ -1513,9 +1509,12 @@ export default function VisitorLogbookPage() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Send CSM to Visitor&apos;s Mobile?</h3>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                {pendingMobileVisitor.source === 'mobile' ? 'Send CSM to Visitor\'s Mobile?' : 'Complete CSM Evaluation'}
+              </h3>
                 <p className="text-sm font-semibold text-slate-500">
-                  <span className="font-extrabold text-[#1B6535]">{pendingMobileVisitor.name}</span> registered via mobile device
+                  <span className="font-extrabold text-[#1B6535]">{pendingMobileVisitor.name}</span>
+                  {pendingMobileVisitor.source === 'mobile' ? ' registered via mobile device' : ' — choose how to proceed'}
                 </p>
               </div>
             </div>
@@ -1525,31 +1524,33 @@ export default function VisitorLogbookPage() {
               
               {/* Left column: Mobile CSM actions */}
               <div className="flex-1 flex flex-col gap-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Visitor Action</p>
-                <Button
-                  onClick={async () => {
-                    if (!firestore) return;
-                    try {
-                      await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
-                        csmMode: 'mobile',
-                        csmStatus: 'pending',
-                        csmRequestedAt: Timestamp.now(),
-                      });
-                      toast({
-                        title: 'CSM Sent to Mobile',
-                        description: `${pendingMobileVisitor.name} will receive the survey on their device.`,
-                      });
-                    } catch (err) {
-                      console.error('Failed to request mobile CSM:', err);
-                      toast({ title: 'Error', description: 'Failed to send CSM to mobile.', variant: 'destructive' });
-                    }
-                    setShowMobileCsmDialog(false);
-                    setPendingMobileVisitor(null);
-                  }}
-                  className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
-                >
-                  Yes, Send to Mobile
-                </Button>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Actions</p>
+                {pendingMobileVisitor.source === 'mobile' && isOnline && !pendingMobileVisitor.id.startsWith('local_') && (
+                  <Button
+                    onClick={async () => {
+                      if (!firestore) return;
+                      try {
+                        await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
+                          csmMode: 'mobile',
+                          csmStatus: 'pending',
+                          csmRequestedAt: Timestamp.now(),
+                        });
+                        toast({
+                          title: 'CSM Sent to Mobile',
+                          description: `${pendingMobileVisitor.name} will receive the survey on their device.`,
+                        });
+                      } catch (err) {
+                        console.error('Failed to request mobile CSM:', err);
+                        toast({ title: 'Error', description: 'Failed to send CSM to mobile.', variant: 'destructive' });
+                      }
+                      setShowMobileCsmDialog(false);
+                      setPendingMobileVisitor(null);
+                    }}
+                    className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
+                  >
+                    Yes, Send to Mobile
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1609,7 +1610,7 @@ export default function VisitorLogbookPage() {
                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
                   <p className="text-[10px] font-mono text-slate-700 truncate">
                     {typeof window !== 'undefined' && userProfile
-                      ? `${window.location.origin}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`
+                      ? `${window.location.origin}/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}...`
                       : 'Loading...'}
                   </p>
                 </div>
@@ -1651,8 +1652,8 @@ export default function VisitorLogbookPage() {
                         const officeNameStr = isCampusOdimoOrDirector 
                           ? "OFFICE OF THE CAMPUS DIRECTOR" 
                           : (unitDoc?.name || userProfile.unitName || 'Office');
-                        const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                        const fullCsmUrl = `${window.location.origin}${mobilePath}`;
+                        const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                        const fullCsmUrl = `${window.location.origin}${csmPath}`;
                         await navigator.clipboard.writeText(fullCsmUrl);
                         toast({
                           title: 'Link Copied!',
