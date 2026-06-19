@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import type { Campus, Unit, Submission, User as AppUser, Cycle, Risk, ProgramComplianceRecord, CsmSettings, CsmDeployment } from '@/lib/types';
-import { collection, query, where, doc } from '@/firebase/firestore-wrapper';
+import { collection, query, where, doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { CsmReportDashboard } from '@/components/reports/csm-report-dashboard';
 import { Smile, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
     Loader2, 
     School, 
@@ -40,7 +42,11 @@ import {
     Target,
     CheckCircle2,
     Zap,
-    Filter
+    Filter,
+    QrCode,
+    Download,
+    ExternalLink,
+    Copy
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -173,6 +179,12 @@ export default function ReportsPage() {
     return collection(firestore, 'csmDeployments');
   }, [firestore, canViewReports]);
   const { data: csmDeployments, isLoading: isLoadingCsmDeployments } = useCollection<CsmDeployment>(csmDeploymentsQuery);
+
+  const unitCsmSettingsQuery = useMemoFirebase(() => {
+    if (!firestore || !hasAllAccess) return null;
+    return collection(firestore, 'unitCsmSettings');
+  }, [firestore, hasAllAccess]);
+  const { data: allUnitCsmSettings, isLoading: isLoadingUnitCsmSettings } = useCollection<any>(unitCsmSettingsQuery);
 
   /**
    * ACADEMIC YEAR GENERATION
@@ -442,6 +454,11 @@ export default function ReportsPage() {
                     <TabsTrigger value="csm" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <Smile className="h-4 w-4" /> CSM Feedback
                     </TabsTrigger>
+                    {hasAllAccess && (
+                      <TabsTrigger value="csm-qr" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                          <QrCode className="h-4 w-4" /> CSM QR Codes
+                      </TabsTrigger>
+                    )}
                 </TabsList>
             </ScrollArea>
         </div>
@@ -773,7 +790,206 @@ export default function ReportsPage() {
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="csm-qr" className="space-y-6 animate-in fade-in duration-500">
+          {!allCampuses || !allUnits ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {allCampuses
+                .filter(c => allUnits.some(u => u.campusIds?.includes(c.id)))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(campus => {
+                  const campusUnits = allUnits
+                    .filter(u => u.campusIds?.includes(campus.id))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                  return (
+                    <Card key={campus.id} className="border-primary/10 shadow-md overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-[#1B6535]/5 to-transparent border-b border-primary/10 p-4">
+                        <div className="flex items-center gap-2">
+                          <School className="h-4 w-4 text-[#1B6535]" />
+                          <CardTitle className="text-sm font-black uppercase tracking-wider text-[#1B6535]">{campus.name}</CardTitle>
+                          <span className="text-[10px] font-bold text-slate-400 ml-auto">({campusUnits.length} units)</span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 space-y-4">
+                        {campusUnits.map(unit => (
+                          <CsmUnitQrRow
+                            key={unit.id}
+                            unit={unit}
+                            origin={typeof window !== 'undefined' ? window.location.origin : ''}
+                            csmSettings={(allUnitCsmSettings || []).find((s: any) => s.unitId === unit.id || s.id === unit.id)}
+                            unitCsmSettingsId={unit.id}
+                            firestore={firestore}
+                            userProfile={userProfile}
+                            toast={toast}
+                          />
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function CsmUnitQrRow({ unit, origin, csmSettings, unitCsmSettingsId, firestore, userProfile, toast }: {
+  unit: Unit;
+  origin: string;
+  csmSettings: any;
+  unitCsmSettingsId: string;
+  firestore: any;
+  userProfile: any;
+  toast: any;
+}) {
+  const [newService, setNewService] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const unitName = unit.name || 'Office';
+  const csmPath = `/csm-evaluate?unitId=${unit.id}&campusId=${unit.campusIds?.[0] || 'N/A'}&unitName=${encodeURIComponent(unitName)}`;
+  const fullCsmUrl = `${origin}${csmPath}`;
+  const qrUrl = origin ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullCsmUrl)}` : '';
+  const services: string[] = csmSettings?.services || [];
+
+  const handleAddService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !newService.trim()) return;
+    setIsSaving(true);
+    try {
+      const cleanService = newService.trim();
+      if (services.includes(cleanService)) {
+        toast({ title: 'Duplicate', description: 'Service already exists.', variant: 'destructive' });
+        setIsSaving(false);
+        return;
+      }
+      await setDoc(doc(firestore, 'unitCsmSettings', unitCsmSettingsId), {
+        unitId: unitCsmSettingsId,
+        services: [...services, cleanService],
+        updatedAt: serverTimestamp(),
+        updatedBy: userProfile?.id || 'System',
+      }, { merge: true });
+      setNewService('');
+      toast({ title: 'Added', description: `"${cleanService}" added.` });
+    } catch (err) {
+      toast({ title: 'Failed', description: 'Could not add service.', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveService = async (service: string) => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'unitCsmSettings', unitCsmSettingsId), {
+        services: services.filter((s: string) => s !== service),
+        updatedAt: serverTimestamp(),
+        updatedBy: userProfile?.id || 'System',
+      }, { merge: true });
+      toast({ title: 'Removed', description: `"${service}" removed.` });
+    } catch (err) {
+      toast({ title: 'Failed', description: 'Could not remove service.', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <h4 className="text-sm font-black uppercase text-slate-800 flex-1">{unitName}</h4>
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{unit.id}</span>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* QR Code */}
+        <div className="shrink-0 flex flex-col items-center gap-2">
+          <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-inner w-[110px] h-[110px] flex items-center justify-center">
+            {qrUrl ? (
+              <img src={qrUrl} alt={`${unitName} CSM QR`} className="w-[100px] h-[100px] object-contain" />
+            ) : (
+              <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+            )}
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={async () => {
+                try {
+                  const resp = await fetch(qrUrl);
+                  const blob = await resp.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `csm-qr-${unitName.replace(/\s+/g, '-')}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch { }
+              }}
+              className="h-7 px-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1"
+              title="Download QR"
+            >
+              <Download className="h-3 w-3" /> QR
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(fullCsmUrl);
+                  toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
+                } catch { }
+              }}
+              className="h-7 px-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1"
+              title="Copy Link"
+            >
+              <Copy className="h-3 w-3" /> Link
+            </button>
+          </div>
+        </div>
+
+        {/* Link + Services */}
+        <div className="flex-1 min-w-0 space-y-3">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 truncate">
+            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">CSM Link</p>
+            <p className="text-[9px] font-mono text-slate-700 truncate">{fullCsmUrl}</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Services</p>
+            <div className="flex flex-wrap gap-1.5">
+              {services.length > 0 ? services.map((svc: string) => (
+                <Badge key={svc} variant="secondary" className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 gap-1.5">
+                  {svc}
+                  <button onClick={() => handleRemoveService(svc)} className="text-slate-400 hover:text-rose-500 transition-colors" disabled={isSaving}>
+                    &times;
+                  </button>
+                </Badge>
+              )) : (
+                <span className="text-[9px] text-slate-400 italic">No services configured</span>
+              )}
+            </div>
+            <form onSubmit={handleAddService} className="flex gap-1.5">
+              <Input
+                type="text"
+                value={newService}
+                onChange={(e) => setNewService(e.target.value)}
+                placeholder="Add service..."
+                className="h-8 text-xs rounded-lg border-slate-200"
+                disabled={isSaving}
+              />
+              <Button type="submit" size="sm" disabled={isSaving || !newService.trim()} className="h-8 px-3 text-[9px] font-black uppercase tracking-wider rounded-lg bg-[#1B6535] hover:bg-[#1a5d31] text-white shrink-0">
+                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Add'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
