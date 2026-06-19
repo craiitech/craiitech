@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, User, HelpCircle, Users2, CheckCircle2, Globe } from 'lucide-react';
+import { Loader2, Sparkles, User, HelpCircle, Users2, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 
 function CsmEvaluateContent() {
@@ -319,11 +319,12 @@ function CsmEvaluateContent() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white/[0.04] backdrop-blur-md border border-[#D4AF37]/20 rounded-3xl p-6 text-center space-y-3">
-          <div className="flex justify-center items-center gap-3">
-            <Globe className="h-6 w-6 text-[#D4AF37]" />
-            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white">
+          <div className="flex items-center justify-between gap-3">
+            <Image src="/rsulogo.png" alt="RSU Logo" width={52} height={52} className="object-contain shrink-0 animate-pulse-glow" />
+            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white text-center flex-1 leading-tight">
               {t[csmLanguage].pageTitle}
             </h1>
+            <Image src="/ISOlogo.jpg" alt="ISO Logo" width={140} height={52} className="object-contain shrink-0 animate-pulse-glow" style={{ objectPosition: 'center' }} />
           </div>
           <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest">
             {decodeURIComponent(unitName)}
@@ -735,6 +736,13 @@ function CsmEvaluateContent() {
           animation: border-blink 1.2s infinite;
           border-width: 2px !important;
           border-style: solid !important;
+        }
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2)); }
+          50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.5)); }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 3s ease-in-out infinite;
         }
       `}</style>
     </div>
