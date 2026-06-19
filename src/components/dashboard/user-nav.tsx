@@ -1,7 +1,7 @@
 
 'use client';
 
-import { LogOut, Bell, User as UserIcon, Settings, Accessibility } from 'lucide-react';
+import { LogOut, Bell, User as UserIcon, Settings, Accessibility, Sun, Moon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { useUser } from '@/firebase';
+import { useTheme } from '@/context/theme-provider';
 
 interface UserNavProps {
     user: FirebaseAuthUser | null;
@@ -45,6 +46,7 @@ export function UserNav({
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
   const { userRole, isSupervisor } = useUser();
+  const { theme, toggleTheme } = useTheme();
   
   const handleLogout = () => {
     if (user && userProfile && userRole) {
@@ -213,6 +215,11 @@ export function UserNav({
               </DropdownMenuItem>
             )}
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={toggleTheme}>
+              {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />

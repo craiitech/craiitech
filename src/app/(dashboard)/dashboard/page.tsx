@@ -265,7 +265,7 @@ function calculateEomsScore(
     return date.getFullYear() === selectedYear;
   });
   const completedAudits = yearSchedules.filter(s => s.status === 'Completed');
-  const iqaProgressRate = yearSchedules.length > 0 ? Math.round((completedAudits.length / yearSchedules.length) * 100) : 0;
+  const iqaProgressRate = yearSchedules.length > 0 ? Math.min(100, Math.round((completedAudits.length / yearSchedules.length) * 100)) : 0;
 
   // 3. CORRECTIVE ACTION REQUEST (CAR) CLOSURE RATE
   const yearCars = scopedCars.filter(c => {
@@ -274,10 +274,10 @@ function calculateEomsScore(
     return date.getFullYear() === selectedYear;
   });
   const closedCars = yearCars.filter(c => c.status === 'Closed');
-  const carResolutionRate = yearCars.length > 0 ? Math.round((closedCars.length / yearCars.length) * 100) : 0;
+  const carResolutionRate = yearCars.length > 0 ? Math.min(100, Math.round((closedCars.length / yearCars.length) * 100)) : 0;
 
-  // 4. ACCREDITATION GAPS RESOLUTION RATE (Mandatory only - Enhancement excluded)
-  const recs = scopedCompliances.reduce((acc: any[], c) => {
+  // 4. ACCREDITATION PERFORMANCE RATE (level achievement + mandatory gap closure combined)
+  const recommendationsList = scopedCompliances.reduce((acc: any[], c) => {
     c.accreditationRecords?.forEach(ar => {
       ar.recommendations?.forEach(rec => {
         if (rec.type !== 'Mandatory') return;
@@ -286,18 +286,45 @@ function calculateEomsScore(
     });
     return acc;
   }, []);
-  const closedRecs = recs.filter(r => r.status === 'Closed');
-  const accreditationRate = recs.length > 0 ? Math.round((closedRecs.length / recs.length) * 100) : 0;
+  const closedRecs = recommendationsList.filter(r => r.status === 'Closed');
+  const accreditationResolutionRate = recommendationsList.length > 0 ? Math.round((closedRecs.length / recommendationsList.length) * 100) : 0;
+
+  const levelScoreMap: Record<string, number> = {
+    'Level IV': 100, 'Level III': 80, 'Level II': 60, 'Level I': 40, 'Candidate': 20, 'PSV': 20,
+  };
+  const accreditationLevelRate = (() => {
+    const scored = scopedPrograms.filter(p => p.isActive).map(p => {
+      const compliance = scopedCompliances.find(c => c.programId === p.id);
+      const records = compliance?.accreditationRecords || [];
+      const current = records.find(r => r.lifecycleStatus === 'Current') || records[records.length - 1];
+      const level = current?.level?.trim() || 'Non Accredited';
+      for (const [key, score] of Object.entries(levelScoreMap)) {
+        if (level.includes(key) || level === key) return score;
+      }
+      if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 20;
+      return 0;
+    });
+    return scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : 0;
+  })();
+
+  const hasRecommends = recommendationsList.length > 0;
+  const hasPrograms = scopedPrograms.filter(p => p.isActive).length > 0;
+  const accreditationRate = (() => {
+    if (!hasRecommends && !hasPrograms) return 0;
+    if (!hasRecommends) return accreditationLevelRate;
+    if (!hasPrograms) return accreditationResolutionRate;
+    return Math.round((accreditationLevelRate * 0.5) + (accreditationResolutionRate * 0.5));
+  })();
 
   // 5. CHED COPC RATE
   const copcCompliant = scopedCompliances.filter(c => c.ched?.copcStatus === 'With COPC');
   const totalPrograms = scopedPrograms.length;
-  const chedRate = totalPrograms > 0 ? Math.round((copcCompliant.length / totalPrograms) * 100) : 0;
+  const chedRate = totalPrograms > 0 ? Math.min(100, Math.round((copcCompliant.length / totalPrograms) * 100)) : 0;
 
   // 6. RISK MITIGATION RATE
   const yearRisks = scopedRisks.filter(r => Number(r.year) === Number(selectedYear));
   const mitigatedRisks = yearRisks.filter(r => r.status === 'Closed' || r.preTreatment?.rating === 'low' || r.postTreatment?.rating === 'low');
-  const riskRate = yearRisks.length > 0 ? Math.round((mitigatedRisks.length / yearRisks.length) * 100) : 0;
+  const riskRate = yearRisks.length > 0 ? Math.min(100, Math.round((mitigatedRisks.length / yearRisks.length) * 100)) : 0;
 
   // Weighted average
   const metrics = [
@@ -306,7 +333,7 @@ function calculateEomsScore(
     { value: carResolutionRate, weight: 0.20, active: yearCars.length > 0 },
     { value: riskRate, weight: 0.15, active: yearRisks.length > 0 },
     { value: chedRate, weight: 0.10, active: totalPrograms > 0 },
-    { value: accreditationRate, weight: 0.10, active: recs.length > 0 },
+    { value: accreditationRate, weight: 0.10, active: hasRecommends || hasPrograms },
   ];
 
   const activeMetrics = metrics.filter(m => m.active);

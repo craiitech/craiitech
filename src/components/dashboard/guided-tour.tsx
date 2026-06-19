@@ -138,73 +138,12 @@ export function GuidedTour() {
     localStorage.setItem('rsu_eoms_tour_completed', 'true');
   };
 
-  // Determine popup position relative to target element
-  const getPopupStyle = () => {
-    if (!targetRect) {
-      return {
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        position: 'fixed' as const
-      };
-    }
-
-    const spacing = 16;
-    const { top, left, width, height } = targetRect;
-    const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
-    const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-
-    let popupTop = top + height / 2;
-    let popupLeft = left + width / 2;
-
-    switch (currentStep.placement) {
-      case 'top':
-        popupTop = top - spacing;
-        popupLeft = left + width / 2;
-        return {
-          top: popupTop,
-          left: popupLeft,
-          transform: 'translate(-50%, -100%)',
-          position: 'fixed' as const
-        };
-      case 'bottom':
-        popupTop = top + height + spacing;
-        popupLeft = left + width / 2;
-        return {
-          top: popupTop,
-          left: popupLeft,
-          transform: 'translate(-50%, 0)',
-          position: 'fixed' as const
-        };
-      case 'left':
-        popupTop = top + height / 2;
-        popupLeft = left - spacing;
-        return {
-          top: popupTop,
-          left: popupLeft,
-          transform: 'translate(-100%, -50%)',
-          position: 'fixed' as const
-        };
-      case 'right':
-        popupTop = top + height / 2;
-        popupLeft = left + width + spacing;
-        return {
-          top: popupTop,
-          left: popupLeft,
-          transform: 'translate(0, -50%)',
-          position: 'fixed' as const
-        };
-      default: // center
-        return {
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          position: 'fixed' as const
-        };
-    }
+  const popupStyle = {
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    position: 'fixed' as const
   };
-
-  const popupStyle = getPopupStyle();
 
   return (
     <>

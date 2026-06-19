@@ -588,9 +588,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="p-4">
-              <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-primary border border-white/10 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
-                <div className="absolute top-0 -left-6 w-24 h-24 bg-white/20 rounded-full blur-2xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
-                <div className="absolute bottom-0 -right-6 w-20 h-20 bg-accent/20 rounded-full blur-2xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" style={{ animationDelay: '3s' }} />
+              <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
+                <div className="absolute top-0 -left-6 w-24 h-24 bg-white/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
+                <div className="absolute bottom-0 -right-6 w-20 h-20 bg-accent/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" style={{ animationDelay: '3s' }} />
                 
                 {displayAvatar ? (
                   <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-white/20">

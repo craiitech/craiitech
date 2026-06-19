@@ -7,7 +7,7 @@ import {
   useUser,
   useFirestore,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/context/theme-provider';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
@@ -44,6 +45,7 @@ export function SidebarNav({
   const { toast } = useToast();
   const { isAdmin, userRole, isSupervisor, userProfile } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   
   const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -529,11 +531,17 @@ export function SidebarNav({
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="hover:bg-sidebar-accent">
-                    <LogOut />
-                    <span>Logout</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
+                 <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'dark' ? 'Light Mode' : 'Dark Mode'} className="hover:bg-sidebar-accent">
+                     {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                     <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                 </SidebarMenuButton>
+             </SidebarMenuItem>
+             <SidebarMenuItem>
+                 <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="hover:bg-sidebar-accent">
+                     <LogOut />
+                     <span>Logout</span>
+                 </SidebarMenuButton>
+             </SidebarMenuItem>
         </SidebarMenu>
       </div>
 
