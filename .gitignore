@@ -43,3 +43,6 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# capacitor (web assets placeholder, native platform is committed by convention)
+/capacitor/www
