@@ -59,10 +59,34 @@ const updates = [
         tag: "COMMUNICATION"
     },
     {
-        title: "Streamlined Campus Sorting",
-        desc: "Campuses now display in alphabetical order throughout the system, making selection dropdowns and management tables easier to navigate.",
-        icon: <ShieldCheck className="h-5 w-5 text-indigo-600" />,
-        tag: "USER INTERFACE"
+        title: "Communication",
+        desc: "Stay connected with institutional announcements, QAO advisories, and direct messaging through the new Communication hub. Receive important updates and collaborate efficiently across units.",
+        icon: <MessageSquareText className="h-5 w-5 text-sky-500" />,
+        tag: "COLLABORATION"
+    },
+    {
+        title: "Visitor Logbook",
+        desc: "Digitized visitor registration with QR code sign-in and automated time tracking. Supports mobile and kiosk modes for seamless visitor management across all units.",
+        icon: <ShieldCheck className="h-5 w-5 text-emerald-600" />,
+        tag: "SERVICE"
+    },
+    {
+        title: "CSM Based on ARTA",
+        desc: "Client Satisfaction Measurement aligned with ARTA standards. Collect CC1-CC3 and SQD0-SQD8 feedback through kiosk, mobile, or online channels with bilingual EN/FIL support.",
+        icon: <Globe className="h-5 w-5 text-amber-500" />,
+        tag: "COMPLIANCE"
+    },
+    {
+        title: "Unit Activity QR Attendance & Evaluation",
+        desc: "Track attendance and conduct evaluations using QR codes for unit activities, seminars, and events. Scan codes for quick check-in and real-time participation monitoring.",
+        icon: <QrCode className="h-5 w-5 text-indigo-600" />,
+        tag: "MONITORING"
+    },
+    {
+        title: "RSU EOMS Mobile Application",
+        desc: "Access the EOMS portal on the go with the new Android mobile app. Available for download from the /get-app page. Includes visitor logbook, CSM surveys, and activity monitoring.",
+        icon: <Zap className="h-5 w-5 text-primary" />,
+        tag: "MOBILE"
     }
 ];
 
