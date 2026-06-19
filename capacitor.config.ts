@@ -5,9 +5,9 @@ const config: CapacitorConfig = {
   appName: 'RSU EOMS Portal',
   webDir: 'capacitor/www',
   server: {
-    // Development: run `next dev -p 9002`, enable cleartext, and uncomment url below.
-    // Production: update url to your deployed app (e.g., Firebase Hosting URL).
-    // url: 'http://localhost:9002',
+    // Production URL — the Android WebView loads the app from this address.
+    // For local development, swap this to http://localhost:9002 and run `npm run dev`.
+    url: 'https://eoms.rsu.edu.ph',
     cleartext: true,
   },
   android: {
