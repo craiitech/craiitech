@@ -159,7 +159,7 @@ export function CampusManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campuses?.map((campus) => (
+                {campuses?.sort((a, b) => a.name.localeCompare(b.name)).map((campus) => (
                   <TableRow key={campus.id}>
                     <TableCell>{campus.name}</TableCell>
                     <TableCell>{campus.location}</TableCell>
