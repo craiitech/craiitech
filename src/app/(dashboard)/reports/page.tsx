@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import type { Campus, Unit, Submission, User as AppUser, Cycle, Risk, ProgramComplianceRecord, CsmSettings, CsmDeployment } from '@/lib/types';
 import { collection, query, where, doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
@@ -79,6 +80,7 @@ import { normalizeReportType } from '@/lib/utils';
 
 export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor, userRole } = useUser();
+  const { toast } = useToast();
   const firestore = useFirestore();
 
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>('all');
