@@ -47,7 +47,9 @@ import {
     QrCode,
     Download,
     ExternalLink,
-    Copy
+    Copy,
+    Search,
+    ArrowUpDown
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -85,6 +87,8 @@ export default function ReportsPage() {
 
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [csmQrSearch, setCsmQrSearch] = useState('');
+  const [csmQrSort, setCsmQrSort] = useState<'asc' | 'desc'>('asc');
 
   const csmSettingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'csmSettings') : null, [firestore]);
   const { data: csmSettings, isLoading: isLoadingCsmSettings } = useDoc<CsmSettings>(csmSettingsRef);
@@ -799,41 +803,88 @@ export default function ReportsPage() {
               <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
             </div>
           ) : (
-            <div className="space-y-8">
-              {allCampuses
-                .filter(c => allUnits.some(u => u.campusIds?.includes(c.id)))
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(campus => {
-                  const campusUnits = allUnits
-                    .filter(u => u.campusIds?.includes(campus.id))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-                  return (
-                    <Card key={campus.id} className="border-primary/10 shadow-md overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-[#1B6535]/5 to-transparent border-b border-primary/10 p-4">
-                        <div className="flex items-center gap-2">
-                          <School className="h-4 w-4 text-[#1B6535]" />
-                          <CardTitle className="text-sm font-black uppercase tracking-wider text-[#1B6535]">{campus.name}</CardTitle>
-                          <span className="text-[10px] font-bold text-slate-400 ml-auto">({campusUnits.length} units)</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 space-y-4">
-                        {campusUnits.map(unit => (
-                          <CsmUnitQrRow
-                            key={unit.id}
-                            unit={unit}
-                            origin={typeof window !== 'undefined' ? window.location.origin : ''}
-                            csmSettings={(allUnitCsmSettings || []).find((s: any) => s.unitId === unit.id || s.id === unit.id)}
-                            unitCsmSettingsId={unit.id}
-                            firestore={firestore}
-                            userProfile={userProfile}
-                            toast={toast}
-                          />
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-            </div>
+            <>
+              {/* Toolbar */}
+              <Card className="border-primary/10 shadow-sm">
+                <CardContent className="p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      type="text"
+                      value={csmQrSearch}
+                      onChange={(e) => setCsmQrSearch(e.target.value)}
+                      placeholder="Search units..."
+                      className="h-9 pl-9 text-xs rounded-xl border-slate-200"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Select value={selectedCampusId || 'all'} onValueChange={(v) => setSelectedCampusId(v === 'all' ? null : v)}>
+                      <SelectTrigger className="h-9 w-[180px] text-xs font-bold rounded-xl">
+                        <SelectValue placeholder="All Campuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Campuses</SelectItem>
+                        {allCampuses
+                          .filter(c => allUnits.some(u => u.campusIds?.includes(c.id)))
+                          .map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={csmQrSort} onValueChange={(v) => setCsmQrSort(v as 'asc' | 'desc')}>
+                      <SelectTrigger className="h-9 w-[130px] text-xs font-bold rounded-xl">
+                        <ArrowUpDown className="h-3 w-3 mr-1" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="asc">A-Z</SelectItem>
+                        <SelectItem value="desc">Z-A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Campus groups */}
+              <div className="space-y-8">
+                {allCampuses
+                  .filter(c => !selectedCampusId || c.id === selectedCampusId)
+                  .filter(c => allUnits.some(u => u.campusIds?.includes(c.id)))
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(campus => {
+                    const campusUnits = allUnits
+                      .filter(u => u.campusIds?.includes(campus.id))
+                      .filter(u => !csmQrSearch || u.name.toLowerCase().includes(csmQrSearch.toLowerCase()))
+                      .sort((a, b) => csmQrSort === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+                    if (campusUnits.length === 0) return null;
+                    return (
+                      <Card key={campus.id} className="border-primary/10 shadow-md overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-[#1B6535]/5 to-transparent border-b border-primary/10 p-4">
+                          <div className="flex items-center gap-2">
+                            <School className="h-4 w-4 text-[#1B6535]" />
+                            <CardTitle className="text-sm font-black uppercase tracking-wider text-[#1B6535]">{campus.name}</CardTitle>
+                            <span className="text-[10px] font-bold text-slate-400 ml-auto">({campusUnits.length} unit{campusUnits.length !== 1 ? 's' : ''})</span>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-4">
+                          {campusUnits.map(unit => (
+                            <CsmUnitQrRow
+                              key={unit.id}
+                              unit={unit}
+                              origin={typeof window !== 'undefined' ? window.location.origin : ''}
+                              csmSettings={(allUnitCsmSettings || []).find((s: any) => s.unitId === unit.id || s.id === unit.id)}
+                              unitCsmSettingsId={unit.id}
+                              firestore={firestore}
+                              userProfile={userProfile}
+                              toast={toast}
+                            />
+                          ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            </>
           )}
         </TabsContent>
       </Tabs>
