@@ -718,7 +718,7 @@ function CsmEvaluateContent() {
         {/* Footer */}
         <div className="text-center">
           <p className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]/50">
-            Romblon State University | Quality Assurance Office
+            Romblon State University | Client Satisfaction Monitoring
           </p>
         </div>
       </div>
