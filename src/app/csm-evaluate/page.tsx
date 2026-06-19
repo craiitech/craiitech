@@ -320,11 +320,11 @@ function CsmEvaluateContent() {
         {/* Header */}
         <div className="bg-white/[0.04] backdrop-blur-md border border-[#D4AF37]/20 rounded-3xl p-6 text-center space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <Image src="/rsulogo.png" alt="RSU Logo" width={52} height={52} className="object-contain shrink-0 animate-pulse-glow" />
+            <Image src="/rsulogo.png" alt="RSU Logo" width={80} height={80} className="object-contain shrink-0 animate-pulse-glow" />
             <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white text-center flex-1 leading-tight">
               {t[csmLanguage].pageTitle}
             </h1>
-            <Image src="/ISOlogo.jpg" alt="ISO Logo" width={140} height={52} className="object-contain shrink-0 animate-pulse-glow" style={{ objectPosition: 'center' }} />
+            <Image src="/ISOlogo.jpg" alt="ISO Logo" width={216} height={80} className="object-contain shrink-0 animate-pulse-glow" style={{ objectPosition: 'center' }} />
           </div>
           <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest">
             {decodeURIComponent(unitName)}

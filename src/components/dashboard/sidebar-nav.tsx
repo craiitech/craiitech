@@ -701,6 +701,30 @@ export function SidebarNav({
                 >
                   <ExternalLink className="h-4 w-4 mr-1" /> Copy Message for Clients
                 </Button>
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
+                      const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                      const fullCsmUrl = `${window.location.origin}${csmPath}`;
+                      await navigator.clipboard.writeText(fullCsmUrl);
+                      toast({
+                        title: 'Link Copied!',
+                        description: 'CSM online link has been copied to your clipboard.',
+                      });
+                    } catch (err) {
+                      toast({
+                        title: 'Copy Failed',
+                        description: 'Unable to copy link. Please try again.',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                  className="w-full h-9 text-[9px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600"
+                >
+                  Copy Link Only
+                </Button>
               </div>
             </div>
           </div>
