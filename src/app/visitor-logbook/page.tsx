@@ -362,7 +362,8 @@ export default function VisitorLogbookPage() {
         ? "OFFICE OF THE CAMPUS DIRECTOR" 
         : (unitDoc?.name || userProfile.unitName || 'Office');
         
-      const fullUrl = `${window.location.origin}/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const fullUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
       
       setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullUrl)}`);
     }
