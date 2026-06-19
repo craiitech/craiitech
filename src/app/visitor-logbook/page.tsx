@@ -28,7 +28,7 @@ import {
 import { format } from 'date-fns';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getDirectDriveLink } from '@/lib/utils';
+import { cn, getDirectDriveLink } from '@/lib/utils';
 
 export default function VisitorLogbookPage() {
   const { userProfile, isUserLoading, userRole } = useUser();
@@ -150,6 +150,8 @@ export default function VisitorLogbookPage() {
   const [csmComments, setCsmComments] = useState<string>('');
   const [isSubmittingCsm, setIsSubmittingCsm] = useState<boolean>(false);
   const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
+  const [showMobileCsmDialog, setShowMobileCsmDialog] = useState<boolean>(false);
+  const [pendingMobileVisitor, setPendingMobileVisitor] = useState<any | null>(null);
 
   const t: Record<'EN' | 'FIL', any> = {
     EN: {
@@ -634,6 +636,7 @@ export default function VisitorLogbookPage() {
         unitId: userProfile.unitId || 'N/A',
         campusId: userProfile.campusId || 'N/A',
         unitName: isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'),
+        source: 'kiosk',
         createdAt: Date.now(),
         isLoggedOut: false,
         loggedOutAt: null,
@@ -680,6 +683,7 @@ export default function VisitorLogbookPage() {
         unitId: userProfile.unitId || 'N/A',
         campusId: userProfile.campusId || 'N/A',
         unitName: isCampusOdimoOrDirector ? "OFFICE OF THE CAMPUS DIRECTOR" : (unitDoc?.name || userProfile.unitName || 'Office'),
+        source: 'kiosk',
         createdAt: Date.now(),
         isLoggedOut: false,
         loggedOutAt: null,
@@ -702,6 +706,15 @@ export default function VisitorLogbookPage() {
   };
 
   const handleLogoutVisitor = (visitor: any) => {
+    if (visitor.source === 'mobile' && isOnline && !visitor.id.startsWith('local_')) {
+      setPendingMobileVisitor(visitor);
+      setShowMobileCsmDialog(true);
+      return;
+    }
+    openCsmOverlay(visitor);
+  };
+
+  const openCsmOverlay = (visitor: any) => {
     setActiveSurveyVisitor(visitor);
     setCsmLanguage('EN');
     setCsmSubmitted(false);
@@ -1381,10 +1394,16 @@ export default function VisitorLogbookPage() {
                       : (typeof visitor.createdAt === 'number'
                           ? format(new Date(visitor.createdAt), 'hh:mm a')
                           : 'N/A');
+                    const isMobilePending = visitor.csmMode === 'mobile' && visitor.csmStatus === 'pending';
                     return (
                       <div 
                         key={visitor.id} 
-                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all text-left"
+                        className={cn(
+                          "flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left",
+                          isMobilePending
+                            ? "bg-amber-50/70 border-amber-200 hover:border-amber-300"
+                            : "bg-slate-50 border-slate-100 hover:border-slate-200"
+                        )}
                       >
                         <div className="space-y-1">
                           <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">{visitor.name}</h4>
@@ -1394,14 +1413,20 @@ export default function VisitorLogbookPage() {
                             <span className="truncate max-w-[130px]">To Meet: <span className="text-slate-700">{visitor.lookingFor}</span></span>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleLogoutVisitor(visitor)}
-                          className="h-7 px-2.5 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 rounded-lg shadow-sm shrink-0"
-                        >
-                          Logout
-                        </Button>
+                        {isMobilePending ? (
+                          <div className="flex items-center gap-1.5 bg-amber-100 px-2.5 py-1.5 rounded-lg border border-amber-200 text-amber-700 text-[8px] font-black uppercase tracking-widest whitespace-nowrap">
+                            <Loader2 className="h-3 w-3 animate-spin" /> Awaiting CSM
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleLogoutVisitor(visitor)}
+                            className="h-7 px-2.5 text-[9px] font-black uppercase tracking-widest text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 rounded-lg shadow-sm shrink-0"
+                          >
+                            Logout
+                          </Button>
+                        )}
                       </div>
                     );
                   })}
@@ -1458,6 +1483,84 @@ export default function VisitorLogbookPage() {
           )}
         </div>
       </div>
+
+      {/* Mobile CSM Confirmation Dialog */}
+      {showMobileCsmDialog && pendingMobileVisitor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300">
+            <div className="h-16 w-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600 border border-amber-200">
+              <Sparkles className="h-8 w-8" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-slate-800 uppercase">Send CSM to Visitor&apos;s Mobile?</h3>
+              <p className="text-sm font-semibold text-slate-600 leading-relaxed">
+                <span className="font-extrabold text-[#1B6535]">{pendingMobileVisitor.name}</span> registered via mobile device. 
+                Would you like to send the Client Satisfaction Survey to their phone?
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 pt-2">
+              <Button
+                onClick={async () => {
+                  if (!firestore) return;
+                  try {
+                    await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
+                      csmMode: 'mobile',
+                      csmStatus: 'pending',
+                      csmRequestedAt: Timestamp.now(),
+                    });
+                    toast({
+                      title: 'CSM Sent to Mobile',
+                      description: `${pendingMobileVisitor.name} will receive the survey on their device.`,
+                    });
+                  } catch (err) {
+                    console.error('Failed to request mobile CSM:', err);
+                    toast({ title: 'Error', description: 'Failed to send CSM to mobile.', variant: 'destructive' });
+                  }
+                  setShowMobileCsmDialog(false);
+                  setPendingMobileVisitor(null);
+                }}
+                className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
+              >
+                Yes, Send to Mobile
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowMobileCsmDialog(false);
+                  openCsmOverlay(pendingMobileVisitor);
+                  setPendingMobileVisitor(null);
+                }}
+                className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200"
+              >
+                No, Show Survey Here
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  if (!firestore) return;
+                  try {
+                    await updateDoc(doc(firestore, 'visitorLogs', pendingMobileVisitor.id), {
+                      isLoggedOut: true,
+                      loggedOutAt: Timestamp.now(),
+                    });
+                    toast({
+                      title: 'Visitor Logged Out',
+                      description: `${pendingMobileVisitor.name} has been checked out.`,
+                    });
+                  } catch (err) {
+                    console.error('Failed to logout:', err);
+                  }
+                  setShowMobileCsmDialog(false);
+                  setPendingMobileVisitor(null);
+                }}
+                className="w-full h-12 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600"
+              >
+                Skip & Logout Only
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ARTA CSM Survey Kiosk Overlay */}
       {activeSurveyVisitor && (

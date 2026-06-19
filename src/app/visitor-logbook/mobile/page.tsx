@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, addDoc, Timestamp, doc, updateDoc, query, where } from '@/firebase/firestore-wrapper';
+import { collection, addDoc, Timestamp, doc, updateDoc, query, where, onSnapshot } from '@/firebase/firestore-wrapper';
 import type { Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -98,6 +98,8 @@ function MobileVisitorLogbookContent() {
   const [isSubmittingCsm, setIsSubmittingCsm] = useState<boolean>(false);
   
   const [checkoutComplete, setCheckoutComplete] = useState<boolean>(false);
+  const [csmRequested, setCsmRequested] = useState<boolean>(false);
+  const [pendingCsmResolve, setPendingCsmResolve] = useState<'prompt' | 'declined' | null>(null);
 
   // Silent Anonymous Authentication on mount
   useEffect(() => {
@@ -264,6 +266,34 @@ function MobileVisitorLogbookContent() {
     return null;
   };
 
+  // Listen for kiosk-initiated CSM request (csmMode: 'mobile')
+  useEffect(() => {
+    if (!firebaseState.areServicesAvailable || !activeLogId) {
+      setCsmRequested(false);
+      return;
+    }
+    const { firestore } = firebaseState;
+    const logRef = doc(firestore, 'visitorLogs', activeLogId);
+    const unsubscribe = onSnapshot(logRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (data.csmMode === 'mobile' && data.csmStatus === 'pending' && !data.isLoggedOut) {
+        setCsmRequested(true);
+        setPendingCsmResolve('prompt');
+      } else if (data.isLoggedOut) {
+        setActiveLogId(null);
+        setStoredVisitorName('');
+        setStoredVisitorSex('');
+        localStorage.removeItem('rsu_mobile_visitor_log_id');
+        localStorage.removeItem('rsu_mobile_visitor_name');
+        localStorage.removeItem('rsu_mobile_visitor_sex');
+      }
+    }, (err) => {
+      console.error('Error listening to visitor log:', err);
+    });
+    return () => unsubscribe();
+  }, [firebaseState, activeLogId]);
+
   // Submit Mobile Sign In Log
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,6 +319,7 @@ function MobileVisitorLogbookContent() {
         unitId: unitId,
         campusId: campusId,
         unitName: unitName,
+        source: 'mobile',
         createdAt: Timestamp.now(),
         isLoggedOut: false,
         loggedOutAt: null,
@@ -375,6 +406,8 @@ function MobileVisitorLogbookContent() {
       await updateDoc(doc(firestore, 'visitorLogs', activeLogId), {
         isLoggedOut: true,
         loggedOutAt: Timestamp.now(),
+        csmStatus: skip ? 'skipped' : 'completed',
+        csmMode: skip ? undefined : 'mobile',
       });
 
       setCsmSubmitted(!skip);
@@ -412,6 +445,8 @@ function MobileVisitorLogbookContent() {
     setSelectedLookingFor('');
     setCheckoutComplete(false);
     setShowSurvey(false);
+    setCsmRequested(false);
+    setPendingCsmResolve(null);
     setCsmAgeGroup('');
     setCsmClientType('');
     setCsmCC1(null);
@@ -496,6 +531,48 @@ function MobileVisitorLogbookContent() {
               >
                 Sign In Again
               </Button>
+            </div>
+          </Card>
+        ) : activeLogId && csmRequested && pendingCsmResolve === 'prompt' ? (
+          /* CSM REQUESTED BY KIOSK PROMPT */
+          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden p-6 space-y-6 animate-in fade-in duration-300">
+            <div className="text-center py-6 space-y-6">
+              <div className="h-16 w-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600 border border-amber-200">
+                <Sparkles className="h-8 w-8" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black text-slate-800 uppercase">Client Satisfaction Survey</h3>
+                <p className="text-sm font-semibold text-slate-600 leading-relaxed">
+                  The receptionist has requested that you complete the Client Satisfaction Survey on your device.
+                </p>
+              </div>
+              <div className="space-y-3 pt-2">
+                <Button
+                  onClick={() => { setShowSurvey(true); setPendingCsmResolve(null); }}
+                  className="w-full h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 rounded-xl font-black uppercase tracking-widest shadow-lg"
+                >
+                  <CheckCircle2 className="h-5 w-5" /> Yes, Complete Survey
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setCsmRequested(false);
+                    setPendingCsmResolve('declined');
+                    if (firebaseState.areServicesAvailable) {
+                      updateDoc(doc(firebaseState.firestore, 'visitorLogs', activeLogId), {
+                        csmStatus: 'declined',
+                      }).catch(() => {});
+                    }
+                    setCheckoutComplete(true);
+                    localStorage.removeItem('rsu_mobile_visitor_log_id');
+                    localStorage.removeItem('rsu_mobile_visitor_name');
+                    localStorage.removeItem('rsu_mobile_visitor_sex');
+                  }}
+                  className="w-full text-sm font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 py-3 rounded-xl"
+                >
+                  No, Thanks
+                </Button>
+              </div>
             </div>
           </Card>
         ) : activeLogId ? (
