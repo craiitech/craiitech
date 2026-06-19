@@ -49,7 +49,6 @@ export function SidebarNav({
   
   const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [showCsmQrDialog, setShowCsmQrDialog] = useState(false);
   const [csmQrUrl, setCsmQrUrl] = useState('');
   const firestore = useFirestore();
 
@@ -557,116 +556,84 @@ export function SidebarNav({
       </div>
 
       <AlertDialog open={isVisitorDialogOpen} onOpenChange={setIsVisitorDialogOpen}>
-        <AlertDialogContent className="max-w-md bg-white border border-[#D4AF37]/20 rounded-2xl p-6 shadow-2xl">
+        <AlertDialogContent className="max-w-3xl bg-white border border-[#D4AF37]/20 rounded-2xl p-6 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg font-black uppercase text-[#1B6535] tracking-tight flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-[#D4AF37]" /> Visitor Logbook Hub
             </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 font-medium text-xs mt-1">
-              Select an action for the Visitor Logbook of <span className="font-extrabold text-[#1B6535]">{userProfile?.unitName || 'your unit'}</span>.
+              <span className="font-extrabold text-[#1B6535]">{userProfile?.unitName || 'Your Unit'}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="grid grid-cols-1 gap-3 py-4">
-            <Button 
-              onClick={() => {
-                window.open('/visitor-logbook?fullscreen=true', '_blank');
-                setIsVisitorDialogOpen(false);
-              }}
-              className="w-full h-12 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 flex items-center justify-center gap-2 transition-all"
-            >
-              Open Kiosk Sign-In Page
-            </Button>
-            <Button 
-              onClick={handlePrintVisitorLogs}
-              disabled={isPrinting}
-              className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
-            >
-              {isPrinting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Fetching Logs...
-                </>
-              ) : (
-                <>
-                  Print Logbook Records
-                </>
-              )}
-            </Button>
-            <Button 
-              onClick={() => {
-                router.push('/visitor-logbook/settings');
-                setIsVisitorDialogOpen(false);
-              }}
-              className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
-            >
-              CSM Settings Page
-            </Button>
-            <Button 
-              onClick={() => {
-                setIsVisitorDialogOpen(false);
-                setShowCsmQrDialog(true);
-              }}
-              className="w-full h-12 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
-            >
-              <QrCode className="h-4 w-4" /> CSM Online Link
-            </Button>
-          </div>
-          <AlertDialogFooter className="border-t pt-3">
-            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
-              Close
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
-      {/* CSM Online Link & QR Code Dialog */}
-      {showCsmQrDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-lg w-full animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 border border-emerald-200 shrink-0">
-                  <QrCode className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">CSM Online Link</h3>
-                  <p className="text-sm font-semibold text-slate-500">
-                    <span className="font-extrabold text-[#1B6535]">{userProfile?.unitName || 'Your Unit'}</span>
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCsmQrDialog(false)}
-                className="h-8 w-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+          {/* Two-column layout */}
+          <div className="flex flex-col md:flex-row gap-6 py-4">
+            {/* Left column: Action buttons */}
+            <div className="flex-1 flex flex-col gap-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Actions</p>
+              <Button 
+                onClick={() => {
+                  window.open('/visitor-logbook?fullscreen=true', '_blank');
+                  setIsVisitorDialogOpen(false);
+                }}
+                className="w-full h-12 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 flex items-center justify-center gap-2 transition-all"
               >
-                <ExternalLink className="h-4 w-4 rotate-45" />
-              </button>
+                Open Kiosk Sign-In Page
+              </Button>
+              <Button 
+                onClick={handlePrintVisitorLogs}
+                disabled={isPrinting}
+                className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+              >
+                {isPrinting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Fetching Logs...
+                  </>
+                ) : (
+                  <>
+                    Print Logbook Records
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={() => {
+                  router.push('/visitor-logbook/settings');
+                  setIsVisitorDialogOpen(false);
+                }}
+                className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+              >
+                CSM Settings Page
+              </Button>
             </div>
 
-            <div className="flex flex-col items-center gap-4 py-6">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-inner w-[200px] h-[200px] flex items-center justify-center">
+            {/* Right column: QR Code + Link */}
+            <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
+
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
                 {csmQrUrl ? (
                   <img
                     src={csmQrUrl}
                     alt="CSM Online Evaluation QR Code"
-                    className="w-[180px] h-[180px] object-contain"
+                    className="w-[164px] h-[164px] object-contain"
                   />
                 ) : (
-                  <div className="w-[180px] h-[180px] flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
+                  <div className="w-[164px] h-[164px] flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
                   </div>
                 )}
               </div>
 
-              <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 truncate">
+              <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 truncate">
                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
-                <p className="text-xs font-mono text-slate-700 truncate">
+                <p className="text-[10px] font-mono text-slate-700 truncate">
                   {typeof window !== 'undefined' && userProfile
                     ? `${window.location.origin}/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}...`
                     : 'Loading...'}
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3 w-full mt-2">
+              <div className="flex flex-col gap-2 w-full">
                 <Button
                   onClick={async () => {
                     try {
@@ -692,9 +659,9 @@ export function SidebarNav({
                       });
                     }
                   }}
-                  className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
+                  className="w-full h-10 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg"
                 >
-                  <Download className="h-4 w-4 mr-2" /> Download QR Code
+                  <Download className="h-4 w-4 mr-1" /> Download QR Code
                 </Button>
                 <Button
                   variant="outline"
@@ -716,21 +683,21 @@ export function SidebarNav({
                       });
                     }
                   }}
-                  className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200"
+                  className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" /> Copy Online CSM Link
+                  <ExternalLink className="h-4 w-4 mr-1" /> Copy Online CSM Link
                 </Button>
               </div>
             </div>
-
-            <div className="border-t border-slate-100 pt-4 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                Share this link via email or social media for online evaluations
-              </p>
-            </div>
           </div>
-        </div>
-      )}
+
+          <AlertDialogFooter className="border-t pt-3">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
+              Close
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
