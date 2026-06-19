@@ -23,9 +23,7 @@ import {
   ClipboardList,
   Maximize2,
   Minimize2,
-  Loader2,
-  QrCode,
-  ExternalLink
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -1122,111 +1120,6 @@ export default function VisitorLogbookPage() {
                     Mobile data or office Wi-Fi is required to load the logbook page on your device.
                   </p>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* CSM Online Evaluation QR Code */}
-          {userProfile && (
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-4 shadow-xl space-y-3.5 max-w-md mx-auto xl:mx-0">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
-                  <QrCode className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-emerald-400 leading-none">CSM Evaluation</h3>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Online Link &amp; QR Code</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="bg-white p-3 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[192px] h-[192px] flex items-center justify-center">
-                  {csmQrUrl ? (
-                    <img
-                      src={csmQrUrl}
-                      alt="CSM Online Evaluation QR Code"
-                      className="w-[168px] h-[168px] object-contain"
-                    />
-                  ) : (
-                    <div className="w-[168px] h-[168px] flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1 text-left flex-1 min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-wide text-white">Share CSM Online</p>
-                  <p className="text-[9px] text-slate-300 font-medium leading-relaxed">
-                    Share this link or QR code with clients to evaluate your unit&apos;s service online.
-                  </p>
-                  <div className="bg-slate-900/60 border border-slate-700/50 rounded-lg p-2 truncate mt-1">
-                    <p className="text-[9px] font-mono text-slate-400 truncate">
-                      {typeof window !== 'undefined' && userProfile
-                        ? `${window.location.origin}/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}...`
-                        : 'Loading...'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(csmQrUrl);
-                      const blob = await response.blob();
-                      const blobUrl = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = blobUrl;
-                      link.download = 'csm-qr-code.png';
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      URL.revokeObjectURL(blobUrl);
-                      toast({
-                        title: 'Download Started',
-                        description: 'CSM QR code is being downloaded.',
-                      });
-                    } catch (err) {
-                      toast({
-                        title: 'Download Failed',
-                        description: 'Unable to download QR code. Please try again.',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="flex-1 h-8 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-[9px] rounded-xl shadow-lg"
-                >
-                  Download QR
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const officeNameStr = isCampusOdimoOrDirector 
-                        ? "OFFICE OF THE CAMPUS DIRECTOR" 
-                        : (unitDoc?.name || userProfile.unitName || 'Office');
-                      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                      const fullCsmUrl = `${window.location.origin}${csmPath}`;
-                      await navigator.clipboard.writeText(fullCsmUrl);
-                      toast({
-                        title: 'Link Copied!',
-                        description: 'CSM online link has been copied to your clipboard.',
-                      });
-                    } catch (err) {
-                      toast({
-                        title: 'Copy Failed',
-                        description: 'Unable to copy link. Please try again.',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="flex-1 h-8 font-black uppercase tracking-widest text-[9px] rounded-xl border-slate-600 text-slate-300 hover:bg-slate-800"
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Copy Link
-                </Button>
               </div>
             </div>
           )}
