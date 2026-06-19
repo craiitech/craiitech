@@ -46,3 +46,6 @@ firestore-debug.log
 
 # capacitor (web assets placeholder, native platform is committed by convention)
 /capacitor/www
+
+# generated APK (built via scripts/copy-apk.sh)
+/public/downloads/*.apk/android/local.properties
