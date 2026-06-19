@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
   useFirestore,
+  useDoc,
+  useMemoFirebase,
 } from '@/firebase';
 import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon, QrCode, ExternalLink, Download } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
@@ -13,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, getDocs } from '@/firebase/firestore-wrapper';
+import { collection, query, where, orderBy, getDocs, doc } from '@/firebase/firestore-wrapper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,14 +54,21 @@ export function SidebarNav({
   const [csmQrUrl, setCsmQrUrl] = useState('');
   const firestore = useFirestore();
 
+  const unitDocRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return doc(firestore, 'units', userProfile.unitId);
+  }, [firestore, userProfile?.unitId]);
+
+  const { data: unitDoc } = useDoc<any>(unitDocRef);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && userProfile) {
-      const unitName = userProfile.unitName || 'Office';
-      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(unitName)}`;
+      const officeNameStr = unitDoc?.name || userProfile.unitName || 'Office';
+      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
       const fullCsmUrl = `${window.location.origin}${csmPath}`;
       setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
     }
-  }, [userProfile]);
+  }, [userProfile, unitDoc]);
 
   useEffect(() => {
     const checkState = () => {
@@ -667,8 +676,8 @@ export function SidebarNav({
                   variant="outline"
                   onClick={async () => {
                     try {
-                      const unitName = userProfile?.unitName || 'Office';
-                      const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(unitName)}`;
+                      const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
+                      const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
                       const fullCsmUrl = `${window.location.origin}${csmPath}`;
                       await navigator.clipboard.writeText(fullCsmUrl);
                       toast({
