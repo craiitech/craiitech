@@ -7,7 +7,7 @@ import {
   useUser,
   useFirestore,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon, QrCode, ExternalLink, Download } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -49,7 +49,18 @@ export function SidebarNav({
   
   const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [showCsmQrDialog, setShowCsmQrDialog] = useState(false);
+  const [csmQrUrl, setCsmQrUrl] = useState('');
   const firestore = useFirestore();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userProfile) {
+      const unitName = userProfile.unitName || 'Office';
+      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(unitName)}`;
+      const fullCsmUrl = `${window.location.origin}${csmPath}`;
+      setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     const checkState = () => {
@@ -589,6 +600,15 @@ export function SidebarNav({
             >
               CSM Settings Page
             </Button>
+            <Button 
+              onClick={() => {
+                setIsVisitorDialogOpen(false);
+                setShowCsmQrDialog(true);
+              }}
+              className="w-full h-12 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
+            >
+              <QrCode className="h-4 w-4" /> CSM Online Link
+            </Button>
           </div>
           <AlertDialogFooter className="border-t pt-3">
             <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
@@ -597,6 +617,120 @@ export function SidebarNav({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* CSM Online Link & QR Code Dialog */}
+      {showCsmQrDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-lg w-full animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 border border-emerald-200 shrink-0">
+                  <QrCode className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">CSM Online Link</h3>
+                  <p className="text-sm font-semibold text-slate-500">
+                    <span className="font-extrabold text-[#1B6535]">{userProfile?.unitName || 'Your Unit'}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCsmQrDialog(false)}
+                className="h-8 w-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4 rotate-45" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-inner w-[200px] h-[200px] flex items-center justify-center">
+                {csmQrUrl ? (
+                  <img
+                    src={csmQrUrl}
+                    alt="CSM Online Evaluation QR Code"
+                    className="w-[180px] h-[180px] object-contain"
+                  />
+                ) : (
+                  <div className="w-[180px] h-[180px] flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 truncate">
+                <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
+                <p className="text-xs font-mono text-slate-700 truncate">
+                  {typeof window !== 'undefined' && userProfile
+                    ? `${window.location.origin}/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}...`
+                    : 'Loading...'}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 w-full mt-2">
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(csmQrUrl);
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = blobUrl;
+                      link.download = 'csm-qr-code.png';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(blobUrl);
+                      toast({
+                        title: 'Download Started',
+                        description: 'CSM QR code is being downloaded.',
+                      });
+                    } catch (err) {
+                      toast({
+                        title: 'Download Failed',
+                        description: 'Unable to download QR code. Please try again.',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                  className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg"
+                >
+                  <Download className="h-4 w-4 mr-2" /> Download QR Code
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const unitName = userProfile?.unitName || 'Office';
+                      const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(unitName)}`;
+                      const fullCsmUrl = `${window.location.origin}${csmPath}`;
+                      await navigator.clipboard.writeText(fullCsmUrl);
+                      toast({
+                        title: 'Link Copied!',
+                        description: 'CSM online link has been copied to your clipboard.',
+                      });
+                    } catch (err) {
+                      toast({
+                        title: 'Copy Failed',
+                        description: 'Unable to copy link. Please try again.',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                  className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" /> Copy Online CSM Link
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4 text-center">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                Share this link via email or social media for online evaluations
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
