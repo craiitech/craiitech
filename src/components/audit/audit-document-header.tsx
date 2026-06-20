@@ -107,6 +107,7 @@ export const auditHeaderStyles = `
 
 export const auditPageNumberScript = `
 <script>
+  (function(){var b=document.querySelector('base')||document.createElement('base');b.href=location.origin+'/';if(!b.parentNode)document.head.insertBefore(b,document.head.firstChild);})();
   function updatePageNumbers() {
     var pageEls = document.querySelectorAll('.page-number');
     var totalEls = document.querySelectorAll('.total-pages');
@@ -143,16 +144,12 @@ function HeaderTable({
   campusLocation,
   logoPath,
 }: AuditDocumentHeaderProps) {
-  const resolvedLogo = logoPath?.startsWith('/')
-    ? (typeof window !== 'undefined' ? window.location.origin + logoPath : logoPath)
-    : logoPath;
-
   return (
     <table className="audit-inner-header">
       <tbody>
         <tr>
           <td rowSpan={4} className="audit-header-logo-cell">
-            <img src={resolvedLogo} alt="RSU Logo" className="audit-header-logo" />
+            <img src={logoPath} alt="RSU Logo" className="audit-header-logo" />
           </td>
           <td rowSpan={4} className="audit-header-center">
             <p className="audit-header-univ">Romblon State University</p>
