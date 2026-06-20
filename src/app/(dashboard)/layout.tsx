@@ -12,7 +12,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest, Risk, ProgramComplianceRecord, ManagementReviewOutput, Cycle } from '@/lib/types';
+import type { Campus, Unit, Submission, SoftwareEvaluation, CorrectiveActionRequest, Risk, ProgramComplianceRecord, ManagementReviewOutput, Cycle, UnitFormRequest, ProcedureRevisionRequest } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw, Loader2 } from 'lucide-react';
@@ -219,6 +219,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [firestore]);
   const { data: commsNotifications } = useCollection<any>(commsNotifQuery);
 
+  const getFormRequestsNotificationQuery = (): Query | null => {
+      if (!firestore || !userProfile) return null;
+      const col = collection(firestore, 'unitFormRequests');
+      if (isAdmin) return col;
+      
+      if (userProfile.unitId) {
+          const unitObj = allUnits?.find(u => u.id === userProfile.unitId);
+          const targetId = (unitObj?.category === 'Academic') ? 'academic-shared' : userProfile.unitId;
+          return query(col, where('unitId', '==', targetId));
+      }
+      return null;
+  };
+
+  const formRequestsNotifQuery = useMemoFirebase(() => getFormRequestsNotificationQuery(), [firestore, userProfile, isAdmin, allUnits]);
+  const { data: formRequestNotifications } = useCollection<UnitFormRequest>(formRequestsNotifQuery);
+
+  const getRevisionRequestsNotificationQuery = (): Query | null => {
+      if (!firestore || !userProfile) return null;
+      const col = collection(firestore, 'procedureRevisionRequests');
+      if (isAdmin) return col;
+      
+      if (userProfile.unitId) {
+          const unitObj = allUnits?.find(u => u.id === userProfile.unitId);
+          const targetId = (unitObj?.category === 'Academic') ? 'academic-shared' : userProfile.unitId;
+          return query(col, where('unitId', '==', targetId));
+      }
+      return null;
+  };
+
+  const revisionRequestsNotifQuery = useMemoFirebase(() => getRevisionRequestsNotificationQuery(), [firestore, userProfile, isAdmin, allUnits]);
+  const { data: revisionRequestsNotifications } = useCollection<ProcedureRevisionRequest>(revisionRequestsNotifQuery);
+
   // EOMS Points — unit submissions for current year
   const currentYear = new Date().getFullYear();
   const eomsSubsQuery = useMemoFirebase(() => {
@@ -372,9 +404,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }).length;
   }, [commsNotifications, userProfile, userRole, isAdmin]);
 
+  const formRequestNotificationsCount = useMemo(() => {
+    if (!formRequestNotifications || !userProfile) return 0;
+    return formRequestNotifications.filter(r => {
+      if (isAdmin) {
+        return r.status === 'Submitted' || r.status === 'QA Review' || r.status === 'Awaiting Presidential Approval';
+      }
+      return r.status === 'Returned for Correction';
+    }).length;
+  }, [formRequestNotifications, userProfile, isAdmin]);
+
+  const revisionRequestsNotificationsCount = useMemo(() => {
+    if (!revisionRequestsNotifications || !userProfile) return 0;
+    return revisionRequestsNotifications.filter(r => {
+      if (isAdmin) {
+        return r.status === 'Submitted' || r.status === 'Awaiting Presidential Approval';
+      }
+      return r.status === 'Returned for Revision';
+    }).length;
+  }, [revisionRequestsNotifications, userProfile, isAdmin]);
+
   const totalNotificationsCount = useMemo(() => {
-    return subNotificationsCount + carNotificationsCount + riskNotificationsCount + accreditationNotificationsCount + decisionNotificationsCount + commNotificationsCount;
-  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, commNotificationsCount]);
+    return subNotificationsCount + carNotificationsCount + riskNotificationsCount + accreditationNotificationsCount + decisionNotificationsCount + commNotificationsCount + formRequestNotificationsCount + revisionRequestsNotificationsCount;
+  }, [subNotificationsCount, carNotificationsCount, riskNotificationsCount, accreditationNotificationsCount, decisionNotificationsCount, commNotificationsCount, formRequestNotificationsCount, revisionRequestsNotificationsCount]);
 
   const notificationsList = useMemo(() => {
     const list: any[] = [];
@@ -506,9 +558,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         });
       });
     }
+    // 7. Form Requests — individual items
+    if (formRequestNotifications && userProfile) {
+      formRequestNotifications.forEach(r => {
+        if (isAdmin) {
+          if (r.status !== 'Submitted' && r.status !== 'QA Review' && r.status !== 'Awaiting Presidential Approval') return;
+          list.push({
+            id: `form-req-${r.id}`,
+            module: 'unit-forms',
+            label: `Form App — ${r.unitName || 'Unit'}`,
+            description: r.isDraft ? `Draft: ${r.status}` : `Pending: ${r.status}`,
+            link: '/unit-forms?tab=roster'
+          });
+        } else {
+          if (r.status !== 'Returned for Correction') return;
+          list.push({
+            id: `form-req-${r.id}`,
+            module: 'unit-forms',
+            label: `Form App Returned`,
+            description: `Correction required for ${r.requestedForms?.length || 0} forms`,
+            link: '/unit-forms?tab=roster'
+          });
+        }
+      });
+    }
+
+    // 8. Procedure Revision Requests — individual items
+    if (revisionRequestsNotifications && userProfile) {
+      revisionRequestsNotifications.forEach(r => {
+        if (isAdmin) {
+          if (r.status !== 'Submitted' && r.status !== 'Awaiting Presidential Approval') return;
+          list.push({
+            id: `rev-req-${r.id}`,
+            module: 'manuals',
+            label: `Manual Rev — ${r.unitName || 'Unit'}`,
+            description: `Pending: ${r.status}`,
+            link: '/manuals'
+          });
+        } else {
+          if (r.status !== 'Returned for Revision') return;
+          list.push({
+            id: `rev-req-${r.id}`,
+            module: 'manuals',
+            label: `Manual Rev Returned`,
+            description: `Returned for revision — review feedback`,
+            link: '/manuals'
+          });
+        }
+      });
+    }
 
     return list.slice(0, MAX_ITEMS);
-  }, [subNotifications, carNotifications, riskNotifications, complianceNotifications, decisionNotifications, commsNotifications, userProfile, userRole, isAdmin, isSupervisor, isAuditor, allUnits]);
+  }, [subNotifications, carNotifications, riskNotifications, complianceNotifications, decisionNotifications, commsNotifications, formRequestNotifications, revisionRequestsNotifications, userProfile, userRole, isAdmin, isSupervisor, isAuditor, allUnits]);
 
   const notificationCount = subNotificationsCount;
 
@@ -638,7 +739,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </SidebarHeader>
             <SidebarContent className="p-4 pt-2">
-              <SidebarNav notificationCount={notificationCount} commNotificationCount={commNotificationsCount} />
+              <SidebarNav 
+                notificationCount={notificationCount} 
+                commNotificationCount={commNotificationsCount} 
+                formRequestNotificationsCount={formRequestNotificationsCount} 
+                manualsNotificationCount={revisionRequestsNotificationsCount} 
+              />
             </SidebarContent>
           </Sidebar>
           <SidebarInset className="overflow-hidden">

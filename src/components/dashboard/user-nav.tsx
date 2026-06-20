@@ -145,6 +145,8 @@ export function UserNav({
                             else if (item.module === 'risk') { iconColor = 'text-amber-600'; iconBg = 'bg-amber-50'; }
                             else if (item.module === 'accreditation') { iconColor = 'text-indigo-600'; iconBg = 'bg-indigo-50'; }
                             else if (item.module === 'decisions') { iconColor = 'text-emerald-600'; iconBg = 'bg-emerald-50'; }
+                            else if (item.module === 'unit-forms') { iconColor = 'text-blue-600'; iconBg = 'bg-blue-50'; }
+                            else if (item.module === 'manuals') { iconColor = 'text-sky-600'; iconBg = 'bg-sky-50'; }
 
                             return (
                                 <DropdownMenuItem 

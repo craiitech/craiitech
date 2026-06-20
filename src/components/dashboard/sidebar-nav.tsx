@@ -33,12 +33,22 @@ import { useTheme } from '@/context/theme-provider';
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
   commNotificationCount?: number;
+  formRequestNotificationsCount?: number;
+  manualsNotificationCount?: number;
+  riskNotificationsCount?: number;
+  qaReportsNotificationCount?: number;
+  accreditationNotificationsCount?: number;
 }
 
 export function SidebarNav({
   className,
   notificationCount,
   commNotificationCount = 0,
+  formRequestNotificationsCount = 0,
+  manualsNotificationCount = 0,
+  riskNotificationsCount = 0,
+  qaReportsNotificationCount = 0,
+  accreditationNotificationsCount = 0,
   ...props
 }: SidebarNavProps) {
   const pathname = usePathname();
@@ -327,6 +337,7 @@ export function SidebarNav({
       active: pathname.startsWith('/academic-programs'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <BookOpen />,
+      showBadge: true,
     },
     {
       href: '/gad-corner',
@@ -356,6 +367,7 @@ export function SidebarNav({
       label: 'Unit Procedure Manuals',
       active: pathname.startsWith('/manuals'),
       icon: <BookOpen />,
+      showBadge: true,
     },
     {
       href: '/eoms-policy-manual',
@@ -368,18 +380,21 @@ export function SidebarNav({
       label: 'Unit Forms & Records',
       active: pathname.startsWith('/unit-forms'),
       icon: <ListChecks />,
+      showBadge: true,
     },
     {
       href: '/risk-register',
       label: 'Risk & Opportunity Registry',
       active: pathname.startsWith('/risk-register'),
       icon: <ShieldCheck />,
+      showBadge: true,
     },
     {
       href: '/qa-reports',
       label: 'QA Reports & CARs',
       active: pathname.startsWith('/qa-reports'),
       icon: <FolderKanban />,
+      showBadge: true,
     },
     {
       href: '/visitor-logbook',
@@ -490,6 +505,36 @@ export function SidebarNav({
                           commNotificationCount > 0 && (
                             <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
                               {commNotificationCount}
+                            </SidebarMenuBadge>
+                          )
+                        ) : route.href === '/unit-forms' ? (
+                          formRequestNotificationsCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {formRequestNotificationsCount}
+                            </SidebarMenuBadge>
+                          )
+                        ) : route.href === '/manuals' ? (
+                          manualsNotificationCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {manualsNotificationCount}
+                            </SidebarMenuBadge>
+                          )
+                        ) : route.href === '/risk-register' ? (
+                          riskNotificationsCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {riskNotificationsCount}
+                            </SidebarMenuBadge>
+                          )
+                        ) : route.href === '/qa-reports' ? (
+                          qaReportsNotificationCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {qaReportsNotificationCount}
+                            </SidebarMenuBadge>
+                          )
+                        ) : route.href === '/academic-programs' ? (
+                          accreditationNotificationsCount > 0 && (
+                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                              {accreditationNotificationsCount}
                             </SidebarMenuBadge>
                           )
                         ) : (

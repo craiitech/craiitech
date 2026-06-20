@@ -239,6 +239,38 @@ export function VoiceAnnouncements() {
         }
       }
 
+      // Admin specific announcements (Form Registrations and Procedure Manual Revisions pending review)
+      if (isAdmin) {
+        let pendingFormsCount = 0;
+        let pendingManualsCount = 0;
+        try {
+          const formsSnap = await getDocs(collection(firestore, 'unitFormRequests'));
+          pendingFormsCount = formsSnap.docs.filter(d => {
+            const s = d.data().status;
+            return s === 'Submitted' || s === 'QA Review' || s === 'Awaiting Presidential Approval';
+          }).length;
+        } catch { /* silent */ }
+
+        try {
+          const manualsSnap = await getDocs(collection(firestore, 'procedureRevisionRequests'));
+          pendingManualsCount = manualsSnap.docs.filter(d => {
+            const s = d.data().status;
+            return s === 'Submitted' || s === 'Awaiting Presidential Approval';
+          }).length;
+        } catch { /* silent */ }
+
+        if (pendingFormsCount > 0 || pendingManualsCount > 0) {
+          const parts: string[] = [];
+          if (pendingFormsCount > 0) {
+            parts.push(`${pendingFormsCount} form registration request${pendingFormsCount > 1 ? 's' : ''}`);
+          }
+          if (pendingManualsCount > 0) {
+            parts.push(`${pendingManualsCount} procedure revision request${pendingManualsCount > 1 ? 's' : ''}`);
+          }
+          listItems.push(`Additionally, you have ${parts.join(' and ')} pending review in the manuals and forms inbox.`);
+        }
+      }
+
       // Unread communications (for everyone)
       let unreadCommsCount = 0;
       try {
