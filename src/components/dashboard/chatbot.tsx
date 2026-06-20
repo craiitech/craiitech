@@ -412,7 +412,7 @@ export function Chatbot() {
         )}
         <Button
           onClick={() => setIsOpen(!isOpen)}
-          className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:scale-105 transition-all duration-300 shadow-primary/30 flex items-center justify-center border border-white/20 animate-pulse-slow"
+          className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:scale-105 transition-all duration-300 shadow-primary/30 flex items-center justify-center border border-white/20"
           size="icon"
           title="Get Help Chatbot"
           id="tour-chatbot"
