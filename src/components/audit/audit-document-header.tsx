@@ -136,13 +136,13 @@ export const auditPageNumberScript = `
 `;
 
 function HeaderTable({
-  docNum,
-  standard,
-  dateOfAudit,
-  reportTitle,
-  reportYear,
-  campusLocation,
-  logoPath,
+  docNum = '__________',
+  standard = 'ISO 21001:2018',
+  dateOfAudit = '__________',
+  reportTitle = 'INTERNAL QUALITY AUDIT REPORT',
+  reportYear = new Date().getFullYear(),
+  campusLocation = 'Main Campus, Odiongan, Romblon',
+  logoPath = '/rsulogo.png',
 }: AuditDocumentHeaderProps) {
   return (
     <table className="audit-inner-header">
@@ -181,7 +181,11 @@ function HeaderTable({
 }
 
 export function AuditDocumentHeader(props: AuditDocumentHeaderProps) {
-  const { children, ...headerProps } = props;
+  const { children, logoPath: passedLogoPath, ...restProps } = props;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const logoPath = passedLogoPath ?? '/rsulogo.png';
+  const resolvedLogo = logoPath.startsWith('/') ? origin + logoPath : logoPath;
+  const headerProps = { ...restProps, logoPath: resolvedLogo };
 
   if (!children) {
     return (
