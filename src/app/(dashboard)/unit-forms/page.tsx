@@ -580,7 +580,11 @@ export default function UnitFormsPage() {
                                                   </TableCell>
                                                   <TableCell className="text-xs">{req.submitterName}</TableCell>
                                                   <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
-                                                  <TableCell className="text-right pr-6"><Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">Review</Button></TableCell>
+                                                  <TableCell className="text-right pr-6">
+                                                      <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
+                                                          {req.status === 'QA Review' ? 'Provide Decision' : 'Review'}
+                                                      </Button>
+                                                  </TableCell>
                                               </TableRow>
                                           ))}
                                       </TableBody>
