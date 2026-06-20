@@ -792,7 +792,7 @@ function UnitActivityScannerTerminal() {
 
   if (isUserLoading || isLoadingActivity) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#0d2a18]">
+      <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="h-12 w-12 text-[#D4AF37] animate-spin" />
           <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Loading Terminal...</p>
@@ -810,7 +810,7 @@ function UnitActivityScannerTerminal() {
     : '';
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#0d2a18] font-sans text-white flex flex-col">
+    <div className="relative w-full h-dvh overflow-hidden bg-[#0d2a18] font-sans text-white flex flex-col">
 
       {/* ================================================================== */}
       {/* BACKGROUND: rsupage.png VIVID full-screen + Ken Burns + glass overlay */}
@@ -1343,7 +1343,7 @@ function UnitActivityScannerTerminal() {
 export default function UnitActivityScannerPage() {
   return (
     <Suspense fallback={
-      <div className="flex h-screen w-full items-center justify-center bg-[#0d2a18]">
+      <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="h-12 w-12 text-[#D4AF37] animate-spin" />
           <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Loading Terminal...</p>

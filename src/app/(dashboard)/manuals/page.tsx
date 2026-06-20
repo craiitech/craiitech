@@ -242,7 +242,7 @@ export default function ProcedureManualsPage() {
         </ScrollArea>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100vh-16rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100dvh-16rem)]">
         {/* Sidebar Index */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",

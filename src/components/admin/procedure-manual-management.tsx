@@ -209,7 +209,7 @@ export function ProcedureManualManagement() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <ScrollArea className="h-[60vh] pr-4">
+          <ScrollArea className="h-[60dvh] pr-4">
             <Table>
               <TableHeader>
                 <TableRow>

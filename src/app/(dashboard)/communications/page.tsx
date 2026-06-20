@@ -1686,7 +1686,7 @@ export default function CommunicationsPage() {
 
       {/* Detail Viewer Modal */}
       <Dialog open={!!selectedComm} onOpenChange={(open) => !open && setSelectedComm(null)}>
-        <DialogContent className="max-w-4xl h-[85vh] bg-white border border-slate-200 rounded-2xl shadow-2xl p-0 overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl h-[85dvh] bg-white border border-slate-200 rounded-2xl shadow-2xl p-0 overflow-hidden flex flex-col">
           {selectedComm && (
             <>
               {/* Modal Header */}

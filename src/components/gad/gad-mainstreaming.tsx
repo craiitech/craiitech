@@ -94,7 +94,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-20rem)] overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100dvh-20rem)] overflow-hidden">
       {/* Unit Directory Sidebar - Hidden for GAD Coordinators */}
       <Card className={cn("lg:col-span-1 flex flex-col overflow-hidden shadow-sm border-primary/10", isGadCoordinator && "hidden lg:hidden")}>
         <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">

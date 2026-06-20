@@ -279,7 +279,7 @@ function CsmEvaluateContent() {
 
   if (isAuthenticating) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#0d2a18]">
+      <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-16 w-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin" />
           <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Loading CSM Evaluation...</p>
@@ -752,7 +752,7 @@ function CsmEvaluateContent() {
 export default function CsmEvaluatePage() {
   return (
     <Suspense fallback={
-      <div className="flex h-screen w-full items-center justify-center bg-[#0d2a18]">
+      <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
         <div className="relative h-16 w-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin" />
       </div>
     }>

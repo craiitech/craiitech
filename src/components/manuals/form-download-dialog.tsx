@@ -72,7 +72,7 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
     if (downloadWindow) {
       downloadWindow.document.title = "Opening Form...";
       downloadWindow.document.body.innerHTML = `
-        <div style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f8fafc; color: #0f172a; margin: 0;">
+        <div style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100dvh; background-color: #f8fafc; color: #0f172a; margin: 0;">
           <div style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Authorizing Access</div>
           <div style="font-size: 0.875rem; color: #64748b;">Please wait while we register this request...</div>
         </div>

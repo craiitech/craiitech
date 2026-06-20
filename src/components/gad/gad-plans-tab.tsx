@@ -219,7 +219,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
 
       <Card className="shadow-lg border-primary/10 overflow-hidden">
           <CardContent className="p-0">
-              <ScrollArea className="h-[60vh]">
+              <ScrollArea className="h-[60dvh]">
                   <Table>
                       <TableHeader className="bg-muted/50 sticky top-0 z-10">
                           <TableRow>
@@ -283,7 +283,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Target className="h-5 w-5" />

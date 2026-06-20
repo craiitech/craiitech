@@ -182,7 +182,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-xl max-h-[90dvh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 border-b shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <GraduationCap className="h-5 w-5" />

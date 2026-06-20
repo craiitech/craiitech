@@ -212,7 +212,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-5xl h-[95dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <LayoutList className="h-5 w-5" />

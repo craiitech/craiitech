@@ -35,7 +35,7 @@ import { VoiceProvider } from '@/components/voice/voice-provider';
 const CURRENT_SYSTEM_VERSION = '2.6.0'; 
 
 const FullScreenLoader = () => (
-    <div className="flex h-screen w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
+    <div className="flex h-dvh w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
         <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-700">
             <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -665,7 +665,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isAuditorOfflineLockActive) {
       return (
-          <div className="flex h-screen w-full items-center justify-center p-8 bg-slate-100">
+          <div className="flex h-dvh w-full items-center justify-center p-8 bg-slate-100">
               <Card className="max-w-md w-full border-destructive/20 shadow-2xl">
                   <CardHeader className="bg-destructive/5 text-center pb-8 border-b">
                       <div className="mx-auto h-20 w-20 rounded-full bg-destructive flex items-center justify-center text-white mb-6 animate-pulse">
@@ -754,7 +754,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               />
             </SidebarContent>
           </Sidebar>
-          <SidebarInset className="overflow-hidden">
+          <SidebarInset className="overflow-hidden h-dvh max-h-dvh flex flex-col">
             <VoiceProvider>
               <Header 
                   notificationCount={notificationCount} 
@@ -763,7 +763,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   isGuidanceVisible={isGuidanceVisible}
                   onToggleGuidance={handleToggleGuidance}
               />
-              <main className="flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 h-[calc(100vh-4rem)] overflow-hidden">
+              <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-0 overflow-hidden">
                   <div className="flex-1 min-w-0 overflow-auto h-full pr-2">
                       {children}
                   </div>

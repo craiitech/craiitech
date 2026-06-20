@@ -264,7 +264,7 @@ export function ProcedureRevisionReviewDialog({ requestId, isOpen, onOpenChange,
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-7xl h-[92dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">

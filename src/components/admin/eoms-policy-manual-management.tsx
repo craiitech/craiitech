@@ -134,7 +134,7 @@ export function EomsPolicyManualManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[60vh] pr-4">
+          <ScrollArea className="h-[60dvh] pr-4">
             <Table>
               <TableHeader>
                 <TableRow>

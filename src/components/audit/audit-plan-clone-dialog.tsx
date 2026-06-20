@@ -175,7 +175,7 @@ export function AuditPlanCloneDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-4xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <Copy className="h-5 w-5" />

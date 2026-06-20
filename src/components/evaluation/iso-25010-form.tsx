@@ -194,7 +194,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none"
+        className="max-w-5xl h-[95dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >

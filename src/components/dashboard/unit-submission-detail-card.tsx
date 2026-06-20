@@ -219,7 +219,7 @@ export function UnitSubmissionDetailCard({
         </Button>
       </CardHeader>
       <CardContent className="pt-6 bg-muted/5 p-0">
-        <ScrollArea className="h-[70vh]">
+        <ScrollArea className="h-[70dvh]">
             <div className="p-6 space-y-6">
                 <StrategicSwotAnalysis 
                     submissions={unitSubmissions.yearSubmissions}

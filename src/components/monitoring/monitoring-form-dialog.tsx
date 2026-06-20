@@ -336,7 +336,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95dvh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 border-b bg-card shrink-0 shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">

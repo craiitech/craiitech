@@ -303,7 +303,7 @@ export function Chatbot() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="fixed bottom-24 right-4 z-50 focus-visible:outline-none"
           >
-            <Card className="w-[380px] sm:w-[440px] h-[75vh] max-h-[600px] flex flex-col shadow-2xl border-primary/20 bg-white/80 backdrop-blur-md overflow-hidden shadow-[0_0_50px_-12px_rgba(15,23,42,0.15)] select-none">
+            <Card className="w-[380px] sm:w-[440px] h-[75dvh] max-h-[600px] flex flex-col shadow-2xl border-primary/20 bg-white/80 backdrop-blur-md overflow-hidden shadow-[0_0_50px_-12px_rgba(15,23,42,0.15)] select-none">
               <CardHeader className="flex flex-row items-center justify-between bg-primary/5 border-b py-3.5 px-5 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">

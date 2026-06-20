@@ -720,7 +720,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
-        <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">

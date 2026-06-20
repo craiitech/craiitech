@@ -334,7 +334,7 @@ export function ProcedureRevisionDialog({
         </Button>
       </div>
 
-      <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+      <div className="space-y-4 max-h-[50dvh] overflow-y-auto pr-2">
         {fields.map((field, index) => (
           <Card key={field.id} className="relative group border-primary/10 hover:border-primary/30 transition-all bg-muted/5">
             {fields.length > 1 && (
@@ -614,7 +614,7 @@ export function ProcedureRevisionDialog({
         </div>
       ) : (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-          <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+          <DialogContent className="max-w-4xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
             <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
               <div className="flex items-center gap-2 text-primary mb-1">
                 <ShieldCheck className="h-5 w-5" />

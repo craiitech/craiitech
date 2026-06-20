@@ -448,7 +448,7 @@ export function RiskFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
-      <DialogContent className={cn("max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden", registryLink ? "lg:max-w-[1600px]" : "lg:max-w-7xl")} onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
+      <DialogContent className={cn("max-w-[95vw] h-[95dvh] flex flex-col p-0 overflow-hidden", registryLink ? "lg:max-w-[1600px]" : "lg:max-w-7xl")} onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
         <div className="p-6 border-b shrink-0 bg-card shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">

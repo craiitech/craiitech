@@ -300,7 +300,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-20rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100dvh-20rem)]">
         <div className={cn(
             "transition-all duration-300 overflow-hidden flex flex-col gap-2",
             isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -600,7 +600,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
       </Dialog>
 
       <Dialog open={isOutputDialogOpen} onOpenChange={(open) => { setIsOutputDialogOpen(open); if (!open) setEditingOutput(null); }}>
-        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ListChecks className="h-5 w-5" />

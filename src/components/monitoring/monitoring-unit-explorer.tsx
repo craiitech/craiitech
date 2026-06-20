@@ -65,7 +65,7 @@ export function MonitoringUnitExplorer({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-16rem)]">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100dvh-16rem)]">
       <Card className="md:col-span-1 flex flex-col overflow-hidden">
         <CardHeader className="bg-muted/30 pb-4">
           <CardTitle className="text-sm font-bold uppercase tracking-wider">Unit Selection</CardTitle>

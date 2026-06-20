@@ -93,7 +93,7 @@ const updates = [
 export function WhatsNewDialog({ isOpen, onOpenChange, onAcknowledge }: WhatsNewDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+      <DialogContent className="max-w-2xl h-[80dvh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="p-8 bg-gradient-to-br from-primary to-indigo-900 text-white shrink-0">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md">

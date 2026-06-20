@@ -509,7 +509,7 @@ export default function RiskRegisterPage() {
 
       {/* --- DUPLICATE AUDIT DIALOG --- */}
       <Dialog open={isDuplicateAuditOpen} onOpenChange={setIsDuplicateAuditOpen}>
-        <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-3xl h-[80dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
             <div className="p-6 border-b bg-slate-50 shrink-0">
                 <div className="flex items-center gap-2 text-rose-600 mb-1">
                     <ShieldAlert className="h-5 w-5" />

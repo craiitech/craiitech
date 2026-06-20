@@ -489,7 +489,7 @@ export function CampusSubmissionsView({
         </Button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-16rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100dvh-16rem)]">
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"

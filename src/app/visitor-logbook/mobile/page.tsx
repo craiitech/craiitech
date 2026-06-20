@@ -606,7 +606,7 @@ function MobileVisitorLogbookContent() {
               </div>
             ) : (
               /* ARTA CSM SURVEY QUESTIONNAIRE MOBILE */
-              <div className="space-y-6 text-left max-h-[75vh] overflow-y-auto pr-1">
+              <div className="space-y-6 text-left max-h-[75dvh] overflow-y-auto pr-1">
                 
                 {/* Survey Header */}
                 <div className="border-b pb-4 flex flex-col gap-2">

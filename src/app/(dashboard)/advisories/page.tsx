@@ -135,7 +135,7 @@ export default function QaAdvisoriesPage() {
 
       {/* --- PREVIEW MODAL --- */}
       <Dialog open={!!previewAdvisory} onOpenChange={() => setPreviewAdvisory(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-5xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-5 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

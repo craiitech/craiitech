@@ -610,8 +610,8 @@ export function SidebarNav({
       </div>
 
       <AlertDialog open={isVisitorDialogOpen} onOpenChange={setIsVisitorDialogOpen}>
-        <AlertDialogContent className="max-w-3xl bg-white border border-[#D4AF37]/20 rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader>
+        <AlertDialogContent className="max-w-3xl max-h-[92dvh] flex flex-col bg-white border border-[#D4AF37]/20 rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader className="shrink-0">
             <AlertDialogTitle className="text-lg font-black uppercase text-[#1B6535] tracking-tight flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-[#D4AF37]" /> Visitor Logbook Hub
             </AlertDialogTitle>
@@ -621,7 +621,7 @@ export function SidebarNav({
           </AlertDialogHeader>
 
           {/* Two-column layout */}
-          <div className="flex flex-col md:flex-row gap-6 py-4">
+          <div className="flex-1 overflow-y-auto pr-2 flex flex-col md:flex-row gap-6 py-4">
             {/* Left column: Action buttons */}
             <div className="flex-1 flex flex-col gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Actions</p>
@@ -671,9 +671,9 @@ export function SidebarNav({
               <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
                 {csmQrUrl ? (
                   <img
-                    src={csmQrUrl}
-                    alt="CSM Online Evaluation QR Code"
-                    className="w-[164px] h-[164px] object-contain"
+                     src={csmQrUrl}
+                     alt="CSM Online Evaluation QR Code"
+                     className="w-[164px] h-[164px] object-contain"
                   />
                 ) : (
                   <div className="w-[164px] h-[164px] flex items-center justify-center">
@@ -774,7 +774,7 @@ export function SidebarNav({
             </div>
           </div>
 
-          <AlertDialogFooter className="border-t pt-3">
+          <AlertDialogFooter className="border-t pt-3 shrink-0">
             <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
               Close
             </AlertDialogCancel>

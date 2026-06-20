@@ -931,7 +931,7 @@ export default function VisitorLogbookPage() {
 
   if (isUserLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#0d2a18]">
+      <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-16 w-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin" />
           <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Loading Terminal...</p>
@@ -1011,7 +1011,7 @@ export default function VisitorLogbookPage() {
       </div>
 
       {/* Main layout wrapper */}
-      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-6 xl:gap-8 max-w-7xl w-full mx-auto my-4 xl:my-6 z-10 xl:h-[calc(100vh-160px)] xl:min-h-[580px] xl:max-h-[750px]">
+      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-6 xl:gap-8 max-w-7xl w-full mx-auto my-4 xl:my-6 z-10 xl:h-[calc(100dvh-160px)] xl:min-h-[580px] xl:max-h-[750px]">
         
         {/* Left column: Welcome, date/time info */}
         <div className="w-full xl:w-[28%] flex flex-col justify-between text-center xl:text-left space-y-6 xl:space-y-0 py-2">
@@ -1682,7 +1682,7 @@ export default function VisitorLogbookPage() {
       {/* ARTA CSM Survey Kiosk Overlay */}
       {activeSurveyVisitor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-300">
-          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto text-left space-y-6 animate-in zoom-in-95 duration-300">
+          <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-2xl w-full my-8 max-h-[90dvh] overflow-y-auto text-left space-y-6 animate-in zoom-in-95 duration-300">
             
             {/* Header with Language Toggle */}
             <div className="border-b pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

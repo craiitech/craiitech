@@ -91,7 +91,7 @@ export function MonitoringFindings({ records, campuses, units, isLoading }: Moni
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-20rem)]">
+        <ScrollArea className="h-[calc(100dvh-20rem)]">
           <div className="divide-y">
             {findingsData.map((unit: any) => (
               <div key={unit.id} className="p-6 hover:bg-muted/30 transition-colors">

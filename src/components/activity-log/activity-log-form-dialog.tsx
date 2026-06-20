@@ -131,7 +131,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl border-primary/20 shadow-2xl overflow-hidden p-0">
+      <DialogContent className="sm:max-w-xl max-h-[92dvh] flex flex-col border-primary/20 shadow-2xl overflow-hidden p-0">
         <DialogHeader className="bg-slate-50 p-6 border-b shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <ShieldCheck className="h-5 w-5" />
@@ -142,7 +142,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-6 flex-1 overflow-y-auto min-h-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="date" render={({ field }) => (
                     <FormItem>
@@ -233,7 +233,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
                 </p>
             </div>
 
-            <DialogFooter className="pt-4 border-t mt-6">
+            <DialogFooter className="pt-4 border-t mt-6 shrink-0">
                 <Button type="button" variant="ghost" className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => onOpenChange(false)}>Discard</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-11">
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}

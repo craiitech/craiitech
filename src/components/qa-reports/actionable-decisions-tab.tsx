@@ -651,7 +651,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         <DialogDescription className="text-xs">Comprehensive view of the institutional requirement and assigned responsibilities.</DialogDescription>
                     </DialogHeader>
                     
-                    <ScrollArea className="max-h-[60vh]">
+                    <ScrollArea className="max-h-[60dvh]">
                         <div className="p-8 space-y-8">
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
@@ -882,7 +882,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       </Dialog>
 
       <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-        <DialogContent className="sm:max-w-lg h-[80vh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-lg h-[80dvh] flex flex-col p-0">
           <DialogHeader className="p-6 border-b shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Send className="h-5 w-5" />

@@ -2233,7 +2233,7 @@ export default function UnitActivityPage() {
       {/* ================================================================== */}
       {editingActivity && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90dvh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <div>
@@ -2714,7 +2714,7 @@ export default function UnitActivityPage() {
       {/* EVALUATION SUMMARY MODAL                                           */}
       {/* ================================================================== */}
       <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-        <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="max-w-5xl max-h-[92dvh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-emerald-700 to-teal-700 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -3114,7 +3114,7 @@ export default function UnitActivityPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+          <div className="p-6 space-y-6 max-h-[60dvh] overflow-y-auto">
             {/* Demographics Card */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-3 gap-4">
               <div>

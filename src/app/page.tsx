@@ -112,7 +112,7 @@ export default function Home() {
         {/* Content Wrapper */}
         <div className="relative z-10 flex flex-col overflow-x-hidden">
             {/* Hero Section */}
-            <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90vh] px-4">
+            <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90dvh] px-4">
                 <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl animate-in fade-in zoom-in duration-1000">
                     <div className="flex flex-col items-center gap-6">
                         {/* ISO Logo with Official Certipedia Link */}

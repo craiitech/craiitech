@@ -169,7 +169,7 @@ export function GADAccomplishmentTab({ plans, activities, campuses, units, selec
               </div>
           </CardHeader>
           <CardContent className="p-0">
-              <ScrollArea className="h-[60vh]">
+              <ScrollArea className="h-[60dvh]">
                   <Table>
                       <TableHeader className="bg-muted/30 sticky top-0 z-10">
                           <TableRow>
