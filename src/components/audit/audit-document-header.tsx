@@ -143,12 +143,16 @@ function HeaderTable({
   campusLocation,
   logoPath,
 }: AuditDocumentHeaderProps) {
+  const resolvedLogo = logoPath?.startsWith('/')
+    ? (typeof window !== 'undefined' ? window.location.origin + logoPath : logoPath)
+    : logoPath;
+
   return (
     <table className="audit-inner-header">
       <tbody>
         <tr>
           <td rowSpan={4} className="audit-header-logo-cell">
-            <img src={logoPath} alt="RSU Logo" className="audit-header-logo" />
+            <img src={resolvedLogo} alt="RSU Logo" className="audit-header-logo" />
           </td>
           <td rowSpan={4} className="audit-header-center">
             <p className="audit-header-univ">Romblon State University</p>
