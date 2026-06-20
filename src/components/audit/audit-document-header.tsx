@@ -1,3 +1,5 @@
+import { ReactNode } from 'react';
+
 interface AuditDocumentHeaderProps {
   docNum?: string;
   standard?: string;
@@ -6,30 +8,39 @@ interface AuditDocumentHeaderProps {
   reportYear?: number;
   campusLocation?: string;
   logoPath?: string;
+  children?: ReactNode;
 }
 
 export const auditHeaderStyles = `
-  .audit-header-table {
+  .audit-outer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #fff;
+  }
+  @media print {
+    .audit-outer-thead {
+      display: table-header-group;
+    }
+  }
+  .audit-inner-header {
     width: 100%;
     border-collapse: collapse;
     border: 1.5px solid #000;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #fff;
-    margin-bottom: 16px;
   }
-  .audit-header-table td {
+  .audit-inner-header td {
     border: 1.5px solid #000;
     padding: 6px 8px;
     vertical-align: middle;
   }
   .audit-header-logo-cell {
-    width: 110px;
+    width: 100px;
     text-align: center;
     vertical-align: middle;
   }
   .audit-header-logo {
-    max-width: 72px;
-    max-height: 72px;
+    max-width: 65px;
+    max-height: 65px;
     display: block;
     margin: 0 auto;
   }
@@ -74,25 +85,23 @@ export const auditHeaderStyles = `
   }
   .audit-header-label {
     font-weight: 700;
-    font-size: 9pt;
+    font-size: 8.5pt;
     background: #f1f5f9;
     white-space: nowrap;
-    width: 40%;
+    width: 45%;
+    padding: 4px 6px !important;
     border-right: 1.5px solid #000 !important;
   }
   .audit-header-value {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: 600;
+    padding: 4px 6px !important;
   }
   .audit-header-page-value {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: 700;
     color: #64748b;
-  }
-  @media print {
-    .audit-header-repeat {
-      display: table-header-group;
-    }
+    padding: 4px 6px !important;
   }
 `;
 
@@ -125,25 +134,23 @@ export const auditPageNumberScript = `
 </script>
 `;
 
-export function AuditDocumentHeader({
-  docNum = '__________',
-  standard = 'ISO 21001:2018',
-  dateOfAudit = '__________',
-  reportTitle = 'INTERNAL QUALITY AUDIT REPORT',
-  reportYear = new Date().getFullYear(),
-  campusLocation = 'Main Campus, Odiongan, Romblon',
-  logoPath = '/rsulogo.png',
+function HeaderTable({
+  docNum,
+  standard,
+  dateOfAudit,
+  reportTitle,
+  reportYear,
+  campusLocation,
+  logoPath,
 }: AuditDocumentHeaderProps) {
   return (
-    <>
-      <style>{auditHeaderStyles}</style>
-      <table className="audit-header-table">
-      <thead className="audit-header-repeat">
+    <table className="audit-inner-header">
+      <tbody>
         <tr>
           <td rowSpan={4} className="audit-header-logo-cell">
             <img src={logoPath} alt="RSU Logo" className="audit-header-logo" />
           </td>
-          <td rowSpan={4} className="audit-header-center">
+          <td rowSpan={4} className="audit-header-center" style={{ width: '62%' }}>
             <p className="audit-header-univ">Romblon State University</p>
             <p className="audit-header-iqa">INTERNAL QUALITY AUDIT</p>
             <div className="audit-header-divider" />
@@ -167,7 +174,41 @@ export function AuditDocumentHeader({
             Page <span className="page-number">1</span> of <span className="total-pages">1</span>
           </td>
         </tr>
+      </tbody>
+    </table>
+  );
+}
+
+export function AuditDocumentHeader(props: AuditDocumentHeaderProps) {
+  const { children, ...headerProps } = props;
+
+  if (!children) {
+    return (
+      <>
+        <style>{auditHeaderStyles}</style>
+        <HeaderTable {...headerProps} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <style>{auditHeaderStyles}</style>
+      <table className="audit-outer-table">
+        <thead className="audit-outer-thead">
+          <tr>
+            <td style={{ padding: 0, border: 'none' }}>
+              <HeaderTable {...headerProps} />
+            </td>
+          </tr>
         </thead>
+        <tbody>
+          <tr>
+            <td style={{ padding: 0, border: 'none', verticalAlign: 'top' }}>
+              {children}
+            </td>
+          </tr>
+        </tbody>
       </table>
     </>
   );

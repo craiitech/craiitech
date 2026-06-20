@@ -453,17 +453,16 @@ export function ConsolidatedAuditReportTemplate({
   }, [byUnit, unitFilter, schedules, unitMap]);
 
   return (
-    <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+    <AuditDocumentHeader
+      docNum={plan.auditNumber}
+      standard="ISO 21001:2018"
+      dateOfAudit={auditDateRange}
+      reportTitle="INTERNAL QUALITY AUDIT REPORT"
+      reportYear={plan.year}
+      campusLocation="Main Campus, Odiongan, Romblon"
+    >
+      <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       
-      <AuditDocumentHeader
-        docNum={plan.auditNumber}
-        standard="ISO 21001:2018"
-        dateOfAudit={auditDateRange}
-        reportTitle="INTERNAL QUALITY AUDIT REPORT"
-        reportYear={plan.year}
-        campusLocation="Main Campus, Odiongan, Romblon"
-      />
-
       {/* SECTION: AUDIT FINDINGS */}
       <div className="space-y-10">
         <div className="space-y-2">
@@ -541,5 +540,6 @@ export function ConsolidatedAuditReportTemplate({
         <span>Generated via RSU EOMS Portal</span>
       </div>
     </div>
+    </AuditDocumentHeader>
   );
 }
