@@ -5,6 +5,7 @@ import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Un
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { parseDate } from '@/lib/utils';
+import { AuditDocumentHeader } from '@/components/audit/audit-document-header';
 
 const getSiteNumber = (name: string): number => {
   const nameUpper = name.toUpperCase();
@@ -454,42 +455,14 @@ export function ConsolidatedAuditReportTemplate({
   return (
     <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       
-      {/* OFFICIAL HEADER TABLE */}
-      <table className="w-full border-collapse border-[1.5px] border-slate-400 mb-8">
-        <tbody>
-          <tr>
-            <td className="border-[1.5px] border-slate-400 p-4 w-[70%] text-center align-middle space-y-1">
-              <p className="text-xs font-bold text-slate-600 leading-none">Romblon State University</p>
-              <p className="text-sm font-black uppercase tracking-widest text-slate-800">INTERNAL QUALITY AUDIT</p>
-              <div className="h-px bg-slate-300 w-24 mx-auto my-1" />
-              <p className="text-sm font-black uppercase text-slate-900">{plan.year} INTERNAL QUALITY AUDIT REPORT</p>
-              <p className="text-[10pt] italic">Main Campus, Odiongan, Romblon</p>
-            </td>
-            <td className="border-[1.5px] border-slate-400 w-[30%] p-0">
-              <table className="w-full border-collapse h-full">
-                <tbody>
-                  <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 w-1/3 text-[10pt]">Doc. Num.</td>
-                    <td className="p-1.5 text-[10pt]">{plan.auditNumber}</td>
-                  </tr>
-                  <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 text-[10pt]">Standard</td>
-                    <td className="p-1.5 font-bold text-[10pt]">ISO 21001:2018</td>
-                  </tr>
-                  <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 text-[10pt]">Date of Audit</td>
-                    <td className="p-1.5 text-[9pt]">{auditDateRange}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 text-[10pt]">Page No.</td>
-                    <td className="p-1.5 font-bold text-slate-400 text-[10pt]">Page 1 of 1</td>
-                  </tr>
-                </tbody>
-              </table>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <AuditDocumentHeader
+        docNum={plan.auditNumber}
+        standard="ISO 21001:2018"
+        dateOfAudit={auditDateRange}
+        reportTitle="INTERNAL QUALITY AUDIT REPORT"
+        reportYear={plan.year}
+        campusLocation="Main Campus, Odiongan, Romblon"
+      />
 
       {/* SECTION: AUDIT FINDINGS */}
       <div className="space-y-10">
