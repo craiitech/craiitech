@@ -27,20 +27,21 @@ export const auditHeaderStyles = `
     width: 100%;
     border-collapse: collapse;
     border: 1.5px solid #000;
+    margin-bottom: 0;
   }
   .audit-inner-header td {
     border: 1.5px solid #000;
-    padding: 6px 8px;
+    padding: 5px 8px;
     vertical-align: middle;
   }
   .audit-header-logo-cell {
-    width: 100px;
+    width: 95px;
     text-align: center;
     vertical-align: middle;
   }
   .audit-header-logo {
-    max-width: 65px;
-    max-height: 65px;
+    max-width: 60px;
+    max-height: 60px;
     display: block;
     margin: 0 auto;
   }
@@ -85,23 +86,22 @@ export const auditHeaderStyles = `
   }
   .audit-header-label {
     font-weight: 700;
-    font-size: 8.5pt;
+    font-size: 10pt;
     background: #f1f5f9;
     white-space: nowrap;
-    width: 45%;
-    padding: 4px 6px !important;
+    padding: 5px 8px !important;
     border-right: 1.5px solid #000 !important;
   }
   .audit-header-value {
-    font-size: 8.5pt;
+    font-size: 10pt;
     font-weight: 600;
-    padding: 4px 6px !important;
+    padding: 5px 8px !important;
   }
   .audit-header-page-value {
-    font-size: 8.5pt;
+    font-size: 10pt;
     font-weight: 700;
     color: #64748b;
-    padding: 4px 6px !important;
+    padding: 5px 8px !important;
   }
 `;
 
@@ -150,15 +150,15 @@ function HeaderTable({
           <td rowSpan={4} className="audit-header-logo-cell">
             <img src={logoPath} alt="RSU Logo" className="audit-header-logo" />
           </td>
-          <td rowSpan={4} className="audit-header-center" style={{ width: '62%' }}>
+          <td rowSpan={4} className="audit-header-center">
             <p className="audit-header-univ">Romblon State University</p>
             <p className="audit-header-iqa">INTERNAL QUALITY AUDIT</p>
             <div className="audit-header-divider" />
             <p className="audit-header-report-title">{reportYear} {reportTitle}</p>
             <p className="audit-header-campus">{campusLocation}</p>
           </td>
-          <td className="audit-header-label">Doc. Num.</td>
-          <td className="audit-header-value">{docNum}</td>
+          <td className="audit-header-label" width="130">Doc. Num.</td>
+          <td className="audit-header-value" width="130">{docNum}</td>
         </tr>
         <tr>
           <td className="audit-header-label">Standard</td>
