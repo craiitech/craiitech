@@ -28,6 +28,16 @@ interface AuditorRegistryPrintTemplateProps {
 }
 
 export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, leadAuditorName }: AuditorRegistryPrintTemplateProps) {
+  const sortedAuditorData = React.useMemo(() => {
+    return [...auditorData].sort((a, b) => {
+      const pctA = a.count > 0 ? (a.completed / a.count) : 0;
+      const pctB = b.count > 0 ? (b.completed / b.count) : 0;
+      if (pctB !== pctA) return pctB - pctA;
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name);
+    });
+  }, [auditorData]);
+
   const getAuditorStatus = (auditor: AuditorData) => {
     if (auditor.count === 0) return 'No Assignments';
     if (auditor.completed === auditor.count) return 'Completed';
@@ -107,7 +117,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
               </tr>
           </thead>
           <tbody>
-              {auditorData.map((auditor, i) => {
+              {sortedAuditorData.map((auditor, i) => {
                   const status = getAuditorStatus(auditor);
                   const percentage = auditor.count > 0 ? Math.round((auditor.completed / auditor.count) * 100) : 0;
                   const sortedAssignments = [...auditor.assignments].sort((a, b) => {
