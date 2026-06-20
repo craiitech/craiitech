@@ -15,6 +15,121 @@
         { "fieldPath": "unitId", "order": "ASCENDING" },
         { "fieldPath": "campusId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "correctiveActionRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "campusId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" },
+        { "fieldPath": "year", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statusId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "risks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "risks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "campusId", "order": "ASCENDING" },
+        { "fieldPath": "year", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "risks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "year", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "risks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" },
+        { "fieldPath": "year", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "programCompliances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "campusId", "order": "ASCENDING" },
+        { "fieldPath": "academicYear", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "programCompliances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "academicYear", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "programCompliances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" },
+        { "fieldPath": "academicYear", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "programCompliances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "academicYear", "order": "ASCENDING" },
+        { "fieldPath": "unitId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "unitMonitoringRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "campusId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "unitFormRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ]
 }
