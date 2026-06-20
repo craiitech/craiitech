@@ -81,13 +81,20 @@ export default function LoginPage() {
                 {/* Let's Encrypt Protection Badge */}
                 <div className="flex items-center gap-3 pl-2">
                     <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Protected by:</span>
-                    <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm transition-all hover:bg-white/20">
-                        <svg viewBox="0 0 100 100" className="h-5 w-5 fill-white" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M50 0C22.4 0 0 22.4 0 50s22.4 50 50 50 50-22.4 50-50S77.6 0 50 0zm0 92c-23.2 0-42-18.8-42-42S26.8 8 50 8s42 18.8 42 42-18.8 42-42 42z"/>
-                            <path d="M50 20c-11 0-20 9-20 20v10h-4v30h48V50h-4V40c0-11-9-20-20-20zm12 52H38V58h24v14zm-12-30c-6.6 0-12 5.4-12 12v6h24v-6c0-6.6-5.4-12-12-12z"/>
-                        </svg>
-                        <span className="text-xs font-black text-white tracking-tighter">Let's Encrypt</span>
-                    </div>
+                    <a 
+                      href="https://letsencrypt.org" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="transition-all hover:opacity-80 active:scale-95 block"
+                    >
+                      <Image 
+                        src="/ssl.png" 
+                        alt="Protected by Let's Encrypt SSL" 
+                        width={130} 
+                        height={35} 
+                        className="object-contain h-7 w-auto" 
+                      />
+                    </a>
                 </div>
             </div>
           </div>
