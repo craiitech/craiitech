@@ -1651,8 +1651,8 @@ export default function VisitorLogbookPage() {
                       try {
                         const officeNameStr = isCampusOdimoOrDirector 
                           ? "OFFICE OF THE CAMPUS DIRECTOR" 
-                          : (unitDoc?.name || userProfile.unitName || 'Office');
-                        const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                          : (unitDoc?.name || userProfile?.unitName || 'Office');
+                        const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
                         const fullCsmUrl = `${window.location.origin}${csmPath}`;
                         await navigator.clipboard.writeText(fullCsmUrl);
                         toast({
