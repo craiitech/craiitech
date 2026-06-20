@@ -56,6 +56,24 @@ export function useGetCollection<T = any>(
         for (const doc of snapshot.docs) {
           results.push({ ...(doc.data() as T), id: doc.id });
         }
+
+        // Auto-sort campuses alphabetically by name
+        try {
+          const path: string =
+            memoizedTargetRefOrQuery.type === 'collection'
+              ? (memoizedTargetRefOrQuery as CollectionReference).path
+              : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+          if (path === 'campuses' || path.split('/').includes('campuses')) {
+            results.sort((a: any, b: any) => {
+              const nameA = String(a.name || '').trim();
+              const nameB = String(b.name || '').trim();
+              return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+            });
+          }
+        } catch (e) {
+          console.error("Error sorting campuses in useGetCollection:", e);
+        }
+
         setData(results);
         setError(null);
         setIsLoading(false);
