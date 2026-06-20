@@ -99,7 +99,7 @@ export default function HelpPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
                 <div className="flex items-center gap-2 text-primary">
-                  <HelpCircle className="h-5 w-5 animate-pulse" />
+                  <HelpCircle className="h-5 w-5 animate-pulse-slow" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Assistance</span>
                 </div>
                 <h2 className="text-2xl font-black uppercase text-slate-800 tracking-tight">EOMS Support Desk</h2>

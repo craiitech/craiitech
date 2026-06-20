@@ -58,7 +58,7 @@ export function ContextualHelp() {
       <AlertDialogContent className="max-w-md border-primary/20 shadow-2xl">
         <AlertDialogHeader>
           <div className="flex items-center gap-2 text-primary mb-3">
-            <Lightbulb className="h-5 w-5 animate-pulse" />
+            <Lightbulb className="h-5 w-5 animate-pulse-slow" />
             <AlertDialogTitle className="text-sm font-black uppercase tracking-[0.2em]">{currentHelp.title}</AlertDialogTitle>
           </div>
           <p className="text-[11px] text-muted-foreground font-bold italic mb-4">"{currentHelp.description}"</p>

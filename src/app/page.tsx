@@ -30,6 +30,7 @@ import {
     ChevronRight,
     Search,
     QrCode,
+    Camera,
     CalendarCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -164,6 +165,13 @@ export default function Home() {
                             <Link href="/attendance-app" className="flex items-center gap-2.5">
                                 <QrCode className="h-5 w-5" />
                                 My Attendance
+                            </Link>
+                        </Button>
+                        {/* Scan QR — mobile camera QR scanner (Mobile/Tablet only) */}
+                        <Button asChild size="lg" className="lg:hidden h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-amber-950/40 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-400 hover:to-[#D4AF37] border-none text-white transition-all hover:scale-105 active:scale-95">
+                            <Link href="/scan" className="flex items-center gap-2.5">
+                                <Camera className="h-5 w-5" />
+                                Scan QR
                             </Link>
                         </Button>
                     </div>
