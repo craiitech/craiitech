@@ -98,10 +98,19 @@ export default function UnitFormsPage() {
   const [isHistoryActive, setIsHistoryActive] = useState(false);
 
   const handleTabChange = (value: string) => {
+    if (value === 'inbox') {
+      setIsHistoryActive(true);
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', value);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
+
+  useEffect(() => {
+    if (currentTab === 'inbox') {
+      setIsHistoryActive(true);
+    }
+  }, [currentTab]);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
@@ -143,6 +152,12 @@ export default function UnitFormsPage() {
         return dateB - dateA;
     });
   }, [unitRequests]);
+
+  const requestsToShow = useMemo(() => {
+    return isAdmin ? sortedAllRequests : sortedUnitRequests;
+  }, [isAdmin, sortedAllRequests, sortedUnitRequests]);
+
+  const isLoadingRequests = isAdmin ? isLoadingAllRequests : isLoadingUnitRequests;
 
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
@@ -315,6 +330,11 @@ export default function UnitFormsPage() {
                     <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
                     </TabsTrigger>
+                    {isAdmin && (
+                        <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
+                        </TabsTrigger>
+                    )}
                 </TabsList>
             </ScrollArea>
         </div>
@@ -405,7 +425,66 @@ export default function UnitFormsPage() {
                     {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </Button>
 
-                {selectedUnit ? (
+                {currentTab === 'inbox' ? (
+                    <div className="flex-1 overflow-y-auto pt-4">
+                        <TabsContent value="inbox" className="animate-in fade-in duration-500">
+                            {!isHistoryActive ? (
+                                <div className="p-12 text-center bg-white border rounded-2xl shadow-sm"><Button onClick={() => setIsHistoryActive(true)} className="font-black uppercase tracking-widest text-xs">Load Active Inbox & Review History</Button></div>
+                            ) : (
+                                <Card className="shadow-md border-primary/10 overflow-hidden">
+                                    <CardHeader className="bg-primary/5 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Form Registration Inbox</CardTitle></CardHeader>
+                                    <CardContent className="p-0">
+                                        <Table>
+                                            <TableHeader className="bg-muted/30">
+                                                <TableRow>
+                                                    <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Unit, Site & Type</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {sortedAllRequests.map(req => (
+                                                    <TableRow key={req.id} className="hover:bg-muted/20">
+                                                        <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-xs uppercase">{req.unitName}</span>
+                                                                    {req.isDraft && (
+                                                                        <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
+                                                                            <LayoutList className="h-2.5 w-2.5" /> DRAFT
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                                                                    <School className="h-2.5 w-2.5" />
+                                                                    {campusMap.get(req.campusId) || 'Site Context'}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">{req.submitterName}</TableCell>
+                                                        <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
+                                                        <TableCell className="text-right pr-6">
+                                                            <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
+                                                                {req.status === 'QA Review' 
+                                                                    ? 'Provide Decision' 
+                                                                    : req.status === 'Endorsement for Approval' 
+                                                                    ? 'Finalize / Update' 
+                                                                    : 'Review'}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+                    </div>
+                ) : selectedUnit ? (
                     <div className="flex-1 flex flex-col min-h-0">
                         <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
                             <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate">Active Context: {selectedUnit.name}</Badge>
@@ -525,7 +604,7 @@ export default function UnitFormsPage() {
                                                 onSuccess={() => handleTabChange('roster')}
                                             />
                                         )}
-                                    </div>
+                    </div>
                                 </ScrollArea>
                             </TabsContent>
                         </div>
@@ -535,71 +614,6 @@ export default function UnitFormsPage() {
         </div>
       </Tabs>
 
-      {isAdmin && (
-          <div className="mt-8">
-              <Tabs defaultValue="inbox" className="space-y-6">
-                  <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                      <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"><Inbox className="h-3.5 w-3.5" /> Registration Review Inbox</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="inbox" className="animate-in fade-in duration-500">
-                      {!isHistoryActive ? (
-                          <div className="p-12 text-center bg-white border rounded-2xl shadow-sm"><Button onClick={() => setIsHistoryActive(true)} className="font-black uppercase tracking-widest text-xs">Load Active Inbox & Review History</Button></div>
-                      ) : (
-                          <Card className="shadow-md border-primary/10 overflow-hidden">
-                              <CardHeader className="bg-primary/5 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Form Registration Inbox</CardTitle></CardHeader>
-                              <CardContent className="p-0">
-                                  <Table>
-                                      <TableHeader className="bg-muted/30">
-                                        <TableRow>
-                                          <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
-                                          <TableHead className="text-[10px] font-black uppercase">Unit, Site & Type</TableHead>
-                                          <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
-                                          <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                                          <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                          {sortedAllRequests.map(req => (
-                                              <TableRow key={req.id} className="hover:bg-muted/20">
-                                                  <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
-                                                  <TableCell>
-                                                      <div className="flex flex-col">
-                                                          <div className="flex items-center gap-2">
-                                                              <span className="font-bold text-xs uppercase">{req.unitName}</span>
-                                                              {req.isDraft && (
-                                                                  <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
-                                                                      <LayoutList className="h-2.5 w-2.5" /> DRAFT
-                                                                  </Badge>
-                                                              )}
-                                                          </div>
-                                                          <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
-                                                              <School className="h-2.5 w-2.5" />
-                                                              {campusMap.get(req.campusId) || 'Site Context'}
-                                                          </span>
-                                                      </div>
-                                                  </TableCell>
-                                                  <TableCell className="text-xs">{req.submitterName}</TableCell>
-                                                  <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
-                                                  <TableCell className="text-right pr-6">
-                                                      <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
-                                                          {req.status === 'QA Review' 
-                                                              ? 'Provide Decision' 
-                                                              : req.status === 'Endorsement for Approval' 
-                                                              ? 'Finalize / Update' 
-                                                              : 'Review'}
-                                                      </Button>
-                                                  </TableCell>
-                                              </TableRow>
-                                          ))}
-                                      </TableBody>
-                                  </Table>
-                              </CardContent>
-                          </Card>
-                      )}
-                  </TabsContent>
-              </Tabs>
-          </div>
-      )}
 
       {selectedUnit && <FormRegistrationDialog isOpen={isRegOpen} onOpenChange={(open) => { setIsRegOpen(open); if (!open) setEditingRequest(null); }} unit={selectedUnit as any} request={editingRequest} />}
       {downloadingForm && <FormDownloadDialog form={downloadingForm} unitId={selectedUnitId!} isOpen={!!downloadingForm} onOpenChange={(open) => !open && setDownloadingForm(null)} />}
