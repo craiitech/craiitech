@@ -103,6 +103,7 @@ export const auditHeaderStyles = `
     color: #64748b;
     padding: 5px 8px !important;
   }
+  tr { page-break-inside: avoid; }
 `;
 
 export const auditPageNumberScript = `

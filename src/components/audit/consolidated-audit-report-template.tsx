@@ -95,7 +95,7 @@ function CampusFindingsSection({
       </h4>
 
       {/* TABLE 1: COMMENDABLE FINDINGS */}
-      <table className="w-full border-collapse border-[1.5px] border-black">
+      <table className="w-full border-collapse ">
         <thead>
           <tr className="bg-slate-200">
             <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
@@ -130,7 +130,7 @@ function CampusFindingsSection({
         <p className="leading-relaxed italic">
           The following recommendations and opportunities for improvement provided by the auditor are intended to contribute to the continuous improvement of the management system of the University.
         </p>
-        <table className="w-full border-collapse border-[1.5px] border-black">
+        <table className="w-full border-collapse ">
           <thead>
             <tr className="bg-slate-200">
               <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
@@ -163,7 +163,7 @@ function CampusFindingsSection({
         <p className="leading-relaxed">
           The following Non-Conformances were identified by the auditors that require corrective actions.
         </p>
-        <table className="w-full border-collapse border-[1.5px] border-black">
+        <table className="w-full border-collapse ">
           <thead>
             <tr className="bg-slate-200">
               <th className="border border-black p-2 w-[180px] text-center font-black uppercase text-[10pt]">Site / Unit / Department</th>
@@ -254,7 +254,7 @@ function UnitFindingsSection({
       </h4>
 
       {/* TABLE 1: COMMENDABLE FINDINGS */}
-      <table className="w-full border-collapse border-[1.5px] border-black">
+      <table className="w-full border-collapse ">
         <thead>
           <tr className="bg-slate-200">
             <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
@@ -292,7 +292,7 @@ function UnitFindingsSection({
         <p className="leading-relaxed italic">
           The following recommendations and opportunities for improvement provided by the auditor are intended to contribute to the continuous improvement of the management system of the University.
         </p>
-        <table className="w-full border-collapse border-[1.5px] border-black">
+        <table className="w-full border-collapse ">
           <thead>
             <tr className="bg-slate-200">
               <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
@@ -328,7 +328,7 @@ function UnitFindingsSection({
         <p className="leading-relaxed">
           The following Non-Conformances were identified by the auditors that require corrective actions.
         </p>
-        <table className="w-full border-collapse border-[1.5px] border-black">
+        <table className="w-full border-collapse ">
           <thead>
             <tr className="bg-slate-200">
               <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
