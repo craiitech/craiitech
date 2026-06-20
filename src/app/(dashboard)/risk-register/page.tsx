@@ -90,6 +90,7 @@ export default function RiskRegisterPage() {
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [searchTerm, setSearchTerm] = useState('');
     const [isDuplicateAuditOpen, setIsDuplicateAuditOpen] = useState(false);
+    const [printCycle, setPrintCycle] = useState<'first' | 'final'>('final');
     
     // Inline Confirmation State for Duplicate Audit
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -249,7 +250,7 @@ export default function RiskRegisterPage() {
             const reportsHtml = Object.entries(risksByUnit).map(([uId, uRisks]) => {
                 const uName = unitMap.get(uId) || 'Unknown Unit';
                 const cName = campusMap.get(uRisks[0]?.campusId) || 'Institutional';
-                return renderToStaticMarkup(<div key={uId} className="print-page-break"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} signatories={signatories || undefined} /></div>);
+                return renderToStaticMarkup(<div key={uId} className="print-page-break"><RORPrintTemplate risks={uRisks} unitName={uName} campusName={cName} year={selectedYear} signatories={signatories || undefined} cycle={printCycle} /></div>);
             }).join('');
 
             const printWindow = window.open('', '_blank');
@@ -259,7 +260,7 @@ export default function RiskRegisterPage() {
                     <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>ROR Registry - ${selectedYear}</title>
+                        <title>ROR Registry - ${selectedYear} (${printCycle === 'first' ? 'First Submission' : 'Final Submission'})</title>
                         <style>
                             @page { 
                                 size: 13in 8.5in; 
@@ -310,6 +311,19 @@ export default function RiskRegisterPage() {
                     </SelectTrigger>
                     <SelectContent>
                         {yearsList.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1 w-full sm:w-auto">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Print Cycle</label>
+                    <Select value={printCycle} onValueChange={(v) => setPrintCycle(v as 'first' | 'final')}>
+                    <SelectTrigger className="w-full sm:w-[160px] h-9 bg-white font-bold shadow-sm">
+                        <Printer className="h-4 w-4 mr-2 opacity-50" />
+                        <SelectValue placeholder="Print Cycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="first">First Submission</SelectItem>
+                        <SelectItem value="final">Final Submission</SelectItem>
                     </SelectContent>
                     </Select>
                 </div>

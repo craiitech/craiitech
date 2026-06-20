@@ -11,6 +11,7 @@ interface RORPrintTemplateProps {
   campusName: string;
   year: number;
   signatories?: Signatories;
+  cycle?: 'first' | 'final';
 }
 
 /**
@@ -18,7 +19,7 @@ interface RORPrintTemplateProps {
  * Optimized for Landscape Folio (13" x 8.5") paper.
  * Uses a fixed table layout to prevent overlapping seen in previews.
  */
-export function RORPrintTemplate({ risks, unitName, campusName, year, signatories }: RORPrintTemplateProps) {
+export function RORPrintTemplate({ risks, unitName, campusName, year, signatories, cycle }: RORPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -27,7 +28,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
 
   const riskEntries = risks.filter(r => r.type === 'Risk');
   const opportunityEntries = risks.filter(r => r.type === 'Opportunity');
-  const isFinal = risks.some(r => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence));
+  const isFinal = cycle ? (cycle === 'final') : risks.some(r => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence));
 
   // SIGNATORIES
   const directorName = signatories?.qaoDirector || '____________________';
@@ -67,7 +68,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
             </div>
         </div>
       </div>
-
+      
       {/* 2. METADATA ROW */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase' }}>
         <div>Campus/College/Unit: <span style={{ textDecoration: 'underline', marginLeft: '10px' }}>{unitName} ({campusName})</span></div>
@@ -140,12 +141,12 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
               <td style={{ border: '1px solid black', padding: '4px', verticalAlign: 'top' }}>{r.treatmentAction}</td>
               <td style={{ border: '1px solid black', padding: '4px', verticalAlign: 'top', textAlign: 'center', fontWeight: 'bold', textTransform: 'uppercase' }}>{r.responsiblePersonName}</td>
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{safeDate(r.targetDate)}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{r.postTreatment?.dateImplemented || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', verticalAlign: 'top', fontSize: '7pt' }}>{r.monitoringScore}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{r.postTreatment?.likelihood || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{r.postTreatment?.consequence || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{r.postTreatment?.magnitude || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{r.postTreatment?.rating?.charAt(0) || ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{isFinal ? (r.postTreatment?.dateImplemented || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', verticalAlign: 'top', fontSize: '7pt' }}>{isFinal ? (r.monitoringScore || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{isFinal ? (r.postTreatment?.likelihood || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{isFinal ? (r.postTreatment?.consequence || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{isFinal ? (r.postTreatment?.magnitude || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{isFinal ? (r.postTreatment?.rating?.charAt(0) || '') : ''}</td>
             </tr>
           ))}
           {riskEntries.length === 0 && (
@@ -168,12 +169,12 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
               <td style={{ border: '1px solid black', padding: '4px', verticalAlign: 'top' }}>{r.treatmentAction}</td>
               <td style={{ border: '1px solid black', padding: '4px', verticalAlign: 'top', textAlign: 'center', fontWeight: 'bold', textTransform: 'uppercase' }}>{r.responsiblePersonName}</td>
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{safeDate(r.targetDate)}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{r.postTreatment?.dateImplemented || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', verticalAlign: 'top', fontSize: '7pt' }}>{r.monitoringScore}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{r.postTreatment?.likelihood || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{r.postTreatment?.consequence || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{r.postTreatment?.magnitude || ''}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{r.postTreatment?.rating?.charAt(0) || ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{isFinal ? (r.postTreatment?.dateImplemented || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', verticalAlign: 'top', fontSize: '7pt' }}>{isFinal ? (r.monitoringScore || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{isFinal ? (r.postTreatment?.likelihood || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{isFinal ? (r.postTreatment?.consequence || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{isFinal ? (r.postTreatment?.magnitude || '') : ''}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: '900' }}>{isFinal ? (r.postTreatment?.rating?.charAt(0) || '') : ''}</td>
             </tr>
           ))}
           {opportunityEntries.length === 0 && (
