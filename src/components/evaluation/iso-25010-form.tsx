@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
@@ -54,6 +54,14 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const scrollAreaRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      scrollViewportRef.current = node.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null;
+    } else {
+      scrollViewportRef.current = null;
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -99,8 +107,23 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
     } catch {}
   }, [watchedScores, watchedComments, watchedRecs]);
 
+  // Scroll viewport to top on step change
+  useEffect(() => {
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
+
   const currentCategory = iso25010Categories[currentStep];
   const isLastStep = currentStep === iso25010Categories.length - 1;
+
+  const totalCount = currentCategory?.subCharacteristics.length || 0;
+  const answeredCount = currentCategory?.subCharacteristics.filter(
+    sub => {
+      const val = watchedScores?.[sub.id] as any;
+      return val !== undefined && val !== null && val !== '';
+    }
+  ).length || 0;
 
   const validateCurrentStep = () => {
     const missing = currentCategory.subCharacteristics.filter(sub => {
@@ -183,21 +206,33 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                     <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">Institutional Quality Audit</span>
                 </div>
                 <DialogTitle className="text-base sm:text-xl font-bold">ISO/IEC 25010 Software Quality Assessment</DialogTitle>
-                <DialogDescription className="text-[10px] sm:text-xs">
-                    Step {currentStep + 1} of {iso25010Categories.length}: {currentCategory?.name}
+                <DialogDescription className="text-[10px] sm:text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                    <span>Step {currentStep + 1} of {iso25010Categories.length}: {currentCategory?.name}</span>
+                    <span>&bull;</span>
+                    <span className={cn(answeredCount === totalCount ? "text-emerald-600" : "text-amber-600")}>
+                        {answeredCount} of {totalCount} items evaluated
+                    </span>
                 </DialogDescription>
             </div>
-            <div className="hidden sm:flex gap-2">
+            <div className="hidden sm:flex gap-2 items-center">
                  <Badge variant="outline" className="h-6 font-black bg-white border-primary/20 text-primary">AY 2025</Badge>
-                 <Badge variant="secondary" className="h-6 font-black uppercase text-[9px]">{currentCategory?.name}</Badge>
+                 <Badge 
+                   variant={answeredCount === totalCount ? "default" : "secondary"} 
+                   className={cn(
+                     "h-6 font-black uppercase text-[9px] transition-colors duration-200",
+                     answeredCount === totalCount ? "bg-emerald-600 text-white hover:bg-emerald-600" : ""
+                   )}
+                 >
+                     {answeredCount === totalCount ? "Complete" : `Progress: ${answeredCount}/${totalCount}`}
+                 </Badge>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col bg-white">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-              <ScrollArea className="flex-1">
+              <ScrollArea ref={scrollAreaRef} className="flex-1">
                 <div className="p-4 sm:p-8 space-y-8 sm:space-y-10 pb-24">
                   <div className="p-4 sm:p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner space-y-1">
                     <h3 className="font-black text-primary text-[11px] sm:text-sm uppercase tracking-wider">{currentCategory?.name}</h3>
