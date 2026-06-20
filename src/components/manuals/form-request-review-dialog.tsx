@@ -164,7 +164,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
         comments: arrayUnion({
           text: discussionComment.trim(),
           authorId: userProfile.id,
-          authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+          authorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User',
           authorRole: userRole || 'Member',
           createdAt: new Date(),
         }),
@@ -189,6 +189,14 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
     resolver: zodResolver(commentSchema),
     defaultValues: { comment: '' }
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({ comment: '' });
+      setAdminChecklist({});
+      setDiscussionComment('');
+    }
+  }, [isOpen, requestId, form]);
 
   useEffect(() => {
     if (request?.presidentialApprovalLink) {
@@ -222,9 +230,9 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
 
       if (commentText) {
           updateData.comments = arrayUnion({
-              text: commentText,
+              text: commentText.trim(),
               authorId: userProfile.id,
-              authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+              authorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'QA Officer',
               authorRole: userRole || 'Admin',
               createdAt: new Date(),
           });
@@ -253,6 +261,8 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
       }
 
       await batch.commit();
+      form.reset({ comment: '' });
+      setAdminChecklist({});
       toast({ title: 'Decision Logged', description: `Request status transitioned to ${newStatus}.` });
       onOpenChange(false);
     } catch (error) {
@@ -264,7 +274,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
 
   const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
-  const isAwaitingPresident = request?.status === 'Awaiting Presidential Approval';
+  const isAwaitingPresident = request?.status === 'Endorsement for Approval';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -398,97 +408,34 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                             <TabsContent value="actions" className="h-full m-0 flex flex-col">
                                 <ScrollArea className="flex-1">
                                     <div className="p-6 space-y-8">
-                                        {isAwaitingPresident ? (
-                                            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                                                <Alert className="bg-amber-50 border-amber-200 shadow-sm">
-                                                    <Gavel className="h-4 w-4 text-amber-600" />
-                                                    <AlertTitle className="text-xs font-black uppercase tracking-tight text-amber-800">Final Executive Action Required</AlertTitle>
-                                                    <AlertDescription className="text-[11px] leading-relaxed font-medium text-amber-700">
-                                                        {isAdmin 
-                                                            ? "This application has passed QA review. To complete the **Official Registration**, please provide the Google Drive link of the scanned/signed copy of the President's approval."
-                                                            : "Your application has passed QA review and is currently awaiting the President's official approval. No further action is required from your unit at this time."}
-                                                    </AlertDescription>
-                                                </Alert>
-
-                                                {isAdmin && (
-                                                    <div className="space-y-4">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
-                                                                <LinkIcon className="h-3 w-3" /> Scanned Presidential Approval Link
-                                                            </Label>
-                                                            <Input 
-                                                                value={presidentialLink} 
-                                                                onChange={(e) => setPresidentialLink(e.target.value)} 
-                                                                placeholder="https://drive.google.com/..." 
-                                                                className="bg-white border-primary/20 h-11 font-bold shadow-inner"
-                                                            />
-                                                            <p className="text-[9px] text-muted-foreground italic">Provide the evidence of executive authority to finalize enrollment.</p>
-                                                        </div>
-
-                                                        <GDrivePreview url={presidentialLink} title="Presidential Approval Proof" />
-
-                                                        <div className="pt-4 space-y-2">
-                                                            <Button 
-                                                                type="button" 
-                                                                className="w-full h-12 font-black text-xs uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" 
-                                                                onClick={() => handleUpdateStatus('Approved & Registered', 'Presidential approval verified. Forms officially enrolled in unit roster.')} 
-                                                                disabled={isProcessing || !presidentialLink.startsWith('https://drive.google.com/')}
-                                                            >
-                                                                <ShieldCheck className="h-5 w-5" /> Finalize & Register All Forms
-                                                            </Button>
-                                                            <Button 
-                                                                type="button" 
-                                                                variant="outline"
-                                                                className="w-full h-10 font-bold text-[10px] uppercase border-destructive/20 text-destructive hover:bg-destructive/5" 
-                                                                onClick={() => handleUpdateStatus('Returned for Correction', 'Reverted from executive stage for corrective action.')} 
-                                                                disabled={isProcessing}
-                                                            >
-                                                                <Undo2 className="h-3.5 w-3.5 mr-2" /> Revert to Unit
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                
-                                                {!isAdmin && request.presidentialApprovalLink && (
-                                                    <div className="space-y-4">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Verification Evidence (Read-Only)</p>
-                                                        <GDrivePreview url={request.presidentialApprovalLink} title="Presidential Approval Proof" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : isAdmin && !request.isDraft ? (
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <ShieldCheck className="h-4 w-4 text-primary" />
-                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Compliance Checklist</h4>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {adminChecklistItems.map(item => (
-                                                        <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl border bg-white shadow-sm transition-all hover:border-primary/30 cursor-pointer" onClick={() => handleToggleChecklist(item.id)}>
-                                                            <Checkbox id={`check-${item.id}`} checked={adminChecklist[item.id] || false} onCheckedChange={() => handleToggleChecklist(item.id)} />
-                                                            <Label htmlFor={`check-${item.id}`} className="text-xs font-medium leading-relaxed cursor-pointer">{item.label}</Label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : isAdmin && request.isDraft ? (
-                                            <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl space-y-2">
-                                                <div className="flex items-center gap-2 text-blue-800">
-                                                    <LayoutList className="h-4 w-4" />
-                                                    <p className="text-[11px] font-black uppercase">Draft Content Audit Mode</p>
-                                                </div>
-                                                <p className="text-[10px] text-blue-700 leading-relaxed font-medium">Verify form content, layout, and coding accuracy. Strict compliance checklists and presidential approvals are bypassed for preliminary draft review.</p>
-                                            </div>
-                                         ) : !isAdmin && request?.status === 'Returned for Correction' ? (
+                                        {request.status === 'Approved & Registered' ? (
+                                             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                                                 <Alert className="bg-emerald-50 border-emerald-200 shadow-sm">
+                                                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                     <AlertTitle className="text-xs font-black uppercase tracking-tight text-emerald-800">Finalized & Registered</AlertTitle>
+                                                     <AlertDescription className="text-[11px] leading-relaxed font-medium text-emerald-700">
+                                                         This application has been successfully verified, approved, and officially enrolled in the unit's active forms roster.
+                                                     </AlertDescription>
+                                                 </Alert>
+                                                 {request.presidentialApprovalLink && (
+                                                     <div className="space-y-4">
+                                                         <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Approved DRF Form Evidence</p>
+                                                         <GDrivePreview url={request.presidentialApprovalLink} title="Approved DRF Form" />
+                                                     </div>
+                                                 )}
+                                             </div>
+                                         ) : request.status === 'Returned for Correction' ? (
                                              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                                                  <Alert className="bg-rose-50 border-rose-200 shadow-sm">
                                                      <AlertTriangle className="h-4 w-4 text-rose-600 animate-bounce" />
-                                                     <AlertTitle className="text-xs font-black uppercase tracking-tight text-rose-800">Corrections Required</AlertTitle>
+                                                     <AlertTitle className="text-xs font-black uppercase tracking-tight text-rose-800">Returned for Correction</AlertTitle>
                                                      <AlertDescription className="text-[11px] leading-relaxed font-medium text-rose-700">
-                                                         This application has been returned for correction. Please review the official comments and findings under the discussion tab to see what changes are needed, then use the resubmission wizard below.
+                                                         {isAdmin 
+                                                             ? "This request has been returned to the submitting unit for correction. It is currently awaiting their update and resubmission."
+                                                             : "This application has been returned for correction. Please review the official comments and findings under the discussion tab to see what changes are needed, then use the resubmission wizard below."}
                                                      </AlertDescription>
                                                  </Alert>
-                                                 {onEditClick && (
+                                                 {!isAdmin && onEditClick && (
                                                      <Button 
                                                          type="button" 
                                                          className="w-full h-11 font-black text-[10px] uppercase bg-rose-600 hover:bg-rose-700 text-white gap-2 shadow-xl shadow-rose-200" 
@@ -501,49 +448,125 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                                      </Button>
                                                  )}
                                              </div>
+                                         ) : request.status === 'Endorsement for Approval' ? (
+                                             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                                                 <Alert className="bg-amber-50 border-amber-200 shadow-sm">
+                                                     <Gavel className="h-4 w-4 text-amber-600" />
+                                                     <AlertTitle className="text-xs font-black uppercase tracking-tight text-amber-800">Final Endorsement Action Required</AlertTitle>
+                                                     <AlertDescription className="text-[11px] leading-relaxed font-medium text-amber-700">
+                                                         {isAdmin 
+                                                             ? "This application has passed QA review and is endorsed for approval. To complete the **Official Registration**, please provide the Google Drive link of the scanned copy of the approved DRF form."
+                                                             : "Your application has passed QA review and is currently awaiting final approval. No further action is required from your unit at this time."}
+                                                     </AlertDescription>
+                                                 </Alert>
+
+                                                 {isAdmin && (
+                                                     <div className="space-y-4">
+                                                         <div className="space-y-2">
+                                                             <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                                                 <LinkIcon className="h-3 w-3" /> Scanned Approved DRF Form Link
+                                                             </Label>
+                                                             <Input 
+                                                                 value={presidentialLink} 
+                                                                 onChange={(e) => setPresidentialLink(e.target.value)} 
+                                                                 placeholder="https://drive.google.com/..." 
+                                                                 className="bg-white border-primary/20 h-11 font-bold shadow-inner"
+                                                             />
+                                                             <p className="text-[9px] text-muted-foreground italic">Provide the link to the signed and approved DRF document to finalize enrollment.</p>
+                                                         </div>
+
+                                                         <GDrivePreview url={presidentialLink} title="Approved DRF Form Proof" />
+
+                                                         <div className="pt-4 space-y-2">
+                                                             <Button 
+                                                                 type="button" 
+                                                                 className="w-full h-12 font-black text-xs uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" 
+                                                                 onClick={() => handleUpdateStatus('Approved & Registered', 'Approved DRF form verified. Forms officially enrolled in unit roster.')} 
+                                                                 disabled={isProcessing || !presidentialLink.startsWith('https://drive.google.com/')}
+                                                             >
+                                                                 <ShieldCheck className="h-5 w-5" /> Finalize
+                                                             </Button>
+                                                             <Button 
+                                                                 type="button" 
+                                                                 variant="outline"
+                                                                 className="w-full h-10 font-bold text-[10px] uppercase border-destructive/20 text-destructive hover:bg-destructive/5" 
+                                                                 onClick={() => handleUpdateStatus('Returned for Correction', 'Reverted from endorsement stage for corrective action.')} 
+                                                                 disabled={isProcessing}
+                                                             >
+                                                                 <Undo2 className="h-3.5 w-3.5 mr-2" /> Revert to Unit
+                                                             </Button>
+                                                         </div>
+                                                     </div>
+                                                 )}
+                                             </div>
                                          ) : (
-                                             <div className="py-20 text-center opacity-40">
-                                                 <Clock className="h-10 w-10 mx-auto mb-3" />
-                                                 <p className="text-xs font-bold uppercase tracking-widest">Oversight Pending</p>
-                                                 <p className="text-[10px] mt-2 italic px-6">The Quality Assurance Office is currently evaluating this application.</p>
+                                             <div className="space-y-6">
+                                                 {isAdmin ? (
+                                                     <div className="space-y-6">
+                                                         {request.isDraft ? (
+                                                             <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl space-y-2">
+                                                                 <div className="flex items-center gap-2 text-blue-800">
+                                                                     <LayoutList className="h-4 w-4" />
+                                                                     <p className="text-[11px] font-black uppercase">Draft Content Audit Mode</p>
+                                                                 </div>
+                                                                 <p className="text-[10px] text-blue-700 leading-relaxed font-medium">Verify form content, layout, and coding accuracy. Strict compliance checklists and presidential approvals are bypassed for preliminary draft review.</p>
+                                                             </div>
+                                                         ) : (
+                                                             <div className="space-y-4">
+                                                                 <div className="flex items-center gap-2">
+                                                                     <ShieldCheck className="h-4 w-4 text-primary" />
+                                                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Compliance Checklist</h4>
+                                                                 </div>
+                                                                 <div className="space-y-2">
+                                                                     {adminChecklistItems.map(item => (
+                                                                         <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl border bg-white shadow-sm transition-all hover:border-primary/30 cursor-pointer" onClick={() => handleToggleChecklist(item.id)}>
+                                                                             <Checkbox id={`check-${item.id}`} checked={adminChecklist[item.id] || false} onCheckedChange={() => handleToggleChecklist(item.id)} />
+                                                                             <Label htmlFor={`check-${item.id}`} className="text-xs font-medium leading-relaxed cursor-pointer">{item.label}</Label>
+                                                                         </div>
+                                                                     ))}
+                                                                 </div>
+                                                             </div>
+                                                         )}
+
+                                                         <div className="space-y-4 pt-4 border-t">
+                                                             <div className="flex items-center gap-2">
+                                                                 <MessageSquare className="h-4 w-4 text-primary" />
+                                                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Findings / Comments</h4>
+                                                             </div>
+                                                             <Form {...form}>
+                                                                 <form className="space-y-4">
+                                                                     <FormField control={form.control} name="comment" render={({ field }) => (
+                                                                         <FormItem>
+                                                                             <FormControl><Textarea {...field} placeholder="Enter review notes or required changes..." rows={4} className="text-xs italic bg-white shadow-inner" /></FormControl>
+                                                                             <FormMessage />
+                                                                         </FormItem>
+                                                                     )} />
+                                                                     {request.isDraft ? (
+                                                                         <div className="grid grid-cols-2 gap-3">
+                                                                             <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required for rejection.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
+                                                                             <Button type="button" className="h-10 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-1.5 shadow-lg shadow-emerald-200" onClick={() => { handleUpdateStatus('Approved & Registered', form.getValues('comment') || 'Draft cleared as satisfactory.'); }} disabled={isProcessing}><Check className="h-3.5 w-3.5" /> CLEAR DRAFT</Button>
+                                                                         </div>
+                                                                     ) : (
+                                                                         <div className="space-y-3">
+                                                                             <div className="grid grid-cols-1">
+                                                                                 <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required for rejection.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
+                                                                             </div>
+                                                                             <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Endorsement for Approval', form.getValues('comment') || 'Review complete. Endorsed for final approval.')} disabled={isProcessing || !isChecklistComplete}><Monitor className="h-4 w-4" /> Endorse for Final Approval</Button>
+                                                                         </div>
+                                                                     )}
+                                                                 </form>
+                                                             </Form>
+                                                         </div>
+                                                     </div>
+                                                 ) : (
+                                                     <div className="py-20 text-center opacity-40">
+                                                         <Clock className="h-10 w-10 mx-auto mb-3" />
+                                                         <p className="text-xs font-bold uppercase tracking-widest">Oversight Pending</p>
+                                                         <p className="text-[10px] mt-2 italic px-6">The Quality Assurance Office is currently evaluating this application.</p>
+                                                     </div>
+                                                 )}
                                              </div>
                                          )}
-
-                                        {isAdmin && !isAwaitingPresident && (
-                                            <div className="space-y-4 pt-4 border-t">
-                                                <div className="flex items-center gap-2">
-                                                    <MessageSquare className="h-4 w-4 text-primary" />
-                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Findings / Comments</h4>
-                                                </div>
-                                                <Form {...form}>
-                                                    <form className="space-y-4">
-                                                        <FormField control={form.control} name="comment" render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormControl><Textarea {...field} placeholder="Enter review notes or required changes..." rows={4} className="text-xs italic bg-white shadow-inner" /></FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )} />
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <Button type="button" variant="outline" className="text-destructive font-black h-10 text-[10px] uppercase border-destructive/20 hover:bg-destructive/5 gap-1.5" onClick={() => { const c = form.getValues('comment'); if(!c) { form.setError('comment', { type: 'manual', message: 'Feedback required for rejection.' }); return; } handleUpdateStatus('Returned for Correction', c); }} disabled={isProcessing}><Undo2 className="h-3.5 w-3.5" /> REJECT</Button>
-                                                            <Button type="button" variant="outline" className="h-10 font-black text-[10px] uppercase gap-1.5" onClick={() => { handleUpdateStatus('QA Review', form.getValues('comment') || 'Moved to active QA validation stage.'); }} disabled={isProcessing}><ShieldCheck className="h-3.5 w-3.5" /> START QA</Button>
-                                                        </div>
-                                                        <Separator />
-                                                        <div className="space-y-2">
-                                                            {!request.isDraft && (
-                                                                <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-amber-500 text-amber-950 hover:bg-amber-600 gap-2 shadow-lg shadow-amber-200" onClick={() => handleUpdateStatus('Awaiting Presidential Approval', form.getValues('comment') || 'Review complete. Endorsed for executive registration.')} disabled={isProcessing || !isChecklistComplete}><Monitor className="h-4 w-4" /> Endorse for Final Approval</Button>
-                                                            )}
-                                                            <Button type="button" className="w-full h-11 font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 gap-2 shadow-xl shadow-emerald-200" onClick={() => handleUpdateStatus('Approved & Registered', form.getValues('comment') || (request.isDraft ? 'Draft cleared as satisfactory.' : 'Verification complete. Forms now enrolled in institutional roster.'))} disabled={isProcessing || !isChecklistComplete}>
-                                                                <Check className="h-4 w-4" /> 
-                                                                {request.isDraft ? 'Clear Draft as Satisfactory' : 'Register All Forms'}
-                                                            </Button>
-                                                        </div>
-                                                        {!request.isDraft && (
-                                                            <p className="text-[9px] text-muted-foreground italic text-center">Note: Final registration for non-drafts requires Presidential Approval Link at the next stage.</p>
-                                                        )}
-                                                    </form>
-                                                </Form>
-                                            </div>
-                                        )}
                                     </div>
                                 </ScrollArea>
                             </TabsContent>

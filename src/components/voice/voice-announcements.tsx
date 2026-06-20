@@ -247,7 +247,7 @@ export function VoiceAnnouncements() {
           const formsSnap = await getDocs(collection(firestore, 'unitFormRequests'));
           pendingFormsCount = formsSnap.docs.filter(d => {
             const s = d.data().status;
-            return s === 'Submitted' || s === 'QA Review' || s === 'Awaiting Presidential Approval';
+            return s === 'Submitted' || s === 'QA Review' || s === 'Endorsement for Approval';
           }).length;
         } catch { /* silent */ }
 

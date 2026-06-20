@@ -188,7 +188,7 @@ export function FormRegistrationDialog({
               scannedRegistrationFormLink: values.scannedRegistrationFormLink.trim(),
               isDraft: values.isDraft,
               requestedForms: sanitizedForms,
-              status: 'Submitted' as UnitFormRequestStatus,
+              status: 'QA Review' as UnitFormRequestStatus,
               updatedAt: serverTimestamp(),
           });
           toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged.' });
@@ -202,7 +202,7 @@ export function FormRegistrationDialog({
             campusId: userProfile.campusId || '',
             submitterId: userProfile.id,
             submitterName: `${userProfile.firstName} ${userProfile.lastName}`,
-            status: 'Submitted' as UnitFormRequestStatus,
+            status: 'QA Review' as UnitFormRequestStatus,
             controlNumber,
             comments: [],
             createdAt: serverTimestamp(),

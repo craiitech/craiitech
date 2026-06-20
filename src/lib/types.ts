@@ -560,7 +560,7 @@ export type UnitForm = {
     createdAt: any;
 };
 
-export type UnitFormRequestStatus = 'Submitted' | 'QA Review' | 'Returned for Correction' | 'Awaiting Presidential Approval' | 'Approved & Registered';
+export type UnitFormRequestStatus = 'Submitted' | 'QA Review' | 'Returned for Correction' | 'Endorsement for Approval' | 'Approved & Registered';
 
 export type UnitFormRequestComment = {
     text: string;

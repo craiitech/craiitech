@@ -62,7 +62,7 @@ const statusColors: Record<string, string> = {
     'Submitted': 'bg-blue-100 text-blue-700',
     'QA Review': 'bg-indigo-100 text-indigo-700',
     'Returned for Correction': 'bg-rose-100 text-rose-700',
-    'Awaiting Presidential Approval': 'bg-amber-100 text-amber-700',
+    'Endorsement for Approval': 'bg-amber-100 text-amber-700',
     'Approved & Registered': 'bg-emerald-100 text-emerald-700',
 };
 
@@ -582,7 +582,11 @@ export default function UnitFormsPage() {
                                                   <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
                                                   <TableCell className="text-right pr-6">
                                                       <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
-                                                          {req.status === 'QA Review' ? 'Provide Decision' : 'Review'}
+                                                          {req.status === 'QA Review' 
+                                                              ? 'Provide Decision' 
+                                                              : req.status === 'Endorsement for Approval' 
+                                                              ? 'Finalize / Update' 
+                                                              : 'Review'}
                                                       </Button>
                                                   </TableCell>
                                               </TableRow>

@@ -408,7 +408,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!formRequestNotifications || !userProfile) return 0;
     return formRequestNotifications.filter(r => {
       if (isAdmin) {
-        return r.status === 'Submitted' || r.status === 'QA Review' || r.status === 'Awaiting Presidential Approval';
+        return r.status === 'Submitted' || r.status === 'QA Review' || r.status === 'Endorsement for Approval';
       }
       return r.status === 'Returned for Correction';
     }).length;
@@ -562,7 +562,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (formRequestNotifications && userProfile) {
       formRequestNotifications.forEach(r => {
         if (isAdmin) {
-          if (r.status !== 'Submitted' && r.status !== 'QA Review' && r.status !== 'Awaiting Presidential Approval') return;
+          if (r.status !== 'Submitted' && r.status !== 'QA Review' && r.status !== 'Endorsement for Approval') return;
           list.push({
             id: `form-req-${r.id}`,
             module: 'unit-forms',
