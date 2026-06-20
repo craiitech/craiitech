@@ -37,7 +37,8 @@ import {
     Link as LinkIcon,
     Eye,
     Clock,
-    Edit
+    Edit,
+    Send
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +108,38 @@ function GDrivePreview({ url, title }: { url?: string; title: string }) {
   );
 }
 
+const getCommentTime = (createdAt: any): number => {
+  if (!createdAt) return 0;
+  if (createdAt instanceof Date) return createdAt.getTime();
+  if (typeof createdAt.toDate === 'function') return createdAt.toDate().getTime();
+  if (typeof createdAt.seconds === 'number') return createdAt.seconds * 1000;
+  const d = new Date(createdAt);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+};
+
+const getFormattedCommentDate = (createdAt: any): string => {
+  if (!createdAt) return 'N/A';
+  try {
+    if (createdAt instanceof Date) {
+      return format(createdAt, 'MMM dd, p');
+    }
+    if (typeof createdAt.toDate === 'function') {
+      return format(createdAt.toDate(), 'MMM dd, p');
+    }
+    if (typeof createdAt.seconds === 'number') {
+      return format(new Date(createdAt.seconds * 1000), 'MMM dd, p');
+    }
+    const d = new Date(createdAt);
+    if (!isNaN(d.getTime())) {
+      return format(d, 'MMM dd, p');
+    }
+    return 'N/A';
+  } catch (e) {
+    console.error('Error formatting comment date:', e);
+    return 'N/A';
+  }
+};
+
 export function ProcedureRevisionReviewDialog({ requestId, isOpen, onOpenChange, onEditClick }: ProcedureRevisionReviewDialogProps) {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
@@ -120,6 +153,32 @@ export function ProcedureRevisionReviewDialog({ requestId, isOpen, onOpenChange,
   const [manualRevisionNumber, setManualRevisionNumber] = useState('');
   const [manualDateImplemented, setManualDateImplemented] = useState('');
   const [manualDriveLink, setManualDriveLink] = useState('');
+  const [discussionComment, setDiscussionComment] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
+
+  const handlePostDiscussionComment = async () => {
+    if (!firestore || !request || !userProfile || !discussionComment.trim()) return;
+    setIsPostingComment(true);
+    try {
+      const reqDocRef = doc(firestore, 'procedureRevisionRequests', request.id);
+      await updateDoc(reqDocRef, {
+        comments: arrayUnion({
+          text: discussionComment.trim(),
+          authorId: userProfile.id,
+          authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+          authorRole: userRole || 'Member',
+          createdAt: new Date(),
+        }),
+        updatedAt: serverTimestamp()
+      });
+      setDiscussionComment('');
+      toast({ title: 'Comment Posted', description: 'Your message has been added to the discussion.' });
+    } catch (e) {
+      toast({ title: 'Failed to Post', description: 'Could not submit comment.', variant: 'destructive' });
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
 
   const requestRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'procedureRevisionRequests', requestId) : null),
@@ -484,19 +543,17 @@ export function ProcedureRevisionReviewDialog({ requestId, isOpen, onOpenChange,
                             </TabsContent>
 
                             <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
-                                <ScrollArea className="h-full">
+                                <ScrollArea className="flex-1">
                                     <div className="p-6 space-y-4">
                                         {request.comments?.length ? (
                                             <div className="space-y-4">
                                                 {request.comments.slice().sort((a, b) => {
-                                                    const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)?.toDate?.()?.getTime() || 0;
-                                                    const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)?.toDate?.()?.getTime() || 0;
-                                                    return dateB - dateA;
+                                                    return getCommentTime(b.createdAt) - getCommentTime(a.createdAt);
                                                 }).map((c, i) => (
                                                     <div key={i} className="bg-white p-4 rounded-xl border border-primary/5 shadow-sm space-y-2 transition-all hover:border-primary/20">
                                                         <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
                                                             <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
-                                                            <span className="text-[8px] font-mono text-muted-foreground">{format(c.createdAt instanceof Date ? c.createdAt : (c.createdAt as any).toDate(), 'MMM dd, p')}</span>
+                                                            <span className="text-[8px] font-mono text-muted-foreground">{getFormattedCommentDate(c.createdAt)}</span>
                                                         </div>
                                                         <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
                                                         <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
@@ -511,6 +568,26 @@ export function ProcedureRevisionReviewDialog({ requestId, isOpen, onOpenChange,
                                         )}
                                     </div>
                                 </ScrollArea>
+                                <div className="p-4 border-t bg-white shrink-0">
+                                    <div className="space-y-2">
+                                        <Textarea
+                                            value={discussionComment}
+                                            onChange={(e) => setDiscussionComment(e.target.value)}
+                                            placeholder="Write a message to the discussion..."
+                                            rows={3}
+                                            className="text-xs italic bg-slate-50 border-slate-200"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            onClick={handlePostDiscussionComment}
+                                            disabled={isPostingComment || !discussionComment.trim()}
+                                            className="w-full h-8 text-[10px] font-black uppercase tracking-wider"
+                                        >
+                                            {isPostingComment ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Send className="h-3 w-3 mr-1.5" />}
+                                            Post Message
+                                        </Button>
+                                    </div>
+                                </div>
                             </TabsContent>
                         </div>
                     </Tabs>

@@ -42,6 +42,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /procedureRevisionRequests/{id} {
+      allow get, list, create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
     match /unitForms/{id} {
       allow get, list: if isSignedIn();
       allow write: if isAdmin();
