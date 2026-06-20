@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+
+const STORAGE_KEY = 'rsu_iso25010_draft';
 
 interface Iso25010FormProps {
   isOpen: boolean;
@@ -61,6 +63,33 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
       recommendations: '',
     },
   });
+
+  // Restore from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.scores && typeof parsed.scores === 'object') {
+          form.reset(parsed);
+        }
+      }
+    } catch {}
+  }, [form]);
+
+  // Auto-save scores to sessionStorage on every change
+  const watchedScores = form.watch('scores');
+  const watchedComments = form.watch('generalComments');
+  const watchedRecs = form.watch('recommendations');
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        scores: watchedScores,
+        generalComments: watchedComments,
+        recommendations: watchedRecs,
+      }));
+    } catch {}
+  }, [watchedScores, watchedComments, watchedRecs]);
 
   const currentCategory = iso25010Categories[currentStep];
   const isLastStep = currentStep === iso25010Categories.length - 1;
@@ -113,6 +142,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
 
     try {
       await addDoc(collection(firestore, 'softwareEvaluations'), evaluationData);
+      sessionStorage.removeItem(STORAGE_KEY);
       toast({ title: 'Evaluation Submitted', description: 'Thank you! The software quality audit has been securely recorded.' });
       onSuccess?.();
       onOpenChange(false);
