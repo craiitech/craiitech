@@ -35,7 +35,7 @@ interface Iso25010FormProps {
 }
 
 const formSchema = z.object({
-  scores: z.record(z.string(), z.number().min(1, 'Please select a rating.')),
+  scores: z.record(z.string(), z.coerce.number().min(1, 'Please select a rating.')),
   generalComments: z.string().optional(),
   recommendations: z.string().optional(),
 });
@@ -71,6 +71,14 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.scores && typeof parsed.scores === 'object') {
+          const sanitizedScores: Record<string, number> = {};
+          for (const [key, val] of Object.entries(parsed.scores)) {
+            const num = typeof val === 'number' ? val : parseInt(String(val));
+            if (!isNaN(num)) {
+              sanitizedScores[key] = num;
+            }
+          }
+          parsed.scores = sanitizedScores;
           form.reset(parsed);
         }
       }
@@ -95,8 +103,12 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
   const isLastStep = currentStep === iso25010Categories.length - 1;
 
   const validateCurrentStep = () => {
-    const scores = form.getValues('scores');
-    const missing = currentCategory.subCharacteristics.filter(sub => !scores[sub.id]);
+    const missing = currentCategory.subCharacteristics.filter(sub => {
+      const val = form.getValues(`scores.${sub.id}`) as any;
+      if (val === undefined || val === null || val === '') return true;
+      const num = typeof val === 'number' ? val : parseInt(String(val));
+      return isNaN(num) || num < 1;
+    });
     
     if (missing.length > 0) {
         toast({
@@ -158,7 +170,11 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent 
+        className="max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="p-4 sm:p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
