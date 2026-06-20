@@ -286,13 +286,15 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                       value={String(field.value ?? '')}
                                       className="grid grid-cols-1 sm:grid-cols-5 gap-2"
                                     >
-                                      {LIKERT_OPTIONS.map((opt) => (
+                                      {LIKERT_OPTIONS.map((opt) => {
+                                          const radioId = `${sub.id}-${opt.value}`;
+                                          return (
                                           <FormItem key={opt.value} className="flex flex-col items-center">
                                               <FormControl>
-                                                  <RadioGroupItem value={String(opt.value)} id={`${sub.id}-${opt.value}`} className="sr-only m-0" />
+                                                  <RadioGroupItem value={String(opt.value)} id={radioId} tabIndex={-1} className="sr-only m-0" />
                                               </FormControl>
                                               <Label
-                                                  htmlFor={`${sub.id}-${opt.value}`}
+                                                  onClick={() => document.getElementById(radioId)?.click()}
                                                   className={cn(
                                                       "w-full flex flex-row sm:flex-col items-center justify-center gap-2 p-2 sm:p-3 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50",
                                                       field.value === opt.value 
@@ -304,7 +306,8 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                                   <span className={cn("text-[9px] font-black uppercase tracking-widest", field.value === opt.value ? "text-primary" : "text-slate-500")}>{opt.label}</span>
                                               </Label>
                                           </FormItem>
-                                      ))}
+                                          );
+                                      })}
                                     </RadioGroup>
                                   </FormControl>
                                 </FormItem>
