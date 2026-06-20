@@ -504,15 +504,15 @@ const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: {
   );
 };
 
-const FullScreenLoader = () => (
-    <div className="flex h-screen w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
-        <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-700">
-            <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+const DashboardLoader = () => (
+    <div className="flex h-full min-h-[400px] w-full items-center justify-center p-8 bg-slate-50/50 rounded-3xl border border-dashed border-primary/10 animate-pulse">
+        <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-500">
+            <div className="relative h-16 w-16 rounded-2xl bg-white shadow-md border border-primary/5 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
             <div className="space-y-1">
-                <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Accessing RSU Quality Management System Cloud Registry...</p>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">Loading QMS Dashboard</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Aggregating institutional metrics and submissions...</p>
             </div>
         </div>
     </div>
@@ -1871,7 +1871,7 @@ export default function HomePage() {
   };
 
   if (isUserLoading || isLoadingSubmissions) {
-    return <FullScreenLoader />;
+    return <DashboardLoader />;
   }
 
   return (
