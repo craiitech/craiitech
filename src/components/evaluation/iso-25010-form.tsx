@@ -218,7 +218,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                  <Badge 
                    variant={allComplete ? "default" : "secondary"} 
                    className={cn(
-                     "h-6 font-black uppercase text-[9px] transition-colors duration-200",
+                     "h-6 font-black uppercase text-[9px] transition-colors duration-200 min-w-[70px] text-center",
                      allComplete ? "bg-emerald-600 text-white hover:bg-emerald-600" : ""
                    )}
                  >
@@ -252,7 +252,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                           <Badge 
                             variant={catComplete ? "default" : "outline"} 
                             className={cn(
-                              "h-7 px-3 font-black uppercase text-[9px] shrink-0 transition-colors",
+                              "h-7 px-3 font-black uppercase text-[9px] shrink-0 transition-colors min-w-[70px] text-center",
                               catComplete ? "bg-emerald-600 text-white hover:bg-emerald-600 border-none" : "border-slate-300 text-slate-500"
                             )}
                           >
@@ -273,8 +273,8 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                           <FormLabel className="text-sm sm:text-base font-black text-slate-800 tracking-tight">{sub.name}</FormLabel>
                                           <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed max-w-2xl">{sub.desc}</p>
                                       </div>
-                                      <div className="h-6 w-fit shrink-0">
-                                          <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-fit transition-all duration-200", field.value ? cn(LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color) : "invisible bg-slate-100 text-slate-400")}>
+                                      <div className="h-6 w-[90px] shrink-0 text-center">
+                                          <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-full transition-colors duration-200", field.value ? cn(LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color) : "invisible bg-slate-100 text-slate-400")}>
                                               {field.value ? LIKERT_OPTIONS.find(o => o.value === field.value)?.label : '--'}
                                           </Badge>
                                       </div>
