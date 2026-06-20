@@ -268,7 +268,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                 {LIKERT_OPTIONS.map((opt) => (
                                     <FormItem key={opt.value} className="flex flex-col items-center">
                                         <FormControl>
-                                            <RadioGroupItem value={String(opt.value)} id={`${sub.id}-${opt.value}`} className="sr-only" />
+                                            <RadioGroupItem value={String(opt.value)} id={`${sub.id}-${opt.value}`} className="sr-only m-0" />
                                         </FormControl>
                                         <Label
                                             htmlFor={`${sub.id}-${opt.value}`}
