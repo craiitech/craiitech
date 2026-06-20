@@ -201,17 +201,17 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                     <FormLabel className="text-sm sm:text-base font-black text-slate-800 tracking-tight">{sub.name}</FormLabel>
                                     <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed max-w-2xl">{sub.desc}</p>
                                 </div>
-                                {field.value && (
-                                    <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-fit animate-in zoom-in duration-300", LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color)}>
-                                        {LIKERT_OPTIONS.find(o => o.value === field.value)?.label}
+                                <div className="h-6 w-fit shrink-0">
+                                    <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-fit transition-all duration-200", field.value ? cn(LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color) : "invisible bg-slate-100 text-slate-400")}>
+                                        {field.value ? LIKERT_OPTIONS.find(o => o.value === field.value)?.label : '--'}
                                     </Badge>
-                                )}
+                                </div>
                             </div>
                             
                             <FormControl>
                               <RadioGroup
                                 onValueChange={(val) => field.onChange(parseInt(val))}
-                                value={field.value ? String(field.value) : undefined}
+                                value={String(field.value ?? '')}
                                 className="grid grid-cols-1 sm:grid-cols-5 gap-2"
                               >
                                 {LIKERT_OPTIONS.map((opt) => (
