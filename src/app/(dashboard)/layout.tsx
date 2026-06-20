@@ -162,6 +162,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return userEvaluations && userEvaluations.length > 0;
   }, [userEvaluations, isLoadingEval, isAdmin]);
 
+  const accountAgeDays = useMemo(() => {
+    if (!user?.metadata?.creationTime) return 0;
+    const created = new Date(user.metadata.creationTime).getTime();
+    const now = Date.now();
+    return (now - created) / (1000 * 60 * 60 * 24);
+  }, [user]);
+
   const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
     const col = collection(firestore, 'submissions');
@@ -776,7 +783,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       
       <InstallPwaDialog />
       <WhatsNewDialog isOpen={isWhatsNewOpen} onOpenChange={setIsWhatsNewOpen} onAcknowledge={handleAcknowledgeUpdates} />
-      {!isEvaluationComplete && !isLoadingEval && <SoftwareEvaluationGate />}
+      {!isEvaluationComplete && !isLoadingEval && <SoftwareEvaluationGate required={!isAdmin && accountAgeDays > 30} />}
     </ActivityLogProvider>
   );
 }

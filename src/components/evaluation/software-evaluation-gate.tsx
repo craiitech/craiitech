@@ -1,38 +1,43 @@
 
 'use client';
 
-/**
- * @fileOverview A dismissible overlay component that prompts for software evaluation.
- * In compliance with ISO/IEC 25010 standards.
- * Users can skip the evaluation for the current session, but it will be prompted again on logout.
- */
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MonitorCheck, ShieldCheck, ArrowRight, Activity, Landmark, Info, X } from 'lucide-react';
+import { MonitorCheck, ShieldCheck, ArrowRight, Activity, Landmark, Info, X, AlertTriangle } from 'lucide-react';
 import { Iso25010Form } from './iso-25010-form';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
-export function SoftwareEvaluationGate() {
+interface SoftwareEvaluationGateProps {
+  /** When true, the user must complete the evaluation — no skip/dismiss allowed */
+  required?: boolean;
+}
+
+export function SoftwareEvaluationGate({ required = false }: SoftwareEvaluationGateProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSkipped, setIsSkipped] = useState(false);
 
   useEffect(() => {
-    // Check if the user has already skipped the evaluation in this session
-    const skipped = sessionStorage.getItem('rsu_eval_skipped_session') === 'true';
-    setIsSkipped(skipped);
-
+    if (!required) {
+      const skipped = sessionStorage.getItem('rsu_eval_skipped_session') === 'true';
+      setIsSkipped(skipped);
+    }
     return () => {
-      // Safeguard: Ensure pointer events and overflow lock on body are restored when gate is unmounted
       document.body.style.pointerEvents = '';
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [required]);
 
   const handleSkip = () => {
-    sessionStorage.setItem('rsu_eval_skipped_session', 'true');
+    if (!required) {
+      sessionStorage.setItem('rsu_eval_skipped_session', 'true');
+      setIsSkipped(true);
+    }
+  };
+
+  const handleComplete = () => {
     setIsSkipped(true);
   };
 
@@ -50,14 +55,21 @@ export function SoftwareEvaluationGate() {
           <Card className="w-full max-w-xl max-h-[95vh] bg-white/95 border-primary/20 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)] animate-in zoom-in duration-500 flex flex-col overflow-hidden">
               <ScrollArea className="flex-1">
                 <CardHeader className="bg-primary/5 border-b py-4 sm:py-6 px-6 sm:px-10 text-center relative">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute top-4 right-4 rounded-full" 
-                        onClick={handleSkip}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
+                    {!required && (
+                      <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute top-4 right-4 rounded-full" 
+                          onClick={handleSkip}
+                      >
+                          <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {required && (
+                      <div className="absolute top-4 right-4">
+                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      </div>
+                    )}
                     <div className="mx-auto bg-white p-2 rounded-2xl shadow-xl border border-primary/10 w-fit mb-4">
                         <MonitorCheck className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                     </div>
@@ -77,6 +89,18 @@ export function SoftwareEvaluationGate() {
                             In alignment with our <strong>ISO 21001:2018 Certification</strong>, all stakeholders are encouraged to evaluate the EOMS Portal.
                         </p>
                         
+                        {required && (
+                          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-4">
+                            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase text-amber-900 tracking-tight">Required Evaluation</p>
+                              <p className="text-[9px] text-amber-800/80 leading-relaxed font-medium">
+                                Your account is over a month old. Please complete this software quality evaluation to continue using the portal.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                             {[
                                 { icon: <Activity className="h-4 w-4 text-emerald-600" />, title: "Performance Efficiency", desc: "Speed and optimization." },
@@ -95,29 +119,36 @@ export function SoftwareEvaluationGate() {
                         </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
-                        <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase text-blue-900 tracking-tight">Flexible Participation</p>
-                            <p className="text-[9px] text-blue-800/80 leading-relaxed italic font-medium">
-                                You may skip this for now to continue your work. You will be prompted again during logout to fulfill this quality requirement.
-                            </p>
-                        </div>
-                    </div>
+                    {!required && (
+                      <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
+                          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase text-blue-900 tracking-tight">Flexible Participation</p>
+                              <p className="text-[9px] text-blue-800/80 leading-relaxed italic font-medium">
+                                  You may skip this for now to continue your work. You will be prompted again during logout to fulfill this quality requirement.
+                              </p>
+                          </div>
+                      </div>
+                    )}
                 </CardContent>
               </ScrollArea>
               <CardFooter className="bg-slate-50 border-t py-4 px-6 sm:px-10 shrink-0 gap-3">
+                  {!required && (
+                    <Button 
+                        variant="outline"
+                        size="lg" 
+                        className="flex-1 h-12 sm:h-14 text-sm font-black uppercase tracking-widest border-slate-200" 
+                        onClick={handleSkip}
+                    >
+                        Skip for Now
+                    </Button>
+                  )}
                   <Button 
-                      variant="outline"
                       size="lg" 
-                      className="flex-1 h-12 sm:h-14 text-sm font-black uppercase tracking-widest border-slate-200" 
-                      onClick={handleSkip}
-                  >
-                      Skip for Now
-                  </Button>
-                  <Button 
-                      size="lg" 
-                      className="flex-[2] h-12 sm:h-14 text-sm sm:text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/30 group transition-all hover:scale-[1.02] active:scale-95" 
+                      className={cn(
+                        "h-12 sm:h-14 text-sm sm:text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/30 group transition-all hover:scale-[1.02] active:scale-95",
+                        required ? "w-full" : "flex-[2]"
+                      )}
                       onClick={() => setIsFormOpen(true)}
                   >
                       <ShieldCheck className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
@@ -128,7 +159,7 @@ export function SoftwareEvaluationGate() {
           </Card>
         </div>
       )}
-      <Iso25010Form isOpen={isFormOpen} onOpenChange={setIsFormOpen} onSuccess={handleSkip} />
+      <Iso25010Form isOpen={isFormOpen} onOpenChange={setIsFormOpen} onSuccess={handleComplete} />
     </>
   );
 }
