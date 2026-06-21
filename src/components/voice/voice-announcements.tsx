@@ -25,287 +25,393 @@ export function VoiceAnnouncements() {
       const activeYear = now.getFullYear();
       const listItems: string[] = [];
 
-      // 1. Open CARs (Corrective Action Requests)
-      let openCarsCount = 0;
-      if (unitId) {
-        try {
-          const carsSnap = await getDocs(query(
-            collection(firestore, 'correctiveActionRequests'),
-            where('unitId', '==', unitId)
-          ));
-          openCarsCount = carsSnap.docs.filter(d => {
-            const s = d.data().status;
-            return s === 'Open' || s === 'Awaiting Response/Update';
-          }).length;
-        } catch { /* silent */ }
-      }
-      if (openCarsCount > 0) {
-        listItems.push(`First, you have ${openCarsCount} open corrective action request${openCarsCount > 1 ? 's' : ''}, which you can address by logging implementation plans and evidence in the Corrective Action module.`);
-      }
+      const roleLower = userRole?.toLowerCase() || '';
+      const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
 
-      // 2. Overdue Risks
-      let overdueRisksCount = 0;
-      if (unitId) {
+      if (isPresident) {
+        // 1. EOMS Submissions Status
+        let totalSubmitted = 0;
+        let totalApproved = 0;
+        let totalDrafts = 0;
         try {
-          const risksSnap = await getDocs(query(
-            collection(firestore, 'risks'),
-            where('unitId', '==', unitId)
-          ));
-          overdueRisksCount = risksSnap.docs.filter(d => {
-            const data = d.data();
-            if (data.status === 'Closed' || !data.targetDate) return false;
-            const target = data.targetDate instanceof Timestamp ? data.targetDate.toDate() : new Date(data.targetDate);
-            return target < now;
-          }).length;
+          const submissionsSnap = await getDocs(collection(firestore, 'submissions'));
+          const submissions = submissionsSnap.docs.map(d => d.data() as Submission)
+                                                  .filter(s => Number(s.year) === activeYear);
+          totalSubmitted = submissions.filter(s => s.statusId === 'submitted').length;
+          totalApproved = submissions.filter(s => s.statusId === 'approved').length;
+          totalDrafts = submissions.filter(s => s.statusId === 'draft' || s.isDraft).length;
         } catch { /* silent */ }
-      }
-      if (overdueRisksCount > 0) {
-        listItems.push(`Second, you have ${overdueRisksCount} overdue risk treatment${overdueRisksCount > 1 ? 's' : ''}, which you can address by navigating to the Risk Register and updating their final assessments.`);
-      }
+        
+        listItems.push(
+          `First, across all university units and campuses for the active academic year, there are currently ${totalSubmitted} EOMS submissions pending review, ${totalApproved} approved submissions, and ${totalDrafts} in draft status.`
+        );
 
-      // 3. Actionable Decisions (Management Review Outputs)
-      let mrDecisionsCount = 0;
-      if (unitId) {
-        try {
-          const mroSnap = await getDocs(collection(firestore, 'managementReviewOutputs'));
-          mrDecisionsCount = mroSnap.docs.filter(d => {
-            const data = d.data() as ManagementReviewOutput;
-            const hasAssignment = data.assignments?.some(a => a.unitId === unitId) || data.concernedUnitIds?.includes(unitId);
-            return hasAssignment && (data.status === 'Open' || data.status === 'On-going');
-          }).length;
-        } catch { /* silent */ }
-      }
-      if (mrDecisionsCount > 0) {
-        listItems.push(`Third, you have ${mrDecisionsCount} pending management review decision${mrDecisionsCount > 1 ? 's' : ''}, which you can address by submitting implementation details and evidence in the Management Review outputs page.`);
-      }
+        // 2. CHED Programs (COPC & Accreditation)
+        let copcCount = 0;
+        let noCopcCount = 0;
+        let inProgressCopcCount = 0;
+        let accreditedCount = 0;
+        let nonAccreditedCount = 0;
+        let totalOpenRecommendations = 0;
 
-      // 4. Accreditation Gaps & Open Recommendations
-      let accreditationGapsCount = 0;
-      let openRecommendationsCount = 0;
-      if (unitId) {
         try {
-          const pcSnap = await getDocs(query(
-            collection(firestore, 'programCompliances'),
-            where('unitId', '==', unitId)
-          ));
+          const pcSnap = await getDocs(collection(firestore, 'programCompliances'));
           const compliances = pcSnap.docs.map(d => d.data() as ProgramComplianceRecord)
-                                       .filter(c => Number(c.academicYear) === activeYear);
+                                         .filter(c => Number(c.academicYear) === activeYear);
+          
           compliances.forEach(c => {
-            if (c.ched?.copcStatus !== 'With COPC') {
-              accreditationGapsCount++;
-            }
+            if (c.ched?.copcStatus === 'With COPC') copcCount++;
+            else if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
+            else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
+
             const milestones = c.accreditationRecords || [];
             const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-            if (!latest || latest.level === 'Non Accredited') {
-              accreditationGapsCount++;
+            if (latest) {
+              if (latest.level === 'Non Accredited' || latest.level === 'Candidate Status' || latest.level === 'TBA') {
+                nonAccreditedCount++;
+              } else {
+                accreditedCount++;
+              }
+            } else {
+              nonAccreditedCount++;
             }
+
             milestones.forEach(m => {
               m.recommendations?.forEach(reco => {
-                if ((reco.status === 'Open' || reco.status === 'In Progress') && 
-                    reco.assignedUnitIds?.includes(unitId)) {
-                  openRecommendationsCount++;
+                if (reco.status === 'Open' || reco.status === 'In Progress') {
+                  totalOpenRecommendations++;
                 }
               });
             });
           });
         } catch { /* silent */ }
-      }
-      if (accreditationGapsCount > 0 || openRecommendationsCount > 0) {
-        let text = `Fourth, we found `;
-        const gapsText: string[] = [];
-        if (accreditationGapsCount > 0) {
-          gapsText.push(`${accreditationGapsCount} active program authority or accreditation gap${accreditationGapsCount > 1 ? 's' : ''}`);
+
+        listItems.push(
+          `Second, regarding CHED compliance, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`
+        );
+
+        if (accreditedCount > 0 || nonAccreditedCount > 0) {
+          listItems.push(
+            `Third, in terms of program accreditation, we have ${accreditedCount} accredited academic programs and ${nonAccreditedCount} programs in non-accredited or candidate status.`
+          );
         }
-        if (openRecommendationsCount > 0) {
-          gapsText.push(`${openRecommendationsCount} open accreditor recommendation${openRecommendationsCount > 1 ? 's' : ''}`);
+
+        if (totalOpenRecommendations > 0) {
+          listItems.push(
+            `Additionally, there are ${totalOpenRecommendations} open accreditor recommendations requiring action by their respective colleges.`
+          );
         }
-        text += gapsText.join(' and ');
-        text += `, which you can address by uploading compliance certificates or evidence logs in the Program Monitoring section.`;
-        listItems.push(text);
-      }
 
-      // 5. Missing Current Cycle Submissions
-      const missingReports: string[] = [];
-      if (unitId) {
-        try {
-          let allCycles: Cycle[] = [];
-          try {
-            const cyclesSnap = await getDocs(collection(firestore, 'cycles'));
-            allCycles = cyclesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Cycle));
-          } catch { /* silent */ }
-
-          const subSnap = await getDocs(query(
-            collection(firestore, 'submissions'),
-            where('unitId', '==', unitId)
-          ));
-          const unitSubs = subSnap.docs.map(d => d.data() as Submission);
-          const currentYearSubmissions = unitSubs.filter(s => Number(s.year) === activeYear);
-
-          for (const cycleId of ['first', 'final'] as const) {
-            if (isCycleActive(cycleId, activeYear, allCycles)) {
-              const cycleSubs = currentYearSubmissions.filter(s => s.cycleId === cycleId);
-              const registrySub = cycleSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
-              const isActionPlanNA = registrySub?.riskRating === 'low';
-              
-              const approvedOrSubmittedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved' || s.statusId === 'submitted').map(s => s.reportType));
-              
-              const missing = submissionTypes.filter(type => {
-                if (approvedOrSubmittedSet.has(type)) return false;
-                if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
-                return true;
-              });
-
-              if (missing.length > 0) {
-                const cycleLabel = cycleId === 'first' ? 'first cycle' : 'final cycle';
-                missingReports.push(`${cycleLabel} ${missing.join(', and ')}`);
-              }
-            }
-          }
-        } catch { /* silent */ }
-      }
-      if (missingReports.length > 0) {
-        listItems.push(`Fifth, you have not submitted all required reports for the active cycle, missing documents include: ${missingReports.join(', and ')}, please prepare and upload these in the submissions panel.`);
-      }
-
-      // 6. Returned Requests (Procedure manual revisions or Form registrations)
-      let returnedRequestsCount = 0;
-      if (unitId) {
-        try {
-          const prSnap = await getDocs(query(
-            collection(firestore, 'procedureRevisionRequests'),
-            where('unitId', '==', unitId)
-          ));
-          const returnedPR = prSnap.docs.filter(d => d.data().status === 'Returned for Revision').length;
-          returnedRequestsCount += returnedPR;
-        } catch { /* silent */ }
-
-        try {
-          const ufSnap = await getDocs(query(
-            collection(firestore, 'unitFormRequests'),
-            where('unitId', '==', unitId)
-          ));
-          const returnedUF = ufSnap.docs.filter(d => d.data().status === 'Returned for Correction').length;
-          returnedRequestsCount += returnedUF;
-        } catch { /* silent */ }
-      }
-      if (returnedRequestsCount > 0) {
-        listItems.push(`Sixth, you have ${returnedRequestsCount} request${returnedRequestsCount > 1 ? 's' : ''} returned for correction by the Quality Assurance Office, you can address this by reviewing their feedback and resubmitting.`);
-      }
-
-      // 7. Portal Software Evaluation
-      let hasCompletedSoftwareEvaluation = true;
-      if (!isAdmin && userRole !== 'Auditor' && userRole !== 'Supervisor' && userRole !== 'VP' && userProfile?.id) {
-        try {
-          const evalSnap = await getDocs(query(
-            collection(firestore, 'softwareEvaluations'),
-            where('userId', '==', userProfile.id)
-          ));
-          if (evalSnap.empty) {
-            hasCompletedSoftwareEvaluation = false;
-          }
-        } catch { /* silent */ }
-      }
-      if (!hasCompletedSoftwareEvaluation) {
-        listItems.push(`Seventh, you have not completed the Portal Software Evaluation, please share your feedback to help us improve the system.`);
-      }
-
-      // Admin / Supervisor specific announcements (Submissions pending review)
-      if (isAdmin || userRole === 'Supervisor' || userRole === 'VP') {
-        let pendingReviewCount = 0;
-        try {
-          const pendingQuery = isAdmin
-            ? query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'))
-            : query(collection(firestore, 'submissions'), where('campusId', '==', campusId));
-          const pendingSnap = await getDocs(pendingQuery);
-          pendingReviewCount = pendingSnap.docs.filter(d => d.data().statusId === 'submitted').length;
-        } catch { /* silent */ }
-        if (pendingReviewCount > 0) {
-          listItems.push(`Additionally, you have ${pendingReviewCount} submission${pendingReviewCount > 1 ? 's' : ''} pending review, which you can evaluate in the approvals dashboard.`);
-        }
-      }
-
-      // Admin / Auditor specific announcements (CARs for final verification)
-      if (isAdmin || userRole === 'Auditor') {
-        let verifyCount = 0;
-        try {
-          const verifySnap = await getDocs(query(
-            collection(firestore, 'correctiveActionRequests'),
-            where('status', '==', 'For Final Verification')
-          ));
-          verifyCount = verifySnap.size;
-        } catch { /* silent */ }
-        if (verifyCount > 0) {
-          listItems.push(`Additionally, you have ${verifyCount} corrective action request${verifyCount > 1 ? 's' : ''} awaiting final verification in your inbox.`);
-        }
-      }
-
-      // Admin specific announcements (Form Registrations and Procedure Manual Revisions pending review)
-      if (isAdmin) {
-        let pendingFormsCount = 0;
-        let pendingManualsCount = 0;
+        // 3. Presidential Approvals for Manuals and Forms
+        let formsAwaitingPresident = 0;
+        let manualsAwaitingPresident = 0;
         try {
           const formsSnap = await getDocs(collection(firestore, 'unitFormRequests'));
-          pendingFormsCount = formsSnap.docs.filter(d => {
-            const s = d.data().status;
-            return s === 'Submitted' || s === 'QA Review' || s === 'Endorsement for Approval';
-          }).length;
+          formsAwaitingPresident = formsSnap.docs.filter(d => d.data().status === 'Endorsement for Approval').length;
         } catch { /* silent */ }
 
         try {
           const manualsSnap = await getDocs(collection(firestore, 'procedureRevisionRequests'));
-          pendingManualsCount = manualsSnap.docs.filter(d => {
-            const s = d.data().status;
-            return s === 'Submitted' || s === 'Awaiting Presidential Approval';
-          }).length;
+          manualsAwaitingPresident = manualsSnap.docs.filter(d => d.data().status === 'Awaiting Presidential Approval').length;
         } catch { /* silent */ }
 
-        if (pendingFormsCount > 0 || pendingManualsCount > 0) {
+        if (formsAwaitingPresident > 0 || manualsAwaitingPresident > 0) {
           const parts: string[] = [];
-          if (pendingFormsCount > 0) {
-            parts.push(`${pendingFormsCount} form registration request${pendingFormsCount > 1 ? 's' : ''}`);
+          if (formsAwaitingPresident > 0) {
+            parts.push(`${formsAwaitingPresident} form registration request${formsAwaitingPresident !== 1 ? 's' : ''}`);
           }
-          if (pendingManualsCount > 0) {
-            parts.push(`${pendingManualsCount} procedure revision request${pendingManualsCount > 1 ? 's' : ''}`);
+          if (manualsAwaitingPresident > 0) {
+            parts.push(`${manualsAwaitingPresident} procedure manual revision${manualsAwaitingPresident !== 1 ? 's' : ''}`);
           }
-          listItems.push(`Additionally, you have ${parts.join(' and ')} pending review in the manuals and forms inbox.`);
+          listItems.push(
+            `Finally, you have ${parts.join(' and ')} awaiting your executive signature and final approval.`
+          );
         }
-      }
+      } else {
+        // 1. Open CARs (Corrective Action Requests)
+        let openCarsCount = 0;
+        if (unitId) {
+          try {
+            const carsSnap = await getDocs(query(
+              collection(firestore, 'correctiveActionRequests'),
+              where('unitId', '==', unitId)
+            ));
+            openCarsCount = carsSnap.docs.filter(d => {
+              const s = d.data().status;
+              return s === 'Open' || s === 'Awaiting Response/Update';
+            }).length;
+          } catch { /* silent */ }
+        }
+        if (openCarsCount > 0) {
+          listItems.push(`First, you have ${openCarsCount} open corrective action request${openCarsCount > 1 ? 's' : ''}, which you can address by logging implementation plans and evidence in the Corrective Action module.`);
+        }
 
-      // Unread communications (for everyone)
-      let unreadCommsCount = 0;
-      try {
-        const commsSnap = await getDocs(query(
-          collection(firestore, 'communications')
-        ));
-        const roleLower = userRole?.toLowerCase() || '';
-        const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
-        const currentYear = new Date().getFullYear();
-        unreadCommsCount = commsSnap.docs.filter(d => {
-          const c = d.data();
-          if (c.senderUnitId === unitId) return false;
-          const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
-          if (date && date.getFullYear() !== currentYear) return false;
-          let isRecipient = false;
-          if (c.recipientType === 'all') isRecipient = true;
-          else if (c.recipientType === 'campus' && c.recipientIds?.includes(campusId)) isRecipient = true;
-          else if (c.recipientType === 'unit' && c.recipientIds?.includes(unitId)) isRecipient = true;
-          else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) isRecipient = true;
-          if (!isRecipient) return false;
-          const isReceivedByUnit = !!c.recipientRefNums?.[unitId];
-          if (!isOdimo && !isReceivedByUnit) return false;
-          const hasRead = c.readBy?.includes(userProfile.id) || (unitId && c.readBy?.includes(unitId));
-          return !hasRead;
-        }).length;
-      } catch { /* silent */ }
-      if (unreadCommsCount > 0) {
-        listItems.push(`Finally, you have ${unreadCommsCount} unread communication${unreadCommsCount > 1 ? 's' : ''} in the Communications Hub.`);
+        // 2. Overdue Risks
+        let overdueRisksCount = 0;
+        if (unitId) {
+          try {
+            const risksSnap = await getDocs(query(
+              collection(firestore, 'risks'),
+              where('unitId', '==', unitId)
+            ));
+            overdueRisksCount = risksSnap.docs.filter(d => {
+              const data = d.data();
+              if (data.status === 'Closed' || !data.targetDate) return false;
+              const target = data.targetDate instanceof Timestamp ? data.targetDate.toDate() : new Date(data.targetDate);
+              return target < now;
+            }).length;
+          } catch { /* silent */ }
+        }
+        if (overdueRisksCount > 0) {
+          listItems.push(`Second, you have ${overdueRisksCount} overdue risk treatment${overdueRisksCount > 1 ? 's' : ''}, which you can address by navigating to the Risk Register and updating their final assessments.`);
+        }
+
+        // 3. Actionable Decisions (Management Review Outputs)
+        let mrDecisionsCount = 0;
+        if (unitId) {
+          try {
+            const mroSnap = await getDocs(collection(firestore, 'managementReviewOutputs'));
+            mrDecisionsCount = mroSnap.docs.filter(d => {
+              const data = d.data() as ManagementReviewOutput;
+              const hasAssignment = data.assignments?.some(a => a.unitId === unitId) || data.concernedUnitIds?.includes(unitId);
+              return hasAssignment && (data.status === 'Open' || data.status === 'On-going');
+            }).length;
+          } catch { /* silent */ }
+        }
+        if (mrDecisionsCount > 0) {
+          listItems.push(`Third, you have ${mrDecisionsCount} pending management review decision${mrDecisionsCount > 1 ? 's' : ''}, which you can address by submitting implementation details and evidence in the Management Review outputs page.`);
+        }
+
+        // 4. Accreditation Gaps & Open Recommendations
+        let accreditationGapsCount = 0;
+        let openRecommendationsCount = 0;
+        if (unitId) {
+          try {
+            const pcSnap = await getDocs(query(
+              collection(firestore, 'programCompliances'),
+              where('unitId', '==', unitId)
+            ));
+            const compliances = pcSnap.docs.map(d => d.data() as ProgramComplianceRecord)
+                                         .filter(c => Number(c.academicYear) === activeYear);
+            compliances.forEach(c => {
+              if (c.ched?.copcStatus !== 'With COPC') {
+                accreditationGapsCount++;
+              }
+              const milestones = c.accreditationRecords || [];
+              const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+              if (!latest || latest.level === 'Non Accredited') {
+                accreditationGapsCount++;
+              }
+              milestones.forEach(m => {
+                m.recommendations?.forEach(reco => {
+                  if ((reco.status === 'Open' || reco.status === 'In Progress') && 
+                      reco.assignedUnitIds?.includes(unitId)) {
+                    openRecommendationsCount++;
+                  }
+                });
+              });
+            });
+          } catch { /* silent */ }
+        }
+        if (accreditationGapsCount > 0 || openRecommendationsCount > 0) {
+          let text = `Fourth, we found `;
+          const gapsText: string[] = [];
+          if (accreditationGapsCount > 0) {
+            gapsText.push(`${accreditationGapsCount} active program authority or accreditation gap${accreditationGapsCount > 1 ? 's' : ''}`);
+          }
+          if (openRecommendationsCount > 0) {
+            gapsText.push(`${openRecommendationsCount} open accreditor recommendation${openRecommendationsCount > 1 ? 's' : ''}`);
+          }
+          text += gapsText.join(' and ');
+          text += `, which you can address by uploading compliance certificates or evidence logs in the Program Monitoring section.`;
+          listItems.push(text);
+        }
+
+        // 5. Missing Current Cycle Submissions
+        const missingReports: string[] = [];
+        if (unitId) {
+          try {
+            let allCycles: Cycle[] = [];
+            try {
+              const cyclesSnap = await getDocs(collection(firestore, 'cycles'));
+              allCycles = cyclesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Cycle));
+            } catch { /* silent */ }
+
+            const subSnap = await getDocs(query(
+              collection(firestore, 'submissions'),
+              where('unitId', '==', unitId)
+            ));
+            const unitSubs = subSnap.docs.map(d => d.data() as Submission);
+            const currentYearSubmissions = unitSubs.filter(s => Number(s.year) === activeYear);
+
+            for (const cycleId of ['first', 'final'] as const) {
+              if (isCycleActive(cycleId, activeYear, allCycles)) {
+                const cycleSubs = currentYearSubmissions.filter(s => s.cycleId === cycleId);
+                const registrySub = cycleSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+                const isActionPlanNA = registrySub?.riskRating === 'low';
+                
+                const approvedOrSubmittedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved' || s.statusId === 'submitted').map(s => s.reportType));
+                
+                const missing = submissionTypes.filter(type => {
+                  if (approvedOrSubmittedSet.has(type)) return false;
+                  if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
+                  return true;
+                });
+
+                if (missing.length > 0) {
+                  const cycleLabel = cycleId === 'first' ? 'first cycle' : 'final cycle';
+                  missingReports.push(`${cycleLabel} ${missing.join(', and ')}`);
+                }
+              }
+            }
+          } catch { /* silent */ }
+        }
+        if (missingReports.length > 0) {
+          listItems.push(`Fifth, you have not submitted all required reports for the active cycle, missing documents include: ${missingReports.join(', and ')}, please prepare and upload these in the submissions panel.`);
+        }
+
+        // 6. Returned Requests (Procedure manual revisions or Form registrations)
+        let returnedRequestsCount = 0;
+        if (unitId) {
+          try {
+            const prSnap = await getDocs(query(
+              collection(firestore, 'procedureRevisionRequests'),
+              where('unitId', '==', unitId)
+            ));
+            const returnedPR = prSnap.docs.filter(d => d.data().status === 'Returned for Revision').length;
+            returnedRequestsCount += returnedPR;
+          } catch { /* silent */ }
+
+          try {
+            const ufSnap = await getDocs(query(
+              collection(firestore, 'unitFormRequests'),
+              where('unitId', '==', unitId)
+            ));
+            const returnedUF = ufSnap.docs.filter(d => d.data().status === 'Returned for Correction').length;
+            returnedRequestsCount += returnedUF;
+          } catch { /* silent */ }
+        }
+        if (returnedRequestsCount > 0) {
+          listItems.push(`Sixth, you have ${returnedRequestsCount} request${returnedRequestsCount > 1 ? 's' : ''} returned for correction by the Quality Assurance Office, you can address this by reviewing their feedback and resubmitting.`);
+        }
+
+        // 7. Portal Software Evaluation
+        let hasCompletedSoftwareEvaluation = true;
+        if (!isAdmin && userRole !== 'Auditor' && userRole !== 'Supervisor' && userRole !== 'VP' && userProfile?.id) {
+          try {
+            const evalSnap = await getDocs(query(
+              collection(firestore, 'softwareEvaluations'),
+              where('userId', '==', userProfile.id)
+            ));
+            if (evalSnap.empty) {
+              hasCompletedSoftwareEvaluation = false;
+            }
+          } catch { /* silent */ }
+        }
+        if (!hasCompletedSoftwareEvaluation) {
+          listItems.push(`Seventh, you have not completed the Portal Software Evaluation, please share your feedback to help us improve the system.`);
+        }
+
+        // Admin / Supervisor specific announcements (Submissions pending review)
+        if (isAdmin || userRole === 'Supervisor' || userRole === 'VP') {
+          let pendingReviewCount = 0;
+          try {
+            const pendingQuery = isAdmin
+              ? query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'))
+              : query(collection(firestore, 'submissions'), where('campusId', '==', campusId));
+            const pendingSnap = await getDocs(pendingQuery);
+            pendingReviewCount = pendingSnap.docs.filter(d => d.data().statusId === 'submitted').length;
+          } catch { /* silent */ }
+          if (pendingReviewCount > 0) {
+            listItems.push(`Additionally, you have ${pendingReviewCount} submission${pendingReviewCount > 1 ? 's' : ''} pending review, which you can evaluate in the approvals dashboard.`);
+          }
+        }
+
+        // Admin / Auditor specific announcements (CARs for final verification)
+        if (isAdmin || userRole === 'Auditor') {
+          let verifyCount = 0;
+          try {
+            const verifySnap = await getDocs(query(
+              collection(firestore, 'correctiveActionRequests'),
+              where('status', '==', 'For Final Verification')
+            ));
+            verifyCount = verifySnap.size;
+          } catch { /* silent */ }
+          if (verifyCount > 0) {
+            listItems.push(`Additionally, you have ${verifyCount} corrective action request${verifyCount > 1 ? 's' : ''} awaiting final verification in your inbox.`);
+          }
+        }
+
+        // Admin specific announcements (Form Registrations and Procedure Manual Revisions pending review)
+        if (isAdmin) {
+          let pendingFormsCount = 0;
+          let pendingManualsCount = 0;
+          try {
+            const formsSnap = await getDocs(collection(firestore, 'unitFormRequests'));
+            pendingFormsCount = formsSnap.docs.filter(d => {
+              const s = d.data().status;
+              return s === 'Submitted' || s === 'QA Review' || s === 'Endorsement for Approval';
+            }).length;
+          } catch { /* silent */ }
+
+          try {
+            const manualsSnap = await getDocs(collection(firestore, 'procedureRevisionRequests'));
+            pendingManualsCount = manualsSnap.docs.filter(d => {
+              const s = d.data().status;
+              return s === 'Submitted' || s === 'Awaiting Presidential Approval';
+            }).length;
+          } catch { /* silent */ }
+
+          if (pendingFormsCount > 0 || pendingManualsCount > 0) {
+            const parts: string[] = [];
+            if (pendingFormsCount > 0) {
+              parts.push(`${pendingFormsCount} form registration request${pendingFormsCount > 1 ? 's' : ''}`);
+            }
+            if (pendingManualsCount > 0) {
+              parts.push(`${pendingManualsCount} procedure revision request${pendingManualsCount > 1 ? 's' : ''}`);
+            }
+            listItems.push(`Additionally, you have ${parts.join(' and ')} pending review in the manuals and forms inbox.`);
+          }
+        }
+
+        // Unread communications (for everyone)
+        let unreadCommsCount = 0;
+        try {
+          const commsSnap = await getDocs(query(
+            collection(firestore, 'communications')
+          ));
+          const roleLower = userRole?.toLowerCase() || '';
+          const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
+          const currentYear = new Date().getFullYear();
+          unreadCommsCount = commsSnap.docs.filter(d => {
+            const c = d.data();
+            if (c.senderUnitId === unitId) return false;
+            const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
+            if (date && date.getFullYear() !== currentYear) return false;
+            let isRecipient = false;
+            if (c.recipientType === 'all') isRecipient = true;
+            else if (c.recipientType === 'campus' && c.recipientIds?.includes(campusId)) isRecipient = true;
+            else if (c.recipientType === 'unit' && c.recipientIds?.includes(unitId)) isRecipient = true;
+            else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) isRecipient = true;
+            if (!isRecipient) return false;
+            const isReceivedByUnit = !!c.recipientRefNums?.[unitId];
+            if (!isOdimo && !isReceivedByUnit) return false;
+            const hasRead = c.readBy?.includes(userProfile.id) || (unitId && c.readBy?.includes(unitId));
+            return !hasRead;
+          }).length;
+        } catch { /* silent */ }
+        if (unreadCommsCount > 0) {
+          listItems.push(`Finally, you have ${unreadCommsCount} unread communication${unreadCommsCount > 1 ? 's' : ''} in the Communications Hub.`);
+        }
       }
 
       setTimeout(() => {
         const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
         const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
         if (listItems.length > 0) {
-          const speechText = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')} ${portalDescription}`;
+          const speechText = isPresident
+            ? `Hey, ${name}, here is your EOMS executive overview. ${listItems.join(' ')} ${portalDescription}`
+            : `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')} ${portalDescription}`;
           queueAnnouncement(speechText);
         } else {
           queueAnnouncement(`Congratulations, ${name}! You have no pending items that require your attention. ${portalDescription}`);
