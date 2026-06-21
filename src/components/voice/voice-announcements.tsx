@@ -302,11 +302,12 @@ export function VoiceAnnouncements() {
       }
 
       setTimeout(() => {
+        const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
         if (listItems.length > 0) {
-          const speechText = `Here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')}`;
+          const speechText = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')}`;
           speak(speechText);
         } else {
-          speak(`Congratulations! You have no pending items that require your attention.`);
+          speak(`Congratulations, ${name}! You have no pending items that require your attention.`);
         }
       }, 4500);
     };
