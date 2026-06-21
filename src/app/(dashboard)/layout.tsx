@@ -415,7 +415,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!formRequestNotifications || !userProfile) return 0;
     return formRequestNotifications.filter(r => {
       if (isAdmin) {
-        return r.status === 'Submitted' || r.status === 'QA Review' || r.status === 'Endorsement for Approval';
+        return r.status === 'Submitted' || r.status === 'QA Review';
       }
       return r.status === 'Returned for Correction';
     }).length;
@@ -425,7 +425,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!revisionRequestsNotifications || !userProfile) return 0;
     return revisionRequestsNotifications.filter(r => {
       if (isAdmin) {
-        return r.status === 'Submitted' || r.status === 'Awaiting Presidential Approval';
+        return r.status === 'Submitted';
       }
       return r.status === 'Returned for Revision';
     }).length;
@@ -569,7 +569,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (formRequestNotifications && userProfile) {
       formRequestNotifications.forEach(r => {
         if (isAdmin) {
-          if (r.status !== 'Submitted' && r.status !== 'QA Review' && r.status !== 'Endorsement for Approval') return;
+          if (r.status !== 'Submitted' && r.status !== 'QA Review') return;
           list.push({
             id: `form-req-${r.id}`,
             module: 'unit-forms',
@@ -594,7 +594,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (revisionRequestsNotifications && userProfile) {
       revisionRequestsNotifications.forEach(r => {
         if (isAdmin) {
-          if (r.status !== 'Submitted' && r.status !== 'Awaiting Presidential Approval') return;
+          if (r.status !== 'Submitted') return;
           list.push({
             id: `rev-req-${r.id}`,
             module: 'manuals',
