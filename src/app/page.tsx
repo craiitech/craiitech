@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,29 +115,98 @@ export default function Home() {
             {/* Hero Section */}
             <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90dvh] px-4">
                 <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl animate-in fade-in zoom-in duration-1000">
-                    <div className="flex flex-col items-center gap-6">
-                        {/* ISO Logo with Official Certipedia Link */}
-                        <a 
-                            href="https://www.certipedia.com/quality_marks/9000018803?locale=en" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="transition-all hover:opacity-90 active:scale-95 mb-2"
+                    <motion.div 
+                        className="flex flex-col items-center gap-6"
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: {},
+                            visible: {
+                                transition: {
+                                    staggerChildren: 0.15
+                                }
+                            }
+                        }}
+                    >
+                        {/* Glassmorphic Logos Container */}
+                        <motion.div 
+                            variants={{
+                                hidden: { opacity: 0, y: 30, scale: 0.95 },
+                                visible: { 
+                                    opacity: 1, 
+                                    y: 0, 
+                                    scale: 1,
+                                    transition: { type: 'spring', stiffness: 100, damping: 15 }
+                                }
+                            }}
+                            className="flex items-center justify-center gap-4 sm:gap-8 md:gap-10 px-6 py-4 sm:px-8 sm:py-5 bg-white/10 backdrop-blur-md rounded-[2.5rem] border border-white/20 shadow-2xl relative group overflow-hidden transition-all duration-500 hover:border-white/30 hover:shadow-primary/10 hover:shadow-[0_0_50px_rgba(27,101,53,0.15)]"
                         >
-                            <div className="relative h-[200px] w-[200px] overflow-hidden">
+                            {/* RSU Logo */}
+                            <motion.div
+                                variants={{
+                                    hidden: { opacity: 0, scale: 0.8 },
+                                    visible: { opacity: 1, scale: 1 }
+                                }}
+                                className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 transition-transform duration-300 hover:scale-110 active:scale-95 animate-logo-float [animation-delay:0s]"
+                            >
+                                <Image 
+                                    src="/rsulogo.png" 
+                                    alt="Romblon State University Logo" 
+                                    fill
+                                    className="object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                                    priority
+                                />
+                            </motion.div>
+                            
+                            {/* Elegant Divider */}
+                            <div className="h-10 w-[1px] bg-white/20" />
+
+                            {/* QA Logo */}
+                            <motion.div
+                                variants={{
+                                    hidden: { opacity: 0, scale: 0.8 },
+                                    visible: { opacity: 1, scale: 1 }
+                                }}
+                                className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 transition-transform duration-300 hover:scale-110 active:scale-95 animate-logo-float [animation-delay:0.5s]"
+                            >
+                                <Image 
+                                    src="/qa_logo.png" 
+                                    alt="Quality Assurance Logo" 
+                                    fill
+                                    className="object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                                    priority
+                                />
+                            </motion.div>
+
+                            {/* Elegant Divider */}
+                            <div className="h-10 w-[1px] bg-white/20" />
+
+                            {/* ISO Logo */}
+                            <motion.a 
+                                variants={{
+                                    hidden: { opacity: 0, scale: 0.8 },
+                                    visible: { opacity: 1, scale: 1 }
+                                }}
+                                href="https://www.certipedia.com/quality_marks/9000018803?locale=en" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="relative w-28 h-16 sm:w-36 sm:h-20 md:w-44 md:h-24 transition-transform duration-300 hover:scale-110 active:scale-95 animate-logo-float [animation-delay:1.0s]"
+                            >
                                 <Image 
                                     src="/ISOlogo.jpg" 
                                     alt="ISO Certification Logo" 
                                     fill
-                                    className="object-contain"
+                                    className="object-contain rounded-lg filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
                                     priority
                                 />
-                            </div>
-                        </a>
+                            </motion.a>
+                        </motion.div>
+
                         <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-sm text-white backdrop-blur-md">
                             <ShieldCheck className="h-4 w-4 text-primary" />
                             <span className="font-bold tracking-tight">ISO 21001:2018 Certified Management System</span>
                         </div>
-                    </div>
+                    </motion.div>
                     
                     <div className="space-y-4">
                         <div className="flex flex-col items-center justify-center gap-4">
