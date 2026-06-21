@@ -303,11 +303,12 @@ export function VoiceAnnouncements() {
 
       setTimeout(() => {
         const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+        const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
         if (listItems.length > 0) {
-          const speechText = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')}`;
+          const speechText = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')} ${portalDescription}`;
           speak(speechText);
         } else {
-          speak(`Congratulations, ${name}! You have no pending items that require your attention.`);
+          speak(`Congratulations, ${name}! You have no pending items that require your attention. ${portalDescription}`);
         }
       }, 4500);
     };
