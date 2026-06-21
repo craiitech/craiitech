@@ -30,7 +30,8 @@ import {
   Smartphone,
   ShieldCheck,
   KeyRound,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
 
 export default function RsuAttendanceApp() {
@@ -769,6 +770,25 @@ export default function RsuAttendanceApp() {
           <p className="text-[9px] font-black text-[#D4AF37] tracking-widest uppercase mt-0.5">Secure mobile credential</p>
         </div>
       </header>
+
+      {/* DOWNLOAD APK BANNER */}
+      <div className="mt-4 p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between shadow-lg backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <Smartphone className="h-5 w-5 text-[#D4AF37]" />
+          <div>
+            <div className="text-[10px] font-black text-white uppercase">Download Android App</div>
+            <div className="text-[8px] font-bold text-slate-400 uppercase">For faster, native QR scanning</div>
+          </div>
+        </div>
+        <a
+          href="/downloads/rsu-eoms-portal.apk"
+          download
+          className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download APK
+        </a>
+      </div>
 
       {/* MAIN VIEWPORT */}
       <main className="my-auto py-6">
