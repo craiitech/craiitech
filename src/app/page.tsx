@@ -150,25 +150,25 @@ export default function Home() {
                     </div>
 
                     <div className="flex flex-wrap justify-center gap-4 pt-6">
-                        <Button asChild size="lg" variant="default" className="h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-all hover:scale-105 active:scale-95">
+                        <Button asChild size="lg" variant="default" className="w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-all hover:scale-105 active:scale-95 flex justify-center items-center">
                             <Link href="/login" className="flex items-center gap-2">
                                 Access Portal <ArrowRight className="h-5 w-5" />
                             </Link>
                         </Button>
-                        <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg bg-white/5 border-white/40 text-white hover:bg-white/20 font-bold uppercase tracking-widest transition-all backdrop-blur-sm">
+                        <Button asChild size="lg" variant="outline" className="w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg bg-white/5 border-white/40 text-white hover:bg-white/20 font-bold uppercase tracking-widest transition-all backdrop-blur-sm flex justify-center items-center">
                             <Link href="/register">
                                 Create Account
                             </Link>
                         </Button>
                         {/* My Attendance — device-bound QR shortcut (Mobile/Tablet only) */}
-                        <Button asChild size="lg" className="lg:hidden h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white transition-all hover:scale-105 active:scale-95">
+                        <Button asChild size="lg" className="lg:hidden w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white transition-all hover:scale-105 active:scale-95 flex justify-center items-center">
                             <Link href="/attendance-app" className="flex items-center gap-2.5">
                                 <QrCode className="h-5 w-5" />
                                 My Attendance
                             </Link>
                         </Button>
                         {/* Scan QR — mobile camera QR scanner (Mobile/Tablet only) */}
-                        <Button asChild size="lg" className="lg:hidden h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-amber-950/40 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-400 hover:to-[#D4AF37] border-none text-white transition-all hover:scale-105 active:scale-95">
+                        <Button asChild size="lg" className="lg:hidden w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-amber-950/40 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-400 hover:to-[#D4AF37] border-none text-white transition-all hover:scale-105 active:scale-95 flex justify-center items-center">
                             <Link href="/scan" className="flex items-center gap-2.5">
                                 <Camera className="h-5 w-5" />
                                 Scan QR

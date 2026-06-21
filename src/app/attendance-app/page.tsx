@@ -36,6 +36,18 @@ import {
 
 export default function RsuAttendanceApp() {
   const firestore = useFirestore();
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                               (window.navigator as any).standalone === true ||
+                               document.referrer.includes('android-app://') ||
+                               window.navigator.userAgent.includes('wv') ||
+                               window.navigator.userAgent.includes('WebView');
+      setIsStandalone(isStandaloneMode);
+    }
+  }, []);
 
   // Load campuses and units for registration form (static data, fetched once)
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
@@ -772,23 +784,25 @@ export default function RsuAttendanceApp() {
       </header>
 
       {/* DOWNLOAD APK BANNER */}
-      <div className="mt-4 p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between shadow-lg backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <Smartphone className="h-5 w-5 text-[#D4AF37]" />
-          <div>
-            <div className="text-[10px] font-black text-white uppercase">Download Android App</div>
-            <div className="text-[8px] font-bold text-slate-400 uppercase">For faster, native QR scanning</div>
+      {!isStandalone && (
+        <div className="mt-4 p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5 text-[#D4AF37]" />
+            <div>
+              <div className="text-[10px] font-black text-white uppercase">Download Android App</div>
+              <div className="text-[8px] font-bold text-slate-400 uppercase">For faster, native QR scanning</div>
+            </div>
           </div>
+          <a
+            href="/downloads/rsu-eoms-portal.apk"
+            download
+            className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download APK
+          </a>
         </div>
-        <a
-          href="/downloads/rsu-eoms-portal.apk"
-          download
-          className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Download APK
-        </a>
-      </div>
+      )}
 
       {/* MAIN VIEWPORT */}
       <main className="my-auto py-6">
