@@ -6,7 +6,7 @@ import { collection, query, where, getDocs, Timestamp } from '@/firebase/firesto
 import { useVoice } from './voice-provider';
 import { submissionTypes } from '@/lib/constants';
 import { isCycleActive } from '@/lib/utils';
-import type { Submission, ProgramComplianceRecord, Cycle, ManagementReviewOutput } from '@/lib/types';
+import type { Submission, ProgramComplianceRecord, Cycle, ManagementReviewOutput, AuditSchedule } from '@/lib/types';
 
 export function VoiceAnnouncements() {
   const { userProfile, isUserLoading, isAdmin, userRole } = useUser();
@@ -27,6 +27,28 @@ export function VoiceAnnouncements() {
 
       const roleLower = userRole?.toLowerCase() || '';
       const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
+      const isExecutive = roleLower === 'campus director' || roleLower.includes('vice president') || roleLower === 'vp';
+      const isAuditor = roleLower.includes('auditor');
+
+      // Daily Frequency Cap check
+      const todayStr = new Date().toISOString().split('T')[0];
+      const storageKey = `rsu_eoms_last_announcement_date_${userProfile.id}`;
+      const lastAnnouncementDate = localStorage.getItem(storageKey);
+      const alreadySpokenToday = lastAnnouncementDate === todayStr;
+
+      if (alreadySpokenToday) {
+        setTimeout(() => {
+          const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+          let shortMsg = `Hey, ${name}, I already informed you of your quality assurance and compliance summary. Please comply ASAP.`;
+          if (isPresident || isExecutive) {
+            shortMsg = `Hey, ${name}, I already informed you of your EOMS executive overview. Please monitor the dashboard.`;
+          } else if (isAuditor) {
+            shortMsg = `Hey, ${name}, I already informed you of your audit overview. Thank you for your commitment to quality.`;
+          }
+          queueAnnouncement(shortMsg);
+        }, 1000);
+        return;
+      }
 
       if (isPresident) {
         // 1. EOMS Submissions Status
@@ -127,7 +149,119 @@ export function VoiceAnnouncements() {
             `Finally, you have ${parts.join(' and ')} awaiting your executive signature and final approval.`
           );
         }
+      } else if (isExecutive) {
+        // Campus Directors and Vice Presidents - Oversee units in their campus
+        let totalSubmitted = 0;
+        let totalApproved = 0;
+        let totalDrafts = 0;
+        try {
+          const submissionsSnap = await getDocs(query(
+            collection(firestore, 'submissions'),
+            where('campusId', '==', campusId)
+          ));
+          const submissions = submissionsSnap.docs.map(d => d.data() as Submission)
+                                                  .filter(s => Number(s.year) === activeYear);
+          totalSubmitted = submissions.filter(s => s.statusId === 'submitted').length;
+          totalApproved = submissions.filter(s => s.statusId === 'approved').length;
+          totalDrafts = submissions.filter(s => s.statusId === 'draft' || s.isDraft).length;
+        } catch { /* silent */ }
+
+        listItems.push(
+          `First, across your campus for the active academic year, there are currently ${totalSubmitted} EOMS submissions pending review, ${totalApproved} approved submissions, and ${totalDrafts} in draft status.`
+        );
+
+        // CHED Programs (COPC & Accreditation)
+        let copcCount = 0;
+        let noCopcCount = 0;
+        let inProgressCopcCount = 0;
+        let accreditedCount = 0;
+        let nonAccreditedCount = 0;
+        let totalOpenRecommendations = 0;
+
+        try {
+          const pcSnap = await getDocs(query(
+            collection(firestore, 'programCompliances'),
+            where('campusId', '==', campusId)
+          ));
+          const compliances = pcSnap.docs.map(d => d.data() as ProgramComplianceRecord)
+                                         .filter(c => Number(c.academicYear) === activeYear);
+          
+          compliances.forEach(c => {
+            if (c.ched?.copcStatus === 'With COPC') copcCount++;
+            else if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
+            else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
+
+            const milestones = c.accreditationRecords || [];
+            const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+            if (latest) {
+              if (latest.level === 'Non Accredited' || latest.level === 'Candidate Status' || latest.level === 'TBA') {
+                nonAccreditedCount++;
+              } else {
+                accreditedCount++;
+              }
+            } else {
+              nonAccreditedCount++;
+            }
+
+            milestones.forEach(m => {
+              m.recommendations?.forEach(reco => {
+                if (reco.status === 'Open' || reco.status === 'In Progress') {
+                  totalOpenRecommendations++;
+                }
+              });
+            });
+          });
+        } catch { /* silent */ }
+
+        listItems.push(
+          `Second, regarding CHED compliance on your campus, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`
+        );
+
+        if (accreditedCount > 0 || nonAccreditedCount > 0) {
+          listItems.push(
+            `Third, in terms of program accreditation, there are ${accreditedCount} accredited academic programs and ${nonAccreditedCount} programs in non-accredited or candidate status.`
+          );
+        }
+
+        if (totalOpenRecommendations > 0) {
+          listItems.push(
+            `Additionally, there are ${totalOpenRecommendations} open accreditor recommendations currently being addressed by the colleges.`
+          );
+        }
+      } else if (isAuditor) {
+        // Auditors - Audits & Audit Status
+        let pendingAudits = 0;
+        try {
+          const schedSnap = await getDocs(query(
+            collection(firestore, 'auditSchedules'),
+            where('auditorId', '==', userProfile.id)
+          ));
+          const schedules = schedSnap.docs.map(d => d.data() as AuditSchedule);
+          pendingAudits = schedules.filter(s => s.status === 'Scheduled' || s.status === 'In Progress').length;
+        } catch { /* silent */ }
+
+        let verifyCount = 0;
+        try {
+          const verifySnap = await getDocs(query(
+            collection(firestore, 'correctiveActionRequests'),
+            where('status', '==', 'For Final Verification')
+          ));
+          verifyCount = verifySnap.size;
+        } catch { /* silent */ }
+
+        listItems.push(
+          `First, you have ${pendingAudits} pending audit schedule${pendingAudits !== 1 ? 's' : ''} currently on your list.`
+        );
+        if (verifyCount > 0) {
+          listItems.push(
+            `Second, there are ${verifyCount} corrective action request${verifyCount !== 1 ? 's' : ''} awaiting final verification in your inbox.`
+          );
+        }
+        listItems.push(
+          `Thank you for your dedicated service as an auditor and for being part of Romblon State University and the Quality Assurance Office for Quality.`
+        );
       } else {
+        // Standard User (Unit Head / Staff / Admin / Supervisor)
         // 1. Open CARs (Corrective Action Requests)
         let openCarsCount = 0;
         if (unitId) {
@@ -408,14 +542,24 @@ export function VoiceAnnouncements() {
       setTimeout(() => {
         const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
         const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
+        
+        let intro = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention:`;
+        if (isPresident || isExecutive) {
+          intro = `Hey, ${name}, here is your EOMS executive overview.`;
+        } else if (isAuditor) {
+          intro = `Hey, ${name}, here is your audit overview.`;
+        }
+
         if (listItems.length > 0) {
-          const speechText = isPresident
-            ? `Hey, ${name}, here is your EOMS executive overview. ${listItems.join(' ')} ${portalDescription}`
-            : `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')} ${portalDescription}`;
+          const speechText = `${intro} ${listItems.join(' ')} ${portalDescription}`;
           queueAnnouncement(speechText);
         } else {
           queueAnnouncement(`Congratulations, ${name}! You have no pending items that require your attention. ${portalDescription}`);
         }
+
+        try {
+          localStorage.setItem(storageKey, todayStr);
+        } catch {}
       }, 1000);
     };
 
