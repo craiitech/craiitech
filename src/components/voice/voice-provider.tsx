@@ -42,12 +42,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const speak = useCallback((text: string) => {
-    if (!enabledRef.current || typeof window === 'undefined' || !userProfile) return;
+    if (!enabledRef.current || typeof window === 'undefined') return;
     window.speechSynthesis?.cancel();
     const msg = new SpeechSynthesisUtterance(text);
     msg.rate = 0.85;
     window.speechSynthesis?.speak(msg);
-  }, [userProfile]);
+  }, []);
 
   const stop = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -89,16 +89,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       return () => clearTimeout(timer);
     }
   }, [isUserLoading, userProfile, speak]);
-
-  // Reset welcomed state and cancel speech on logout
-  useEffect(() => {
-    if (!isUserLoading && !userProfile) {
-      welcomed.current = false;
-      if (typeof window !== 'undefined') {
-        window.speechSynthesis?.cancel();
-      }
-    }
-  }, [isUserLoading, userProfile]);
 
   return (
     <VoiceCtx.Provider value={{ speak, stop, enabled, setEnabled }}>

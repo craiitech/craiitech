@@ -18,9 +18,6 @@ export function VoiceAnnouncements() {
     if (isUserLoading || !userProfile || !firestore || !enabled || announced.current) return;
     announced.current = true;
 
-    let active = true;
-    let timerId: NodeJS.Timeout | null = null;
-
     const fetchAndAnnounce = async () => {
       const now = new Date();
       const unitId = userProfile.unitId;
@@ -304,10 +301,7 @@ export function VoiceAnnouncements() {
         listItems.push(`Finally, you have ${unreadCommsCount} unread communication${unreadCommsCount > 1 ? 's' : ''} in the Communications Hub.`);
       }
 
-      if (!active) return;
-
-      timerId = setTimeout(() => {
-        if (!active) return;
+      setTimeout(() => {
         if (listItems.length > 0) {
           const speechText = `Here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')}`;
           speak(speechText);
@@ -318,21 +312,7 @@ export function VoiceAnnouncements() {
     };
 
     fetchAndAnnounce();
-
-    return () => {
-      active = false;
-      if (timerId) {
-        clearTimeout(timerId);
-      }
-    };
   }, [isUserLoading, userProfile, firestore, isAdmin, userRole, enabled, speak]);
-
-  // Reset announced state on logout
-  useEffect(() => {
-    if (!isUserLoading && !userProfile) {
-      announced.current = false;
-    }
-  }, [isUserLoading, userProfile]);
 
   return null;
 }
