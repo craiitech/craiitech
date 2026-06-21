@@ -11,7 +11,7 @@ import type { Submission, ProgramComplianceRecord, Cycle, ManagementReviewOutput
 export function VoiceAnnouncements() {
   const { userProfile, isUserLoading, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
-  const { speak, enabled } = useVoice();
+  const { queueAnnouncement, enabled } = useVoice();
   const announced = useRef(false);
 
   useEffect(() => {
@@ -306,15 +306,15 @@ export function VoiceAnnouncements() {
         const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
         if (listItems.length > 0) {
           const speechText = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention: ${listItems.join(' ')} ${portalDescription}`;
-          speak(speechText);
+          queueAnnouncement(speechText);
         } else {
-          speak(`Congratulations, ${name}! You have no pending items that require your attention. ${portalDescription}`);
+          queueAnnouncement(`Congratulations, ${name}! You have no pending items that require your attention. ${portalDescription}`);
         }
-      }, 4500);
+      }, 1000);
     };
 
     fetchAndAnnounce();
-  }, [isUserLoading, userProfile, firestore, isAdmin, userRole, enabled, speak]);
+  }, [isUserLoading, userProfile, firestore, isAdmin, userRole, enabled, queueAnnouncement]);
 
   return null;
 }
