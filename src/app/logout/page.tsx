@@ -118,6 +118,11 @@ export default function LogoutPage() {
       }
       await signOut(auth);
       clearSessionLogs();
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
+        } catch {}
+      }
       router.push('/');
     } catch (error) {
       setIsProcessingLogout(false);

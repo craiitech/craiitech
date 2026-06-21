@@ -16,6 +16,9 @@ export function VoiceAnnouncements() {
 
   useEffect(() => {
     if (isUserLoading || !userProfile || !firestore || !enabled || announced.current) return;
+    if (typeof window !== 'undefined' && sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') {
+      return;
+    }
     announced.current = true;
 
     const fetchAndAnnounce = async () => {
@@ -46,6 +49,9 @@ export function VoiceAnnouncements() {
             shortMsg = `Hey, ${name}, I already informed you of your audit overview. Thank you for your commitment to quality.`;
           }
           queueAnnouncement(shortMsg);
+          try {
+            sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
+          } catch {}
         }, 1000);
         return;
       }
@@ -559,6 +565,7 @@ export function VoiceAnnouncements() {
 
         try {
           localStorage.setItem(storageKey, todayStr);
+          sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
         } catch {}
       }, 1000);
     };

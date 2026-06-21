@@ -22,7 +22,7 @@ const VoiceCtx = createContext<VoiceContextValue>({
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(false);
-  const { userProfile, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading } = useUser();
   const welcomed = useRef(false);
   const enabledRef = useRef(false);
   const pendingAnnouncement = useRef<string | null>(null);
@@ -96,6 +96,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // Speak welcome immediately on first user click (satisfies browser autoplay policy)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') return;
+
     const onInteraction = () => {
       if (welcomed.current || !enabledRef.current) return;
       if (!userProfile || isUserLoading || userProfile.verified === false) return;
@@ -113,6 +115,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   // Fallback: if profile loads after the click, speak welcome once ready
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') return;
+
     if (!isUserLoading && userProfile && userProfile.verified !== false && !welcomed.current && enabledRef.current) {
       welcomed.current = true;
       const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
@@ -125,14 +130,17 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   // Reset welcomed state and cancel speech on logout
   useEffect(() => {
-    if (!isUserLoading && !userProfile) {
+    if (!isUserLoading && !user) {
       welcomed.current = false;
       pendingAnnouncement.current = null;
       if (typeof window !== 'undefined') {
         window.speechSynthesis?.cancel();
+        try {
+          sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
+        } catch {}
       }
     }
-  }, [isUserLoading, userProfile]);
+  }, [isUserLoading, user]);
 
   return (
     <VoiceCtx.Provider value={{ speak, stop, enabled, setEnabled, queueAnnouncement }}>

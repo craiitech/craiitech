@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AuthForm } from '@/components/auth/auth-form';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -9,6 +10,14 @@ import { Badge } from '@/components/ui/badge';
 
 export default function LoginPage() {
   const bgImage = PlaceHolderImages.find((p) => p.id === 'auth-background');
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
+      } catch {}
+    }
+  }, []);
   
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden p-4 lg:p-0">
