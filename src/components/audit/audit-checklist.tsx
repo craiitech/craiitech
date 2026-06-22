@@ -107,13 +107,20 @@ function ClauseForm({
 
   const [isRevisitDialogOpen, setIsRevisitDialogOpen] = useState(false);
   const [revisitReason, setRevisitReason] = useState('');
+  const [revisitDate, setRevisitDate] = useState('');
+  const [revisitTime, setRevisitTime] = useState('');
   const [isSchedulingRevisit, setIsSchedulingRevisit] = useState(false);
 
   const handleScheduleRevisit = async () => {
-    if (!firestore || !user || !revisitReason.trim()) return;
+    if (!firestore || !user || !revisitReason.trim() || !revisitDate) return;
     setIsSchedulingRevisit(true);
     const revisitId = `${scheduleId}-${clause.id}-revisit`;
     const revisitRef = doc(firestore, 'clauseRevisits', revisitId);
+
+    const [year, month, day] = revisitDate.split('-').map(Number);
+    const [hour, minute] = (revisitTime || '08:00').split(':').map(Number);
+    const scheduled = new Date(year, month - 1, day, hour, minute);
+
     try {
       await setDoc(revisitRef, {
         id: revisitId,
@@ -126,12 +133,15 @@ function ClauseForm({
         auditorId: user.uid,
         auditorName: user.displayName || 'Unknown Auditor',
         reason: revisitReason.trim(),
+        scheduledDate: Timestamp.fromDate(scheduled),
         status: 'Pending',
         createdAt: serverTimestamp(),
       });
-      toast({ title: 'Revisit Scheduled', description: `Clause ${clause.id} marked for revisit.` });
+      toast({ title: 'Revisit Scheduled', description: `Clause ${clause.id} revisit scheduled for ${format(scheduled, 'MMM dd, yyyy hh:mm a')}.` });
       setIsRevisitDialogOpen(false);
       setRevisitReason('');
+      setRevisitDate('');
+      setRevisitTime('');
     } catch (error) {
       console.error('Error scheduling revisit:', error);
       toast({ title: 'Error', description: 'Failed to schedule revisit.', variant: 'destructive' });
@@ -746,20 +756,42 @@ function ClauseForm({
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Reason for Revisit</Label>
-                  <Textarea
-                    value={revisitReason}
-                    onChange={(e) => setRevisitReason(e.target.value)}
-                    placeholder="e.g., Additional documents needed, further verification required..."
-                    rows={3}
-                    className="bg-white border-slate-200 text-xs"
-                  />
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Reason for Revisit</Label>
+                    <Textarea
+                      value={revisitReason}
+                      onChange={(e) => setRevisitReason(e.target.value)}
+                      placeholder="e.g., Additional documents needed, further verification required..."
+                      rows={3}
+                      className="bg-white border-slate-200 text-xs"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Revisit Date</Label>
+                      <Input
+                        type="date"
+                        value={revisitDate}
+                        onChange={(e) => setRevisitDate(e.target.value)}
+                        className="bg-white h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Revisit Time</Label>
+                      <Input
+                        type="time"
+                        value={revisitTime}
+                        onChange={(e) => setRevisitTime(e.target.value)}
+                        className="bg-white h-10"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsRevisitDialogOpen(false)} disabled={isSchedulingRevisit}>
                     Cancel
                   </Button>
-                  <Button type="button" onClick={handleScheduleRevisit} disabled={isSchedulingRevisit || !revisitReason.trim()}>
+                  <Button type="button" onClick={handleScheduleRevisit} disabled={isSchedulingRevisit || !revisitReason.trim() || !revisitDate}>
                     {isSchedulingRevisit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Schedule Revisit
                   </Button>
@@ -775,6 +807,14 @@ function ClauseForm({
                 <div>
                   <p className="text-[10px] font-black uppercase text-amber-800">Revisit Scheduled</p>
                   <p className="text-[9px] text-amber-700 italic max-w-md">{clauseRevisit?.reason}</p>
+                  {clauseRevisit?.scheduledDate && (
+                    <p className="text-[8px] font-bold text-amber-600 mt-1 flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      {clauseRevisit.scheduledDate.toDate
+                        ? format(clauseRevisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a')
+                        : '--'}
+                    </p>
+                  )}
                 </div>
               </div>
               <Button

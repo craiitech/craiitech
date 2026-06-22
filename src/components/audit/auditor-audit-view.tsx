@@ -369,7 +369,7 @@ export function AuditorAuditView() {
                                     <TableHead className="text-[10px] font-black uppercase">Clause</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Reason</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Scheduled</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Revisit Schedule</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -403,7 +403,7 @@ export function AuditorAuditView() {
                                         </Badge>
                                       </TableCell>
                                       <TableCell className="text-xs text-muted-foreground">
-                                        {revisit.createdAt?.toDate ? format(revisit.createdAt.toDate(), 'MMM dd, yyyy') : '--'}
+                                        {revisit.scheduledDate?.toDate ? format(revisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a') : '--'}
                                       </TableCell>
                                     </TableRow>
                                   ))}

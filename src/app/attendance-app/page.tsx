@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
 import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit, updateDoc } from '@/firebase/firestore-wrapper';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { getApp } from 'firebase/app';
 import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
 import { generatePayloadSignature, generateActivityCode, signOfflineLog, verifyOfflineLog } from '@/lib/unit-activity-crypto';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -31,7 +33,13 @@ import {
   ShieldCheck,
   KeyRound,
   Calendar,
-  Download
+  Download,
+  GraduationCap,
+  Users,
+  LogIn,
+  UserPlus,
+  ExternalLink,
+  Briefcase
 } from 'lucide-react';
 
 export default function RsuAttendanceApp() {
@@ -66,6 +74,7 @@ export default function RsuAttendanceApp() {
   const [isLocked, setIsLocked] = useState(false);
   
   // Registration Form state
+  const [role, setRole] = useState<'employee' | 'student' | 'stakeholder' | null>(null);
   const [fullName, setFullName] = useState('');
   const [selectedCampusId, setSelectedCampusId] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
@@ -73,6 +82,14 @@ export default function RsuAttendanceApp() {
   const [sex, setSex] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [regError, setRegError] = useState('');
+
+  // Employee login/account state
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [showLogin, setShowLogin] = useState(true);
 
   // QR display state
   const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -335,6 +352,64 @@ export default function RsuAttendanceApp() {
     checkBinding();
   }, [firestore, deviceFingerprint]);
 
+  // 3. Firebase Auth listener for employee login
+  useEffect(() => {
+    try {
+      const app = getApp();
+      const auth = getAuth(app);
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setFirebaseUser(user);
+        if (user && role === 'employee' && !fullName) {
+          setFullName(user.displayName || user.email?.split('@')[0] || '');
+          setAuthEmail(user.email || '');
+        }
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Firebase Auth not available:', e);
+    }
+  }, [role]);
+
+  const handleEmployeeLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsAuthLoading(true);
+    try {
+      const app = getApp();
+      const auth = getAuth(app);
+      await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      setIsAuthLoading(false);
+    } catch (err: any) {
+      setAuthError(err.message || 'Login failed.');
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsAuthLoading(true);
+    try {
+      const app = getApp();
+      const auth = getAuth(app);
+      await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+      setIsAuthLoading(false);
+    } catch (err: any) {
+      setAuthError(err.message || 'Account creation failed.');
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleEmployeeLogout = async () => {
+    try {
+      const app = getApp();
+      const auth = getAuth(app);
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
+  };
+
   const [qrRefreshCounter, setQrRefreshCounter] = useState(0);
 
   const generateNewQR = async () => {
@@ -442,7 +517,8 @@ export default function RsuAttendanceApp() {
         boundAt: new Date(),
         userAgent,
         contactNumber: contactNumber.trim(),
-        sex
+        sex,
+        role: role || 'stakeholder'
       };
 
       let isBoundOnline = false;
@@ -1002,18 +1078,216 @@ export default function RsuAttendanceApp() {
               </span>
             </CardFooter>
           </Card>
+        ) : !role ? (
+          /* ROLE SELECTION SCREEN */
+          <Card className="bg-slate-900/60 border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-[#D4AF37]" />
+            <CardHeader className="pb-3 pt-6">
+              <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">
+                <Users className="h-5 w-5 text-[#D4AF37]" /> Who are you?
+              </CardTitle>
+              <CardDescription className="text-[10px] text-slate-400 font-medium">
+                Select your affiliation with RSU to proceed with device registration.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRole('employee')}
+                className="w-full p-4 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 rounded-xl flex items-center gap-4 transition-all text-left group"
+              >
+                <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-all">
+                  <Briefcase className="h-6 w-6 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-white uppercase tracking-tight">RSU Employee</p>
+                  <p className="text-[9px] text-slate-400 font-medium">Faculty, staff, or administration with RSU account</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('student')}
+                className="w-full p-4 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-xl flex items-center gap-4 transition-all text-left group"
+              >
+                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-all">
+                  <GraduationCap className="h-6 w-6 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-white uppercase tracking-tight">RSU Student</p>
+                  <p className="text-[9px] text-slate-400 font-medium">Currently enrolled student</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('stakeholder')}
+                className="w-full p-4 bg-slate-950/60 border border-slate-800 hover:border-amber-500/50 rounded-xl flex items-center gap-4 transition-all text-left group"
+              >
+                <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-all">
+                  <Users className="h-6 w-6 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-white uppercase tracking-tight">Other Stakeholder</p>
+                  <p className="text-[9px] text-slate-400 font-medium">Visitor, partner, or external participant</p>
+                </div>
+              </button>
+            </CardContent>
+            <CardFooter className="pt-2 pb-6">
+              <p className="text-[8.5px] text-center text-slate-500 uppercase tracking-wide leading-normal w-full">
+                Device binds to this phone permanently. One device per person.
+              </p>
+            </CardFooter>
+          </Card>
+        ) : role === 'employee' && !firebaseUser ? (
+          /* EMPLOYEE LOGIN / ACCOUNT CREATION */
+          <Card className="bg-slate-900/60 border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
+            <CardHeader className="pb-3 pt-6">
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-emerald-400" /> RSU Employee Access
+                </CardTitle>
+                <button
+                  type="button"
+                  onClick={() => { setRole(null); setAuthEmail(''); setAuthPassword(''); setAuthError(''); }}
+                  className="text-[9px] font-black text-slate-500 hover:text-slate-300 uppercase tracking-wider underline"
+                >
+                  Back
+                </button>
+              </div>
+              <CardDescription className="text-[10px] text-slate-400 font-medium">
+                Login or create your RSU account to register this device.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-1">
+              {/* Tab: Login / Create Account */}
+              <div className="flex border-b border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setShowLogin(true); setAuthError(''); }}
+                  className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                    showLogin ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  <LogIn className="h-3.5 w-3.5 inline-block mr-1.5" /> Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowLogin(false); setAuthError(''); }}
+                  className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                    !showLogin ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  <UserPlus className="h-3.5 w-3.5 inline-block mr-1.5" /> Create Account
+                </button>
+              </div>
+
+              {/* Download APK Banner */}
+              {!isStandalone && (
+                <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5 text-[#D4AF37]" />
+                    <div>
+                      <div className="text-[9px] font-black text-white uppercase">RSU Attendance APK</div>
+                      <div className="text-[7px] font-bold text-slate-400 uppercase">Install for native experience</div>
+                    </div>
+                  </div>
+                  <a
+                    href="/downloads/rsu-eoms-portal.apk"
+                    download
+                    className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 font-black text-[8px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
+                  >
+                    <Download className="h-3 w-3" /> APK
+                  </a>
+                </div>
+              )}
+
+              {authError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold leading-tight flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              <form onSubmit={showLogin ? handleEmployeeLogin : handleCreateAccount} className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1">RSU Email</label>
+                  <Input
+                    type="email"
+                    placeholder="email@rsu.edu.ph"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-emerald-500/50"
+                    disabled={isAuthLoading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1">Password</label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-emerald-500/50"
+                    disabled={isAuthLoading}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isAuthLoading || !authEmail.trim() || !authPassword.trim()}
+                  className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                >
+                  {isAuthLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
+                  ) : showLogin ? (
+                    <><LogIn className="h-4 w-4 mr-2" /> Login &amp; Continue</>
+                  ) : (
+                    <><UserPlus className="h-4 w-4 mr-2" /> Create Account &amp; Continue</>
+                  )}
+                </Button>
+              </form>
+
+              <p className="text-[8px] text-center text-slate-500 uppercase tracking-wide">
+                After login, you will register your device for attendance QR code access.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          /* FIRST TIME REGISTRATION / DEVICE BINDING FORM */
+          /* REGISTRATION / DEVICE BINDING FORM (for student, stakeholder, or logged-in employee) */
           <Card className="bg-slate-900/60 border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-500 to-[#D4AF37]" />
             
             <CardHeader className="pb-3 pt-6">
-              <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-[#D4AF37]" /> First-Time Registration
-              </CardTitle>
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-[#D4AF37]" /> Device Registration
+                </CardTitle>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (role === 'employee') { handleEmployeeLogout(); }
+                    setRole(null);
+                    setFullName('');
+                    setSelectedCampusId('');
+                    setSelectedUnitId('');
+                    setContactNumber('');
+                    setSex('');
+                    setRegError('');
+                  }}
+                  className="text-[9px] font-black text-slate-500 hover:text-slate-300 uppercase tracking-wider underline"
+                >
+                  Back
+                </button>
+              </div>
               <CardDescription className="text-[10px] text-slate-400 font-medium">
-                Registering binds this specific phone/device to your name and unit permanently. Access will be locked to this hardware.
+                {role === 'employee'
+                  ? 'You are logged in. Register your device to enable attendance QR codes.'
+                  : 'Register this phone to generate attendance QR codes.'}
               </CardDescription>
+              {role && (
+                <Badge className="w-fit mt-1 bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-300 border border-slate-700 px-2 py-0.5">
+                  {role === 'employee' ? 'RSU Employee' : role === 'student' ? 'RSU Student' : 'Stakeholder'}
+                </Badge>
+              )}
             </CardHeader>
 
             <form onSubmit={handleRegisterDevice}>

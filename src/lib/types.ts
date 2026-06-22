@@ -398,6 +398,7 @@ export type ClauseRevisit = {
     auditorId: string;
     auditorName: string;
     reason: string;
+    scheduledDate: any;
     status: 'Pending' | 'Completed';
     createdAt: any;
     completedAt?: any;
@@ -1197,6 +1198,7 @@ export type DeviceBinding = {
   userAgent: string;
   contactNumber?: string;
   sex?: string;
+  role: 'employee' | 'student' | 'stakeholder';
 };
 
 export type ActivityAttendanceLog = {
