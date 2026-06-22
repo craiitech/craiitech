@@ -625,7 +625,7 @@ export default function RiskRegisterPage() {
         </DialogContent>
       </Dialog>
 
-      <RiskFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} risk={editingRisk} unitUsers={[]} allUnits={allUnits || []} allCampuses={allCampuses || []} />
+      <RiskFormDialog isOpen={isFormOpen} onOpenChange={setIsFormOpen} risk={editingRisk} unitUsers={[]} allUnits={allUnits || []} allCampuses={allCampuses || []} defaultCycleId={printCycle} />
 
       <AlertDialog 
         open={!!deletingRisk} 

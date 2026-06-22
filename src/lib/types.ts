@@ -99,6 +99,9 @@ export type Risk = {
         evidence: string;
         dateImplemented: any;
     };
+    monitoringToolLink?: string; // Google Drive link of QAO-00-027-Monitoring Tool for ROR Treatment Plan
+    isFinalAssessmentNA?: boolean; // Whether the final assessment is not applicable (Low Rating)
+    cycleId?: 'first' | 'final'; // Submission cycle: 'first' or 'final'
     oapNo?: string;
     resourcesNeeded?: string;
     updates?: string;
