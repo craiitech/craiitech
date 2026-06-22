@@ -500,6 +500,22 @@ function ClauseForm({
                                 </div>
                             );
                         } else {
+                            if (docType === 'Risk and Opportunity Action Plan') {
+                                const rorSub = clauseSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
+                                if (rorSub?.riskRating === 'low') {
+                                    return (
+                                        <div key={docType} className="flex items-center gap-3 bg-emerald-50 p-4 rounded-xl border border-emerald-100 shadow-inner">
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 animate-in zoom-in duration-300" />
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] font-black text-emerald-800 uppercase">Not Required (Low Risk)</p>
+                                                <p className="text-[9px] text-emerald-600 font-medium italic">
+                                                    "Risk and Opportunity Action Plan" is not required since the unit's Risk Registry is rated LOW.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                            }
                             return (
                                 <div key={docType} className="flex items-center gap-3 bg-rose-50/60 p-4 rounded-xl border border-rose-100 shadow-inner">
                                     <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
