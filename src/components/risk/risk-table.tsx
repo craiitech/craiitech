@@ -316,7 +316,7 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
                     className="h-7 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm"
                     onClick={() => onEdit(risk)}
                 >
-                    Edit
+                    Edit | Update
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
