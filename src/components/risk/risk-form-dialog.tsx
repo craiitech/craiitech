@@ -425,13 +425,13 @@ export function RiskFormDialog({
             rating: String(rating) 
           },
           treatmentAction: values.treatmentAction || '',
-          monitoringScore: values.monitoringScore || '',
           responsiblePersonId: values.responsiblePersonId || '',
           responsiblePersonName: values.responsiblePersonId || '',
           targetDate: targetTimestamp,
           oapNo: values.oapNo || '',
           resourcesNeeded: values.resourcesNeeded || '',
-          updates: values.updates || '',
+          updates: (values.cycleId === 'first' || values.isFinalAssessmentNA) ? '' : (values.updates || ''),
+          monitoringScore: (values.cycleId === 'first' || values.isFinalAssessmentNA) ? '' : (values.monitoringScore || ''),
           preparedBy: values.preparedBy || '',
           approvedBy: values.approvedBy || '',
           escalationTrigger: values.escalationTrigger || '',
@@ -442,13 +442,13 @@ export function RiskFormDialog({
           updatedAt: serverTimestamp(),
         };
 
-        if (values.cycleId === 'final' && !values.isFinalAssessmentNA && (values.status === 'Closed' || values.postTreatmentLikelihood)) {
+        if (values.cycleId === 'final') {
             riskData.postTreatment = {
                 likelihood: Number(values.postTreatmentLikelihood || 1),
                 consequence: Number(values.postTreatmentConsequence || 1),
                 magnitude: Number(ptMagnitude),
                 rating: String(ptRating),
-                evidence: values.postTreatmentEvidence || '',
+                evidence: values.isFinalAssessmentNA ? '' : (values.postTreatmentEvidence || ''),
                 dateImplemented: values.postTreatmentDateImplemented || '',
             };
         } else {
@@ -859,14 +859,14 @@ export function RiskFormDialog({
                                             Final Assessment (Base on ROR - Final Cycle)
                                         </h3>
                                         <p className="text-[10px] text-muted-foreground font-medium italic pl-8">
-                                            Re-Assess the {riskTypeValue} after you have implemented the Treatment Plan / Current Control (Green Column)
+                                            Document the implementation monitoring results and evidence for the mitigation treatment plan.
                                         </p>
                                     </div>
                                     <Card className={cn("border-blue-200 bg-blue-50/5 shadow-md transition-all duration-1000", shouldHighlightFinal && "animate-blink-primary")}>
                                         <CardHeader className="bg-blue-50/50 border-b py-4 flex flex-row items-center justify-between flex-wrap gap-4">
                                             <div className="space-y-1">
                                                 <CardTitle className="text-sm font-black uppercase text-blue-800">Final Execution & Impact Verification</CardTitle>
-                                                <CardDescription className="text-xs">Re-assess the likelihood and consequence after implementation of the action plan.</CardDescription>
+                                                <CardDescription className="text-xs">Provide monitoring data and upload the monitoring tool document.</CardDescription>
                                             </div>
                                             <FormField control={form.control} name="isFinalAssessmentNA" render={({ field }) => (
                                                 <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">
@@ -946,102 +946,121 @@ export function RiskFormDialog({
                                                             </FormItem>
                                                         )} />
                                                     )}
-
-                                                    <Separator />
-
-                                                    <div className="space-y-4">
-                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-800 flex items-center gap-2">
-                                                            <TrendingUp className="h-4 w-4" /> Final {riskTypeValue} Analysis
-                                                        </h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <FormField control={form.control} name="postTreatmentLikelihood" render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[10px] font-bold uppercase">Residual Likelihood (L)</FormLabel>
-                                                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                                                                        <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
-                                                                        <SelectContent modal={false}>
-                                                                            {ASSESSMENT_CRITERIA.likelihood[riskTypeValue].map(o => (
-                                                                                <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </FormItem>
-                                                            )} />
-                                                            <FormField control={form.control} name="postTreatmentConsequence" render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[10px] font-bold uppercase">Residual Consequence (C)</FormLabel>
-                                                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                                                                        <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
-                                                                        <SelectContent modal={false}>
-                                                                            {ASSESSMENT_CRITERIA.consequence[riskTypeValue].map(o => (
-                                                                                <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </FormItem>
-                                                            )} />
-                                                        </div>
-
-                                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 bg-white rounded-lg border border-blue-100 shadow-inner">
-                                                            <div className="text-sm font-medium">Residual Magnitude: <span className="font-black text-xl tabular-nums">{ptMagnitude}</span></div>
-                                                            <Badge 
-                                                                className={cn(
-                                                                    "h-8 px-6 text-[10px] font-black uppercase border-none text-white",
-                                                                    riskTypeValue === 'Risk' ? (
-                                                                        ptRating === 'High' ? 'bg-rose-600' : ptRating === 'Medium' ? 'bg-amber-500' : 'bg-emerald-600'
-                                                                    ) : (
-                                                                        ptRating === 'High' ? 'bg-emerald-600' : ptRating === 'Medium' ? 'bg-amber-500' : 'bg-rose-600'
-                                                                    )
-                                                                )}
-                                                            >
-                                                                {ptRating} RESIDUAL RATING
-                                                            </Badge>
-                                                        </div>
-
-                                                        <div className="mt-4 animate-in zoom-in duration-500">
-                                                            {ptRating === 'Low' ? (
-                                                                <Alert className="bg-emerald-50 border-emerald-200">
-                                                                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                                                    <AlertTitle className="text-emerald-800 font-bold uppercase tracking-tight">Mitigation Successful</AlertTitle>
-                                                                    <AlertDescription className="text-emerald-700 text-xs font-medium">
-                                                                        The residual rating is now <strong>Low</strong>. You may proceed to change the status to <strong>Closed</strong> below to formally complete this registry entry.
-                                                                    </AlertDescription>
-                                                                </Alert>
-                                                            ) : (
-                                                                <Alert className="bg-amber-50 border-amber-200">
-                                                                    <ShieldAlert className="h-5 w-5 text-amber-600" />
-                                                                    <AlertTitle className="text-amber-800 font-bold uppercase tracking-tight">Risk/Opportunity Retains Significance</AlertTitle>
-                                                                    <AlertDescription className="text-amber-700 text-xs font-medium">
-                                                                        The residual rating remains <strong>{ptRating}</strong>. This entry should be carried out and baseline-re-analyzed in the **Next Year's** Risk Registry to ensure sustainable control.
-                                                                    </AlertDescription>
-                                                                </Alert>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                                        <FormField control={form.control} name="status" render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="font-bold text-primary">Update Execution Status</FormLabel>
-                                                                <Select onValueChange={field.onChange} value={field.value}>
-                                                                    <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-11"><SelectValue /></SelectTrigger></FormControl>
-                                                                    <SelectContent modal={false}>
-                                                                        <SelectItem value="Open">Open (Analysis Stage)</SelectItem>
-                                                                        <SelectItem value="In Progress">In Progress (Execution Stage)</SelectItem>
-                                                                        <SelectItem value="Closed" className="font-bold text-emerald-600">Closed (Mitigation Complete)</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </FormItem>
-                                                        )} />
-                                                        <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-[10px] font-bold uppercase">Date of Closure / Final Update</FormLabel>
-                                                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Dec 2024" className="bg-white h-11" /></FormControl>
-                                                            </FormItem>
-                                                        )} />
-                                                    </div>
                                                 </div>
                                             )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {form.watch('cycleId') === 'final' && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="space-y-1">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">5</div>
+                                            Final Risk Analysis & Closure Status
+                                        </h3>
+                                        <p className="text-[10px] text-muted-foreground font-medium italic pl-8">
+                                            Re-Assess the residual risk magnitude and rating after treatment implementation, and set final execution status.
+                                        </p>
+                                    </div>
+                                    <Card className="border-primary/20 bg-primary/5/5 shadow-md">
+                                        <CardHeader className="py-4 border-b">
+                                            <CardTitle className="text-sm font-black uppercase text-primary">Residual Rating & Closure Details</CardTitle>
+                                            <CardDescription className="text-xs">Re-assess the likelihood and consequence, and update final execution status.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6 pt-6">
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                                    <TrendingUp className="h-4 w-4" /> Final {riskTypeValue} Analysis
+                                                </h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={form.control} name="postTreatmentLikelihood" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[10px] font-bold uppercase">Residual Likelihood (L)</FormLabel>
+                                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                                <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                                <SelectContent modal={false}>
+                                                                    {ASSESSMENT_CRITERIA.likelihood[riskTypeValue].map(o => (
+                                                                        <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name="postTreatmentConsequence" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[10px] font-bold uppercase">Residual Consequence (C)</FormLabel>
+                                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                                <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                                <SelectContent modal={false}>
+                                                                    {ASSESSMENT_CRITERIA.consequence[riskTypeValue].map(o => (
+                                                                        <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+
+                                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 bg-white rounded-lg border border-primary/10 shadow-inner">
+                                                    <div className="text-sm font-medium">Residual Magnitude: <span className="font-black text-xl tabular-nums">{ptMagnitude}</span></div>
+                                                    <Badge 
+                                                        className={cn(
+                                                            "h-8 px-6 text-[10px] font-black uppercase border-none text-white",
+                                                            riskTypeValue === 'Risk' ? (
+                                                                ptRating === 'High' ? 'bg-rose-600' : ptRating === 'Medium' ? 'bg-amber-500' : 'bg-emerald-600'
+                                                            ) : (
+                                                                ptRating === 'High' ? 'bg-emerald-600' : ptRating === 'Medium' ? 'bg-amber-500' : 'bg-rose-600'
+                                                            )
+                                                        )}
+                                                    >
+                                                        {ptRating} RESIDUAL RATING
+                                                    </Badge>
+                                                </div>
+
+                                                <div className="mt-4 animate-in zoom-in duration-500">
+                                                    {ptRating === 'Low' ? (
+                                                        <Alert className="bg-emerald-50 border-emerald-200">
+                                                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                                            <AlertTitle className="text-emerald-800 font-bold uppercase tracking-tight">Mitigation Successful</AlertTitle>
+                                                            <AlertDescription className="text-emerald-700 text-xs font-medium">
+                                                                The residual rating is now <strong>Low</strong>. You may proceed to change the status to <strong>Closed</strong> below to formally complete this registry entry.
+                                                            </AlertDescription>
+                                                        </Alert>
+                                                    ) : (
+                                                        <Alert className="bg-amber-50 border-amber-200">
+                                                            <ShieldAlert className="h-5 w-5 text-amber-600" />
+                                                            <AlertTitle className="text-amber-800 font-bold uppercase tracking-tight">Risk/Opportunity Retains Significance</AlertTitle>
+                                                            <AlertDescription className="text-amber-700 text-xs font-medium">
+                                                                The residual rating remains <strong>{ptRating}</strong>. This entry should be carried out and baseline-re-analyzed in the **Next Year's** Risk Registry to ensure sustainable control.
+                                                            </AlertDescription>
+                                                        </Alert>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                                                <FormField control={form.control} name="status" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-primary">Update Execution Status</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-11"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent modal={false}>
+                                                                <SelectItem value="Open">Open (Analysis Stage)</SelectItem>
+                                                                <SelectItem value="In Progress">In Progress (Execution Stage)</SelectItem>
+                                                                <SelectItem value="Closed" className="font-bold text-emerald-600">Closed (Mitigation Complete)</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-bold uppercase">Date of Closure / Final Update</FormLabel>
+                                                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Dec 2024" className="bg-white h-11" /></FormControl>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
