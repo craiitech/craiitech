@@ -40,8 +40,6 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 
-const SHARED_ACADEMIC_ID = 'academic-shared';
-
 const manualSchema = z.object({
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().min(1, 'Revision number is required.'),
@@ -113,22 +111,9 @@ export function ProcedureManualManagement() {
   const manageableUnits = useMemo(() => {
     if (!units) return [];
     
-    // Filter non-academic units for individual assignment
-    const filtered = units
-        .filter(u => u.category !== 'Academic')
-        .map(u => ({ id: u.id, name: u.name, isShared: false }));
-
-    // Add exactly one shared entry for all academic units
-    const hasAcademic = units.some(u => u.category === 'Academic');
-    if (hasAcademic) {
-        filtered.unshift({ 
-            id: SHARED_ACADEMIC_ID, 
-            name: 'Academic Units (Shared Manual)', 
-            isShared: true 
-        });
-    }
-
-    return filtered.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
+    return units
+        .map(u => ({ id: u.id, name: u.name, isShared: false }))
+        .sort((a, b) => a.name.localeCompare(b.name));
   }, [units]);
 
   const form = useForm<z.infer<typeof manualSchema>>({
@@ -200,7 +185,7 @@ export function ProcedureManualManagement() {
       <CardHeader>
         <CardTitle>Procedure Manuals Administration</CardTitle>
         <CardDescription>
-          Manage institutional operating procedures. Academic units utilize a shared manual to ensure university-wide consistency.
+          Manage institutional operating procedures for all units.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -343,9 +328,7 @@ export function ProcedureManualManagement() {
           </div>
           <DialogTitle>Manage: "{selectedUnit?.name}"</DialogTitle>
           <DialogDescription>
-            {selectedUnit?.isShared 
-                ? "Update the official shared procedure manual for all academic units." 
-                : "Configure the specific procedure manual details for this unit."}
+            Configure the specific procedure manual details for this unit.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

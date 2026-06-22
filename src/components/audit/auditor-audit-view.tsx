@@ -4,9 +4,9 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from '@/firebase/firestore-wrapper';
-import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest, Signatories } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest, Signatories, ClauseRevisit } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff, School } from 'lucide-react';
+import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff, School, CalendarClock, CheckCircle2, Clock } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
 import { AuditResultsView } from './audit-results-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -15,8 +15,10 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 /**
  * AUDITOR AUDIT VIEW v13.0
@@ -81,6 +83,12 @@ export function AuditorAuditView() {
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  const clauseRevisitsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'clauseRevisits'), where('auditorId', '==', user.uid));
+  }, [firestore, user?.uid]);
+  const { data: clauseRevisits, isLoading: isLoadingRevisits } = useCollection<ClauseRevisit>(clauseRevisitsQuery);
+
   /**
    * SITE LOCK FILTERING
    * When offline and a site-lock is present, restrict visibility to that specific campus.
@@ -138,7 +146,7 @@ export function AuditorAuditView() {
       }
   };
 
-  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses || isLoadingFindings || isLoadingCars;
+  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses || isLoadingFindings || isLoadingCars || isLoadingRevisits;
 
   return (
     <div className="space-y-4">
@@ -188,6 +196,10 @@ export function AuditorAuditView() {
                         <ClipboardCheck className="h-4 w-4" /> 
                         {isActuallyOffline ? <Lock className="h-3 w-3 mr-1" /> : null}
                         Audit Results Hub
+                    </TabsTrigger>
+                    <TabsTrigger value="revisit-schedule" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+                        <CalendarClock className="h-4 w-4" /> 
+                        IQA Revisit Schedule ({clauseRevisits?.filter(r => r.status === 'Pending').length || 0})
                     </TabsTrigger>
                 </TabsList>
             </ScrollArea>
@@ -330,6 +342,77 @@ export function AuditorAuditView() {
                             cars={cars || []}
                             isLoading={isLoading}
                          />
+                    </TabsContent>
+
+                    <TabsContent value="revisit-schedule" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
+                      <Card className="border-amber-200/50 shadow-sm">
+                        <CardContent className="p-6">
+                          {isLoadingRevisits ? (
+                            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                          ) : !clauseRevisits || clauseRevisits.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <CalendarClock className="h-12 w-12 text-amber-300 mb-4" />
+                              <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No Revisits Scheduled</p>
+                              <p className="text-xs text-muted-foreground mt-1">Schedule clause revisits from the evidence log sheet.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                  {clauseRevisits.filter(r => r.status === 'Pending').length} Pending &bull; {clauseRevisits.filter(r => r.status === 'Completed').length} Completed
+                                </p>
+                              </div>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Clause</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Reason</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Scheduled</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {clauseRevisits
+                                    .sort((a, b) => {
+                                      if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+                                      if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+                                      return 0;
+                                    })
+                                    .map((revisit) => (
+                                    <TableRow key={revisit.id} className={cn(revisit.status === 'Completed' && "opacity-50")}>
+                                      <TableCell className="font-bold text-xs">{revisit.unitName}</TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline" className="font-mono text-[10px] border-primary/20">
+                                          Clause {revisit.clauseId}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground italic max-w-[200px] truncate">
+                                        {revisit.reason}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge className={cn(
+                                          "h-5 text-[8px] font-black uppercase border-none",
+                                          revisit.status === 'Pending' ? "bg-amber-600 text-white" : "bg-emerald-600 text-white"
+                                        )}>
+                                          {revisit.status === 'Pending' ? (
+                                            <><Clock className="h-2.5 w-2.5 mr-1" /> Pending</>
+                                          ) : (
+                                            <><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Completed</>
+                                          )}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground">
+                                        {revisit.createdAt?.toDate ? format(revisit.createdAt.toDate(), 'MMM dd, yyyy') : '--'}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     </TabsContent>
                   </>
               )}

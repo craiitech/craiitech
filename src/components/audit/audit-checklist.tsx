@@ -11,15 +11,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } fr
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase';
-import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk } from '@/lib/types';
-import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc } from '@/firebase/firestore-wrapper';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk, ClauseRevisit } from '@/lib/types';
+import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc, query, where } from '@/firebase/firestore-wrapper';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle, ChevronDown } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle, ChevronDown, CalendarClock } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Input } from '../ui/input';
 import { cn } from '@/lib/utils';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { format } from 'date-fns';
@@ -38,6 +40,7 @@ interface AuditChecklistProps {
   isIqaUnit?: boolean;
   previousYearOfis?: AuditFinding[];
   scheduleTargetId?: string;
+  scheduleTargetName?: string;
   scheduleCampusId?: string;
   onOpenClauseChange?: (clause: { id: string; title: string } | null) => void;
 }
@@ -74,7 +77,9 @@ function ClauseForm({
   isIqaUnit = false,
   previousYearOfis = [],
   scheduleTargetId,
-  scheduleCampusId
+  scheduleTargetName,
+  scheduleCampusId,
+  clauseRevisit
 }: { 
   scheduleId: string; 
   clause: ISOClause; 
@@ -87,7 +92,9 @@ function ClauseForm({
   isIqaUnit?: boolean;
   previousYearOfis?: AuditFinding[];
   scheduleTargetId?: string;
+  scheduleTargetName?: string;
   scheduleCampusId?: string;
+  clauseRevisit?: ClauseRevisit;
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -97,6 +104,52 @@ function ClauseForm({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoadRef = useRef(true);
+
+  const [isRevisitDialogOpen, setIsRevisitDialogOpen] = useState(false);
+  const [revisitReason, setRevisitReason] = useState('');
+  const [isSchedulingRevisit, setIsSchedulingRevisit] = useState(false);
+
+  const handleScheduleRevisit = async () => {
+    if (!firestore || !user || !revisitReason.trim()) return;
+    setIsSchedulingRevisit(true);
+    const revisitId = `${scheduleId}-${clause.id}-revisit`;
+    const revisitRef = doc(firestore, 'clauseRevisits', revisitId);
+    try {
+      await setDoc(revisitRef, {
+        id: revisitId,
+        auditScheduleId: scheduleId,
+        clauseId: clause.id,
+        clauseTitle: clause.title,
+        unitId: scheduleTargetId || '',
+        unitName: scheduleTargetName || '',
+        campusId: scheduleCampusId || '',
+        auditorId: user.uid,
+        auditorName: user.displayName || 'Unknown Auditor',
+        reason: revisitReason.trim(),
+        status: 'Pending',
+        createdAt: serverTimestamp(),
+      });
+      toast({ title: 'Revisit Scheduled', description: `Clause ${clause.id} marked for revisit.` });
+      setIsRevisitDialogOpen(false);
+      setRevisitReason('');
+    } catch (error) {
+      console.error('Error scheduling revisit:', error);
+      toast({ title: 'Error', description: 'Failed to schedule revisit.', variant: 'destructive' });
+    } finally {
+      setIsSchedulingRevisit(false);
+    }
+  };
+
+  const handleCompleteRevisit = async () => {
+    if (!firestore || !clauseRevisit) return;
+    const revisitRef = doc(firestore, 'clauseRevisits', clauseRevisit.id);
+    try {
+      await setDoc(revisitRef, { status: 'Completed', completedAt: serverTimestamp() }, { merge: true });
+      toast({ title: 'Revisit Completed', description: `Clause ${clause.id} revisit marked as completed.` });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to complete revisit.', variant: 'destructive' });
+    }
+  };
 
   const form = useForm<ClauseFormData>({
     defaultValues: {
@@ -666,6 +719,77 @@ function ClauseForm({
             </div>
         </form>
         </Form>
+
+        {!clauseRevisit || clauseRevisit.status === 'Completed' ? (
+          <div className="border-t border-dashed border-primary/20 pt-4">
+            <Dialog open={isRevisitDialogOpen} onOpenChange={setIsRevisitDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
+                >
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Schedule Clause Revisit
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <div className="flex items-center gap-2 text-amber-600 mb-1">
+                    <CalendarClock className="h-5 w-5" />
+                    <span className="text-xs font-bold uppercase tracking-widest">Schedule Revisit</span>
+                  </div>
+                  <DialogTitle>Clause {clause.id}: {clause.title}</DialogTitle>
+                  <DialogDescription>
+                    This will inform the auditor that this clause requires a revisit for {scheduleTargetName || 'this unit'}.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Reason for Revisit</Label>
+                  <Textarea
+                    value={revisitReason}
+                    onChange={(e) => setRevisitReason(e.target.value)}
+                    placeholder="e.g., Additional documents needed, further verification required..."
+                    rows={3}
+                    className="bg-white border-slate-200 text-xs"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsRevisitDialogOpen(false)} disabled={isSchedulingRevisit}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={handleScheduleRevisit} disabled={isSchedulingRevisit || !revisitReason.trim()}>
+                    {isSchedulingRevisit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Schedule Revisit
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        ) : (
+          <div className="border-t border-dashed border-amber-200 pt-4">
+            <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4 border border-amber-200">
+              <div className="flex items-center gap-3">
+                <CalendarClock className="h-5 w-5 text-amber-600" />
+                <div>
+                  <p className="text-[10px] font-black uppercase text-amber-800">Revisit Scheduled</p>
+                  <p className="text-[9px] text-amber-700 italic max-w-md">{clauseRevisit?.reason}</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCompleteRevisit}
+                className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Mark Revisit Complete
+              </Button>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
@@ -681,12 +805,24 @@ export function AuditChecklist({
   isIqaUnit = false,
   previousYearOfis = [],
   scheduleTargetId,
+  scheduleTargetName,
   scheduleCampusId,
   onOpenClauseChange,
 }: AuditChecklistProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  const clauseRevisitsQuery = useMemoFirebase(
+    () => (firestore && scheduleId ? query(collection(firestore, 'clauseRevisits'), where('auditScheduleId', '==', scheduleId)) : null),
+    [firestore, scheduleId]
+  );
+  const { data: clauseRevisits } = useCollection<ClauseRevisit>(clauseRevisitsQuery);
+
+  const clauseRevisitMap = useMemo(() => {
+    if (!clauseRevisits) return new Map<string, ClauseRevisit>();
+    return new Map(clauseRevisits.map(r => [r.clauseId, r]));
+  }, [clauseRevisits]);
   
   const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
 
@@ -840,9 +976,9 @@ export function AuditChecklist({
                             {relevantCars.length > 0 && <div className="flex items-center gap-1.5 mt-1"><History className="h-3 w-3 text-amber-600" /><span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">{relevantCars.length} history detected</span></div>}
                         </div>
                     </div>
-                    {activeFindings.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 ml-4">
-                        {Array.from(new Set(activeFindings.map(f => f.type))).map(type => (
+                    <div className="flex flex-wrap gap-1.5 ml-4">
+                      {activeFindings.length > 0 && (
+                        Array.from(new Set(activeFindings.map(f => f.type))).map(type => (
                           <Badge 
                             key={type} 
                             className={cn(
@@ -855,9 +991,14 @@ export function AuditChecklist({
                           >
                             {type === 'Compliance' ? 'C' : type === 'Non-Conformance' ? 'NC' : type === 'Not Applicable' ? 'N/A' : 'OFI'} RECORDED
                           </Badge>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      )}
+                      {clauseRevisitMap.get(clause.id)?.status === 'Pending' && (
+                        <Badge className="h-5 text-[8px] font-black uppercase shadow-none border-none bg-amber-600 text-white">
+                          <CalendarClock className="h-2.5 w-2.5 mr-1" /> REVISIT
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-8">
@@ -881,7 +1022,9 @@ export function AuditChecklist({
                           isIqaUnit={isIqaUnit} 
                           previousYearOfis={previousYearOfis} 
                           scheduleTargetId={scheduleTargetId} 
+                          scheduleTargetName={scheduleTargetName}
                           scheduleCampusId={scheduleCampusId} 
+                          clauseRevisit={clauseRevisitMap.get(clause.id)}
                         />
                       </div>
                     ))}

@@ -387,6 +387,22 @@ export type AuditFinding = {
     linkedPreviousOFI?: string;
 };
 
+export type ClauseRevisit = {
+    id: string;
+    auditScheduleId: string;
+    clauseId: string;
+    clauseTitle: string;
+    unitId: string;
+    unitName: string;
+    campusId: string;
+    auditorId: string;
+    auditorName: string;
+    reason: string;
+    status: 'Pending' | 'Completed';
+    createdAt: any;
+    completedAt?: any;
+};
+
 export type CorrectiveActionPlan = {
     id: string;
     findingId: string;

@@ -687,6 +687,7 @@ export default function AuditExecutionPage() {
                   isIqaUnit={isIqaUnit} 
                   previousYearOfis={previousYearOfis} 
                   scheduleTargetId={schedule.targetId} 
+                  scheduleTargetName={schedule.targetName}
                   scheduleCampusId={schedule.campusId} 
                   onOpenClauseChange={setCurrentClause}
                 />

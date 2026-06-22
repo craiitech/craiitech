@@ -84,7 +84,7 @@ export function DataBackupManagement() {
 
       const collectionsToBackup = [
         'submissions', 'risks', 'unitMonitoringRecords', 
-        'auditPlans', 'auditSchedules', 'auditFindings', 
+        'auditPlans', 'auditSchedules', 'auditFindings', 'clauseRevisits',
         'correctiveActionRequests', 'managementReviewOutputs',
         'academicPrograms', 'programCompliances',
         'users', 'units', 'campuses', 'qaAdvisories', 

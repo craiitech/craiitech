@@ -136,6 +136,11 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    match /clauseRevisits/{id} {
+      allow get, list: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
     match /correctiveActionRequests/{id} {
       allow get, list, write: if isSignedIn();
     }
