@@ -163,8 +163,6 @@ export function SubmissionForm({
   const isPostTreatmentIncomplete = useMemo(() => {
     if (!isRorForm || cycleId !== 'final' || !digitalRisks) return false;
     return digitalRisks.some(r => {
-      // If the risk is closed, it is considered complete and doesn't block submission
-      if (r.status === 'Closed') return false;
       // If the risk is initially Low, it doesn't require treatment/re-assessment
       if (r.preTreatment?.rating?.toLowerCase() === 'low') return false;
       

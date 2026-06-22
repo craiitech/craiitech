@@ -135,13 +135,36 @@ const formSchema = z.object({
         path: ["targetMonth"],
       });
     }
-    if (data.cycleId === 'final' && !data.isFinalAssessmentNA && data.status === 'Closed') {
-      if (!data.monitoringToolLink || data.monitoringToolLink.trim() === '') {
+    if (data.cycleId === 'final' && data.status === 'Closed') {
+      if (!data.postTreatmentDateImplemented || data.postTreatmentDateImplemented.trim() === '') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Google Drive link of the QAO-00-027-Monitoring Tool is required to close Medium/High rated entries in the final submission cycle.",
-          path: ["monitoringToolLink"],
+          message: "Date of closure / final update is required to close this entry.",
+          path: ["postTreatmentDateImplemented"],
         });
+      }
+      if (!data.isFinalAssessmentNA) {
+        if (!data.updates || data.updates.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Implementation/Monitoring Data is required to close Medium/High rated entries.",
+            path: ["updates"],
+          });
+        }
+        if (!data.postTreatmentEvidence || data.postTreatmentEvidence.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Evidence of Implementation is required to close Medium/High rated entries.",
+            path: ["postTreatmentEvidence"],
+          });
+        }
+        if (!data.monitoringToolLink || data.monitoringToolLink.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Google Drive link of the QAO-00-027-Monitoring Tool is required to close Medium/High rated entries in the final submission cycle.",
+            path: ["monitoringToolLink"],
+          });
+        }
       }
     }
   }
