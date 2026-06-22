@@ -82,6 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isOnline = useNetworkStatus();
   const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
+  const [isEvalSkipped, setIsEvalSkipped] = useState(false);
   
   // Defaulting guidance to false (hidden) as requested
   const [isGuidanceVisible, setIsGuidanceVisible] = useState(false);
@@ -93,6 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsGuidanceVisible(storedVisibility === 'true');
     }
     setHasHydrated(true);
+    setIsEvalSkipped(sessionStorage.getItem('rsu_eval_skipped_session') === 'true');
 
     // Register Service Worker for offline capability
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -110,14 +112,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     });
   }, []);
 
-  useEffect(() => {
-    if (!isUserLoading && userProfile && userProfile.verified) {
-        if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
-            const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
-            return () => clearTimeout(timer);
-        }
-    }
-  }, [isUserLoading, userProfile]);
 
   const handleAcknowledgeUpdates = async () => {
     if (!user || !firestore) return;
@@ -168,6 +162,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const now = Date.now();
     return (now - created) / (1000 * 60 * 60 * 24);
   }, [user]);
+
+  const showEvalGate = !isEvaluationComplete && !isLoadingEval && !isEvalSkipped;
+
+  useEffect(() => {
+    if (!isUserLoading && userProfile && userProfile.verified && !showEvalGate) {
+        if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
+            const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
+            return () => clearTimeout(timer);
+        }
+    }
+  }, [isUserLoading, userProfile, showEvalGate]);
 
   const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
@@ -781,9 +786,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarProvider>
       </div>
       
-      <InstallPwaDialog />
+      {!showEvalGate && <InstallPwaDialog />}
       <WhatsNewDialog isOpen={isWhatsNewOpen} onOpenChange={setIsWhatsNewOpen} onAcknowledge={handleAcknowledgeUpdates} />
-      {!isEvaluationComplete && !isLoadingEval && <SoftwareEvaluationGate required={!isAdmin && accountAgeDays > 30} />}
+      {showEvalGate && (
+        <SoftwareEvaluationGate 
+          required={!isAdmin && accountAgeDays > 30} 
+          onDismiss={() => setIsEvalSkipped(true)} 
+        />
+      )}
     </ActivityLogProvider>
   );
 }

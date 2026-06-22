@@ -13,9 +13,10 @@ import { cn } from '@/lib/utils';
 interface SoftwareEvaluationGateProps {
   /** When true, the user must complete the evaluation — no skip/dismiss allowed */
   required?: boolean;
+  onDismiss?: () => void;
 }
 
-export function SoftwareEvaluationGate({ required = false }: SoftwareEvaluationGateProps) {
+export function SoftwareEvaluationGate({ required = false, onDismiss }: SoftwareEvaluationGateProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSkipped, setIsSkipped] = useState(false);
 
@@ -34,11 +35,13 @@ export function SoftwareEvaluationGate({ required = false }: SoftwareEvaluationG
     if (!required) {
       sessionStorage.setItem('rsu_eval_skipped_session', 'true');
       setIsSkipped(true);
+      onDismiss?.();
     }
   };
 
   const handleComplete = () => {
     setIsSkipped(true);
+    onDismiss?.();
   };
 
   if (isSkipped) return null;
