@@ -43,6 +43,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -107,6 +108,7 @@ const summarySchema = z.object({
   actualDate: z.string().min(1, 'Actual date of conduct is required.'),
   actualStartTime: z.string().min(1, 'Actual start time is required.'),
   actualEndTime: z.string().min(1, 'Actual end time is required.'),
+  iqaMethod: z.enum(['Face to Face Audit', 'Online / Remote Audit'], { errorMap: () => ({ message: 'IQA Method is required.' }) }),
   summaryCommendable: z.string().optional(),
   summaryCompliance: z.string().optional(),
   summaryOFI: z.string().optional(),
@@ -277,6 +279,7 @@ export default function AuditExecutionPage() {
       actualDate: '',
       actualStartTime: '',
       actualEndTime: '',
+      iqaMethod: 'Face to Face Audit',
       summaryCommendable: '',
       summaryCompliance: '',
       summaryOFI: '',
@@ -343,6 +346,7 @@ export default function AuditExecutionPage() {
             actualDate: format(startDate, 'yyyy-MM-dd'),
             actualStartTime: format(startDate, 'HH:mm'),
             actualEndTime: format(endDate, 'HH:mm'),
+            iqaMethod: schedule.iqaMethod || 'Face to Face Audit',
             summaryCommendable: getSortedSummary(schedule.summaryCommendable),
             summaryCompliance: getSortedSummary(schedule.summaryCompliance),
             summaryOFI: getSortedSummary(schedule.summaryOFI),
@@ -367,6 +371,7 @@ export default function AuditExecutionPage() {
 
         const updateData: any = {
             officerInCharge: values.officerInCharge,
+            iqaMethod: values.iqaMethod,
             summaryCommendable: values.summaryCommendable || '',
             summaryCompliance: values.summaryCompliance || '',
             summaryOFI: values.summaryOFI || '',
@@ -408,6 +413,7 @@ export default function AuditExecutionPage() {
 
     const hasChanged = 
         watchAll.officerInCharge !== (schedule.officerInCharge || schedule.auditeeHeadName || '') ||
+        watchAll.iqaMethod !== (schedule.iqaMethod || 'Face to Face Audit') ||
         watchAll.summaryCommendable !== (schedule.summaryCommendable || '') ||
         watchAll.summaryCompliance !== (schedule.summaryCompliance || '') ||
         watchAll.summaryOFI !== (schedule.summaryOFI || '') ||
@@ -649,7 +655,7 @@ export default function AuditExecutionPage() {
                             <FormMessage />
                           </FormItem>
                         )} />
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <FormField control={form.control} name="actualDate" render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
@@ -668,6 +674,23 @@ export default function AuditExecutionPage() {
                             <FormItem>
                               <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
                               <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name="iqaMethod" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">IQA Method</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 bg-white font-bold">
+                                    <SelectValue placeholder="Select Method" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Face to Face Audit">Face to Face Audit</SelectItem>
+                                  <SelectItem value="Online / Remote Audit">Online / Remote Audit</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )} />

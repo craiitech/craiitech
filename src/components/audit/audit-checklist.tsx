@@ -152,11 +152,23 @@ function ClauseForm({
 
   const handleCompleteRevisit = async () => {
     if (!firestore || !clauseRevisit) return;
+
+    if (watchAll.type) {
+      try {
+        await performSave(watchAll);
+      } catch (error) {
+        console.error('Error saving finding before completing revisit:', error);
+        toast({ title: 'Error', description: 'Failed to commit finding before completing revisit.', variant: 'destructive' });
+        return;
+      }
+    }
+
     const revisitRef = doc(firestore, 'clauseRevisits', clauseRevisit.id);
     try {
-      await setDoc(revisitRef, { status: 'Completed', completedAt: serverTimestamp() }, { merge: true });
-      toast({ title: 'Revisit Completed', description: `Clause ${clause.id} revisit marked as completed.` });
+      await deleteDoc(revisitRef);
+      toast({ title: 'Revisit Completed', description: `Clause ${clause.id} revisit marked as completed and scheduled revisit removed.` });
     } catch (error) {
+      console.error('Error completing revisit:', error);
       toast({ title: 'Error', description: 'Failed to complete revisit.', variant: 'destructive' });
     }
   };
@@ -214,21 +226,20 @@ function ClauseForm({
         updatedAt: serverTimestamp(),
     };
 
-    setDoc(findingRef, findingData, { merge: true })
-        .then(() => {
-            onSave(findingData); 
-            setLastSaved(new Date());
-        })
-        .catch(async (error) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: findingRef.path,
-                operation: 'write',
-                requestResourceData: findingData
-            }));
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
+    try {
+        await setDoc(findingRef, findingData, { merge: true });
+        onSave(findingData); 
+        setLastSaved(new Date());
+    } catch (error) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: findingRef.path,
+            operation: 'write',
+            requestResourceData: findingData
+        }));
+        throw error;
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -841,7 +852,7 @@ function ClauseForm({
                 className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Mark Revisit Complete
+                Revisit Completed
               </Button>
             </div>
           </div>
@@ -905,6 +916,29 @@ export function AuditChecklist({
       }
     }
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const revisitClauseId = params.get('revisitClause');
+      if (revisitClauseId && sortedClauses.length > 0) {
+        const clause = sortedClauses.find(c => c.id === revisitClauseId);
+        if (clause) {
+          const info = { id: clause.id, title: clause.title };
+          setOpenClause(info);
+          onOpenClauseChange?.(info);
+          
+          // Scroll to the accordion item
+          setTimeout(() => {
+            const element = document.querySelector(`[value="${revisitClauseId}"]`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [sortedClauses, onOpenClauseChange]);
 
   // Activate sticky header once when the open clause's accordion trigger scrolls past the IQA header
   // Once activated, stays visible until the clause is closed or a new one is opened

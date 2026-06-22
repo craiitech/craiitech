@@ -75,7 +75,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 <span className="opacity-60 mr-2">PROCEDURE:</span> <span className="italic">{schedule.procedureDescription}</span>
             </div>
         </div>
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
             <div className="p-2 border-r border-black font-bold">
                 <span className="opacity-60 mr-2">AUDIT NO:</span> {schedule.auditNumber || '--'}
             </div>
@@ -84,6 +84,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
             </div>
             <div className="p-2 border-r border-black font-bold">
                 <span className="opacity-60 mr-2">AUDITEE:</span> {displayAuditee}
+            </div>
+            <div className="p-2 border-r border-black font-bold text-xs truncate">
+                <span className="opacity-60 mr-1">METHOD:</span> {schedule.iqaMethod || 'Face to Face'}
             </div>
             <div className="p-2 font-bold">
                 <span className="opacity-60 mr-2">DATE:</span> {format(conductDate, 'MM/dd/yyyy')}

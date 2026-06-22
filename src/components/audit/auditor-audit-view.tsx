@@ -19,6 +19,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { Button } from '../ui/button';
+import { ArrowRight } from 'lucide-react';
 
 /**
  * AUDITOR AUDIT VIEW v13.0
@@ -26,6 +29,7 @@ import { format } from 'date-fns';
  * Hardened: Implements Selective Site Locking during offline conduct.
  */
 export function AuditorAuditView() {
+  const router = useRouter();
   const { user, userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -370,6 +374,7 @@ export function AuditorAuditView() {
                                     <TableHead className="text-[10px] font-black uppercase">Reason</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Revisit Schedule</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-right">Action</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -404,6 +409,21 @@ export function AuditorAuditView() {
                                       </TableCell>
                                       <TableCell className="text-xs text-muted-foreground">
                                         {revisit.scheduledDate?.toDate ? format(revisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a') : '--'}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {revisit.status === 'Pending' ? (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => router.push(`/audit/${revisit.auditScheduleId}?revisitClause=${revisit.clauseId}`)}
+                                            className="h-8 text-[9px] font-black uppercase tracking-widest border-indigo-200 text-indigo-700 hover:bg-indigo-50/50 hover:text-indigo-800 gap-1.5"
+                                          >
+                                            Perform Audit
+                                            <ArrowRight className="h-3.5 w-3.5" />
+                                          </Button>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">-</span>
+                                        )}
                                       </TableCell>
                                     </TableRow>
                                   ))}
