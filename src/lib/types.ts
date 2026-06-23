@@ -3,6 +3,7 @@ export type Role = {
   id: string;
   name: string;
   description?: string;
+  permissions?: Record<string, boolean>;
 };
 
 export type UserAccessibility = {

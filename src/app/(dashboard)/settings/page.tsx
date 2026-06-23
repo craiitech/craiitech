@@ -27,6 +27,7 @@ import { DataBackupManagement } from '@/components/admin/data-backup-management'
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 import { CsmSettingsManagement } from '@/components/admin/csm-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
+import { PermissionMatrix } from '@/components/admin/permission-matrix';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
@@ -67,7 +68,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
                 <p className="text-muted-foreground">
-                  Manage users, campuses, units, roles, and institutional signatories.
+                  Manage users, campuses, units, roles, permissions, and institutional signatories.
                 </p>
               </div>
               <ScrollArea className="w-full">
@@ -81,6 +82,7 @@ export default function SettingsPage() {
                     <TabsTrigger value="units" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Units</TabsTrigger>
                     <TabsTrigger value="unit-grouping" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Explorer</TabsTrigger>
                     <TabsTrigger value="roles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Roles</TabsTrigger>
+                    <TabsTrigger value="permissions" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Permissions</TabsTrigger>
 
 
                     <TabsTrigger value="procedure-manuals" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Procedure Manuals</TabsTrigger>
@@ -119,6 +121,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="roles" className="space-y-4 animate-in fade-in duration-500">
             <RoleManagement />
+          </TabsContent>
+          <TabsContent value="permissions" className="space-y-4 animate-in fade-in duration-500">
+            <PermissionMatrix />
           </TabsContent>
 
           <TabsContent value="procedure-manuals" className="space-y-4 animate-in fade-in duration-500">

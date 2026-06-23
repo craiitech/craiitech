@@ -49,6 +49,7 @@ export interface FirebaseContextState {
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   systemSettings: SystemSettings | null;
+  can: (permission: string) => boolean;
 }
 
 // Return type for useFirebase()
@@ -71,6 +72,7 @@ export interface FirebaseServicesAndUser {
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   systemSettings: SystemSettings | null;
+  can: (permission: string) => boolean;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -88,6 +90,7 @@ export interface UserHookResult {
   isMainCampusDOI: boolean;
   systemSettings: SystemSettings | null;
   firestore: Firestore | null; // Added for convenience in some hooks
+  can: (permission: string) => boolean;
 }
 
 // React Context
@@ -157,6 +160,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
+  const roleDocRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.roleId) return null;
+    return doc(firestore, 'roles', userProfile.roleId);
+  }, [firestore, userProfile?.roleId]);
+
+  const { data: roleDoc } = useDoc<Role>(roleDocRef);
+
   // System settings are now only fetched if a user is logged in to avoid Permission Denied on public pages
   const systemSettingsRef = useMemoFirebase(() => {
     if (!firestore || !userAuthState.user) return null;
@@ -201,6 +211,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       (roleLower.includes('dean of instruction') || roleLower === 'doi')
     );
 
+    const rolePermissions = roleDoc?.permissions || {};
+
+    const can = (permission: string): boolean => {
+      if (isAdmin) return true;
+      return rolePermissions[permission] === true;
+    };
+
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
     const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminRoleLoading || isLoadingCampuses));
 
@@ -224,8 +241,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isMainCampusCoordinator,
       isMainCampusDOI,
       systemSettings: systemSettings || null,
+      can,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings, roleDoc]);
   
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {
@@ -292,6 +310,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isMainCampusCoordinator: context.isMainCampusCoordinator,
     isMainCampusDOI: context.isMainCampusDOI,
     systemSettings: context.systemSettings,
+    can: context.can,
   };
 };
 
@@ -330,8 +349,8 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, systemSettings: null, firestore: null };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, systemSettings: null, firestore: null, can: () => false };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings };
+  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings, can } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings, can };
 };
