@@ -24,7 +24,8 @@ import {
     Search, 
     ArrowUpDown, 
     Copy, 
-    FileText 
+    FileText,
+    Plus
 } from 'lucide-react';
 import {
   Table,
@@ -37,7 +38,7 @@ import {
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn, parseDate } from '@/lib/utils';
-import { Timestamp, doc } from '@/firebase/firestore-wrapper';
+import { Timestamp, doc, updateDoc, collection, query, getDocs, orderBy, limit, where } from '@/firebase/firestore-wrapper';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
@@ -45,6 +46,16 @@ import { AuditPrintTemplate } from './audit-print-template';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -198,6 +209,178 @@ function PlanItineraryRegistry({
     );
 }
 
+function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: (planId: string, docs: any[]) => void }) {
+  const firestore = useFirestore();
+  const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<'manual' | 'comm'>('manual');
+  const [name, setName] = useState('');
+  const [link, setLink] = useState('');
+  
+  // Communication specifics
+  const [comms, setComms] = useState<any[]>([]);
+  const [isLoadingComms, setIsLoadingComms] = useState(false);
+  const [commId, setCommId] = useState('');
+  const [commRefNum, setCommRefNum] = useState('');
+  const [commSubject, setCommSubject] = useState('');
+
+  const fetchCommunications = async () => {
+    if (comms.length > 0 || isLoadingComms || !firestore) return;
+    setIsLoadingComms(true);
+    try {
+      const q = query(
+        collection(firestore, 'communications'),
+        orderBy('createdAt', 'desc'),
+        limit(100)
+      );
+      const snap = await getDocs(q);
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filtered = list.filter((c: any) => c.driveLink);
+      setComms(filtered);
+    } catch (e) {
+      console.error("Error fetching comms:", e);
+    } finally {
+      setIsLoadingComms(false);
+    }
+  };
+
+  const handleAdd = () => {
+    if (!name || !link) return;
+    
+    if (!link.startsWith('http://') && !link.startsWith('https://')) {
+      alert('Please enter a valid Google Drive link or URL starting with http:// or https://');
+      return;
+    }
+
+    const currentDocs = plan.documents || [];
+    const newDoc: any = { name, link };
+    if (mode === 'comm' && commId) {
+      newDoc.communicationId = commId;
+      newDoc.communicationRefNum = commRefNum;
+      newDoc.communicationSubject = commSubject;
+    }
+
+    onUpdate(plan.id, [...currentDocs, newDoc]);
+    setName('');
+    setLink('');
+    setCommId('');
+    setCommRefNum('');
+    setCommSubject('');
+    setMode('manual');
+    setIsOpen(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2 cursor-pointer">
+          <Plus className="h-3.5 w-3.5" /> Add Documents
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md bg-white border-none shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-black uppercase text-primary">Add Plan Document</DialogTitle>
+          <DialogDescription className="text-xs">
+            Link a Google Drive folder, document, or checklist to this Audit Plan.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Tab Buttons */}
+        <div className="flex bg-slate-100 p-1 rounded-lg border gap-1">
+          <button
+            type="button"
+            onClick={() => setMode('manual')}
+            className={cn(
+              "flex-1 text-[9px] font-black uppercase py-1.5 rounded-md transition-all cursor-pointer",
+              mode === 'manual' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800"
+            )}
+          >
+            Manual Link
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('comm');
+              fetchCommunications();
+            }}
+            className={cn(
+              "flex-1 text-[9px] font-black uppercase py-1.5 rounded-md transition-all cursor-pointer",
+              mode === 'comm' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800"
+            )}
+          >
+            Select from EOMS Comms
+          </button>
+        </div>
+
+        <div className="space-y-4 py-2">
+          {mode === 'comm' && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-slate-600">Select EOMS Communication</label>
+              <Select 
+                onValueChange={(val) => {
+                  const comm = comms.find(c => c.id === val);
+                  if (comm) {
+                    const ref = comm.senderRefNum || (comm.recipientRefNums ? Object.values(comm.recipientRefNums)[0] : '') || 'N/A';
+                    setName(`[${comm.kind}] ${comm.subject}`);
+                    setLink(comm.driveLink || '');
+                    setCommId(comm.id);
+                    setCommRefNum(ref);
+                    setCommSubject(comm.subject);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50">
+                  <SelectValue placeholder={isLoadingComms ? "Loading Communications..." : "Link EOMS Memo / Travel Order"} />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-primary/20 max-h-[200px]">
+                  {comms.map(c => {
+                    const ref = c.senderRefNum || (c.recipientRefNums ? Object.values(c.recipientRefNums)[0] : '') || 'N/A';
+                    return (
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase text-slate-800 truncate">
+                        [{c.kind}] {c.subject} ({ref})
+                      </SelectItem>
+                    );
+                  })}
+                  {comms.length === 0 && !isLoadingComms && (
+                    <div className="p-2 text-center text-xs text-muted-foreground uppercase font-black">No attachable memos found</div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-slate-600">Document Title / Name</label>
+            <Input 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="e.g. Audit Plan Agenda / Google Drive Folder" 
+              className="h-10 text-xs font-bold"
+              disabled={mode === 'comm'}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-slate-600">Google Drive Link</label>
+            <Input 
+              value={link} 
+              onChange={(e) => setLink(e.target.value)} 
+              placeholder="https://drive.google.com/..." 
+              className="h-10 text-xs font-medium"
+              disabled={mode === 'comm'}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button size="sm" onClick={handleAdd} disabled={!name || !link} className="font-bold uppercase text-xs">
+            Add Link
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function AuditPlanList({ 
     plans, 
     schedules, 
@@ -213,6 +396,20 @@ export function AuditPlanList({
 }: AuditPlanListProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  
+  const handleUpdateDocuments = async (planId: string, updatedDocs: { name: string; link: string }[]) => {
+    if (!firestore) return;
+    try {
+      const planRef = doc(firestore, 'auditPlans', planId);
+      await updateDoc(planRef, {
+        documents: updatedDocs
+      });
+      toast({ title: 'Documents Updated', description: 'Audit Plan reference documents updated successfully.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Could not update plan documents.', variant: 'destructive' });
+    }
+  };
     
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -398,6 +595,59 @@ export function AuditPlanList({
                 </div>
                 <AccordionContent className="p-0 bg-white">
                   <div className="p-8 space-y-10">
+                    {/* EOMS PLAN REFERENCE DOCUMENTS */}
+                    <div className="space-y-4 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-[#1B6535] flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-[#1B6535]" />
+                                Audit Plan Reference Documents
+                            </h3>
+                            <AddPlanDocumentButton plan={plan} onUpdate={handleUpdateDocuments} />
+                        </div>
+                        {(!plan.documents || plan.documents.length === 0) ? (
+                            <p className="text-xs text-muted-foreground font-semibold italic py-2 pl-1">No reference documents or Google Drive links linked to this Audit Plan yet.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {plan.documents.map((doc, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-4 border rounded-xl bg-white hover:shadow-md hover:border-primary/20 transition-all group">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
+                                                <FileText className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0 flex flex-col items-start">
+                                                <p className="text-xs font-black text-slate-800 truncate uppercase tracking-tight">{doc.name}</p>
+                                                {doc.communicationId && (
+                                                    <Badge className="bg-emerald-600/10 text-emerald-700 font-black uppercase text-[8px] tracking-widest border-none py-0.5 px-1.5 h-auto my-1 shadow-none select-none">
+                                                        EOMS Ref: {doc.communicationRefNum}
+                                                    </Badge>
+                                                )}
+                                                <a 
+                                                    href={doc.link} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="text-[10px] text-blue-600 font-bold hover:underline flex items-center gap-0.5 mt-0.5 truncate"
+                                                >
+                                                    Open Google Drive <ChevronRight className="h-3 w-3" />
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:bg-destructive/5 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                const updated = plan.documents?.filter((_, i) => i !== idx) || [];
+                                                handleUpdateDocuments(plan.id, updated);
+                                            }}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <PlanItineraryRegistry plan={plan} schedules={planSchedules} isoClauses={isoClauses} signatories={signatories || undefined} onEdit={onEditSchedule} onDelete={onDeleteSchedule} campusMap={campusMap} />
                   </div>
                 </AccordionContent>

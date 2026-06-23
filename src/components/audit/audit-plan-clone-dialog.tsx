@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -125,6 +125,7 @@ export function AuditPlanCloneDialog({
             closingMeetingDate: Timestamp.fromDate(new Date(values.closingMeetingDate)),
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
+            documents: sourcePlan.documents || [],
         };
         batch.set(newPlanRef, newPlanData);
 

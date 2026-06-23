@@ -328,6 +328,14 @@ export type ISOClause = {
 
 export type AuditGroup = 'Management Processes' | 'Operation Processes' | 'Support Processes';
 
+export type AuditPlanDocument = {
+    name: string;
+    link: string;
+    communicationId?: string;
+    communicationRefNum?: string;
+    communicationSubject?: string;
+};
+
 export type AuditPlan = {
     id: string;
     auditNumber: string; // e.g. 2025-001
@@ -344,7 +352,9 @@ export type AuditPlan = {
     closingMeetingDate: any; // Timestamp
     referenceDocument: string; // e.g. ISO 21001:2018 / EOMS Standard
     createdAt: any; // serverTimestamp()
+    documents?: AuditPlanDocument[];
 };
+
 
 export type AuditSchedule = {
     id: string;

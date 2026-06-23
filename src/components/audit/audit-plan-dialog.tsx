@@ -48,15 +48,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, Timestamp } from '@/firebase/firestore-wrapper';
+import { doc, setDoc, serverTimestamp, collection, Timestamp, query, getDocs, orderBy, limit, where } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types';
-import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info, Database, Check } from 'lucide-react';
+import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info, Database, Check, Trash2, PlusCircle, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, parseDate } from '@/lib/utils';
@@ -86,12 +86,41 @@ const formSchema = z.object({
   referenceDocument: z.string().min(1, 'Reference document is required.'),
   openingMeetingDate: z.string().min(1, 'Opening meeting date/time is required.'),
   closingMeetingDate: z.string().min(1, 'Closing meeting date/time is required.'),
+  documents: z.array(z.object({
+    name: z.string().min(1, 'Document name is required.'),
+    link: z.string().url('Please enter a valid Google Drive or document URL.'),
+    communicationId: z.string().optional(),
+    communicationRefNum: z.string().optional(),
+    communicationSubject: z.string().optional(),
+  })).optional(),
 });
 
 export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditPlanDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [comms, setComms] = useState<any[]>([]);
+  const [isLoadingComms, setIsLoadingComms] = useState(false);
+
+  const fetchCommunications = async () => {
+    if (comms.length > 0 || isLoadingComms || !firestore) return;
+    setIsLoadingComms(true);
+    try {
+      const q = query(
+        collection(firestore, 'communications'),
+        orderBy('createdAt', 'desc'),
+        limit(100)
+      );
+      const snap = await getDocs(q);
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filtered = list.filter((c: any) => c.driveLink);
+      setComms(filtered);
+    } catch (e) {
+      console.error("Error fetching comms for linking:", e);
+    } finally {
+      setIsLoadingComms(false);
+    }
+  };
 
   const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: allUsers } = useCollection<User>(usersQuery);
@@ -126,7 +155,13 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
       referenceDocument: 'ISO 21001:2018 / EOMS Standard',
       openingMeetingDate: '',
       closingMeetingDate: '',
+      documents: [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'documents'
   });
 
   useEffect(() => {
@@ -155,6 +190,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
         referenceDocument: plan.referenceDocument || 'ISO 21001:2018 / EOMS Standard',
         openingMeetingDate: safeDate(plan.openingMeetingDate),
         closingMeetingDate: safeDate(plan.closingMeetingDate),
+        documents: plan.documents || [],
       });
     } else if (!plan && isOpen) {
         form.reset({
@@ -174,6 +210,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
             referenceDocument: 'ISO 21001:2018 / EOMS Standard',
             openingMeetingDate: '',
             closingMeetingDate: '',
+            documents: [],
         });
     }
   }, [plan, isOpen, form]);
@@ -471,6 +508,137 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                 </FormItem>
                             )} />
                         </div>
+                    </div>
+
+                    {/* SECTION 5: PLAN DOCUMENTS */}
+                    <div className="space-y-6 pt-6 border-t">
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">5. Plan Documents (Google Drive Links)</h4>
+                            </div>
+                            <Button 
+                                type="button" 
+                                size="sm" 
+                                onClick={() => append({ name: '', link: '' })}
+                                className="h-7 text-[10px] font-black uppercase tracking-widest gap-1"
+                            >
+                                <PlusCircle className="h-3.5 w-3.5" />
+                                Add Document
+                            </Button>
+                        </div>
+                        
+                        {fields.length === 0 ? (
+                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50">
+                                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">No reference documents added yet</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">Add Google Drive links to EOMS templates or audit scope files.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="space-y-4 bg-slate-50/50 p-4 rounded-xl border">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-dashed pb-2">
+                                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Document Ref #{index + 1}</span>
+                                            {form.watch(`documents.${index}.communicationId`) ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[8px] tracking-widest gap-1 border-none shadow-sm">
+                                                        <Check className="h-2.5 w-2.5" />
+                                                        EOMS Linked: {form.watch(`documents.${index}.communicationRefNum`)}
+                                                    </Badge>
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        onClick={() => {
+                                                            form.setValue(`documents.${index}.communicationId`, "");
+                                                            form.setValue(`documents.${index}.communicationRefNum`, "");
+                                                            form.setValue(`documents.${index}.communicationSubject`, "");
+                                                        }}
+                                                        className="h-5 px-1.5 text-[8px] font-black uppercase text-destructive tracking-widest hover:bg-destructive/5"
+                                                    >
+                                                        Unlink
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="w-full sm:w-[260px] md:w-[320px]">
+                                                    <Select 
+                                                        onOpenChange={(open) => open && fetchCommunications()}
+                                                        onValueChange={(val) => {
+                                                            const comm = comms.find(c => c.id === val);
+                                                            if (comm) {
+                                                                const ref = comm.senderRefNum || (comm.recipientRefNums ? Object.values(comm.recipientRefNums)[0] : '') || 'N/A';
+                                                                form.setValue(`documents.${index}.name`, `[${comm.kind}] ${comm.subject}`);
+                                                                form.setValue(`documents.${index}.link`, comm.driveLink || '');
+                                                                form.setValue(`documents.${index}.communicationId`, comm.id);
+                                                                form.setValue(`documents.${index}.communicationRefNum`, ref);
+                                                                form.setValue(`documents.${index}.communicationSubject`, comm.subject);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="h-7 text-[9px] font-black uppercase tracking-wider bg-white border-primary/20 text-primary shadow-xs">
+                                                            <SelectValue placeholder={isLoadingComms ? "Loading Communications..." : "Link EOMS Memo / Travel Order"} />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-white border-primary/20 max-w-[320px]">
+                                                            {comms.map(c => {
+                                                                const ref = c.senderRefNum || (c.recipientRefNums ? Object.values(c.recipientRefNums)[0] : '') || 'N/A';
+                                                                return (
+                                                                    <SelectItem key={c.id} value={c.id} className="text-[9px] font-bold uppercase tracking-wider text-primary truncate max-w-[310px]">
+                                                                        [{c.kind}] {c.subject} ({ref})
+                                                                    </SelectItem>
+                                                                );
+                                                            })}
+                                                            {comms.length === 0 && !isLoadingComms && (
+                                                                <div className="p-2 text-center text-[9px] text-muted-foreground uppercase font-black">No attachable memos found</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-4 items-start">
+                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`documents.${index}.name`}
+                                                    render={({ field: inputField }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[9px] font-bold uppercase">Document Title / Name</FormLabel>
+                                                            <FormControl>
+                                                                <Input {...inputField} placeholder="e.g. Audit Scope Document / EOMS Form 02" className="h-9 bg-white font-bold" />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`documents.${index}.link`}
+                                                    render={({ field: inputField }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[9px] font-bold uppercase">Google Drive Link (URL)</FormLabel>
+                                                            <FormControl>
+                                                                <Input {...inputField} placeholder="https://drive.google.com/..." className="h-9 bg-white font-medium" />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => remove(index)}
+                                                className="mt-6 text-destructive hover:bg-destructive/5 hover:text-destructive shrink-0"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </form>
             </Form>
