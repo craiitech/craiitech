@@ -198,12 +198,14 @@ function ClauseForm({
   }, [finding, form, clause.id]);
 
   /**
-   * NC STATEMENT TEMPLATE GENERATOR
+   * NC STATEMENT TEMPLATE GENERATOR & COMPLIANCE DEFAULT VALUE
    */
   useEffect(() => {
     if (watchType === 'Non-Conformance' && !form.getValues('ncStatement')) {
         const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
         form.setValue('ncStatement', template);
+    } else if (watchType === 'Compliance' && !form.getValues('description')) {
+        form.setValue('description', 'Compliant');
     }
   }, [watchType, clause.id, form]);
 
