@@ -849,6 +849,17 @@ export type ProgramComplianceRecord = {
   updatedBy: string;
 };
 
+export type ChedAnnouncement = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  description: string;
+  additionalInstructions?: string;
+  googleDriveLink?: string;
+  createdAt: any;
+  updatedAt: any;
+};
+
 export type QaAuditReport = {
     id: string;
     type: 'IQA' | 'EQA';

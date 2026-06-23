@@ -19,11 +19,13 @@ import {
     Trash2,
     Database,
     Filter,
-    Info
+    Info,
+    Megaphone
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { BatchDataHub } from '@/components/programs/batch-data-hub';
+import { ChedAnnouncements } from '@/components/programs/ched-announcements';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -266,10 +268,14 @@ export default function AcademicProgramsPage() {
                     <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                         <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
                     </TabsTrigger>
+                    <TabsTrigger value="announcements" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Megaphone className="h-4 w-4 text-amber-500" /> JC03 Announcements
+                    </TabsTrigger>
                 </TabsList>
             </ScrollArea>
         </div>
 
+        {currentTab !== 'announcements' && (
         <Card className="shadow-md border-primary/10">
             <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
                 <div className="flex-1 w-full space-y-1.5">
@@ -326,6 +332,7 @@ export default function AcademicProgramsPage() {
                 </div>
             </CardContent>
         </Card>
+        )}
 
         <TabsContent value="analytics" className="animate-in fade-in duration-500">
             <ProgramAnalytics 
@@ -402,6 +409,10 @@ export default function AcademicProgramsPage() {
                     />
                 </TabsContent>
             </Tabs>
+        </TabsContent>
+
+        <TabsContent value="announcements" className="animate-in fade-in duration-500">
+            <ChedAnnouncements />
         </TabsContent>
       </Tabs>
 
