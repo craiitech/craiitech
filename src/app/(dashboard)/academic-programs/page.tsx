@@ -44,7 +44,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 export default function AcademicProgramsPage() {
-  const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor, isMainCampusDOI } = useUser();
+  const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor, isMainCampusDOI, isDoi } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -64,12 +64,11 @@ export default function AcademicProgramsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const roleLower = userRole?.toLowerCase() || '';
-  const isDoi = roleLower.includes('dean of instruction') || roleLower === 'doi';
 
   // Institutional Oversight roles see everything.
   const isGlobalViewer = isAdmin || isVp || isAuditor || isMainCampusDOI;
   const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi;
-  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO' || userRole === 'Faculty';
+  const isUnitViewer = (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO' || userRole === 'Faculty') && !isDoi;
 
   const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi || roleLower.includes('coordinator'));
 

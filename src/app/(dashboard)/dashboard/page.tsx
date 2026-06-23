@@ -519,7 +519,7 @@ const DashboardLoader = () => (
 );
 
 export default function HomePage() {
-  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor, isMainCampusDOI } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor, isMainCampusDOI, isDoi } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
   const router = useRouter();
@@ -583,10 +583,11 @@ export default function HomePage() {
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
 
   const roleLower = userRole?.toLowerCase() || '';
+  const isDOI = isDoi;
   const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
   const isUniversityExecutive = isAdmin || isVp || isPresident || roleLower.includes('quality management') || roleLower.includes('qms') || roleLower.includes('qao');
   
-  const isCampusLevel = roleLower.includes('campus director') || roleLower.includes('campus odimo') || roleLower.includes('dean of instruction') || roleLower === 'doi';
+  const isCampusLevel = roleLower.includes('campus director') || roleLower.includes('campus odimo') || isDOI;
   const isCampusSupervisor = isSupervisor && !isUniversityExecutive && isCampusLevel;
 
   const handleTabChange = (value: string) => {

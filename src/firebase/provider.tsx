@@ -48,6 +48,7 @@ export interface FirebaseContextState {
   isVp: boolean;
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
+  isDoi: boolean;
   systemSettings: SystemSettings | null;
   can: (permission: string) => boolean;
 }
@@ -71,6 +72,7 @@ export interface FirebaseServicesAndUser {
   isVp: boolean;
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
+  isDoi: boolean;
   systemSettings: SystemSettings | null;
   can: (permission: string) => boolean;
 }
@@ -88,6 +90,7 @@ export interface UserHookResult {
   isVp: boolean;
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
+  isDoi: boolean;
   systemSettings: SystemSettings | null;
   firestore: Firestore | null; // Added for convenience in some hooks
   can: (permission: string) => boolean;
@@ -153,6 +156,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
 
+  const unitDocRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return doc(firestore, 'units', userProfile.unitId);
+  }, [firestore, userProfile?.unitId]);
+
+  const { data: unitDoc, isLoading: isUnitDocLoading } = useDoc<any>(unitDocRef);
+
   const adminRoleDocRef = useMemoFirebase(() => {
     if (!userAuthState.user || !firestore) return null;
     return doc(firestore, 'roles_admin', userAuthState.user.uid);
@@ -186,6 +196,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const userRole = userProfile?.role || null;
+    const unitLower = (unitDoc?.name || userProfile?.unitName || '').toLowerCase();
     
     // Robust Role Detection
     const roleLower = userRole?.toLowerCase() || '';
@@ -194,8 +205,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isVp = roleLower.includes('vice president');
     const isAuditor = roleLower.includes('auditor');
     
+    const isDOI = roleLower.includes('dean of instruction') || roleLower === 'doi' || unitLower.includes('dean of instruction') || unitLower === 'doi';
+    
     // Anyone with "Director", "ODIMO", "President", "Head", or "Dean of Instruction / DOI" in their role is an oversight supervisor
-    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head') || roleLower.includes('dean of instruction') || roleLower === 'doi';
+    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head') || isDOI;
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(
@@ -208,7 +221,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userProfile &&
       mainCampus &&
       userProfile.campusId === mainCampus.id &&
-      (roleLower.includes('dean of instruction') || roleLower === 'doi')
+      isDOI
     );
 
     const rolePermissions = roleDoc?.permissions || {};
@@ -219,7 +232,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
 
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
-    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminRoleLoading || isLoadingCampuses));
+    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminRoleLoading || isLoadingCampuses || isUnitDocLoading));
 
 
     return {
@@ -240,10 +253,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isVp,
       isMainCampusCoordinator,
       isMainCampusDOI,
+      isDoi: isDOI,
       systemSettings: systemSettings || null,
       can,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings, roleDoc]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings, roleDoc, unitDoc, isUnitDocLoading]);
   
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {
@@ -309,6 +323,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isVp: context.isVp,
     isMainCampusCoordinator: context.isMainCampusCoordinator,
     isMainCampusDOI: context.isMainCampusDOI,
+    isDoi: context.isDoi,
     systemSettings: context.systemSettings,
     can: context.can,
   };
@@ -349,8 +364,8 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, systemSettings: null, firestore: null, can: () => false };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, isDoi: false, systemSettings: null, firestore: null, can: () => false };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings, can } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings, can };
+  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, isDoi, systemSettings, can } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, isDoi, systemSettings, can };
 };

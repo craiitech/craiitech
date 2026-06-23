@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { toast } = useToast();
   const isOnline = useNetworkStatus();
-  const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin, isAuditor, userRole, firestore, isSupervisor, systemSettings, isDoi } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   const [isEvalSkipped, setIsEvalSkipped] = useState(false);
   
@@ -178,8 +178,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!firestore || !userProfile || !userRole) return null;
     const col = collection(firestore, 'submissions');
     if (isAdmin) return query(col, where('statusId', '==', 'submitted'));
+    
+    const roleLower = userRole.toLowerCase();
+
     if (isSupervisor) {
-        if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI' || userRole?.toLowerCase().includes('vice president')) {
+        if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi || roleLower.includes('vice president')) {
             if (!userProfile.campusId) return null;
             return query(col, where('campusId', '==', userProfile.campusId));
         }

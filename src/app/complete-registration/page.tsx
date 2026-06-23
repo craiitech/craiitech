@@ -135,6 +135,7 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const selectedRoleObject = roles.find(r => r.id === values.roleId);
+      const selectedUnitObject = allUnits?.find(u => u.id === values.unitId);
       const isAdminEmail = user.email === 'admin@eoms.com';
       
       const batch = writeBatch(firestore);
@@ -146,6 +147,7 @@ export default function CompleteRegistrationPage() {
       const updateData: any = {
         campusId: values.campusId,
         unitId: isUnitRequired ? values.unitId : '',
+        unitName: isUnitRequired && selectedUnitObject ? selectedUnitObject.name : '',
         roleId: isAdminEmail ? 'admin' : values.roleId,
         role: isAdminEmail ? 'Admin' : (selectedRoleObject ? selectedRoleObject.name : ''),
         sex: values.sex,

@@ -47,7 +47,7 @@ interface ProgramComplianceWorkspaceProps {
 }
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
-  const { userProfile, isAdmin, userRole, isMainCampusDOI } = useUser();
+  const { userProfile, isAdmin, userRole, isMainCampusDOI, isDoi } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedAY, setSelectedAY] = useState<number>(new Date().getFullYear());
@@ -55,7 +55,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   const [activeTab, setActiveTab] = useState("performance");
 
   const roleLower = userRole?.toLowerCase() || '';
-  const isDoi = roleLower.includes('dean of instruction') || roleLower === 'doi';
   const canEdit = !!(isAdmin || isMainCampusDOI || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi || (userProfile?.campusId === campusId && (roleLower.includes('coordinator') || roleLower.includes('odimo') || isDoi)));
 
   /**

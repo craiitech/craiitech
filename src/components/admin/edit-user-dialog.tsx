@@ -137,6 +137,7 @@ export function EditUserDialog({
     
     const userRef = doc(firestore, 'users', activeUser.id);
     const selectedRole = roles.find(r => r.id === values.roleId);
+    const selectedUnit = units.find(u => u.id === values.unitId);
     const iqaUnit = units.find(u => u.name?.toLowerCase() === 'internal quality audit' || u.name?.toLowerCase() === 'iqa');
     const iqaUnitId = iqaUnit ? iqaUnit.id : '';
     
@@ -150,6 +151,9 @@ export function EditUserDialog({
         unitId: selectedRole?.name?.toLowerCase() === 'auditor' 
             ? iqaUnitId 
             : (isUnitRequired ? (values.unitId || '') : ''),
+        unitName: selectedRole?.name?.toLowerCase() === 'auditor'
+            ? (iqaUnit ? iqaUnit.name : 'Internal Quality Audit')
+            : (isUnitRequired && selectedUnit ? selectedUnit.name : ''),
     };
 
     updateDoc(userRef, updateData)
