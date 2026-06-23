@@ -231,7 +231,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-              <ScrollArea ref={scrollAreaRef} className="flex-1">
+              <ScrollArea ref={scrollAreaRef} className="flex-1" type="always">
                 <div className="p-4 sm:p-8 space-y-10 pb-24">
                   {iso25010Categories.map((cat) => {
                     const catAnswered = cat.subCharacteristics.filter(
