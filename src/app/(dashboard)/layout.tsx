@@ -179,7 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const col = collection(firestore, 'submissions');
     if (isAdmin) return query(col, where('statusId', '==', 'submitted'));
     if (isSupervisor) {
-        if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
+        if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI' || userRole?.toLowerCase().includes('vice president')) {
             if (!userProfile.campusId) return null;
             return query(col, where('campusId', '==', userProfile.campusId));
         }

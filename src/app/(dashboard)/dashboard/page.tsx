@@ -519,7 +519,7 @@ const DashboardLoader = () => (
 );
 
 export default function HomePage() {
-  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp, isAuditor, isMainCampusDOI } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
   const router = useRouter();
@@ -586,7 +586,7 @@ export default function HomePage() {
   const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
   const isUniversityExecutive = isAdmin || isVp || isPresident || roleLower.includes('quality management') || roleLower.includes('qms') || roleLower.includes('qao');
   
-  const isCampusLevel = roleLower.includes('campus director') || roleLower.includes('campus odimo');
+  const isCampusLevel = roleLower.includes('campus director') || roleLower.includes('campus odimo') || roleLower.includes('dean of instruction') || roleLower === 'doi';
   const isCampusSupervisor = isSupervisor && !isUniversityExecutive && isCampusLevel;
 
   const handleTabChange = (value: string) => {
@@ -773,7 +773,7 @@ export default function HomePage() {
 
   const filteredAcademicPrograms = useMemo(() => {
     if (!academicPrograms) return [];
-    if (isUniversityExecutive) return academicPrograms;
+    if (isUniversityExecutive || isMainCampusDOI) return academicPrograms;
     if (isCampusSupervisor && userProfile?.campusId) {
       return academicPrograms.filter(p => p.campusId === userProfile.campusId);
     }
@@ -781,11 +781,11 @@ export default function HomePage() {
       return academicPrograms.filter(p => p.id === userProfile.unitId);
     }
     return [];
-  }, [academicPrograms, isUniversityExecutive, isCampusSupervisor, userProfile]);
+  }, [academicPrograms, isUniversityExecutive, isCampusSupervisor, userProfile, isMainCampusDOI]);
 
   const filteredCompliances = useMemo(() => {
     if (!allCompliances) return [];
-    if (isUniversityExecutive) return allCompliances;
+    if (isUniversityExecutive || isMainCampusDOI) return allCompliances;
     if (isCampusSupervisor && userProfile?.campusId) {
       return allCompliances.filter(c => c.campusId === userProfile.campusId);
     }
@@ -793,7 +793,7 @@ export default function HomePage() {
       return allCompliances.filter(c => c.programId === userProfile.unitId || c.unitId === userProfile.unitId);
     }
     return [];
-  }, [allCompliances, isUniversityExecutive, isCampusSupervisor, userProfile]);
+  }, [allCompliances, isUniversityExecutive, isCampusSupervisor, userProfile, isMainCampusDOI]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);

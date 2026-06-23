@@ -47,6 +47,7 @@ export interface FirebaseContextState {
   isAuditor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
+  isMainCampusDOI: boolean;
   systemSettings: SystemSettings | null;
 }
 
@@ -68,6 +69,7 @@ export interface FirebaseServicesAndUser {
   isAuditor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
+  isMainCampusDOI: boolean;
   systemSettings: SystemSettings | null;
 }
 
@@ -83,6 +85,7 @@ export interface UserHookResult {
   isSupervisor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
+  isMainCampusDOI: boolean;
   systemSettings: SystemSettings | null;
   firestore: Firestore | null; // Added for convenience in some hooks
 }
@@ -181,8 +184,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isVp = roleLower.includes('vice president');
     const isAuditor = roleLower.includes('auditor');
     
-    // Anyone with "Director", "ODIMO", "President", or "Head" in their role is an oversight supervisor
-    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head');
+    // Anyone with "Director", "ODIMO", "President", "Head", or "Dean of Instruction / DOI" in their role is an oversight supervisor
+    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head') || roleLower.includes('dean of instruction') || roleLower === 'doi';
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(
@@ -190,6 +193,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       mainCampus &&
       userProfile.campusId === mainCampus.id &&
       (roleLower.includes('coordinator') || roleLower.includes('odimo'))
+    );
+    const isMainCampusDOI = !!(
+      userProfile &&
+      mainCampus &&
+      userProfile.campusId === mainCampus.id &&
+      (roleLower.includes('dean of instruction') || roleLower === 'doi')
     );
 
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
@@ -213,6 +222,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isSupervisor,
       isVp,
       isMainCampusCoordinator,
+      isMainCampusDOI,
       systemSettings: systemSettings || null,
     };
   }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings]);
@@ -280,6 +290,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isSupervisor: context.isSupervisor,
     isVp: context.isVp,
     isMainCampusCoordinator: context.isMainCampusCoordinator,
+    isMainCampusDOI: context.isMainCampusDOI,
     systemSettings: context.systemSettings,
   };
 };
@@ -319,8 +330,8 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, systemSettings: null, firestore: null };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, systemSettings: null, firestore: null };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, systemSettings } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, systemSettings };
+  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, systemSettings };
 };

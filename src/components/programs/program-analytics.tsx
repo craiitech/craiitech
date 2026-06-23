@@ -105,7 +105,7 @@ const COLORS = ['#1B6535', '#EAB308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316'
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin, userRole, isMainCampusDOI } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
@@ -419,8 +419,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     return analytics.roadmapData
         .filter(item => {
-            if (!isAdmin && userProfile) {
-                const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO');
+            if (!isAdmin && !isMainCampusDOI && userProfile) {
+                const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO') || userRole?.includes('Instruction') || userRole?.includes('DOI');
                 if (isSiteOversight) {
                     if (item.campusId !== userProfile.campusId) return false;
                 } else {

@@ -335,7 +335,7 @@ export function SidebarNav({
       href: '/academic-programs',
       label: 'CHED Programs Monitoring',
       active: pathname.startsWith('/academic-programs'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO', 'Dean of Instruction', 'DOI'],
       icon: <BookOpen />,
       showBadge: true,
     },

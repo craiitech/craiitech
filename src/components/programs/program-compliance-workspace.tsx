@@ -47,14 +47,14 @@ interface ProgramComplianceWorkspaceProps {
 }
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin, userRole, isMainCampusDOI } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedAY, setSelectedAY] = useState<number>(new Date().getFullYear());
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("performance");
 
-  const canEdit = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo'))));
+  const canEdit = !!(isAdmin || isMainCampusDOI || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo') || userRole?.toLowerCase().includes('dean of instruction') || userRole?.toLowerCase() === 'doi')));
 
   /**
    * ACADEMIC YEAR GENERATION

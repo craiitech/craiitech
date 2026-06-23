@@ -44,7 +44,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 export default function AcademicProgramsPage() {
-  const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor } = useUser();
+  const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor, isMainCampusDOI } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -64,11 +64,11 @@ export default function AcademicProgramsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // Institutional Oversight roles see everything.
-  const isGlobalViewer = isAdmin || isVp || isAuditor;
-  const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const isGlobalViewer = isAdmin || isVp || isAuditor || isMainCampusDOI;
+  const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI';
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO' || userRole === 'Faculty';
 
-  const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('coordinator'));
+  const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI' || userRole?.toLowerCase().includes('coordinator'));
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
