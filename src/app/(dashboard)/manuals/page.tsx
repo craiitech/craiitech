@@ -238,6 +238,11 @@ export default function ProcedureManualsPage() {
                 <TabsTrigger onClick={() => handleTabChange('revisions')} value="revisions" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                     <History className="h-3.5 w-3.5" /> Revision Requests
                 </TabsTrigger>
+                {isAdmin && (
+                    <TabsTrigger onClick={() => handleTabChange('inbox')} value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <Inbox className="h-3.5 w-3.5" /> Revision Inbox
+                    </TabsTrigger>
+                )}
             </TabsList>
         </ScrollArea>
       </div>
@@ -450,6 +455,81 @@ export default function ProcedureManualsPage() {
                       </div>
                     </ScrollArea>
                   </TabsContent>
+
+                  {/* TAB 3: ADMIN REVISION INBOX */}
+                  {isAdmin && (
+                    <TabsContent value="inbox" className="h-full m-0 animate-in fade-in duration-300">
+                      <ScrollArea className="h-full pr-4">
+                        <div className="space-y-6 pb-10">
+                          <div className="flex items-center justify-between bg-muted/10 border p-4 rounded-xl">
+                            <div className="space-y-1">
+                              <h4 className="text-xs font-black uppercase text-slate-800">Revisions Review Inbox</h4>
+                              <p className="text-[10px] text-muted-foreground italic">Review and process revision applications from all units.</p>
+                            </div>
+                            {!isInboxLoaded && (
+                              <Button onClick={() => setIsInboxLoaded(true)} size="sm" className="font-black uppercase text-[10px] tracking-widest h-9 gap-2 shadow-lg shadow-primary/10">
+                                <Inbox className="h-4 w-4" /> Load Inbox
+                              </Button>
+                            )}
+                          </div>
+
+                          {isInboxLoaded && (
+                            <Card className="shadow-md border-primary/10 overflow-hidden">
+                              <CardHeader className="bg-primary/5 border-b py-4">
+                                <CardTitle className="text-sm font-black uppercase tracking-tight">Manual Revision Applications Inbox</CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-0">
+                                <Table>
+                                  <TableHeader className="bg-muted/30">
+                                    <TableRow>
+                                      <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase">Unit & Campus</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase">Modified Parts</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                                      <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {isLoadingAllRequests ? (
+                                      <TableRow><TableCell colSpan={6} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
+                                    ) : sortedAllRequests.length > 0 ? sortedAllRequests.map(req => (
+                                      <TableRow key={req.id} className="hover:bg-muted/20">
+                                        <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}</TableCell>
+                                        <TableCell>
+                                          <div className="flex flex-col">
+                                            <span className="font-bold text-xs uppercase text-slate-800">{req.unitName}</span>
+                                            <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                                                <School className="h-2.5 w-2.5" />
+                                                {campusMap.get(req.campusId) || 'Site Context'}
+                                            </span>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs">{req.submitterName}</TableCell>
+                                        <TableCell className="text-xs font-semibold text-slate-700">{req.revisedParts.length} Sections</TableCell>
+                                        <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
+                                        <TableCell className="text-right pr-6">
+                                          <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
+                                            Review
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    )) : (
+                                      <TableRow>
+                                        <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground italic">
+                                          No revision requests pending in inbox.
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+                  )}
                 </div>
               </div>
             </div>
@@ -462,80 +542,6 @@ export default function ProcedureManualsPage() {
           )}
         </div>
       </div>
-
-      {/* Admin Review Inbox Section */}
-      {isAdmin && (
-        <div className="mt-8 border-t pt-8">
-          <Tabs defaultValue="inbox" className="space-y-6">
-            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-              <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <Inbox className="h-3.5 w-3.5" /> Revisions Review Inbox
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="inbox" className="animate-in fade-in duration-500">
-              {!isInboxLoaded ? (
-                <div className="p-12 text-center bg-white border rounded-2xl shadow-sm">
-                  <Button onClick={() => setIsInboxLoaded(true)} className="font-black uppercase tracking-widest text-xs">
-                    Load Revision Requests Inbox
-                  </Button>
-                </div>
-              ) : (
-                <Card className="shadow-md border-primary/10 overflow-hidden">
-                  <CardHeader className="bg-primary/5 border-b py-4">
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Manual Revision Applications Inbox</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader className="bg-muted/30">
-                        <TableRow>
-                          <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase">Unit & Campus</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase">Modified Parts</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                          <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {isLoadingAllRequests ? (
-                          <TableRow><TableCell colSpan={6} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                        ) : sortedAllRequests.length > 0 ? sortedAllRequests.map(req => (
-                          <TableRow key={req.id} className="hover:bg-muted/20">
-                            <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-xs uppercase text-slate-800">{req.unitName}</span>
-                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
-                                    <School className="h-2.5 w-2.5" />
-                                    {campusMap.get(req.campusId) || 'Site Context'}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs">{req.submitterName}</TableCell>
-                            <TableCell className="text-xs font-semibold text-slate-700">{req.revisedParts.length} Sections</TableCell>
-                            <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
-                            <TableCell className="text-right pr-6">
-                              <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
-                                Review
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        )) : (
-                          <TableRow>
-                            <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground italic">
-                              No revision requests pending in inbox.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
 
       {/* Modals & Dialogs */}
       {selectedUnit && (
