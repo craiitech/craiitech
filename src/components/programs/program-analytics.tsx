@@ -105,7 +105,7 @@ const COLORS = ['#1B6535', '#EAB308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316'
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { userProfile, isAdmin, userRole, isMainCampusDOI } = useUser();
+  const { userProfile, isAdmin, userRole, isMainCampusDOI, isDoi } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
@@ -203,6 +203,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     recommendation: reco,
                     certificateLink: certificateLink,
                     college: p.collegeId,
+                    campusId: p.campusId,
                     campus: campusMap.get(p.campusId) || p.campusId
                 });
             });
@@ -420,7 +421,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     return analytics.roadmapData
         .filter(item => {
             if (!isAdmin && !isMainCampusDOI && userProfile) {
-                const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO') || userRole?.includes('Instruction') || userRole?.includes('DOI');
+                const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO') || userRole?.includes('Instruction') || userRole?.includes('DOI') || isDoi;
                 if (isSiteOversight) {
                     if (item.campusId !== userProfile.campusId) return false;
                 } else {
@@ -445,15 +446,21 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             return true;
         })
         .sort((a, b) => a.sortYear - b.sortYear || a.name.localeCompare(b.name));
-  }, [analytics?.roadmapData, isAdmin, userProfile, userRole, roadmapSearch, roadmapCampusFilter, roadmapUnitFilter]);
+  }, [analytics?.roadmapData, isAdmin, userProfile, userRole, roadmapSearch, roadmapCampusFilter, roadmapUnitFilter, isDoi]);
 
   const filteredRecommendations = useMemo(() => {
     if (!analytics?.allRecommendations) return [];
 
     return analytics.allRecommendations.filter(item => {
-        if (!isAdmin && userProfile?.unitId) {
-            const isAssigned = item.recommendation.assignedUnitIds?.includes(userProfile.unitId);
-            if (!isAssigned) return false;
+        const isSiteOversight = userRole?.includes('Director') || userRole?.includes('ODIMO') || userRole?.includes('Instruction') || userRole?.includes('DOI') || isDoi;
+
+        if (!isAdmin && !isMainCampusDOI && userProfile) {
+            if (isSiteOversight) {
+                if (item.campusId !== userProfile.campusId) return false;
+            } else if (userProfile.unitId) {
+                const isAssigned = item.recommendation.assignedUnitIds?.includes(userProfile.unitId);
+                if (!isAssigned) return false;
+            }
         }
 
         if (isAdmin && recoUnitFilter !== 'all') {
@@ -476,7 +483,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             assignedUnitIds: item.recommendation.assignedUnitIds || []
         }
     }));
-  }, [analytics, isAdmin, userProfile, recoSearch, recoStatusFilter, recoUnitFilter]);
+  }, [analytics, isAdmin, userProfile, userRole, isDoi, recoSearch, recoStatusFilter, recoUnitFilter]);
 
   const programsByLevel = useMemo(() => {
     if (!analytics?.roadmapData) return {};

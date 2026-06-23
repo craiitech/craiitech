@@ -29,7 +29,9 @@ service cloud.firestore {
     function isSupervisor() {
       return isSignedIn() && hasProfile() && (
         profile().get('role', '').matches('(?i).*(director|odimo|admin|dean of instruction|doi).*') ||
-        profile().get('role', '').matches('(?i).*vice president.*')
+        profile().get('role', '').matches('(?i).*vice president.*') ||
+        profile().get('unitId', '') == 'W61XJkVKga3ra2JaLINg' ||
+        profile().get('unitName', '').matches('(?i).*(dean of instruction|doi).*')
       );
     }
 
