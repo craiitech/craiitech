@@ -85,6 +85,9 @@ export default function AcademicProgramsPage() {
             // Global roles can see everything
         } else if (isCampusViewer) {
             setCampusFilter(userProfile.campusId);
+            if (unitFilter !== 'all' && unitFilter === userProfile.unitId) {
+                setUnitFilter('all');
+            }
         } else if (isUnitViewer) {
             setCampusFilter(userProfile.campusId);
             unitFilter === 'all' && setUnitFilter(userProfile.unitId);

@@ -55,7 +55,7 @@ export function SidebarNav({
   const router = useRouter();
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
-  const { isAdmin, userRole, isSupervisor, userProfile } = useUser();
+  const { isAdmin, userRole, isSupervisor, userProfile, isDoi: isDoiUser } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
   
@@ -463,10 +463,10 @@ export function SidebarNav({
           const rLower = r.toLowerCase();
           return rLower === 'unit coordinator' || rLower === 'unit odimo';
         })) return true;
-        const isDoi = roleLower.includes('dean of instruction') || roleLower === 'doi';
+        const isDoi = isDoiUser || roleLower.includes('dean of instruction') || roleLower === 'doi';
         if (isDoi && route.roles.some(r => {
           const rLower = r.toLowerCase();
-          return rLower === 'dean of instruction' || rLower === 'doi';
+          return rLower === 'dean of instruction' || rLower === 'doi' || rLower === 'campus director' || rLower === 'campus odimo';
         })) return true;
     }
     return false;

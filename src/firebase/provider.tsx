@@ -205,7 +205,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isVp = roleLower.includes('vice president');
     const isAuditor = roleLower.includes('auditor');
     
-    const isDOI = roleLower.includes('dean of instruction') || roleLower === 'doi' || unitLower.includes('dean of instruction') || unitLower === 'doi';
+    const isDOI = roleLower.includes('dean of instruction') || roleLower === 'doi' || unitLower.includes('dean of instruction') || unitLower === 'doi' || userProfile?.unitId === 'W61XJkVKga3ra2JaLINg';
     
     // Anyone with "Director", "ODIMO", "President", "Head", or "Dean of Instruction / DOI" in their role is an oversight supervisor
     const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head') || isDOI;
