@@ -463,6 +463,11 @@ export function SidebarNav({
           const rLower = r.toLowerCase();
           return rLower === 'unit coordinator' || rLower === 'unit odimo';
         })) return true;
+        const isDoi = roleLower.includes('dean of instruction') || roleLower === 'doi';
+        if (isDoi && route.roles.some(r => {
+          const rLower = r.toLowerCase();
+          return rLower === 'dean of instruction' || rLower === 'doi';
+        })) return true;
     }
     return false;
   });

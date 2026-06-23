@@ -63,12 +63,15 @@ export default function AcademicProgramsPage() {
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
+  const roleLower = userRole?.toLowerCase() || '';
+  const isDoi = roleLower.includes('dean of instruction') || roleLower === 'doi';
+
   // Institutional Oversight roles see everything.
   const isGlobalViewer = isAdmin || isVp || isAuditor || isMainCampusDOI;
-  const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI';
+  const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi;
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO' || userRole === 'Faculty';
 
-  const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI' || userRole?.toLowerCase().includes('coordinator'));
+  const canManage = !!(isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi || roleLower.includes('coordinator'));
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
