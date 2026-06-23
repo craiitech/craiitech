@@ -176,6 +176,12 @@ function PlanItineraryRegistry({
                                         <div className="p-3 rounded-lg border bg-muted/10 border-dashed group-hover:bg-white transition-colors">
                                             <p className="text-[10px] font-black uppercase text-primary mb-1">Focus Area</p>
                                             <p className="text-xs font-medium text-slate-600 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description.'}</p>
+                                            {schedule.documents && schedule.documents.length > 0 && (
+                                                <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-dashed border-slate-200">
+                                                    <FileText className="h-3 w-3 text-primary" />
+                                                    <span className="text-[9px] font-bold text-primary uppercase">{schedule.documents.length} Document{schedule.documents.length > 1 ? 's' : ''} Linked</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>

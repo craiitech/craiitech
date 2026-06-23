@@ -37,7 +37,7 @@ import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from '@/firebas
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup, Campus } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School, Sparkles } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School, Sparkles, FileText, PlusCircle, Trash2, ChevronRight } from 'lucide-react';
 import { cn, parseDate } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -69,6 +69,13 @@ const formSchema = z.object({
   endTime: z.string().min(1, 'End time is required'),
   isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
   auditorId: z.string().optional().nullable(),
+  documents: z.array(z.object({
+    name: z.string(),
+    link: z.string(),
+    communicationId: z.string().optional(),
+    communicationRefNum: z.string().optional(),
+    communicationSubject: z.string().optional(),
+  })).optional().default([]),
 }).refine(data => {
     return data.endTime > data.startTime;
 }, {
@@ -110,6 +117,7 @@ export function AuditScheduleDialog({
       endTime: '12:00',
       procedureDescription: '',
       auditorId: '',
+      documents: [],
     }
   });
 
@@ -216,6 +224,7 @@ export function AuditScheduleDialog({
                 procedureDescription: schedule.procedureDescription || '',
                 isoClausesToAudit: schedule.isoClausesToAudit || [],
                 auditorId: schedule.auditorId || '',
+                documents: schedule.documents || [],
             });
         } else {
             form.reset({
@@ -229,6 +238,7 @@ export function AuditScheduleDialog({
                 endTime: '12:00',
                 procedureDescription: '',
                 auditorId: '',
+                documents: [],
             });
         }
     }
@@ -282,6 +292,7 @@ export function AuditScheduleDialog({
           status: schedule?.status || 'Scheduled',
           auditorId: values.auditorId === 'unassigned' ? null : (values.auditorId || null),
           auditorName: values.auditorId === 'unassigned' ? null : auditorName,
+          documents: values.documents || [],
         };
 
         if (schedule) {
@@ -304,6 +315,11 @@ export function AuditScheduleDialog({
   const selectedClauses = form.watch('isoClausesToAudit');
   const isPlanUniversityWide = plan.campusId === 'university-wide';
   const hasPresets = plan.groupClauseMapping && plan.groupClauseMapping[watchCategory] && plan.groupClauseMapping[watchCategory]!.length > 0;
+
+  const { fields: docFields, append: appendDoc, remove: removeDoc } = useFieldArray({
+    control: form.control,
+    name: 'documents' as any,
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -636,6 +652,64 @@ export function AuditScheduleDialog({
                                 </FormItem>
                             )}
                         />
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">4. Session Documents</h4>
+                            </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => appendDoc({ name: '', link: '' })}
+                                className="h-7 text-[10px] font-black uppercase tracking-widest gap-1"
+                            >
+                                <PlusCircle className="h-3.5 w-3.5" />
+                                Add Document
+                            </Button>
+                        </div>
+
+                        {docFields.length === 0 ? (
+                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50">
+                                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">No session documents added</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">Add Google Drive links relevant to this itinerary session.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {docFields.map((field, index) => (
+                                    <div key={field.id} className="flex items-center gap-3 p-4 border rounded-xl bg-white hover:shadow-md hover:border-primary/20 transition-all group">
+                                        <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
+                                            <FileText className="h-4 w-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <Input
+                                                value={(form.watch as any)(`documents.${index}.name`)}
+                                                onChange={(e) => form.setValue(`documents.${index}.name` as any, e.target.value)}
+                                                placeholder="Document name"
+                                                className="h-8 text-xs font-bold bg-slate-50"
+                                            />
+                                            <Input
+                                                value={(form.watch as any)(`documents.${index}.link`)}
+                                                onChange={(e) => form.setValue(`documents.${index}.link` as any, e.target.value)}
+                                                placeholder="https://drive.google.com/..."
+                                                className="h-8 text-xs font-medium bg-slate-50"
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeDoc(index)}
+                                            className="h-8 w-8 text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </form>
             </Form>

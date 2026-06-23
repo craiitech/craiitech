@@ -379,6 +379,7 @@ export type AuditSchedule = {
     officerInCharge?: string;
     processCategory?: AuditGroup;
     iqaMethod?: 'Face to Face Audit' | 'Online / Remote Audit';
+    documents?: AuditPlanDocument[];
 };
 
 export type AuditFinding = {
