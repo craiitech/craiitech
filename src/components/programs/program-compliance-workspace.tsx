@@ -54,7 +54,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("performance");
 
-  const canEdit = !!(isAdmin || isMainCampusDOI || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Dean of Instruction' || userRole === 'DOI' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo') || userRole?.toLowerCase().includes('dean of instruction') || userRole?.toLowerCase() === 'doi')));
+  const roleLower = userRole?.toLowerCase() || '';
+  const isDoi = roleLower.includes('dean of instruction') || roleLower === 'doi';
+  const canEdit = !!(isAdmin || isMainCampusDOI || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi || (userProfile?.campusId === campusId && (roleLower.includes('coordinator') || roleLower.includes('odimo') || isDoi)));
 
   /**
    * ACADEMIC YEAR GENERATION
