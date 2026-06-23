@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MoreHorizontal, ArrowUpDown, Search, Undo2, CheckCircle2, Trash2 } from 'lucide-react';
-import type { Unit, Campus, User } from '@/lib/types';
+import type { Unit, Campus } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -87,19 +87,13 @@ export function AdminUnitManagement() {
     [firestore]
   );
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
-  
-  const usersQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'users') : null),
-    [firestore, isAdmin]
-  );
-  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
   const campusMap = useMemo(() => {
     if (!allCampuses) return new Map<string, string>();
     return new Map(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
 
-  const isLoading = isLoadingUnits || isLoadingCampuses || isLoadingUsers;
+  const isLoading = isLoadingUnits || isLoadingCampuses;
 
   const form = useForm<UnitFormValues>({
     resolver: zodResolver(formSchema),

@@ -39,7 +39,7 @@ import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebas
 import { doc, updateDoc, collection } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import type { Unit, Campus, User } from '@/lib/types';
+import type { Unit, Campus } from '@/lib/types';
 import { Loader2, Check, ChevronsUpDown, Link as LinkIcon } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -83,13 +83,16 @@ export function EditUnitDialog({
 
   const activeUnit = unit || stickyUnit;
 
-  const usersQuery = useMemoFirebase(() => (firestore && isAdmin ? collection(firestore, 'users') : null), [firestore, isAdmin]);
-  const { data: allUsers } = useCollection<User>(usersQuery);
+  const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
-  const vicePresidents = useMemo(() => {
-    if (!allUsers) return [];
-    return allUsers.filter(user => user.role?.toLowerCase().includes('vice president'));
-  }, [allUsers]);
+  const vpUnitOptions = useMemo(() => {
+    if (!allUnits) return [];
+    return allUnits.filter(u => {
+      const name = u.name.toLowerCase();
+      return (name.includes('vice president') || name.includes('president')) && u.id !== activeUnit?.id;
+    });
+  }, [allUnits, activeUnit?.id]);
 
   const form = useForm<z.infer<typeof editUnitSchema>>({
     resolver: zodResolver(editUnitSchema),
@@ -277,20 +280,20 @@ export function EditUnitDialog({
                   name="vicePresidentId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vice President</FormLabel>
+                      <FormLabel>Vice President / Supervising Office</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Assign a Vice President" />
+                            <SelectValue placeholder="Assign supervising office" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent modal={false}>
                           <SelectItem value="none">
                             None
                           </SelectItem>
-                          {vicePresidents.map((vp) => (
+                          {vpUnitOptions.map((vp) => (
                             <SelectItem key={vp.id} value={vp.id}>
-                              {vp.firstName} {vp.lastName}
+                              {vp.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
