@@ -73,26 +73,12 @@ export function EditUnitDialog({
   const { toast } = useToast();
   const { isAdmin } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(false);
-  const [campusSearch, setCampusSearch] = useState("");
-
-  useEffect(() => {
-    if (!popoverOpen) {
-      setCampusSearch("");
-    }
-  }, [popoverOpen]);
 
   // Sticky unit state to prevent content vanishing during exit
   const [stickyUnit, setStickyUnit] = useState<Unit | null>(null);
   useEffect(() => {
     if (unit) setStickyUnit(unit);
   }, [unit]);
-
-  const filteredCampuses = useMemo(() => {
-    return allCampuses.filter(campus =>
-      campus.name.toLowerCase().includes(campusSearch.toLowerCase())
-    );
-  }, [allCampuses, campusSearch]);
 
   const activeUnit = unit || stickyUnit;
 
@@ -221,100 +207,41 @@ export function EditUnitDialog({
                     control={form.control}
                     name="campusIds"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Assigned Campuses</FormLabel>
-                         <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={false}>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    role="combobox"
+                        <FormItem className="flex flex-col gap-1.5">
+                          <FormLabel>Assigned Campuses</FormLabel>
+                          <FormDescription className="text-[10px]">
+                            Click on the campuses below to assign them to this unit.
+                          </FormDescription>
+                          <FormControl>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {allCampuses.map((campus) => {
+                                const isSelected = field.value?.includes(campus.id);
+                                return (
+                                  <Badge
+                                    key={campus.id}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      const currentIds = field.value || [];
+                                      const newIds = currentIds.includes(campus.id)
+                                        ? currentIds.filter(id => id !== campus.id)
+                                        : [...currentIds, campus.id];
+                                      field.onChange(newIds);
+                                    }}
                                     className={cn(
-                                        "w-full justify-between h-auto min-h-10 text-left",
-                                        !field.value && "text-muted-foreground"
+                                      "cursor-pointer px-3 py-1.5 text-[10px] font-black uppercase transition-all select-none border rounded-xl flex items-center gap-1.5 hover:scale-105 duration-150",
+                                      isSelected
+                                        ? "bg-primary border-primary text-white hover:bg-primary/90"
+                                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
                                     )}
-                                    >
-                                    <div className="flex gap-1 flex-wrap py-1">
-                                      {selectedCampusIds.length > 0 ? (
-                                        selectedCampusIds.map(id => (
-                                          <Badge key={id} variant="secondary" className="text-[10px]">
-                                            {allCampuses.find(c => c.id === id)?.name || '...'}
-                                          </Badge>
-                                        ))
-                                      ) : (
-                                        "Select campuses"
-                                      )}
-                                    </div>
-
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent 
-                              className="w-[--radix-popover-trigger-width] p-2 bg-white border rounded-lg shadow-xl z-[100] space-y-2"
-                              align="start"
-                              onOpenAutoFocus={(e) => e.preventDefault()}
-                              onFocusOutside={(e) => e.preventDefault()}
-                            >
-                              <div 
-                                className="flex items-center px-2.5 py-1.5 border rounded-md gap-2 bg-slate-50"
-                                onPointerDown={(e) => e.stopPropagation()}
-                              >
-                                <Search className="h-3.5 w-3.5 text-muted-foreground opacity-50 shrink-0" />
-                                <Input 
-                                  placeholder="Search campus..." 
-                                  className="h-7 text-xs border-none focus-visible:ring-0 p-0 shadow-none bg-transparent" 
-                                  value={campusSearch}
-                                  onChange={(e) => setCampusSearch(e.target.value)}
-                                  onKeyDown={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                              <div className="max-h-60 overflow-y-auto space-y-0.5">
-                                {filteredCampuses.map((campus) => {
-                                  const isSelected = field.value?.includes(campus.id);
-                                  return (
-                                    <div
-                                      key={campus.id}
-                                      className={cn(
-                                        "flex items-center justify-between px-2.5 py-2 rounded-md cursor-pointer transition-colors hover:bg-primary/5",
-                                        isSelected && "bg-primary/5"
-                                      )}
-                                      onPointerDown={(e) => e.stopPropagation()}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        const currentIds = field.value || [];
-                                        const newIds = currentIds.includes(campus.id)
-                                          ? currentIds.filter(id => id !== campus.id)
-                                          : [...currentIds, campus.id];
-                                        field.onChange(newIds);
-                                      }}
-                                    >
-                                      <span className={cn(
-                                        "text-xs font-semibold select-none truncate",
-                                        isSelected ? "text-primary font-black" : "text-slate-600"
-                                      )}>
-                                        {campus.name}
-                                      </span>
-                                      <div className={cn(
-                                        "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
-                                        isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
-                                      )}>
-                                        {isSelected && <Check className="h-3 w-3" />}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                                {filteredCampuses.length === 0 && (
-                                  <div className="p-4 text-center text-xs text-muted-foreground font-bold uppercase opacity-50">
-                                    No campuses found
-                                  </div>
-                                )}
-                              </div>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
+                                  >
+                                    {isSelected && <Check className="h-3 w-3 shrink-0" />}
+                                    {campus.name}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                     )}
                 />
