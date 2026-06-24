@@ -43,6 +43,7 @@ interface AuditChecklistProps {
   scheduleTargetName?: string;
   scheduleCampusId?: string;
   onOpenClauseChange?: (clause: { id: string; title: string } | null) => void;
+  planYear?: number;
 }
 
 interface OpenClauseInfo {
@@ -79,7 +80,8 @@ function ClauseForm({
   scheduleTargetId,
   scheduleTargetName,
   scheduleCampusId,
-  clauseRevisit
+  clauseRevisit,
+  planYear
 }: { 
   scheduleId: string; 
   clause: ISOClause; 
@@ -95,6 +97,7 @@ function ClauseForm({
   scheduleTargetName?: string;
   scheduleCampusId?: string;
   clauseRevisit?: ClauseRevisit;
+  planYear?: number;
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -484,6 +487,9 @@ function ClauseForm({
                                                             <Badge variant="outline" className="h-4 text-[8px] font-bold text-slate-500 capitalize bg-slate-50/50">
                                                                 {sub.cycleId || "First"} Cycle
                                                             </Badge>
+                                                            <Badge variant="outline" className="h-4 text-[8px] font-black uppercase text-indigo-700 border-indigo-200 bg-indigo-50/30">
+                                                                AY {sub.year}
+                                                            </Badge>
                                                             <span className="text-[9px] font-mono font-medium text-slate-400">
                                                                 Rev {String(sub.revision || 0).padStart(2, '0')}
                                                             </span>
@@ -535,7 +541,7 @@ function ClauseForm({
                                     <div className="space-y-0.5">
                                         <p className="text-[10px] font-black text-rose-800 uppercase">Missing EOMS Submission</p>
                                         <p className="text-[9px] text-rose-600 font-medium italic">
-                                            "{docType}" has not been uploaded for this academic year.
+                                            "{docType}" has not been uploaded for {planYear ? `academic year ${planYear - 1}` : 'this academic year'}.
                                         </p>
                                     </div>
                                 </div>
@@ -877,6 +883,7 @@ export function AuditChecklist({
   scheduleTargetName,
   scheduleCampusId,
   onOpenClauseChange,
+  planYear,
 }: AuditChecklistProps) {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -1117,6 +1124,7 @@ export function AuditChecklist({
                           scheduleTargetName={scheduleTargetName}
                           scheduleCampusId={scheduleCampusId} 
                           clauseRevisit={clauseRevisitMap.get(clause.id)}
+                          planYear={planYear}
                         />
                       </div>
                     ))}

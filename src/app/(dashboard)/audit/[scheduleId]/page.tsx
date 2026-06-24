@@ -192,7 +192,7 @@ export default function AuditExecutionPage() {
     if (!firestore || !schedule?.targetId || !schedule?.campusId || !plan?.year) return null;
     const unitId = String(schedule.targetId).trim();
     const campusId = String(schedule.campusId).trim();
-    const year = Number(plan.year);
+    const year = Number(plan.year) - 1;
     return query(
         collection(firestore, 'submissions'), 
         where('unitId', '==', unitId),
@@ -713,6 +713,7 @@ export default function AuditExecutionPage() {
                   scheduleTargetName={schedule.targetName}
                   scheduleCampusId={schedule.campusId} 
                   onOpenClauseChange={setCurrentClause}
+                  planYear={plan ? Number(plan.year) : undefined}
                 />
 
                 <Card className="shadow-xl border-primary/10 overflow-hidden">
