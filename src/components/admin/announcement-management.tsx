@@ -143,12 +143,19 @@ export function AnnouncementManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {announcements?.filter(a => a.announcement).map((ann) => (
+                {announcements?.filter(a => a.announcement || (a as any).announcement2).map((ann) => (
                   <TableRow key={ann.id}>
                     <TableCell className="font-medium">
                       {getTargetName(ann)}
                     </TableCell>
-                    <TableCell className="max-w-md truncate">{ann.announcement}</TableCell>
+                    <TableCell className="max-w-md truncate">
+                      {ann.announcement}
+                      {ann.id === 'global' && (ann as any).announcement2 && (
+                        <div className="text-xs text-muted-foreground mt-1 border-t pt-1">
+                          {(ann as any).announcement2}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -175,7 +182,7 @@ export function AnnouncementManagement() {
               </TableBody>
             </Table>
           )}
-           {!isLoading && announcements?.filter(a => a.announcement).length === 0 && (
+           {!isLoading && announcements?.filter(a => a.announcement || (a as any).announcement2).length === 0 && (
             <div className="py-10 text-center text-sm text-muted-foreground">
                 No active announcements found.
             </div>

@@ -578,6 +578,7 @@ export default function HomePage() {
 
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
+  const [isGlobalAnnouncement2Visible, setIsGlobalAnnouncement2Visible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
@@ -1877,18 +1878,31 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
-      {(campusSetting?.announcement || globalSetting?.announcement) && (
-        <div className="space-y-4">
+      {(campusSetting?.announcement || globalSetting?.announcement || (globalSetting as any)?.announcement2) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {globalSetting?.announcement && isGlobalAnnouncementVisible && (
-            <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md">
+            <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md h-full">
               <Globe className="h-4 w-4 text-indigo-600" />
               <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-indigo-700">Global Directive</AlertTitle>
               <AlertDescription className="text-sm font-medium">{globalSetting.announcement}</AlertDescription>
               <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
             </Alert>
           )}
+          {(globalSetting as any)?.announcement2 && isGlobalAnnouncement2Visible && (
+            <Alert className="border-indigo-200 bg-indigo-50/50 shadow-md h-full">
+              <Globe className="h-4 w-4 text-indigo-600" />
+              <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-indigo-700">Secondary Global Directive</AlertTitle>
+              <AlertDescription className="text-sm font-medium">{(globalSetting as any).announcement2}</AlertDescription>
+              <AlertCloseButton onClick={() => setIsGlobalAnnouncement2Visible(false)} />
+            </Alert>
+          )}
           {campusSetting?.announcement && isAnnouncementVisible && (
-            <Alert className="border-primary/20 bg-primary/5 shadow-md">
+            <Alert className={cn(
+              "border-primary/20 bg-primary/5 shadow-md h-full",
+              (!globalSetting?.announcement || !isGlobalAnnouncementVisible) &&
+              (!(globalSetting as any)?.announcement2 || !isGlobalAnnouncement2Visible) &&
+              "md:col-span-2"
+            )}>
               <Megaphone className="h-4 w-4 text-primary" />
               <AlertTitle className="font-black uppercase text-[10px] tracking-widest text-primary">Campus Announcement</AlertTitle>
               <AlertDescription className="text-sm font-medium">{campusSetting.announcement}</AlertDescription>

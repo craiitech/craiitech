@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, Timestamp } from '@/firebase/firestore-wrapper';
+import { collection, query, where, getDocs, Timestamp, doc, getDoc } from '@/firebase/firestore-wrapper';
 import { useVoice } from './voice-provider';
 import { submissionTypes } from '@/lib/constants';
 import { isCycleActive } from '@/lib/utils';
@@ -42,7 +42,7 @@ export function VoiceAnnouncements() {
       if (alreadySpokenToday) {
         setTimeout(() => {
           const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
-          let shortMsg = `Hey, ${name}, I already informed you of your quality assurance and compliance summary. Please comply ASAP.`;
+          let shortMsg = `Hey, ${name}, I already informed you of your quality assurance and compliance summary. Please comply as soon as possible.`;
           if (isPresident || isExecutive) {
             shortMsg = `Hey, ${name}, I already informed you of your EOMS executive overview. Please monitor the dashboard.`;
           } else if (isAuditor) {
@@ -545,6 +545,22 @@ export function VoiceAnnouncements() {
         }
       }
 
+      let globalAnnouncementText = '';
+      try {
+        const globalSnap = await getDoc(doc(firestore, 'campusSettings', 'global'));
+        if (globalSnap.exists()) {
+          const data = globalSnap.data();
+          const anns = [];
+          if (data.announcement) anns.push(data.announcement);
+          if (data.announcement2) anns.push(data.announcement2);
+          if (anns.length > 0) {
+            globalAnnouncementText = `Here is a global announcement: ${anns.join(' ')}`;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching global announcement for voice:", error);
+      }
+
       setTimeout(() => {
         const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
         const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
@@ -556,11 +572,13 @@ export function VoiceAnnouncements() {
           intro = `Hey, ${name}, here is your audit overview.`;
         }
 
+        const announcementPart = globalAnnouncementText ? ` ${globalAnnouncementText}.` : '';
+
         if (listItems.length > 0) {
-          const speechText = `${intro} ${listItems.join(' ')} ${portalDescription}`;
+          const speechText = `${intro}${announcementPart} Here are your reminders: ${listItems.join(' ')} ${portalDescription}`;
           queueAnnouncement(speechText);
         } else {
-          queueAnnouncement(`Congratulations, ${name}! You have no pending items that require your attention. ${portalDescription}`);
+          queueAnnouncement(`Congratulations, ${name}! You have no pending items that require your attention.${announcementPart} ${portalDescription}`);
         }
 
         try {

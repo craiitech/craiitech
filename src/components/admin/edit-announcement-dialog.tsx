@@ -29,6 +29,7 @@ import type { CampusSetting } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 
 interface EditAnnouncementDialogProps {
@@ -38,7 +39,8 @@ interface EditAnnouncementDialogProps {
 }
 
 const editAnnouncementSchema = z.object({
-  announcement: z.string().min(1, 'Announcement message cannot be empty.').max(500),
+  announcement: z.string().max(500, 'Announcement must be 500 characters or less.').optional(),
+  announcement2: z.string().max(500, 'Announcement must be 500 characters or less.').optional(),
 });
 
 export function EditAnnouncementDialog({
@@ -62,6 +64,7 @@ export function EditAnnouncementDialog({
     resolver: zodResolver(editAnnouncementSchema),
     defaultValues: {
       announcement: '',
+      announcement2: '',
     },
   });
 
@@ -69,6 +72,7 @@ export function EditAnnouncementDialog({
     if (announcement && isOpen) {
       form.reset({
         announcement: announcement.announcement || '',
+        announcement2: (announcement as any).announcement2 || '',
       });
     }
   }, [announcement, isOpen, form]);
@@ -76,13 +80,25 @@ export function EditAnnouncementDialog({
   const onSubmit = async (values: z.infer<typeof editAnnouncementSchema>) => {
     if (!firestore || !activeAnn) return;
 
+    if (!values.announcement && !values.announcement2) {
+      toast({
+        title: 'Validation Error',
+        description: 'At least one announcement message must be provided.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     const docRef = doc(firestore, 'campusSettings', activeAnn.id);
     
-    const updateData = {
-        announcement: values.announcement,
+    const updateData: any = {
+        announcement: values.announcement || '',
     };
+    if (activeAnn.id === 'global') {
+        updateData.announcement2 = values.announcement2 || '';
+    }
 
     updateDoc(docRef, updateData)
         .then(() => {
@@ -107,7 +123,7 @@ export function EditAnnouncementDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={cn("sm:max-w-md", activeAnn?.id === 'global' && "sm:max-w-4xl")}>
         {activeAnn && (
           <>
             <DialogHeader>
@@ -118,19 +134,36 @@ export function EditAnnouncementDialog({
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                <FormField
-                  control={form.control}
-                  name="announcement"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Message</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} rows={5} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className={cn("grid grid-cols-1 gap-4", activeAnn.id === 'global' && "md:grid-cols-2")}>
+                  <FormField
+                    control={form.control}
+                    name="announcement"
+                    render={({ field }) => (
+                      <FormItem className={activeAnn.id !== 'global' ? 'md:col-span-2' : ''}>
+                        <FormLabel>{activeAnn.id === 'global' ? 'Primary Global Announcement' : 'Message'}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={5} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {activeAnn.id === 'global' && (
+                    <FormField
+                      control={form.control}
+                      name="announcement2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Secondary Global Announcement</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} rows={5} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                </div>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <Button type="submit" disabled={isSubmitting}>

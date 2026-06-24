@@ -45,6 +45,7 @@ import { Skeleton } from '../ui/skeleton';
 
 const settingsSchema = z.object({
   announcement: z.string().max(500, 'Announcement must be 500 characters or less.').optional(),
+  announcement2: z.string().max(500, 'Announcement must be 500 characters or less.').optional(),
 });
 
 export function CampusSettingsManagement() {
@@ -80,15 +81,22 @@ export function CampusSettingsManagement() {
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       announcement: '',
+      announcement2: '',
     },
   });
 
   // Effect to sync form with fetched data
   useEffect(() => {
     if (campusSetting) {
-      form.reset({ announcement: campusSetting.announcement || '' });
+      form.reset({
+        announcement: campusSetting.announcement || '',
+        announcement2: (campusSetting as any).announcement2 || '',
+      });
     } else {
-      form.reset({ announcement: '' });
+      form.reset({
+        announcement: '',
+        announcement2: '',
+      });
     }
   }, [campusSetting, form]);
 
@@ -98,11 +106,15 @@ export function CampusSettingsManagement() {
     setIsSubmitting(true);
     try {
       const settingRef = doc(firestore, 'campusSettings', activeCampusId);
-      await setDoc(settingRef, {
+      const updateData: any = {
         id: activeCampusId,
         announcement: values.announcement || '',
-      }, { merge: true });
-      toast({ title: 'Success', description: 'Campus announcement updated.' });
+      };
+      if (activeCampusId === 'global') {
+        updateData.announcement2 = values.announcement2 || '';
+      }
+      await setDoc(settingRef, updateData, { merge: true });
+      toast({ title: 'Success', description: 'Campus settings updated.' });
     } catch (error) {
       console.error('Error updating campus settings:', error);
       toast({
@@ -119,7 +131,7 @@ export function CampusSettingsManagement() {
   const canSubmit = activeCampusId && (isAdmin || isCampusSupervisor);
 
   return (
-    <Card className="max-w-2xl">
+    <Card className="max-w-4xl">
       <CardHeader>
         <CardTitle>Campus Announcement</CardTitle>
         <CardDescription>
@@ -136,7 +148,7 @@ export function CampusSettingsManagement() {
                 <Select
                   onValueChange={(value) => {
                     setSelectedCampusId(value);
-                    form.reset({ announcement: '' }); // Reset form when campus changes
+                    form.reset({ announcement: '', announcement2: '' }); // Reset form when campus changes
                   }}
                   defaultValue={selectedCampusId}
                 >
@@ -172,23 +184,45 @@ export function CampusSettingsManagement() {
                 </div>
 
             ) : (
-                <FormField
-                  control={form.control}
-                  name="announcement"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Announcement Message</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="e.g., The deadline for the first cycle is approaching. Leave blank to clear the announcement."
-                          {...field}
-                          disabled={isSubmitting || !canSubmit}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="announcement"
+                    render={({ field }) => (
+                      <FormItem className={activeCampusId !== 'global' ? 'md:col-span-2' : ''}>
+                        <FormLabel>{activeCampusId === 'global' ? 'Primary Global Announcement' : 'Announcement Message'}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., The deadline for the first cycle is approaching. Leave blank to clear the announcement."
+                            {...field}
+                            disabled={isSubmitting || !canSubmit}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {activeCampusId === 'global' && (
+                    <FormField
+                      control={form.control}
+                      name="announcement2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Secondary Global Announcement</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="e.g., Additional global announcement or directive. Leave blank to clear."
+                              {...field}
+                              disabled={isSubmitting || !canSubmit}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                </div>
             )}
           </CardContent>
           <CardFooter>
