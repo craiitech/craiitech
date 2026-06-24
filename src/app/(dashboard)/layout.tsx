@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!subNotifications) return 0;
     if (isAdmin) return subNotifications.length;
     if (isSupervisor && userProfile) {
-      return subNotifications.filter(s => s.userId !== userProfile.id && s.statusId === 'submitted').length;
+      return subNotifications.filter(s => s.statusId === 'submitted').length;
     }
     return subNotifications.filter(s => s.statusId === 'rejected').length;
   }, [subNotifications, userProfile, isAdmin, isSupervisor]);
@@ -450,7 +450,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // 1. Submissions — individual items
     if (subNotifications && userProfile) {
       subNotifications.forEach(sub => {
-        if (!isAdmin && ((isSupervisor && (sub.userId === userProfile.id || sub.statusId !== 'submitted')) || (!isSupervisor && sub.statusId !== 'rejected'))) return;
+        if (!isAdmin && ((isSupervisor && sub.statusId !== 'submitted') || (!isSupervisor && sub.statusId !== 'rejected'))) return;
         list.push({
           id: `sub-${sub.id}`,
           module: 'submissions',

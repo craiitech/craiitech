@@ -70,10 +70,8 @@ export default function ApprovalsPage() {
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
   const filteredSubmissions = useMemo(() => {
-    if (!rawSubmissions) return [];
-    if (isAdmin) return rawSubmissions;
-    return rawSubmissions.filter(s => s.userId !== userProfile?.id);
-  }, [rawSubmissions, isAdmin, userProfile?.id]);
+    return rawSubmissions || [];
+  }, [rawSubmissions]);
 
   if (isUserLoading || isLoadingSubmissions) {
     return (

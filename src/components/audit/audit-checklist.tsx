@@ -22,7 +22,7 @@ import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
-import { cn } from '@/lib/utils';
+import { cn, normalizeReportType } from '@/lib/utils';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { format } from 'date-fns';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -451,7 +451,7 @@ function ClauseForm({
                 
                 <div className="space-y-3">
                     {requiredDocs.map(docType => {
-                        const docSubmissions = clauseSubmissions.filter(s => s.reportType === docType);
+                        const docSubmissions = clauseSubmissions.filter(s => normalizeReportType(s.reportType) === docType);
                         
                         if (docSubmissions.length > 0) {
                             return (
@@ -1049,7 +1049,7 @@ export function AuditChecklist({
             const activeFindings = clauseFindings.filter(f => f.type);
             const relevantCars = clause.id === '10.1' ? unitCars : unitCars.filter(c => String(c.concerningClause || '').toLowerCase().includes(String(clause.id).toLowerCase()));
             const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
-            const relevantSubmissions = unitSubmissions.filter(s => requiredDocs.includes(s.reportType));
+            const relevantSubmissions = unitSubmissions.filter(s => requiredDocs.includes(normalizeReportType(s.reportType)));
 
             // Default to rendering one blank form if there are no existing findings in the DB
             const findingsToRender = clauseFindings.length > 0 ? clauseFindings : [{

@@ -271,7 +271,6 @@ export default function SubmissionDetailPage() {
   const isApprover = useMemo(() => {
     if (!submission || !userProfile) return false;
     if (isAdmin) return true;
-    if (submission.userId === userProfile.id) return false; 
     if (!userRole) return false;
     const approverRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
     const roleIsApprover = approverRoles.includes(userRole) || userRole.toLowerCase().includes('vice president');
