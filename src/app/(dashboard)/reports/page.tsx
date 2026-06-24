@@ -871,9 +871,13 @@ export default function ReportsPage() {
                             <CsmUnitQrRow
                               key={unit.id}
                               unit={unit}
+                              campusId={campus.id}
                               origin={typeof window !== 'undefined' ? window.location.origin : ''}
-                              csmSettings={(allUnitCsmSettings || []).find((s: any) => s.unitId === unit.id || s.id === unit.id)}
-                              unitCsmSettingsId={unit.id}
+                              csmSettings={
+                                (allUnitCsmSettings || []).find((s: any) => s.id === `${campus.id}_${unit.id}`) ||
+                                (allUnitCsmSettings || []).find((s: any) => s.id === unit.id && !s.id.includes('_'))
+                              }
+                              unitCsmSettingsId={`${campus.id}_${unit.id}`}
                               firestore={firestore}
                               userProfile={userProfile}
                               toast={toast}
@@ -892,8 +896,9 @@ export default function ReportsPage() {
   );
 }
 
-function CsmUnitQrRow({ unit, origin, csmSettings, unitCsmSettingsId, firestore, userProfile, toast }: {
+function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, firestore, userProfile, toast }: {
   unit: Unit;
+  campusId: string;
   origin: string;
   csmSettings: any;
   unitCsmSettingsId: string;
@@ -905,7 +910,7 @@ function CsmUnitQrRow({ unit, origin, csmSettings, unitCsmSettingsId, firestore,
   const [isSaving, setIsSaving] = useState(false);
 
   const unitName = unit.name || 'Office';
-  const csmPath = `/csm-evaluate?unitId=${unit.id}&campusId=${unit.campusIds?.[0] || 'N/A'}&unitName=${encodeURIComponent(unitName)}`;
+  const csmPath = `/csm-evaluate?unitId=${unit.id}&campusId=${campusId}&unitName=${encodeURIComponent(unitName)}`;
   const fullCsmUrl = `${origin}${csmPath}`;
   const qrUrl = origin ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullCsmUrl)}` : '';
   const services: string[] = csmSettings?.services || [];
@@ -922,7 +927,8 @@ function CsmUnitQrRow({ unit, origin, csmSettings, unitCsmSettingsId, firestore,
         return;
       }
       await setDoc(doc(firestore, 'unitCsmSettings', unitCsmSettingsId), {
-        unitId: unitCsmSettingsId,
+        unitId: unit.id,
+        campusId: campusId,
         services: [...services, cleanService],
         updatedAt: serverTimestamp(),
         updatedBy: userProfile?.id || 'System',
@@ -941,6 +947,8 @@ function CsmUnitQrRow({ unit, origin, csmSettings, unitCsmSettingsId, firestore,
     setIsSaving(true);
     try {
       await setDoc(doc(firestore, 'unitCsmSettings', unitCsmSettingsId), {
+        unitId: unit.id,
+        campusId: campusId,
         services: services.filter((s: string) => s !== service),
         updatedAt: serverTimestamp(),
         updatedBy: userProfile?.id || 'System',

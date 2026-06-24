@@ -15,6 +15,7 @@ interface NoticeProps {
   totalPossible: number;
   qaoDirector: string;
   qmsHead: string;
+  cycle?: string;
 }
 
 interface CampusNoticeProps {
@@ -22,6 +23,7 @@ interface CampusNoticeProps {
   year: number;
   qaoDirector: string;
   qmsHead: string;
+  cycle?: string;
   units: {
     name: string;
     score: number;
@@ -191,7 +193,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 /**
  * NOTICE OF COMPLIANCE TEMPLATE (UNIT LEVEL)
  */
-export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, totalPossible, qaoDirector, qmsHead }: NoticeProps) {
+export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, totalPossible, qaoDirector, qmsHead, cycle }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight border-[12px] border-double border-slate-200" style={{ fontSize: '11pt' }}>
       <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
@@ -207,7 +209,14 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
                 <ShieldCheck className="h-20 w-24 text-emerald-600" />
             </div>
             
-            <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Notice of Compliance</h2>
+            <div className="space-y-3">
+                <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Notice of Compliance</h2>
+                {cycle && (
+                    <p className="font-mono font-black text-xs uppercase tracking-widest text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full w-fit mx-auto border border-emerald-100">
+                        {cycle}
+                    </p>
+                )}
+            </div>
             
             <p className="text-lg italic text-slate-600">This is to officially certify that the</p>
             
@@ -219,7 +228,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             <p className="max-w-xl mx-auto text-base leading-relaxed">
                 has successfully completed and fulfilled all mandatory documentation requirements for the 
                 <strong> Educational Organizations Management System (EOMS)</strong> compliant with 
-                <strong> ISO 21001:2018</strong> standards for the Academic Year <strong>{year}</strong>.
+                <strong> ISO 21001:2018</strong> standards for the <span className="font-bold underline">{cycle || 'First and Final'} Submission Cycle(s)</span> for the Academic Year <strong>{year}</strong>.
             </p>
 
             <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto shadow-sm space-y-4">
@@ -373,9 +382,9 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (COMPLIANCE)
  */
-export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
+export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units, cycle }: CampusNoticeProps) {
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif border-[10px] border-double border-slate-200 leading-tight" style={{ fontSize: '11pt' }}>
+    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif border-[10px] border-double border-slate-200" style={{ fontSize: '11pt' }}>
       <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
         <div className="text-center pb-6 mb-12 border-b border-slate-100">
             <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>Romblon State University</h1>
@@ -388,7 +397,14 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
                 <ShieldCheck className="h-24 w-24 text-emerald-600" />
             </div>
             
-            <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Institutional Notice of Compliance</h2>
+            <div className="space-y-3">
+                <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Institutional Notice of Compliance</h2>
+                {cycle && (
+                    <p className="font-mono font-black text-xs uppercase tracking-widest text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full w-fit mx-auto border border-emerald-100">
+                        {cycle}
+                    </p>
+                )}
+            </div>
             
             <p className="text-xl italic text-slate-600">This is to officially recognize that the</p>
             
@@ -398,7 +414,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
 
             <p className="max-w-xl mx-auto text-lg leading-relaxed">
                 under the leadership of the Campus Director, has achieved <strong>100% Quality Documentation Parity</strong> 
-                across all assigned academic and administrative units for the Academic Year <strong>{year}</strong>.
+                across all assigned academic and administrative units for the <span className="font-bold underline">{cycle || 'First and Final'} Submission Cycle(s)</span> for the Academic Year <strong>{year}</strong>.
             </p>
 
             <div className="max-w-xs mx-auto pt-8">

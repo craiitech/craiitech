@@ -104,13 +104,35 @@ export default function VisitorLogbookSettingsPage() {
     return userProfile?.unitId || '';
   }, [isAdmin, isSupervisor, selectedUnitId, userProfile?.unitId]);
 
+  // Determine active campus ID
+  const activeCampusId = useMemo(() => {
+    if (isAdmin || isSupervisor) {
+      return selectedCampusId;
+    }
+    return userProfile?.campusId || '';
+  }, [isAdmin, isSupervisor, selectedCampusId, userProfile?.campusId]);
+
   // Fetch settings for active unit
   const unitSettingsRef = useMemoFirebase(() => {
+    if (!firestore || !activeUnitId || !activeCampusId) return null;
+    return doc(firestore, 'unitCsmSettings', `${activeCampusId}_${activeUnitId}`);
+  }, [firestore, activeUnitId, activeCampusId]);
+
+  const { data: compositeSettings, isLoading: isLoadingSettings } = useDoc<any>(unitSettingsRef);
+
+  const fallbackSettingsRef = useMemoFirebase(() => {
     if (!firestore || !activeUnitId) return null;
     return doc(firestore, 'unitCsmSettings', activeUnitId);
   }, [firestore, activeUnitId]);
 
-  const { data: currentSettings, isLoading: isLoadingSettings } = useDoc<any>(unitSettingsRef);
+  const { data: legacySettings } = useDoc<any>(fallbackSettingsRef);
+
+  const currentSettings = useMemo(() => {
+    if (compositeSettings && compositeSettings.services !== undefined) {
+      return compositeSettings;
+    }
+    return legacySettings;
+  }, [compositeSettings, legacySettings]);
 
   // Default dropdown selection for Admin and Supervisor
   useEffect(() => {
@@ -155,6 +177,7 @@ export default function VisitorLogbookSettingsPage() {
       const updatedServices = [...services, cleanService];
       await setDoc(unitSettingsRef, {
         unitId: activeUnitId,
+        campusId: activeCampusId,
         services: updatedServices,
         updatedAt: serverTimestamp(),
         updatedBy: userProfile?.id || 'System',
@@ -186,6 +209,8 @@ export default function VisitorLogbookSettingsPage() {
       const updatedServices = services.filter((s: string) => s !== serviceToDelete);
 
       await setDoc(unitSettingsRef, {
+        unitId: activeUnitId,
+        campusId: activeCampusId,
         services: updatedServices,
         updatedAt: serverTimestamp(),
         updatedBy: userProfile?.id || 'System',
@@ -207,10 +232,10 @@ export default function VisitorLogbookSettingsPage() {
     }
   };
 
-  // Fetch employees for active unit
+  // Fetch employees for active unit and campus
   const employeesQuery = useMemoFirebase(
-    () => (firestore && activeUnitId ? query(collection(firestore, 'unitPersonnel'), where('unitId', '==', activeUnitId)) : null),
-    [firestore, activeUnitId]
+    () => (firestore && activeUnitId && activeCampusId ? query(collection(firestore, 'unitPersonnel'), where('unitId', '==', activeUnitId), where('campusId', '==', activeCampusId)) : null),
+    [firestore, activeUnitId, activeCampusId]
   );
   const { data: employees, isLoading: isLoadingEmployees } = useCollection<Employee>(employeesQuery);
 

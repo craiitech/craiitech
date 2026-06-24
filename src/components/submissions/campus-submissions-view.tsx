@@ -71,6 +71,14 @@ import { doc, Timestamp, collection, query, where } from '@/firebase/firestore-w
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -367,11 +375,18 @@ export function CampusSubmissionsView({
     };
   }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear, allCycles]);
 
-  const handlePrintUnitNotice = (type: 'Compliance' | 'Non-Compliance') => {
+  const handlePrintUnitNotice = (type: 'Compliance' | 'Non-Compliance', cycleOverride?: 'first' | 'final' | 'both') => {
     if (!unitData || !selectedUnitId || !allUnits || !selectedCampusId || !allCampuses) return;
 
     const unit = allUnits.find(u => u.id === selectedUnitId);
     const campus = allCampuses.find(c => c.id === selectedCampusId);
+
+    let cycleText = undefined;
+    if (type === 'Compliance') {
+        if (cycleOverride === 'first') cycleText = 'First Submission Cycle';
+        else if (cycleOverride === 'final') cycleText = 'Final Submission Cycle';
+        else if (cycleOverride === 'both') cycleText = 'First & Final Submission Cycles';
+    }
 
     const props = {
         unitName: unit?.name || 'Unknown Unit',
@@ -382,7 +397,8 @@ export function CampusSubmissionsView({
         totalApproved: unitData.approved,
         totalPossible: unitData.totalPossible,
         qaoDirector: signatories?.qaoDirector || '____________________',
-        qmsHead: signatories?.qmsHead || 'QMS Head'
+        qmsHead: signatories?.qmsHead || 'QMS Head',
+        cycle: cycleText
     };
 
     try {
@@ -422,16 +438,25 @@ export function CampusSubmissionsView({
     } catch (err) { console.error("Print error:", err); }
   };
 
-  const handlePrintCampusNotice = (type: 'Compliance' | 'Non-Compliance') => {
+  const handlePrintCampusNotice = (type: 'Compliance' | 'Non-Compliance', cycleOverride?: 'first' | 'final' | 'both') => {
     if (!campusSummary || !selectedCampusId || !allCampuses) return;
 
     const campus = allCampuses.find(c => c.id === selectedCampusId);
+
+    let cycleText = undefined;
+    if (type === 'Compliance') {
+        if (cycleOverride === 'first') cycleText = 'First Submission Cycle';
+        else if (cycleOverride === 'final') cycleText = 'Final Submission Cycle';
+        else if (cycleOverride === 'both') cycleText = 'First & Final Submission Cycles';
+    }
+
     const props = {
         campusName: campus?.name || 'Institutional Campus',
         year: Number(selectedYear),
         qaoDirector: signatories?.qaoDirector || '____________________',
         qmsHead: signatories?.qmsHead || 'QMS Head',
-        units: campusSummary.unitPerformance
+        units: campusSummary.unitPerformance,
+        cycle: cycleText
     };
 
     try {
@@ -606,9 +631,53 @@ export function CampusSubmissionsView({
                             <span className="flex items-center gap-1.5"><CalendarIcon className="h-3.5 w-3.5" /> AY {selectedYear}</span>
                         </div>
                     </div>
-                    <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")} onClick={() => handlePrintUnitNotice(unitData.score >= 100 ? 'Compliance' : 'Non-Compliance')}>
-                        <Printer className="h-4 w-4 mr-2" /> Print {unitData.score >= 100 ? 'Compliance' : 'Non-Compliance'} Notice
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")}>
+                                <Printer className="h-4 w-4 mr-2" /> Print QA Notice
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-[100]">
+                            <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
+                            
+                            {unitData.missingFirst.length === 0 && (
+                                <DropdownMenuItem 
+                                    onClick={() => handlePrintUnitNotice('Compliance', 'first')}
+                                    className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                >
+                                    Notice of Compliance (First Cycle)
+                                </DropdownMenuItem>
+                            )}
+                            {unitData.missingFinal.length === 0 && (
+                                <DropdownMenuItem 
+                                    onClick={() => handlePrintUnitNotice('Compliance', 'final')}
+                                    className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                >
+                                    Notice of Compliance (Final Cycle)
+                                </DropdownMenuItem>
+                            )}
+                            {unitData.score >= 100 && (
+                                <DropdownMenuItem 
+                                    onClick={() => handlePrintUnitNotice('Compliance', 'both')}
+                                    className="text-[11px] font-black text-emerald-600 focus:bg-emerald-50 focus:text-emerald-850 cursor-pointer rounded-lg px-2.5 py-2"
+                                >
+                                    Notice of Compliance (Full Year)
+                                </DropdownMenuItem>
+                            )}
+                            
+                            {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                                <>
+                                    <DropdownMenuSeparator className="my-1.5" />
+                                    <DropdownMenuItem 
+                                        onClick={() => handlePrintUnitNotice('Non-Compliance')}
+                                        className="text-[11px] font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                    >
+                                        Notice of Non-Compliance
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 <StrategicSwotAnalysis 
@@ -700,15 +769,58 @@ export function CampusSubmissionsView({
                             <h3 className="font-black text-2xl uppercase tracking-tight text-primary">{campusMap.get(selectedCampusId)}</h3>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Site Performance Dashboard & bull; AY {selectedYear}</p>
                         </div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-9 text-[10px] font-black uppercase bg-white border-primary/20 text-primary shadow-sm"
-                            onClick={() => handlePrintCampusNotice(campusSummary.avgScore >= 100 ? 'Compliance' : 'Non-Compliance')}
-                        >
-                            <Printer className="h-4 w-4 mr-2" />
-                            Print Consolidated Notice
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={cn("h-9 text-[10px] font-black uppercase bg-white shadow-sm", campusSummary.avgScore >= 100 ? "text-emerald-600 border-emerald-250" : "text-primary border-primary/20")}
+                                >
+                                    <Printer className="h-4 w-4 mr-2" />
+                                    Print Consolidated Notice
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-[100]">
+                                <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
+                                
+                                {campusSummary.unitPerformance.every(u => u.missingFirst.length === 0) && (
+                                    <DropdownMenuItem 
+                                        onClick={() => handlePrintCampusNotice('Compliance', 'first')}
+                                        className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                    >
+                                        Notice of Compliance (First Cycle)
+                                    </DropdownMenuItem>
+                                )}
+                                {campusSummary.unitPerformance.every(u => u.missingFinal.length === 0) && (
+                                    <DropdownMenuItem 
+                                        onClick={() => handlePrintCampusNotice('Compliance', 'final')}
+                                        className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                    >
+                                        Notice of Compliance (Final Cycle)
+                                    </DropdownMenuItem>
+                                )}
+                                {campusSummary.avgScore >= 100 && (
+                                    <DropdownMenuItem 
+                                        onClick={() => handlePrintCampusNotice('Compliance', 'both')}
+                                        className="text-[11px] font-black text-emerald-600 focus:bg-emerald-50 focus:text-emerald-850 cursor-pointer rounded-lg px-2.5 py-2"
+                                    >
+                                        Notice of Compliance (Full Year)
+                                    </DropdownMenuItem>
+                                )}
+                                
+                                {campusSummary.unitPerformance.some(u => u.missingFirst.length > 0 || u.missingFinal.length > 0) && (
+                                    <>
+                                        <DropdownMenuSeparator className="my-1.5" />
+                                        <DropdownMenuItem 
+                                            onClick={() => handlePrintCampusNotice('Non-Compliance')}
+                                            className="text-[11px] font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                        >
+                                            Notice of Non-Compliance
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     <StrategicSwotAnalysis 

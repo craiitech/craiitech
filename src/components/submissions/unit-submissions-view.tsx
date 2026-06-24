@@ -49,6 +49,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -237,10 +245,18 @@ export function UnitSubmissionsView({
     return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved, yearSubmissions };
   }, [selectedUnitId, allSubmissions, userProfile, selectedYear, allCycles]);
 
-  const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance') => {
+  const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance', cycleOverride?: 'first' | 'final' | 'both') => {
     if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
     const unit = allUnits.find(u => u.id === selectedUnitId);
     const campus = allCampuses.find(c => c.id === userProfile.campusId);
+    
+    let cycleText = undefined;
+    if (type === 'Compliance') {
+        if (cycleOverride === 'first') cycleText = 'First Submission Cycle';
+        else if (cycleOverride === 'final') cycleText = 'Final Submission Cycle';
+        else if (cycleOverride === 'both') cycleText = 'First & Final Submission Cycles';
+    }
+
     const props = {
         unitName: unit?.name || 'Unknown Unit',
         campusName: campus?.name || 'Institutional Campus',
@@ -250,7 +266,8 @@ export function UnitSubmissionsView({
         totalApproved: unitData.approved,
         totalPossible: unitData.totalPossible,
         qaoDirector: signatories?.qaoDirector || '____________________',
-        qmsHead: signatories?.qmsHead || 'QMS Head'
+        qmsHead: signatories?.qmsHead || 'QMS Head',
+        cycle: cycleText
     };
     try {
         const reportHtml = renderToStaticMarkup(type === 'Compliance' ? <NoticeOfCompliance {...props} /> : <NoticeOfNonCompliance {...props} />);
@@ -322,9 +339,54 @@ export function UnitSubmissionsView({
                           <span className="flex items-center gap-1.5"><CalendarIcon className="h-3 w-3" /> Monitoring Cycle: {selectedYear}</span>
                       </div>
                   </div>
-                  <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")} onClick={() => handlePrintNotice(unitData.score >= 100 ? 'Compliance' : 'Non-Compliance')}>
-                      <Printer className="h-4 w-4 mr-2" /> Print {unitData.score >= 100 ? 'Compliance' : 'Non-Compliance'} Notice
-                  </Button>
+                  
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")}>
+                              <Printer className="h-4 w-4 mr-2" /> Print QA Notice
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-[100]">
+                          <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
+                          
+                          {unitData.missingFirst.length === 0 && (
+                              <DropdownMenuItem 
+                                  onClick={() => handlePrintNotice('Compliance', 'first')}
+                                  className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                              >
+                                  Notice of Compliance (First Cycle)
+                              </DropdownMenuItem>
+                          )}
+                          {unitData.missingFinal.length === 0 && (
+                              <DropdownMenuItem 
+                                  onClick={() => handlePrintNotice('Compliance', 'final')}
+                                  className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                              >
+                                  Notice of Compliance (Final Cycle)
+                              </DropdownMenuItem>
+                          )}
+                          {unitData.score >= 100 && (
+                              <DropdownMenuItem 
+                                  onClick={() => handlePrintNotice('Compliance', 'both')}
+                                  className="text-[11px] font-black text-emerald-600 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer rounded-lg px-2.5 py-2"
+                              >
+                                  Notice of Compliance (Full Year)
+                              </DropdownMenuItem>
+                          )}
+                          
+                          {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                              <>
+                                  <DropdownMenuSeparator className="my-1.5" />
+                                  <DropdownMenuItem 
+                                      onClick={() => handlePrintNotice('Non-Compliance')}
+                                      className="text-[11px] font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                  >
+                                      Notice of Non-Compliance
+                                  </DropdownMenuItem>
+                              </>
+                          )}
+                      </DropdownMenuContent>
+                  </DropdownMenu>
               </div>
 
               <StrategicSwotAnalysis 

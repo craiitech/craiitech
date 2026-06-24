@@ -57,21 +57,36 @@ export default function VisitorLogbookPage() {
   const { data: systemSettingsDoc } = useDoc<SystemSettings>(systemSettingsRef);
 
   const unitCsmSettingsRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return null;
+    return doc(firestore, 'unitCsmSettings', `${userProfile.campusId}_${userProfile.unitId}`);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId]);
+
+  const { data: compositeSettings } = useDoc<any>(unitCsmSettingsRef);
+
+  const fallbackCsmSettingsRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId) return null;
     return doc(firestore, 'unitCsmSettings', userProfile.unitId);
   }, [firestore, userProfile?.unitId]);
 
-  const { data: unitCsmSettingsDoc } = useDoc<any>(unitCsmSettingsRef);
+  const { data: legacySettings } = useDoc<any>(fallbackCsmSettingsRef);
+
+  const unitCsmSettingsDoc = useMemo(() => {
+    if (compositeSettings && compositeSettings.services !== undefined) {
+      return compositeSettings;
+    }
+    return legacySettings;
+  }, [compositeSettings, legacySettings]);
 
   // Fetch active employees for Visitor Logbook
   const activeEmployeesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId) return null;
+    if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return null;
     return query(
       collection(firestore, 'unitPersonnel'),
       where('unitId', '==', userProfile.unitId),
+      where('campusId', '==', userProfile.campusId),
       where('isActive', '==', true)
     );
-  }, [firestore, userProfile?.unitId]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId]);
 
   const { data: activeEmployees } = useCollection<Employee>(activeEmployeesQuery);
 

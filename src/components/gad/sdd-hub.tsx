@@ -73,12 +73,20 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
   // Fetch active employees for auto-calculation
   const activePersonnelQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId) return null;
+    if (userProfile.campusId) {
+      return query(
+        collection(firestore, 'unitPersonnel'),
+        where('unitId', '==', userProfile.unitId),
+        where('campusId', '==', userProfile.campusId),
+        where('isActive', '==', true)
+      );
+    }
     return query(
       collection(firestore, 'unitPersonnel'),
       where('unitId', '==', userProfile.unitId),
       where('isActive', '==', true)
     );
-  }, [firestore, userProfile?.unitId]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId]);
 
   const { data: unitPersonnel, isLoading: isLoadingPersonnel } = useCollection<Employee>(activePersonnelQuery);
 

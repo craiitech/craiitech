@@ -27,10 +27,25 @@ function CsmEvaluateContent() {
 
   const unitCsmSettingsRef = useMemoFirebase(() => {
     if (!firestore || !unitId || unitId === 'N/A' || !currentUser) return null;
+    const compositeId = campusId !== 'N/A' ? `${campusId}_${unitId}` : unitId;
+    return doc(firestore, 'unitCsmSettings', compositeId);
+  }, [firestore, unitId, campusId, currentUser]);
+
+  const { data: compositeSettings } = useDoc<any>(unitCsmSettingsRef);
+
+  const fallbackCsmSettingsRef = useMemoFirebase(() => {
+    if (!firestore || !unitId || unitId === 'N/A' || !currentUser) return null;
     return doc(firestore, 'unitCsmSettings', unitId);
   }, [firestore, unitId, currentUser]);
 
-  const { data: unitCsmSettingsDoc } = useDoc<any>(unitCsmSettingsRef);
+  const { data: legacySettings } = useDoc<any>(fallbackCsmSettingsRef);
+
+  const unitCsmSettingsDoc = useMemo(() => {
+    if (compositeSettings && compositeSettings.services !== undefined) {
+      return compositeSettings;
+    }
+    return legacySettings;
+  }, [compositeSettings, legacySettings]);
 
   const [isAuthenticating, setIsAuthenticating] = useState(true);
 
