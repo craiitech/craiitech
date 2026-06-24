@@ -255,8 +255,12 @@ export function EditUnitDialog({
                               className="w-[--radix-popover-trigger-width] p-2 bg-white border rounded-lg shadow-xl z-[100] space-y-2"
                               align="start"
                               onOpenAutoFocus={(e) => e.preventDefault()}
+                              onFocusOutside={(e) => e.preventDefault()}
                             >
-                              <div className="flex items-center px-2.5 py-1.5 border rounded-md gap-2 bg-slate-50">
+                              <div 
+                                className="flex items-center px-2.5 py-1.5 border rounded-md gap-2 bg-slate-50"
+                                onPointerDown={(e) => e.stopPropagation()}
+                              >
                                 <Search className="h-3.5 w-3.5 text-muted-foreground opacity-50 shrink-0" />
                                 <Input 
                                   placeholder="Search campus..." 
@@ -276,6 +280,7 @@ export function EditUnitDialog({
                                         "flex items-center justify-between px-2.5 py-2 rounded-md cursor-pointer transition-colors hover:bg-primary/5",
                                         isSelected && "bg-primary/5"
                                       )}
+                                      onPointerDown={(e) => e.stopPropagation()}
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
