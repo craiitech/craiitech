@@ -550,6 +550,7 @@ export default function CommunicationsPage() {
           payload.toText = resolvedSenderName;
           payload.recipientIds = receivingKey ? [receivingKey] : [];
           payload.recipientRefNums = computedRecipientRefs;
+          payload.senderRefNum = computedSenderRef;
         } else {
           payload.senderUnitId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
           payload.senderText = resolvedSenderName;
