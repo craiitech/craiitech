@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import QRCode from 'qrcode';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
 import { collection, doc, getDoc, setDoc, getDocs, query, where, serverTimestamp, runTransaction, limit, updateDoc } from '@/firebase/firestore-wrapper';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -427,8 +428,14 @@ export default function RsuAttendanceApp() {
 
     const payloadString = JSON.stringify(payloadObj);
     setQrPayload(payloadString);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=L&data=${encodeURIComponent(payloadString)}`;
-    setQrCodeUrl(qrUrl);
+    try {
+      const qrDataUrl = await QRCode.toDataURL(payloadString, { margin: 1, width: 400 });
+      setQrCodeUrl(qrDataUrl);
+    } catch (err) {
+      console.error('Failed to generate local QR code, falling back to API:', err);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=L&data=${encodeURIComponent(payloadString)}`;
+      setQrCodeUrl(qrUrl);
+    }
     setTimeLeft(60);
   };
 
@@ -972,9 +979,23 @@ export default function RsuAttendanceApp() {
                         style={{ width: `${(timeLeft / 60) * 100}%` }}
                       />
                     </div>
-                    <p className="text-[8.5px] text-center text-slate-500 font-bold uppercase tracking-wide pt-0.5">
-                      QR code refreshes every 60 seconds for security
-                    </p>
+                    <div className="flex items-center justify-between pt-1 w-full">
+                      <p className="text-[8.5px] text-slate-500 font-bold uppercase tracking-wide">
+                        QR refreshes every 60s
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setQrRefreshCounter(c => c + 1);
+                        }}
+                        className="h-6 px-2 text-[9px] font-black text-[#D4AF37] hover:text-[#c29f32] hover:bg-slate-800/80 uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Refresh QR
+                      </Button>
+                    </div>
                   </div>
                 </>
               ) : (
