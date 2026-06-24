@@ -47,7 +47,7 @@ import {
   Loader2, 
   ExternalLink, 
   Info,
-  FolderLock
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -292,8 +292,8 @@ export function ChedAnnouncements() {
                         className="inline-flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 font-bold text-xs uppercase tracking-wider transition-all"
                       >
                         <span className="flex items-center gap-2">
-                          <FolderLock className="h-4 w-4 shrink-0 text-indigo-600" />
-                          Google Drive Submission Link
+                          <FileText className="h-4 w-4 shrink-0 text-indigo-600" />
+                          Read the Document
                         </span>
                         <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                       </a>
@@ -392,9 +392,9 @@ export function ChedAnnouncements() {
                   name="googleDriveLink"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase">Google Drive Link (Optional)</FormLabel>
+                      <FormLabel className="text-[10px] font-bold uppercase">Document / Google Drive Link (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://drive.google.com/drive/folders/..." className="h-11 font-bold text-xs" {...field} />
+                        <Input placeholder="https://drive.google.com/... or document URL" className="h-11 font-bold text-xs" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
