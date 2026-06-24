@@ -641,14 +641,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isAdmin) return;
     
     if (userProfile) {
+        const roleLower = userRole?.toLowerCase() || '';
+        const isUnitOptionalUser = roleLower === 'campus director' || roleLower === 'campus odimo' || roleLower === 'auditor' || roleLower.includes('vice president');
+        const isProfileIncomplete = isUnitOptionalUser ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
+        if (isProfileIncomplete) {
+            router.push('/complete-registration');
+            return;
+        }
         if (!userProfile.verified) { 
             router.push('/awaiting-verification'); 
             return; 
         }
-        const roleLower = userRole?.toLowerCase() || '';
-        const isUnitOptionalUser = roleLower === 'campus director' || roleLower === 'campus odimo' || roleLower === 'auditor' || roleLower.includes('vice president');
-        const isProfileIncomplete = isUnitOptionalUser ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
-        if (isProfileIncomplete) router.push('/complete-registration');
     } else {
       router.push('/complete-registration');
     }

@@ -190,7 +190,7 @@ export default function CompleteRegistrationPage() {
   }
 
   return (
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-800">
         <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
                 <FileText className="h-8 w-8 text-primary" />

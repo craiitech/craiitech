@@ -971,7 +971,7 @@ export default function HomePage() {
       const yearSchedules = mySchedules.filter(s => {
         if (!s.scheduledDate) return false;
         const date = s.scheduledDate.toDate ? s.scheduledDate.toDate() : new Date(s.scheduledDate);
-        return date.getFullYear() === selectedYear;
+        return date.getFullYear() === selectedYear && s.auditorId === userProfile?.id;
       });
       return {
         stat1: { title: 'My Audits', value: yearSchedules.length, icon: <ClipboardCheck className="h-5 w-5 text-primary" /> },
