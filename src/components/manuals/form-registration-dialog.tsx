@@ -91,6 +91,7 @@ export function FormRegistrationDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+  const [lockedStep, setLockedStep] = useState(1);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formRequestSchema>>({
@@ -145,7 +146,8 @@ export function FormRegistrationDialog({
                 revision: f.revision
             }))
         });
-        setStep(2); 
+        setStep(2);
+        setLockedStep(2);
     } else if (active && !request) {
         form.reset({
             scannedRegistrationFormLink: '',
@@ -153,8 +155,26 @@ export function FormRegistrationDialog({
             requestedForms: [{ name: '', code: '', link: '', revision: '00' }],
         });
         setStep(1);
+        setLockedStep(1);
     }
   }, [isOpen, request, form, isInline, unit?.id]);
+
+  const goToStep = (target: number) => {
+    if (target <= lockedStep && target >= 1) {
+      setStep(target);
+    }
+  };
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const hasData = form.getValues('scannedRegistrationFormLink') || form.getValues('requestedForms')?.some(f => f.name || f.code);
+      if (hasData && step > 1) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [step, form]);
 
   const handleFinalSubmit = async () => {
     const values = form.getValues();
@@ -220,6 +240,7 @@ export function FormRegistrationDialog({
       }
       form.reset();
       setStep(1);
+      setLockedStep(1);
     } catch (error) {
       console.error("Form Registration Error:", error);
       toast({ title: 'Submission Failed', description: 'Could not process the registration request.', variant: 'destructive' });
@@ -235,6 +256,7 @@ export function FormRegistrationDialog({
       requestedForms: [{ name: '', code: '', link: '', revision: '00' }],
     });
     setStep(1);
+    setLockedStep(1);
     if (!isInline && onOpenChange) {
       onOpenChange(false);
     }
@@ -242,7 +264,9 @@ export function FormRegistrationDialog({
 
   const nextStep = () => {
     if (canProceed) {
-        setStep(prev => prev + 1);
+        const next = Math.min(step + 1, 3);
+        setLockedStep(prev => Math.max(prev, next));
+        setStep(next);
     } else {
         toast({ title: 'Step Incomplete', description: 'Please fill out all required fields and provide valid Google Drive links.', variant: 'destructive' });
     }
@@ -522,7 +546,7 @@ export function FormRegistrationDialog({
                 type="button" 
                 variant="outline" 
                 className="font-black text-[10px] uppercase h-10 px-6" 
-                onClick={() => setStep(prev => prev - 1)} 
+                onClick={() => goToStep(step - 1)} 
                 disabled={isSubmitting}
               >
                 Back
@@ -560,11 +584,11 @@ export function FormRegistrationDialog({
   const stepsHeader = (
     <div className="bg-muted/30 px-6 py-2.5 border-b flex flex-wrap items-center gap-4 shrink-0">
         {[1, 2, 3].map(s => (
-            <div key={s} className="flex items-center gap-2">
-                <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
-                    {step > s ? <CheckCircle2 className="h-3 w-3" /> : s}
+            <div key={s} className="flex items-center gap-2 cursor-pointer" onClick={() => goToStep(s)}>
+                <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : lockedStep > s ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
+                    {lockedStep > s ? <CheckCircle2 className="h-3 w-3" /> : s}
                 </div>
-                <span className={cn("text-[9px] font-black uppercase tracking-widest", step === s ? "text-primary" : "text-muted-foreground")}>
+                <span className={cn("text-[9px] font-black uppercase tracking-widest", step === s ? "text-primary" : lockedStep > s ? "text-emerald-600" : "text-muted-foreground")}>
                     {s === 1 ? 'Step 1: Prep' : s === 2 ? 'Step 2: Upload' : 'Step 3: Review'}
                 </span>
                 {s < 3 && <ChevronRight className="h-3 w-3 opacity-20" />}

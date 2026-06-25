@@ -93,7 +93,16 @@ const formSchema = z.object({
     communicationRefNum: z.string().optional(),
     communicationSubject: z.string().optional(),
   })).optional(),
-});
+}).refine(
+  (data) => {
+    if (!data.openingMeetingDate || !data.closingMeetingDate) return true;
+    return new Date(data.openingMeetingDate) < new Date(data.closingMeetingDate);
+  },
+  {
+    message: 'Opening meeting must precede closing meeting.',
+    path: ['closingMeetingDate'],
+  }
+);
 
 export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditPlanDialogProps) {
   const firestore = useFirestore();

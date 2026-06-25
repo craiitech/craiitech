@@ -154,6 +154,7 @@ export function SidebarNav({
         tableRows += `
           <tr>
             <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace; font-size: 11px;">${dateStr}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: center; font-size: 11px; text-transform: uppercase;">${log.sex || '—'}</td>
             <td style="border: 1px solid black; padding: 8px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${log.name}</td>
             <td style="border: 1px solid black; padding: 8px; font-size: 11px;">
               <div style="font-weight: bold;">${log.purpose}</div>
@@ -215,41 +216,48 @@ export function SidebarNav({
               </button>
             </div>
 
-            <!-- Official Header matching RSU Document Template -->
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 12px; margin-bottom: 20px;">
-              <div style="width: 70px; text-align: left;">
-                <img src="/rsulogo.png" style="height: 60px; object-fit: contain;" />
-              </div>
-              <div style="text-align: center; flex: 1; margin: 0 10px;">
-                <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px;">Republic of the Philippines</p>
-                <h2 style="margin: 3px 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px;">ROMBLON STATE UNIVERSITY</h2>
-                <p style="margin: 0; font-size: 11px; font-weight: normal;">Romblon, Philippines</p>
-              </div>
-              <div style="width: 75px; text-align: right;">
-                <img src="/ISOlogo.jpg" style="height: 60px; object-fit: contain;" />
-              </div>
-            </div>
-
-            <div style="text-align: center; margin-bottom: 15px;">
-              <h3 style="margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">CLIENT'S AND VISITOR'S LOGBOOK</h3>
-            </div>
-
-            <div style="margin-bottom: 15px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
-              <span>CAMPUS / UNIT: </span>
-              <span style="border-bottom: 1px solid black; padding-bottom: 1px; padding-right: 180px; font-weight: normal; margin-left: 5px;">
-                ${unitName.toUpperCase()}
-              </span>
-            </div>
-
-            <table>
+            <table style="margin-top: 0;">
               <thead>
                 <tr>
-                  <th style="width: 12%;">Date</th>
-                  <th style="width: 28%;">Visitor / Client name</th>
-                  <th style="width: 28%;">Reason for Visit</th>
+                  <td colspan="7" style="border: none; padding: 0 0 12px 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 12px;">
+                      <div style="width: 70px; text-align: left;">
+                        <img src="/rsulogo.png" style="height: 60px; object-fit: contain;" />
+                      </div>
+                      <div style="text-align: center; flex: 1; margin: 0 10px;">
+                        <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px;">Republic of the Philippines</p>
+                        <h2 style="margin: 3px 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px;">ROMBLON STATE UNIVERSITY</h2>
+                        <p style="margin: 0; font-size: 11px; font-weight: normal;">Romblon, Philippines</p>
+                      </div>
+                      <div style="width: 75px; text-align: right;">
+                        <img src="/ISOlogo.jpg" style="height: 60px; object-fit: contain;" />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="7" style="border: none; text-align: center; padding: 0 0 12px 0;">
+                    <h3 style="margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">CLIENT'S AND VISITOR'S LOGBOOK</h3>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="7" style="border: none; padding: 0 0 12px 0;">
+                    <div style="font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                      <span>CAMPUS / UNIT: </span>
+                      <span style="border-bottom: 1px solid black; padding-bottom: 1px; padding-right: 180px; font-weight: normal; margin-left: 5px;">
+                        ${unitName.toUpperCase()}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 9%;">Date</th>
+                  <th style="width: 7%;">Sex</th>
+                  <th style="width: 24%;">Visitor / Client name</th>
+                  <th style="width: 24%;">Reason for Visit</th>
                   <th style="width: 10%;">Time-in</th>
                   <th style="width: 10%;">Time-out</th>
-                  <th style="width: 12%;">Signature</th>
+                  <th style="width: 16%;">Signature</th>
                 </tr>
               </thead>
               <tbody>

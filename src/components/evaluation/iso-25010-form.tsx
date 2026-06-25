@@ -35,7 +35,7 @@ interface Iso25010FormProps {
 }
 
 const formSchema = z.object({
-  scores: z.record(z.string(), z.coerce.number().min(1, 'Please select a rating.')),
+  scores: z.record(z.string(), z.coerce.number().min(1, 'Rating must be at least 1.').max(5, 'Rating must not exceed 5.')),
   generalComments: z.string().optional(),
   recommendations: z.string().optional(),
 });
@@ -134,7 +134,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
           missing.push({ category: cat.name, name: sub.name });
         } else {
           const num = typeof val === 'number' ? val : parseInt(String(val));
-          if (isNaN(num) || num < 1) {
+          if (isNaN(num) || num < 1 || num > 5) {
             missing.push({ category: cat.name, name: sub.name });
           }
         }
