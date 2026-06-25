@@ -514,6 +514,29 @@ function MobileVisitorLogbookContent() {
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
           <Sparkles className="h-3 w-3" /> Romblon State University
         </span>
+        {/* Logos */}
+        <div className="flex justify-center items-center gap-4">
+          <div className="relative h-16 w-16 transition-all hover:scale-105 duration-300 animate-logo-float">
+            <Image 
+              src="/rsulogo.png" 
+              alt="RSU Logo" 
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <div className="relative h-18 w-18 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
+            <Image 
+              src="/ISOlogo.jpg" 
+              alt="ISO Logo" 
+              width={72}
+              height={72}
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
         <h1 className="text-2xl font-black uppercase text-white tracking-tight leading-tight">
           Mobile <span className="text-[#D4AF37]">Logbook</span>
         </h1>
