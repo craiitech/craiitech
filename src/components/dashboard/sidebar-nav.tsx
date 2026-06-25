@@ -154,8 +154,8 @@ export function SidebarNav({
         tableRows += `
           <tr>
             <td style="border: 1px solid black; padding: 8px; text-align: center; font-family: monospace; font-size: 11px;">${dateStr}</td>
-            <td style="border: 1px solid black; padding: 8px; text-align: center; font-size: 11px; text-transform: uppercase;">${log.sex || '—'}</td>
             <td style="border: 1px solid black; padding: 8px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${log.name}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: center; font-size: 11px; text-transform: uppercase;">${log.sex || '—'}</td>
             <td style="border: 1px solid black; padding: 8px; font-size: 11px;">
               <div style="font-weight: bold;">${log.purpose}</div>
               <div style="margin-top: 3px; font-size: 10px; color: #555; font-weight: bold;">To Meet: ${log.lookingFor}</div>
@@ -221,15 +221,15 @@ export function SidebarNav({
                 <tr>
                   <td colspan="7" style="border: none; padding: 0 0 12px 0;">
                     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 12px;">
-                      <div style="width: 70px; text-align: left;">
+                      <div style="width: 70px; text-align: left; padding-left: 0.25in;">
                         <img src="/rsulogo.png" style="height: 60px; object-fit: contain;" />
                       </div>
-                      <div style="text-align: center; flex: 1; margin: 0 10px;">
+                      <div style="text-align: center; flex: 1; margin: 0 0.5in;">
                         <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: normal; letter-spacing: 0.5px;">Republic of the Philippines</p>
                         <h2 style="margin: 3px 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px;">ROMBLON STATE UNIVERSITY</h2>
                         <p style="margin: 0; font-size: 11px; font-weight: normal;">Romblon, Philippines</p>
                       </div>
-                      <div style="width: 75px; text-align: right;">
+                      <div style="width: 75px; text-align: right; padding-right: 0.25in;">
                         <img src="/ISOlogo.jpg" style="height: 60px; object-fit: contain;" />
                       </div>
                     </div>
@@ -252,8 +252,8 @@ export function SidebarNav({
                 </tr>
                 <tr>
                   <th style="width: 9%;">Date</th>
-                  <th style="width: 7%;">Sex</th>
                   <th style="width: 24%;">Visitor / Client name</th>
+                  <th style="width: 7%;">Sex</th>
                   <th style="width: 24%;">Reason for Visit</th>
                   <th style="width: 10%;">Time-in</th>
                   <th style="width: 10%;">Time-out</th>

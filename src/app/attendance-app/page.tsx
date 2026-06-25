@@ -423,7 +423,12 @@ export default function RsuAttendanceApp() {
       u: binding.userId,
       f: binding.id,
       t: timestamp,
-      s: signature
+      s: signature,
+      n: binding.userName,
+      o: binding.unitName,
+      i: binding.unitId,
+      c: binding.contactNumber || '',
+      x: binding.sex || ''
     };
 
     const payloadString = JSON.stringify(payloadObj);
