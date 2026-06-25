@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, getDocs, doc } from '@/firebase/firestore-wrapper';
+import { collection, query, where, orderBy, getDocs, getDoc, doc } from '@/firebase/firestore-wrapper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -136,6 +136,14 @@ export function SidebarNav({
         return;
       }
 
+      let campusName = '';
+      try {
+        const campusSnap = await getDoc(doc(firestore, 'campuses', userProfile.campusId || 'N/A'));
+        if (campusSnap.exists()) {
+          campusName = campusSnap.data().name || '';
+        }
+      } catch { /* fallback silently */ }
+
       const unitName = userProfile.unitName || 'Office/Unit';
       const formattedDate = format(new Date(), 'MMMM dd, yyyy');
 
@@ -244,8 +252,8 @@ export function SidebarNav({
                   <td colspan="7" style="border: none; padding: 0 0 12px 0;">
                     <div style="font-size: 11px; font-weight: bold; text-transform: uppercase;">
                       <span>CAMPUS / UNIT: </span>
-                      <span style="border-bottom: 1px solid black; padding-bottom: 1px; padding-right: 180px; font-weight: normal; margin-left: 5px;">
-                        ${unitName.toUpperCase()}
+                      <span style="font-weight: normal; margin-left: 5px;">
+                        ${campusName ? `${campusName.toUpperCase()} — ` : ''}${unitName.toUpperCase()}
                       </span>
                     </div>
                   </td>
