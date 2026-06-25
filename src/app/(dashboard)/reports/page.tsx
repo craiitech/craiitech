@@ -910,8 +910,8 @@ function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, 
   const [isSaving, setIsSaving] = useState(false);
 
   const unitName = unit.name || 'Office';
-  const csmPath = `/csm-evaluate?unitId=${unit.id}&campusId=${campusId}&unitName=${encodeURIComponent(unitName)}`;
-  const fullCsmUrl = `${origin}${csmPath}`;
+  const mobilePath = `/visitor-logbook/mobile?unitId=${unit.id}&campusId=${campusId}&unitName=${encodeURIComponent(unitName)}`;
+  const fullCsmUrl = `${origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
   const qrUrl = origin ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullCsmUrl)}` : '';
   const services: string[] = csmSettings?.services || [];
 

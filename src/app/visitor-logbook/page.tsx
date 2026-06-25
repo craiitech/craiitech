@@ -393,8 +393,8 @@ export default function VisitorLogbookPage() {
         ? "OFFICE OF THE CAMPUS DIRECTOR" 
         : (unitDoc?.name || userProfile.unitName || 'Office');
         
-      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-      const fullCsmUrl = `${window.location.origin}${csmPath}`;
+      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
       
       setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
     }
@@ -1625,7 +1625,7 @@ export default function VisitorLogbookPage() {
                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
                   <p className="text-[10px] font-mono text-slate-700 truncate">
                     {typeof window !== 'undefined' && userProfile
-                      ? `${window.location.origin}/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}...`
+                      ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
                       : 'Loading...'}
                   </p>
                 </div>
@@ -1667,8 +1667,8 @@ export default function VisitorLogbookPage() {
                         const officeNameStr = isCampusOdimoOrDirector 
                           ? "OFFICE OF THE CAMPUS DIRECTOR" 
                           : (unitDoc?.name || userProfile?.unitName || 'Office');
-                        const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                        const fullCsmUrl = `${window.location.origin}${csmPath}`;
+                        const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                        const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
                         await navigator.clipboard.writeText(fullCsmUrl);
                         toast({
                           title: 'Link Copied!',

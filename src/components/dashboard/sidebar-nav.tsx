@@ -74,8 +74,8 @@ export function SidebarNav({
   useEffect(() => {
     if (typeof window !== 'undefined' && userProfile) {
       const officeNameStr = unitDoc?.name || userProfile.unitName || 'Office';
-      const csmPath = `/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-      const fullCsmUrl = `${window.location.origin}${csmPath}`;
+      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
       setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
     }
   }, [userProfile, unitDoc]);
@@ -691,7 +691,7 @@ export function SidebarNav({
                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
                 <p className="text-[10px] font-mono text-slate-700 truncate">
                   {typeof window !== 'undefined' && userProfile
-                    ? `${window.location.origin}/csm-evaluate?unitId=${userProfile.unitId || 'N/A'}...`
+                    ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
                     : 'Loading...'}
                 </p>
               </div>
@@ -731,9 +731,9 @@ export function SidebarNav({
                   onClick={async () => {
                     try {
                       const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
-                      const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                      const fullCsmUrl = `${window.location.origin}${csmPath}`;
-                      const message = `CLIENT SATISFACTION MEASUREMENT (CSM) - ONLINE EVALUATION\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nWe value your feedback! Please take a few minutes to complete our online Client Satisfaction Measurement (CSM) survey. Your responses will help us improve the quality of our services.\n\nYou may click the link above or scan the QR code to access the survey. The survey is anonymous and will only take a few minutes to complete.\n\nThank you for your continued support!\n\n${officeNameStr}\nRomblon State University`;
+                      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                      const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
+                      const message = `VISITOR LOGBOOK & CSM - ONLINE ACCESS\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nPlease scan the QR code or click the link above to sign in to our Visitor Logbook. After checking in/out, you will be invited to complete our Client Satisfaction Measurement (CSM) survey to help us improve our services.\n\nThank you for your continued support!\n\n${officeNameStr}\nRomblon State University`;
                       await navigator.clipboard.writeText(message);
                       toast({
                         title: 'Message Copied!',
@@ -756,8 +756,8 @@ export function SidebarNav({
                   onClick={async () => {
                     try {
                       const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
-                      const csmPath = `/csm-evaluate?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                      const fullCsmUrl = `${window.location.origin}${csmPath}`;
+                      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                      const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
                       await navigator.clipboard.writeText(fullCsmUrl);
                       toast({
                         title: 'Link Copied!',
