@@ -137,14 +137,17 @@ export function SidebarNav({
       }
 
       let campusName = '';
+      let campusLocation = '';
       try {
         const campusSnap = await getDoc(doc(firestore, 'campuses', userProfile.campusId || 'N/A'));
         if (campusSnap.exists()) {
-          campusName = campusSnap.data().name || '';
+          const c = campusSnap.data();
+          campusName = c.name || '';
+          campusLocation = c.location || '';
         }
       } catch { /* fallback silently */ }
 
-      const unitName = userProfile.unitName || 'Office/Unit';
+      const unitName = unitDoc?.name || userProfile.unitName || 'Office/Unit';
       const formattedDate = format(new Date(), 'MMMM dd, yyyy');
 
       let tableRows = '';
@@ -253,7 +256,7 @@ export function SidebarNav({
                     <div style="font-size: 11px; font-weight: bold; text-transform: uppercase;">
                       <span>CAMPUS / UNIT: </span>
                       <span style="font-weight: normal; margin-left: 5px;">
-                        ${campusName ? `${campusName.toUpperCase()} — ` : ''}${unitName.toUpperCase()}
+                        ${[campusLocation, campusName, unitName].filter(Boolean).map(s => s.toUpperCase()).join(' — ')}
                       </span>
                     </div>
                   </td>
