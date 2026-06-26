@@ -29,6 +29,17 @@ export function VoiceAnnouncements() {
       const listItems: string[] = [];
       const ord = (n: number) => ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"][n] || `${n + 1}th`;
 
+      let unitName = userProfile?.unitName || '';
+      if (!unitName && unitId && firestore) {
+        try {
+          const unitSnap = await getDoc(doc(firestore, 'units', unitId));
+          if (unitSnap.exists()) {
+            unitName = unitSnap.data()?.name || '';
+          }
+        } catch {}
+      }
+      unitName = unitName || 'esteemed colleague';
+
       const roleLower = userRole?.toLowerCase() || '';
       const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
       const isExecutive = roleLower === 'campus director' || roleLower.includes('vice president') || roleLower === 'vp';
@@ -563,7 +574,6 @@ export function VoiceAnnouncements() {
       }
 
       setTimeout(() => {
-        const unitName = userProfile?.unitName || 'esteemed colleague';
         const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
         
         let intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your quality assurance and compliance summary. Please check the following items requiring your attention:`;
