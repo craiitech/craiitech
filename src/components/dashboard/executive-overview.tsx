@@ -1023,7 +1023,7 @@ export function ExecutiveOverview({
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         
         {/* PILLAR 1: INTERNAL AUDITS */}
-        <Card className="border-primary/10 bg-white/50 backdrop-blur-xs shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        <Card className="border-primary/10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xs shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
           <CardHeader className="p-4 pb-2">
             <div className="flex justify-between items-start">
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Internal Audit</span>
@@ -1061,7 +1061,7 @@ export function ExecutiveOverview({
         </Card>
 
         {/* PILLAR 3: ACCREDITATION */}
-        <Card className="border-primary/10 bg-white/50 backdrop-blur-xs shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        <Card className="border-primary/10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xs shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
           <CardHeader className="p-4 pb-2">
             <div className="flex justify-between items-start">
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Accreditation</span>
