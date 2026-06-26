@@ -58,7 +58,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
       <div className="space-y-6">
         <Card className="shadow-sm border-primary/10">
           <CardHeader className="bg-muted/10 border-b py-4">
-            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight text-slate-900">
+            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight text-slate-900 dark:text-slate-100">
               <FileText className="h-4 w-4 text-primary" />
               Institutional Authority & COPC
             </CardTitle>
@@ -127,7 +127,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
 
         <Card className="shadow-sm border-primary/10">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight text-slate-900 dark:text-slate-100">
                     <Gavel className="h-4 w-4 text-primary" />
                     University Board Approval (BOR)
                 </CardTitle>
@@ -171,7 +171,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                         <div className="space-y-3">
                             {program.specializations?.map((spec, idx) => (
                                 <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-3 shadow-sm">
-                                    <div className="flex items-center justify-between"><span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{spec.name}</span>{majorApprovals[idx]?.link && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 text-[8px] font-black">LINKED</Badge>}</div>
+                                    <div className="flex items-center justify-between"><span className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter">{spec.name}</span>{majorApprovals[idx]?.link && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 text-[8px] font-black">LINKED</Badge>}</div>
                                     <FormField control={control} name={`ched.majorBoardApprovals.${idx}.link`} render={({ field: inputField }) => (
                                         <FormItem><FormControl><div className="relative"><LinkIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input {...inputField} value={inputField.value || ''} placeholder="Paste Resolution Link..." className="pl-8 h-8 text-[10px] bg-white border-primary/10" disabled={!canEdit || !isAdmin} /></div></FormControl></FormItem>
                                     )} />

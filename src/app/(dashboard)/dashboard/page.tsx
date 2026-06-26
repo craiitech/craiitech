@@ -506,7 +506,7 @@ const HeaderRatings = ({ universityRating, scopedRating, scopedRatingType }: {
 };
 
 const DashboardLoader = () => (
-    <div className="flex h-full min-h-[400px] w-full items-center justify-center p-8 bg-slate-50/50 rounded-3xl border border-dashed border-primary/10 animate-pulse">
+    <div className="flex h-full min-h-[400px] w-full items-center justify-center p-8 bg-slate-50/50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-primary/10 animate-pulse">
         <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-500">
             <div className="relative h-16 w-16 rounded-2xl bg-white shadow-md border border-primary/5 flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1014,7 +1014,7 @@ export default function HomePage() {
                 <div key={type} className={cn("flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm", isNA && "opacity-40 grayscale")}>
                   <div className="flex items-center gap-3">
                     {isNA ? <CheckCircle className="h-4 w-4 text-slate-300" /> : sub?.statusId === 'approved' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : sub?.statusId === 'submitted' ? <Clock className="h-4 w-4 text-amber-500" /> : <Circle className="h-4 w-4 text-slate-200" />}
-                    <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight truncate max-w-[150px]">{type}</span>
+                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase leading-tight truncate max-w-[150px]">{type}</span>
                   </div>
                   {isNA ? <Badge variant="secondary" className="h-4 text-[7px]">N/A</Badge> : sub && <Badge variant={statusVariant[sub.statusId]} className="h-4 text-[7px] font-black uppercase">{sub.statusId}</Badge>}
                 </div>
@@ -1030,7 +1030,7 @@ export default function HomePage() {
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Workspace</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Unit Workspace</h2>
               <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">AY {selectedYear} Quality Performance Overview</p>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -1105,7 +1105,7 @@ export default function HomePage() {
             {Object.entries(stats).map(([k, s]: any) => (
               <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
                 <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-                <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+                <div className="text-3xl font-black tabular-nums text-slate-900 dark:text-slate-100">{s.value}</div>
               </Card>
             ))}
           </div>
@@ -1140,7 +1140,7 @@ export default function HomePage() {
                   {yearSubs.sort((a, b) => (b.submissionDate?.getTime?.() || 0) - (a.submissionDate?.getTime?.() || 0)).map(s => (
                     <TableRow key={s.id} className="hover:bg-muted/20">
                       <TableCell className="pl-8 py-4"><span className="font-bold text-xs uppercase">{s.reportType}</span><p className="text-[9px] font-mono text-muted-foreground uppercase">{s.cycleId} Cycle & bull; {s.controlNumber}</p></TableCell>
-                      <TableCell className="text-xs font-medium text-slate-600 tabular-nums">{s.submissionDate ? format(s.submissionDate, 'MM/dd/yy') : '--'}</TableCell>
+                      <TableCell className="text-xs font-medium text-slate-600 dark:text-slate-400 tabular-nums">{s.submissionDate ? format(s.submissionDate, 'MM/dd/yy') : '--'}</TableCell>
                       <TableCell className="text-center"><Badge variant={statusVariant[s.statusId]} className="text-[8px] font-black uppercase">{s.statusId}</Badge></TableCell>
                       <TableCell className="text-right pr-8"><Button variant="ghost" size="sm" asChild className="h-7 text-[9px] font-black uppercase"><Link href={`/submissions/${s.id}`}>View</Link></Button></TableCell>
                     </TableRow>
@@ -1159,7 +1159,7 @@ export default function HomePage() {
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Executive Hub</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Executive Hub</h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Institutional Oversight for AY {selectedYear}</p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -1223,7 +1223,7 @@ export default function HomePage() {
           <div className="lg:col-span-3">
             <Card className="shadow-md h-full overflow-hidden flex flex-col">
               <CardHeader className="bg-primary/5 pb-4 border-b">
-                <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900">Recent System Activity</CardTitle>
+                <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Recent System Activity</CardTitle>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">Real-time audit log stream</CardDescription>
               </CardHeader>
               <CardContent className="pt-4 flex-1">
@@ -1252,7 +1252,7 @@ export default function HomePage() {
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
               <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              <div className="text-3xl font-black tabular-nums text-slate-900 dark:text-slate-100">{s.value}</div>
             </Card>
           ))}
         </div>
@@ -1344,7 +1344,7 @@ export default function HomePage() {
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Site Management</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Site Management</h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Campus Oversight for AY {selectedYear}</p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -1406,7 +1406,7 @@ export default function HomePage() {
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
               <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              <div className="text-3xl font-black tabular-nums text-slate-900 dark:text-slate-100">{s.value}</div>
             </Card>
           ))}
         </div>
@@ -1443,7 +1443,7 @@ export default function HomePage() {
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
               <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              <div className="text-3xl font-black tabular-nums text-slate-900 dark:text-slate-100">{s.value}</div>
             </Card>
           ))}
         </div>
@@ -1536,7 +1536,7 @@ export default function HomePage() {
       <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 institutional-header">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Auditor Workspace</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Auditor Workspace</h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Active Audit Itinerary for AY {selectedYear}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -1573,7 +1573,7 @@ export default function HomePage() {
           {Object.entries(stats).map(([k, s]: any) => (
             <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
               <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
-              <div className="text-3xl font-black tabular-nums text-slate-900">{s.value}</div>
+              <div className="text-3xl font-black tabular-nums text-slate-900 dark:text-slate-100">{s.value}</div>
             </Card>
           ))}
         </div>
@@ -1616,7 +1616,7 @@ export default function HomePage() {
                   </div>
                   <Progress 
                     value={getAuditorPerformance(userProfile?.id || '').utilizationRate} 
-                    className="h-2 bg-slate-100"
+                    className="h-2 bg-slate-100 dark:bg-slate-700"
                   />
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">
                     {getAuditorPerformance(userProfile?.id || '').auditedClauses} of {getAuditorPerformance(userProfile?.id || '').totalClauses} scheduled ISO clauses audited
@@ -1626,37 +1626,37 @@ export default function HomePage() {
                 <Separator />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                  <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">
                       Assigned Audits
                     </span>
                     <div className="flex items-center gap-1.5">
                       <ClipboardCheck className="h-4 w-4 text-[#1B6535]" />
-                      <span className="text-xl font-black text-slate-800 tabular-nums">
+                      <span className="text-xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
                         {getAuditorPerformance(userProfile?.id || '').assignedCount}
                       </span>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                  <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">
                       Completed Audits
                     </span>
                     <div className="flex items-center gap-1.5">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span className="text-xl font-black text-slate-800 tabular-nums">
+                      <span className="text-xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
                         {getAuditorPerformance(userProfile?.id || '').completedCount}
                       </span>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 col-span-2">
+                  <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 col-span-2">
                     <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">
                       Findings Logged
                     </span>
                     <div className="flex items-center gap-1.5">
                       <FileText className="h-4 w-4 text-amber-500" />
-                      <span className="text-xl font-black text-slate-800 tabular-nums">
+                      <span className="text-xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
                         {getAuditorPerformance(userProfile?.id || '').findingsLoggedCount}
                       </span>
                     </div>
@@ -1698,7 +1698,7 @@ export default function HomePage() {
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-slate-50/50">
+                    <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50">
                       <TableRow>
                         <TableHead className="pl-6 py-3 text-[9px] font-black uppercase tracking-wider">Title</TableHead>
                         <TableHead className="py-3 text-[9px] font-black uppercase tracking-wider">Date Acquired</TableHead>
@@ -1707,9 +1707,9 @@ export default function HomePage() {
                     </TableHeader>
                     <TableBody>
                       {userProfile.portfolios.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                           <TableCell className="pl-6 py-4">
-                            <span className="font-bold text-xs text-slate-800 uppercase block">
+                            <span className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase block">
                               {item.title}
                             </span>
                           </TableCell>
@@ -1721,7 +1721,7 @@ export default function HomePage() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-7 w-7 rounded-lg text-slate-500 border-slate-200 hover:text-slate-800"
+                                className="h-7 w-7 rounded-lg text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-800 dark:text-slate-200"
                                 asChild
                               >
                                 <a 

@@ -26,7 +26,7 @@ export function AuditReceivingPrintTemplate({ auditors, year }: AuditReceivingPr
   }
 
   return (
-    <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       {/* Institutional Header */}
       <div className="text-center mb-8">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
@@ -34,7 +34,7 @@ export function AuditReceivingPrintTemplate({ auditors, year }: AuditReceivingPr
             <h2 className="font-semibold uppercase mt-1" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
             <p style={{ fontSize: '10pt' }} className="italic">Odiongan, Romblon</p>
         </div>
-        <div className="mt-8 border-y-2 border-black py-3 bg-slate-50/50">
+        <div className="mt-8 border-y-2 border-black py-3 bg-slate-50/50 dark:bg-slate-800/50">
           <h2 className="font-black uppercase tracking-[0.15em]" style={{ fontSize: '13pt' }}>AUDIT CHECKLIST RECEIVING FORM</h2>
           <p className="font-bold mt-1" style={{ fontSize: '12pt' }}>ACADEMIC YEAR {year}</p>
         </div>
@@ -82,7 +82,7 @@ export function AuditReceivingPrintTemplate({ auditors, year }: AuditReceivingPr
       </div>
 
       {/* Footer Info */}
-      <div className="mt-auto pt-4 border-t border-slate-200 flex justify-between items-center text-[10pt] text-slate-400 italic uppercase tracking-widest">
+      <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[10pt] text-slate-400 italic uppercase tracking-widest">
         <span>RSU-QAO-IQA-RECEIVING | REV 01-2025</span>
         <div className="text-right">
             <p>Institutional Excellence Record</p>

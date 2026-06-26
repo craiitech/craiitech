@@ -155,7 +155,7 @@ function PlanItineraryRegistry({
             <div className="rounded-2xl border bg-white shadow-lg overflow-x-auto">
                 {processedSchedules.length > 0 ? (
                 <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                         <TableRow className="hover:bg-transparent">
                             <TableHead className="py-4 pl-8"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('scheduledDate')}>Timeline & Focus {getSortIcon('scheduledDate')}</Button></TableHead>
                             <TableHead className="text-center"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('processCategory')}>Process Type {getSortIcon('processCategory')}</Button></TableHead>
@@ -167,17 +167,17 @@ function PlanItineraryRegistry({
                     </TableHeader>
                     <TableBody>
                         {processedSchedules.map(schedule => (
-                            <TableRow key={schedule.id} className="group hover:bg-slate-50/50 transition-colors">
-                                <TableCell className="py-6 pl-8"><div className="flex flex-col gap-1.5"><div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-primary" /><span className="font-black text-sm text-slate-800 tabular-nums">{format(parseDate(schedule.scheduledDate), 'MM/dd/yyyy')}</span></div><div className="flex items-center gap-2 bg-muted/20 w-fit px-2 py-1 rounded border border-slate-100"><Clock className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{format(parseDate(schedule.scheduledDate), 'hh:mm a')} - {format(parseDate(schedule.endScheduledDate), 'hh:mm a')}</span></div></div></TableCell>
+                            <TableRow key={schedule.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                <TableCell className="py-6 pl-8"><div className="flex flex-col gap-1.5"><div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-primary" /><span className="font-black text-sm text-slate-800 dark:text-slate-200 tabular-nums">{format(parseDate(schedule.scheduledDate), 'MM/dd/yyyy')}</span></div><div className="flex items-center gap-2 bg-muted/20 w-fit px-2 py-1 rounded border border-slate-100 dark:border-slate-700"><Clock className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">{format(parseDate(schedule.scheduledDate), 'hh:mm a')} - {format(parseDate(schedule.endScheduledDate), 'hh:mm a')}</span></div></div></TableCell>
                                 <TableCell className="py-6 text-center">{schedule.processCategory && <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary whitespace-nowrap">{schedule.processCategory.replace(' Processes', '')}</Badge>}</TableCell>
-                                <TableCell className="py-6"><div className="flex flex-wrap gap-1 max-w-[180px]">{schedule.isoClausesToAudit.map((cls, clsIdx) => <Badge key={`${schedule.id}-${cls}-${clsIdx}`} variant="outline" className="text-[9px] font-black bg-white border-slate-200 h-4 px-1">{cls}</Badge>)}</div></TableCell>
+                                <TableCell className="py-6"><div className="flex flex-wrap gap-1 max-w-[180px]">{schedule.isoClausesToAudit.map((cls, clsIdx) => <Badge key={`${schedule.id}-${cls}-${clsIdx}`} variant="outline" className="text-[9px] font-black bg-white border-slate-200 dark:border-slate-700 h-4 px-1">{cls}</Badge>)}</div></TableCell>
                                 <TableCell className="py-6">
                                     <div className="space-y-3 max-w-xs">
                                         <div className="p-3 rounded-lg border bg-muted/10 border-dashed group-hover:bg-white transition-colors">
                                             <p className="text-[10px] font-black uppercase text-primary mb-1">Focus Area</p>
-                                            <p className="text-xs font-medium text-slate-600 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description.'}</p>
+                                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description.'}</p>
                                             {schedule.documents && schedule.documents.length > 0 && (
-                                                <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-dashed border-slate-200">
+                                                <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700">
                                                     <FileText className="h-3 w-3 text-primary" />
                                                     <span className="text-[9px] font-bold text-primary uppercase">{schedule.documents.length} Document{schedule.documents.length > 1 ? 's' : ''} Linked</span>
                                                 </div>
@@ -186,11 +186,11 @@ function PlanItineraryRegistry({
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
                                                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditor</p>
-                                                <div className="flex items-center gap-1"><UserCheck className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 truncate">{schedule.auditorName || 'UNASSIGNED'}</span></div>
+                                                <div className="flex items-center gap-1"><UserCheck className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 dark:text-slate-300 truncate">{schedule.auditorName || 'UNASSIGNED'}</span></div>
                                             </div>
                                             <div>
                                                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditee</p>
-                                                <div className="flex flex-col"><div className="flex items-center gap-1"><Building2 className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 truncate">{schedule.targetName}</span></div></div>
+                                                <div className="flex flex-col"><div className="flex items-center gap-1"><Building2 className="h-2.5 w-2.5 text-primary" /><span className="text-[10px] font-black text-slate-700 dark:text-slate-300 truncate">{schedule.targetName}</span></div></div>
                                             </div>
                                         </div>
                                     </div>
@@ -291,13 +291,13 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
         </DialogHeader>
 
         {/* Tab Buttons */}
-        <div className="flex bg-slate-100 p-1 rounded-lg border gap-1">
+        <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg border gap-1">
           <button
             type="button"
             onClick={() => setMode('manual')}
             className={cn(
               "flex-1 text-[9px] font-black uppercase py-1.5 rounded-md transition-all cursor-pointer",
-              mode === 'manual' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800"
+              mode === 'manual' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800 dark:text-slate-200"
             )}
           >
             Manual Link
@@ -310,7 +310,7 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
             }}
             className={cn(
               "flex-1 text-[9px] font-black uppercase py-1.5 rounded-md transition-all cursor-pointer",
-              mode === 'comm' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800"
+              mode === 'comm' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800 dark:text-slate-200"
             )}
           >
             Select from EOMS Comms
@@ -320,7 +320,7 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
         <div className="space-y-4 py-2">
           {mode === 'comm' && (
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase text-slate-600">Select EOMS Communication</label>
+              <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Select EOMS Communication</label>
               <Select 
                 onValueChange={(val) => {
                   const comm = comms.find(c => c.id === val);
@@ -334,14 +334,14 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
                   }
                 }}
               >
-                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50">
+                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50 dark:bg-slate-800/50">
                   <SelectValue placeholder={isLoadingComms ? "Loading Communications..." : "Link EOMS Memo / Travel Order"} />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-primary/20 max-h-[200px]">
                   {comms.map(c => {
                     const ref = c.senderRefNum || (c.recipientRefNums ? Object.values(c.recipientRefNums)[0] : '') || 'N/A';
                     return (
-                      <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase text-slate-800 truncate">
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase text-slate-800 dark:text-slate-200 truncate">
                         [{c.kind}] {c.subject} ({ref})
                       </SelectItem>
                     );
@@ -355,7 +355,7 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
           )}
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-slate-600">Document Title / Name</label>
+            <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Document Title / Name</label>
             <Input 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
@@ -365,7 +365,7 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-slate-600">Google Drive Link</label>
+            <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Google Drive Link</label>
             <Input 
               value={link} 
               onChange={(e) => setLink(e.target.value)} 
@@ -503,7 +503,7 @@ export function AuditPlanList({
             const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
             return (
               <AccordionItem value={plan.id} key={plan.id} className="border-none rounded-2xl shadow-xl overflow-hidden bg-background">
-                <div className="flex items-center justify-between border-b data-[state=open]:bg-slate-50 transition-colors pr-10">
+                <div className="flex items-center justify-between border-b data-[state=open]:bg-slate-50 dark:bg-slate-800/50 transition-colors pr-10">
                     <AccordionTrigger className="flex-1 hover:no-underline px-8 py-6 border-none [&>svg]:hidden">
                         <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-6">
                             <div className="space-y-2 min-w-0">
@@ -511,7 +511,7 @@ export function AuditPlanList({
                                     <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
                                         NO: {plan.auditNumber}
                                     </Badge>
-                                    <p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p>
+                                    <p className="font-black text-lg text-slate-900 dark:text-slate-100 uppercase tracking-tight truncate">{plan.title}</p>
                                 </div>
                                 <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                     <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-primary" /> {campusMap.get(plan.campusId) || '...'}</span>
@@ -602,8 +602,8 @@ export function AuditPlanList({
                 <AccordionContent className="p-0 bg-white">
                   <div className="p-8 space-y-10">
                     {/* EOMS PLAN REFERENCE DOCUMENTS */}
-                    <div className="space-y-4 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
-                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                    <div className="space-y-4 p-6 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-3">
                             <h3 className="text-xs font-black uppercase tracking-widest text-[#1B6535] flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-[#1B6535]" />
                                 Audit Plan Reference Documents
@@ -621,7 +621,7 @@ export function AuditPlanList({
                                                 <FileText className="h-4 w-4" />
                                             </div>
                                             <div className="min-w-0 flex flex-col items-start">
-                                                <p className="text-xs font-black text-slate-800 truncate uppercase tracking-tight">{doc.name}</p>
+                                                <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate uppercase tracking-tight">{doc.name}</p>
                                                 {doc.communicationId && (
                                                     <Badge className="bg-emerald-600/10 text-emerald-700 font-black uppercase text-[8px] tracking-widest border-none py-0.5 px-1.5 h-auto my-1 shadow-none select-none">
                                                         EOMS Ref: {doc.communicationRefNum}

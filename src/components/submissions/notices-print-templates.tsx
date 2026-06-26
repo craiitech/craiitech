@@ -62,7 +62,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
   const isFirstCompliant = missingFirst.length === 0;
 
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight" style={{ fontSize: '11pt' }}>
+    <div className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight" style={{ fontSize: '11pt' }}>
       {/* Institutional Header */}
       <div className="text-center border-b-2 border-black pb-4 mb-8">
         <div className="space-y-1">
@@ -126,7 +126,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
                     <CheckCircle2 className="h-8 w-8 text-green-600" />
                 </div>
             ) : (
-                <div className="border border-black p-4 bg-slate-50/50 rounded-lg">
+                <div className="border border-black p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg">
                     <p className="font-bold uppercase mb-2 text-primary" style={{ fontSize: '9pt' }}>I. FIRST SUBMISSION CYCLE (OUTSTANDING):</p>
                     <ul className="list-disc pl-8 space-y-1">
                         {missingFirst.map((doc, i) => <li key={i}>{doc}</li>)}
@@ -135,7 +135,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
             )}
 
             {missingFinal.length > 0 ? (
-                <div className="border border-black p-4 bg-slate-50/50 rounded-lg">
+                <div className="border border-black p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg">
                     <p className="font-bold uppercase mb-2 text-primary" style={{ fontSize: '9pt' }}>II. FINAL SUBMISSION CYCLE (OUTSTANDING):</p>
                     <ul className="list-disc pl-8 space-y-1">
                         {missingFinal.map((doc, i) => <li key={i}>{doc}</li>)}
@@ -178,11 +178,11 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         </div>
       </div>
 
-      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900">
+      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900 dark:text-slate-100">
         This is a system-generated report; signature is not required.
       </div>
 
-      <div className="mt-auto pt-8 border-t border-slate-200 flex justify-between text-[9pt] text-slate-400 font-bold italic">
+      <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700 flex justify-between text-[9pt] text-slate-400 font-bold italic">
         <span>RSU-QAO-FOR-022 | Rev 02-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
@@ -195,10 +195,10 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
  */
 export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, totalPossible, qaoDirector, qmsHead, cycle }: NoticeProps) {
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight border-[12px] border-double border-slate-200" style={{ fontSize: '11pt' }}>
+    <div className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight border-[12px] border-double border-slate-200 dark:border-slate-700" style={{ fontSize: '11pt' }}>
       <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
         {/* Institutional Header */}
-        <div className="text-center pb-6 mb-12 border-b border-slate-100">
+        <div className="text-center pb-6 mb-12 border-b border-slate-100 dark:border-slate-700">
             <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>Romblon State University</h1>
             <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
             <div className="w-24 h-1 bg-primary mx-auto mt-4" />
@@ -210,7 +210,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             </div>
             
             <div className="space-y-3">
-                <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Notice of Compliance</h2>
+                <h2 className="font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-100" style={{ fontSize: '24pt' }}>Notice of Compliance</h2>
                 {cycle && (
                     <p className="font-mono font-black text-xs uppercase tracking-widest text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full w-fit mx-auto border border-emerald-100">
                         {cycle}
@@ -218,11 +218,11 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
                 )}
             </div>
             
-            <p className="text-lg italic text-slate-600">This is to officially certify that the</p>
+            <p className="text-lg italic text-slate-600 dark:text-slate-400">This is to officially certify that the</p>
             
             <div className="py-4">
                 <h3 className="font-black uppercase text-primary underline underline-offset-4 decoration-slate-300" style={{ fontSize: '20pt' }}>{unitName}</h3>
-                <p className="font-bold text-slate-700 mt-3 uppercase tracking-widest" style={{ fontSize: '12pt' }}>{campusName}</p>
+                <p className="font-bold text-slate-700 dark:text-slate-300 mt-3 uppercase tracking-widest" style={{ fontSize: '12pt' }}>{campusName}</p>
             </div>
 
             <p className="max-w-xl mx-auto text-base leading-relaxed">
@@ -289,7 +289,7 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
   const nonCompliantUnits = units.filter(u => u.score < 100);
 
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight" style={{ fontSize: '11pt' }}>
+    <div className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight" style={{ fontSize: '11pt' }}>
       <div className="text-center border-b-2 border-black pb-4 mb-8">
         <div className="space-y-1">
             <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Romblon State University</h1>
@@ -330,10 +330,10 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
         <div className="space-y-8">
             {nonCompliantUnits.length > 0 && (
                 <section className="space-y-4">
-                    <h3 className="font-black text-[10pt] uppercase bg-slate-100 p-2 border-l-[4px] border-black">I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)</h3>
+                    <h3 className="font-black text-[10pt] uppercase bg-slate-100 dark:bg-slate-700 p-2 border-l-[4px] border-black">I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)</h3>
                     <div className="space-y-4">
                         {nonCompliantUnits.map((unit, idx) => (
-                            <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/30">
+                            <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/30 dark:bg-slate-800/30">
                                 <div className="flex justify-between items-center mb-2">
                                     <p className="font-black text-sm uppercase">{unit.name}</p>
                                     <span className="font-black bg-white border border-black px-3 py-0.5 rounded text-[10pt]">{unit.score}% MATURITY</span>
@@ -367,11 +367,11 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
         </div>
       </div>
 
-      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900">
+      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900 dark:text-slate-100">
         This is a system-generated report; signature is not required.
       </div>
 
-      <div className="mt-auto pt-8 border-t border-slate-200 flex justify-between text-[9pt] text-slate-400 font-bold italic">
+      <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700 flex justify-between text-[9pt] text-slate-400 font-bold italic">
         <span>RSU-QAO-FOR-024 | REV 01-2025</span>
         <span>Issued via RSU EOMS Portal</span>
       </div>
@@ -384,9 +384,9 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
  */
 export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units, cycle }: CampusNoticeProps) {
   return (
-    <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif border-[10px] border-double border-slate-200" style={{ fontSize: '11pt' }}>
+    <div className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif border-[10px] border-double border-slate-200 dark:border-slate-700" style={{ fontSize: '11pt' }}>
       <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
-        <div className="text-center pb-6 mb-12 border-b border-slate-100">
+        <div className="text-center pb-6 mb-12 border-b border-slate-100 dark:border-slate-700">
             <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>Romblon State University</h1>
             <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
             <div className="w-24 h-1 bg-primary mx-auto mt-4" />
@@ -398,7 +398,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
             </div>
             
             <div className="space-y-3">
-                <h2 className="font-black uppercase tracking-[0.15em] text-slate-900" style={{ fontSize: '24pt' }}>Institutional Notice of Compliance</h2>
+                <h2 className="font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-100" style={{ fontSize: '24pt' }}>Institutional Notice of Compliance</h2>
                 {cycle && (
                     <p className="font-mono font-black text-xs uppercase tracking-widest text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full w-fit mx-auto border border-emerald-100">
                         {cycle}
@@ -406,7 +406,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
                 )}
             </div>
             
-            <p className="text-xl italic text-slate-600">This is to officially recognize that the</p>
+            <p className="text-xl italic text-slate-600 dark:text-slate-400">This is to officially recognize that the</p>
             
             <div className="py-6">
                 <h3 className="font-black uppercase text-primary underline underline-offset-8 decoration-slate-300" style={{ fontSize: '28pt' }}>{campusName}</h3>

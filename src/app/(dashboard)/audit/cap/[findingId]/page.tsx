@@ -97,11 +97,11 @@ export default function CorrectiveActionPlanPage() {
                     </div>
                     <div>
                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Auditor Observation</p>
-                        <p className="text-slate-600 leading-relaxed italic text-xs">"{finding.description}"</p>
+                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed italic text-xs">"{finding.description}"</p>
                     </div>
                      <div>
                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Objective Evidence</p>
-                        <p className="text-slate-600 text-xs">{finding.evidence}</p>
+                        <p className="text-slate-600 dark:text-slate-400 text-xs">{finding.evidence}</p>
                     </div>
                  </CardContent>
             </Card>

@@ -431,13 +431,13 @@ export default function VisitorLogbookSettingsPage() {
           )}
 
           <Card className="border-primary/10 shadow-md">
-            <CardHeader className="bg-slate-50/50 border-b py-4">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-4">
               <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-[#D4AF37]" />
                 CSM Integration Guidelines
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6 text-xs text-slate-600 space-y-3 leading-relaxed">
+            <CardContent className="pt-6 text-xs text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
               <p>
                 <strong>Visitor Logbook Kiosk:</strong> Adding services here will dynamically transform the <em>Purpose of Visit</em> text box in the front-desk sign-in page into a clean selection dropdown.
               </p>
@@ -486,7 +486,7 @@ export default function VisitorLogbookSettingsPage() {
                         <FileSpreadsheet className="h-5 w-5" />
                         <span className="text-[10px] font-black uppercase tracking-widest">Services Directory</span>
                       </div>
-                      <CardTitle className="text-lg font-black uppercase text-slate-800">{activeUnitName}</CardTitle>
+                      <CardTitle className="text-lg font-black uppercase text-slate-800 dark:text-slate-200">{activeUnitName}</CardTitle>
                       <CardDescription className="text-xs">
                         Define the customer-facing services provided by this office/unit.
                       </CardDescription>
@@ -504,7 +504,7 @@ export default function VisitorLogbookSettingsPage() {
                           onChange={(e) => setNewService(e.target.value)}
                           required
                           disabled={isSaving}
-                          className="h-11 bg-white border-slate-200 placeholder-slate-400 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl"
+                          className="h-11 bg-white border-slate-200 dark:border-slate-700 placeholder-slate-400 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl"
                         />
                       </div>
                       <Button 
@@ -521,7 +521,7 @@ export default function VisitorLogbookSettingsPage() {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Services List</Label>
                       
                       {(!currentSettings?.services || currentSettings.services.length === 0) ? (
-                        <div className="text-center py-10 border border-dashed rounded-2xl bg-slate-50/50">
+                        <div className="text-center py-10 border border-dashed rounded-2xl bg-slate-50/50 dark:bg-slate-800/50">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">No services registered</p>
                           <p className="text-[10px] text-slate-400 font-medium mt-1 leading-normal max-w-xs mx-auto">
                             Visitor Logbook Kiosk will display the default free-text "Purpose of Visit" input box.
@@ -532,9 +532,9 @@ export default function VisitorLogbookSettingsPage() {
                           {currentSettings.services.map((service: string, idx: number) => (
                             <div 
                               key={idx} 
-                              className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-all hover:bg-slate-50/80 shadow-sm"
+                              className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 dark:border-slate-700 rounded-xl hover:border-slate-200 dark:hover:border-slate-700 transition-all hover:bg-slate-50/80 dark:hover:bg-slate-800/80 shadow-sm"
                             >
-                              <span className="text-xs font-bold text-slate-800">{service}</span>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{service}</span>
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -552,7 +552,7 @@ export default function VisitorLogbookSettingsPage() {
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="bg-slate-50 border-t py-4 text-[10px] text-slate-500 italic flex items-center justify-between">
+                  <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-4 text-[10px] text-slate-500 italic flex items-center justify-between">
                     <span>Total Services: {currentSettings?.services?.length || 0}</span>
                     <span>Last Updated: {currentSettings?.updatedAt ? new Date(currentSettings.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
                   </CardFooter>
@@ -568,7 +568,7 @@ export default function VisitorLogbookSettingsPage() {
                           <Users className="h-5 w-5" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Personnel Registry</span>
                         </div>
-                        <CardTitle className="text-lg font-black uppercase text-slate-800">{activeUnitName}</CardTitle>
+                        <CardTitle className="text-lg font-black uppercase text-slate-800 dark:text-slate-200">{activeUnitName}</CardTitle>
                         <CardDescription className="text-xs">
                           Manage the staff and employees of this unit/office.
                         </CardDescription>
@@ -578,7 +578,7 @@ export default function VisitorLogbookSettingsPage() {
 
                   <CardContent className="space-y-6 pt-6 flex-1">
                     {/* Add/Edit Employee Form */}
-                    <form onSubmit={handleSavePersonnel} className="space-y-4 bg-slate-50/50 border border-slate-100 p-5 rounded-2xl">
+                    <form onSubmit={handleSavePersonnel} className="space-y-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-5 rounded-2xl">
                       <div className="flex items-center gap-2 text-[#1B6535] border-b pb-2 mb-2">
                         <UserPlus className="h-4 w-4" />
                         <span className="text-[10px] font-black uppercase tracking-widest font-black">
@@ -596,7 +596,7 @@ export default function VisitorLogbookSettingsPage() {
                               setEmpType('');
                               setEmpSectors([]);
                             }}
-                            className="ml-auto h-7 px-2.5 text-xs font-bold text-slate-500 rounded-lg hover:bg-slate-100"
+                            className="ml-auto h-7 px-2.5 text-xs font-bold text-slate-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           >
                             <X className="h-3 w-3 mr-1" /> Cancel Edit
                           </Button>
@@ -615,7 +615,7 @@ export default function VisitorLogbookSettingsPage() {
                             onChange={(e) => setEmpName(e.target.value)}
                             required
                             disabled={isSavingPersonnel}
-                            className="h-11 bg-white border-slate-200 placeholder-slate-400 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl"
+                            className="h-11 bg-white border-slate-200 dark:border-slate-700 placeholder-slate-400 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl"
                           />
                         </div>
 
@@ -623,7 +623,7 @@ export default function VisitorLogbookSettingsPage() {
                         <div className="space-y-1.5">
                           <Label htmlFor="empSex" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sex</Label>
                           <Select value={empSex} onValueChange={setEmpSex} disabled={isSavingPersonnel}>
-                            <SelectTrigger className="h-11 bg-white border-slate-200 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl font-bold">
+                            <SelectTrigger className="h-11 bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl font-bold">
                               <SelectValue placeholder="Select Sex" />
                             </SelectTrigger>
                             <SelectContent>
@@ -638,7 +638,7 @@ export default function VisitorLogbookSettingsPage() {
                         <div className="space-y-1.5">
                           <Label htmlFor="empType" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category</Label>
                           <Select value={empType} onValueChange={setEmpType} disabled={isSavingPersonnel}>
-                            <SelectTrigger className="h-11 bg-white border-slate-200 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl font-bold">
+                            <SelectTrigger className="h-11 bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-emerald-600 focus-visible:border-transparent rounded-xl font-bold">
                               <SelectValue placeholder="Select Type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -661,8 +661,8 @@ export default function VisitorLogbookSettingsPage() {
                               <div 
                                 key={sector} 
                                 className={cn(
-                                  "flex items-center space-x-2 bg-white border p-2.5 rounded-xl transition-all cursor-pointer hover:bg-slate-50",
-                                  isChecked ? "border-emerald-600/30 bg-emerald-50/20" : "border-slate-100"
+                                  "flex items-center space-x-2 bg-white border p-2.5 rounded-xl transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                                  isChecked ? "border-emerald-600/30 bg-emerald-50/20" : "border-slate-100 dark:border-slate-700"
                                 )}
                                 onClick={() => {
                                   if (isChecked) {
@@ -720,18 +720,18 @@ export default function VisitorLogbookSettingsPage() {
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Loading Directory...</p>
                         </div>
                       ) : (!employees || employees.length === 0) ? (
-                        <div className="text-center py-10 border border-dashed rounded-2xl bg-slate-50/50">
+                        <div className="text-center py-10 border border-dashed rounded-2xl bg-slate-50/50 dark:bg-slate-800/50">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">No employees registered</p>
                           <p className="text-[10px] text-slate-400 font-medium mt-1 leading-normal max-w-xs mx-auto">
                             Visitors will type staff names manually in the visitor logbook kiosk.
                           </p>
                         </div>
                       ) : (
-                        <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <div className="border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                           <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                               <thead>
-                                <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black uppercase tracking-wider text-slate-500">
+                                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-500">
                                   <th className="p-3.5 pl-5">Name</th>
                                   <th className="p-3.5">Sex</th>
                                   <th className="p-3.5">Category</th>
@@ -740,16 +740,16 @@ export default function VisitorLogbookSettingsPage() {
                                   <th className="p-3.5 pr-5 text-right">Actions</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-800">
+                              <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-800 dark:text-slate-200">
                                 {employees.sort((a,b) => a.name.localeCompare(b.name)).map((employee: Employee) => (
                                   <tr 
                                     key={employee.id} 
                                     className={cn(
-                                      "hover:bg-slate-50/50 transition-colors",
+                                      "hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors",
                                       !employee.isActive && "opacity-60"
                                     )}
                                   >
-                                    <td className="p-3.5 pl-5 font-black text-slate-900">{employee.name}</td>
+                                    <td className="p-3.5 pl-5 font-black text-slate-900 dark:text-slate-100">{employee.name}</td>
                                     <td className="p-3.5">
                                       <span className={cn(
                                         "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase",
@@ -790,7 +790,7 @@ export default function VisitorLogbookSettingsPage() {
                                           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[9px] font-black uppercase border transition-all",
                                           employee.isActive 
                                             ? "bg-emerald-50/50 text-emerald-700 border-emerald-200/50 hover:bg-emerald-50" 
-                                            : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-150"
+                                            : "bg-slate-100 dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-150"
                                         )}
                                         title={employee.isActive ? "Deactivate" : "Activate"}
                                       >
@@ -844,7 +844,7 @@ export default function VisitorLogbookSettingsPage() {
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="bg-slate-50 border-t py-4 text-[10px] text-slate-500 italic flex items-center justify-between">
+                  <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-4 text-[10px] text-slate-500 italic flex items-center justify-between">
                     <span>Total Personnel: {employees?.length || 0}</span>
                     <span>Active: {employees?.filter(e => e.isActive).length || 0}</span>
                   </CardFooter>

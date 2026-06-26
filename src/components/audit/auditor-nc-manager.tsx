@@ -202,7 +202,7 @@ export function AuditorNCManager({
                               <TableRow key={idx} className="hover:bg-muted/20 transition-colors group">
                                   <TableCell className="pl-8 py-5">
                                       <div className="space-y-1">
-                                          <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule.targetName}</p>
+                                          <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule.targetName}</p>
                                           <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
                                               <User className="h-3 w-3" /> {item.schedule.auditorName || 'TBA'}
                                           </div>
@@ -211,7 +211,7 @@ export function AuditorNCManager({
                                   <TableCell className="max-w-md py-5">
                                       <div className="space-y-2">
                                           <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">ISO Clause {item.finding.isoClause}</Badge>
-                                          <p className="text-xs font-bold text-slate-800 leading-relaxed italic line-clamp-2">"{item.finding.ncStatement || item.finding.description}"</p>
+                                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic line-clamp-2">"{item.finding.ncStatement || item.finding.description}"</p>
                                       </div>
                                   </TableCell>
                                   <TableCell className="text-center">

@@ -259,7 +259,7 @@ function AccreditationRecordCard({
                                                 onClick={() => toggleMajor(spec)}
                                                 className={cn(
                                                     "h-8 text-[10px] font-bold uppercase transition-all",
-                                                    isSelected ? "bg-primary text-white border-primary shadow-md" : "bg-white text-muted-foreground border-slate-200"
+                                                    isSelected ? "bg-primary text-white border-primary shadow-md" : "bg-white text-muted-foreground border-slate-200 dark:border-slate-700"
                                                 )}
                                             >
                                                 {isSelected && <Check className="h-3 w-3 mr-1.5" />}
@@ -286,7 +286,7 @@ function AccreditationRecordCard({
                                     <div key={areaIdx} className="p-2 rounded-lg border bg-muted/5 flex items-center justify-between gap-2">
                                         <div className="min-w-0 flex-1">
                                             <p className="text-[9px] font-black text-primary leading-none mb-1">{area.areaCode}</p>
-                                            <p className="text-[10px] font-bold text-slate-700 truncate">{area.areaName}</p>
+                                            <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">{area.areaName}</p>
                                         </div>
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.taskForce`} render={({ field: inputField }) => (
@@ -316,13 +316,13 @@ function AccreditationRecordCard({
                                 <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.grandMean`} render={({ field: inputField }) => (
                                     <FormItem>
                                         <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Grand Mean Score</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" {...inputField} value={inputField.value || 0} className="h-9 text-lg font-black tabular-nums bg-slate-50" disabled={!canEdit || !isAdmin} /></FormControl>
+                                        <FormControl><Input type="number" step="0.01" {...inputField} value={inputField.value || 0} className="h-9 text-lg font-black tabular-nums bg-slate-50 dark:bg-slate-800/50" disabled={!canEdit || !isAdmin} /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.descriptiveRating`} render={({ field: inputField }) => (
                                     <FormItem>
                                         <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Result String</FormLabel>
-                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g., Highly Satisfactory" className="h-9 text-xs font-bold uppercase bg-slate-50" disabled={!canEdit || !isAdmin} /></FormControl>
+                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="e.g., Highly Satisfactory" className="h-9 text-xs font-bold uppercase bg-slate-50 dark:bg-slate-800/50" disabled={!canEdit || !isAdmin} /></FormControl>
                                     </FormItem>
                                 )} />
                             </div>
@@ -335,7 +335,7 @@ function AccreditationRecordCard({
                 <Card className="col-span-full border-primary/10 shadow-lg overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-4">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black text-slate-900">
+                            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black text-slate-900 dark:text-slate-100">
                                 <ClipboardList className="h-5 w-5 text-primary" />
                                 Accreditor's Recommendations & Compliance Status
                             </CardTitle>

@@ -162,10 +162,10 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
         </Card>
         <Card className={cn(
             "border shadow-sm relative overflow-hidden transition-all duration-500",
-            analytics.overdueCount > 0 ? "bg-red-50 border-red-200 animate-pulse-slow" : "bg-slate-50 border-slate-200"
+            analytics.overdueCount > 0 ? "bg-red-50 border-red-200 animate-pulse-slow" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
         )}>
             <CardHeader className="pb-1.5 pt-3 px-4">
-                <CardTitle className={cn("text-[9px] font-black uppercase tracking-[0.15em]", analytics.overdueCount > 0 ? "text-red-700" : "text-slate-600")}>Overdue Actions</CardTitle>
+                <CardTitle className={cn("text-[9px] font-black uppercase tracking-[0.15em]", analytics.overdueCount > 0 ? "text-red-700" : "text-slate-600 dark:text-slate-400")}>Overdue Actions</CardTitle>
             </CardHeader>
             <CardContent className="pb-3 px-4">
                 <div className={cn("text-2xl font-black tabular-nums", analytics.overdueCount > 0 ? "text-red-600" : "text-slate-500")}>{analytics.overdueCount}</div>
@@ -181,12 +181,12 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                 <p className="text-[7.5px] font-bold text-emerald-500 uppercase tracking-tighter mt-1">Opportunities logged</p>
             </CardContent>
         </Card>
-        <Card className="bg-slate-50 border-slate-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
             <CardHeader className="pb-1.5 pt-3 px-4">
-                <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-700">Total Entries</CardTitle>
+                <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-300">Total Entries</CardTitle>
             </CardHeader>
             <CardContent className="pb-3 px-4">
-                <div className="text-2xl font-black text-slate-700 tabular-nums">{analytics.total}</div>
+                <div className="text-2xl font-black text-slate-700 dark:text-slate-300 tabular-nums">{analytics.total}</div>
                 <p className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Strategic scope count</p>
             </CardContent>
         </Card>
@@ -219,7 +219,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                     {analytics.upcomingDeadlines.map((r, idx) => (
                         <div key={idx} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold text-slate-800 truncate" title={r.description}>{r.description}</p>
+                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={r.description}>{r.description}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <Badge variant="secondary" className="h-4 text-[8px] font-black uppercase bg-primary/5 text-primary border-none">{r.responsiblePersonName || 'No Lead'}</Badge>
                                     <span className="text-[9px] text-muted-foreground font-bold">{format(r.date, 'MMM dd, yyyy')}</span>
@@ -259,7 +259,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                     {analytics.watchlist.map((r, idx) => (
                         <div key={idx} className="p-4 space-y-2 hover:bg-blue-50/10 transition-colors">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-bold text-slate-800 truncate block max-w-[200px]" title={r.description}>{r.description}</span>
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block max-w-[200px]" title={r.description}>{r.description}</span>
                                 <Badge variant="outline" className="h-4 text-[7px] font-black bg-blue-50 border-blue-200 text-blue-700 uppercase tracking-tighter shrink-0">
                                     Watch: {r.reviewInterval === '6-months' ? '6 Mo' : 'Annual'}
                                 </Badge>

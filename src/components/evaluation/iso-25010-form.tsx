@@ -198,7 +198,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <DialogHeader className="p-4 sm:p-6 border-b bg-slate-50 shrink-0">
+        <DialogHeader className="p-4 sm:p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
                 <div className="flex items-center gap-2 text-primary mb-0.5">
@@ -247,7 +247,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                         <div className="flex items-center justify-between gap-4">
                           <div className="p-4 sm:p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner space-y-1 flex-1">
                             <h3 className="font-black text-primary text-[11px] sm:text-sm uppercase tracking-wider">{cat.name}</h3>
-                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium italic">"{cat.description}"</p>
+                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">"{cat.description}"</p>
                           </div>
                           <Badge 
                             variant={catComplete ? "default" : "outline"} 
@@ -270,11 +270,11 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                 <FormItem className="space-y-3">
                                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                                       <div className="space-y-1 flex-1">
-                                          <FormLabel className="text-sm sm:text-base font-black text-slate-800 tracking-tight">{sub.name}</FormLabel>
+                                          <FormLabel className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-200 tracking-tight">{sub.name}</FormLabel>
                                           <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed max-w-2xl">{sub.desc}</p>
                                       </div>
                                       <div className="h-6 w-[90px] shrink-0 text-center">
-                                          <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-full transition-colors duration-200", field.value ? cn(LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color) : "invisible bg-slate-100 text-slate-400")}>
+                                          <Badge className={cn("h-6 px-4 font-black uppercase border-none text-[10px] w-full transition-colors duration-200", field.value ? cn(LIKERT_OPTIONS.find(o => o.value === field.value)?.bg, LIKERT_OPTIONS.find(o => o.value === field.value)?.color) : "invisible bg-slate-100 dark:bg-slate-700 text-slate-400")}>
                                               {field.value ? LIKERT_OPTIONS.find(o => o.value === field.value)?.label : '--'}
                                           </Badge>
                                       </div>
@@ -296,10 +296,10 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                                               <Label
                                                   onClick={() => document.getElementById(radioId)?.click()}
                                                   className={cn(
-                                                      "w-full flex flex-row sm:flex-col items-center justify-center gap-2 p-2 sm:p-3 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50",
+                                                      "w-full flex flex-row sm:flex-col items-center justify-center gap-2 p-2 sm:p-3 rounded-2xl border-2 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50",
                                                       field.value === opt.value 
                                                           ? cn("border-primary shadow-lg ring-1 ring-primary/20", opt.bg) 
-                                                          : "border-slate-100 bg-white opacity-60 hover:opacity-100"
+                                                          : "border-slate-100 dark:border-slate-700 bg-white opacity-60 hover:opacity-100"
                                                   )}
                                               >
                                                   <span className={cn("text-lg font-black tabular-nums", field.value === opt.value ? "text-primary" : "text-slate-400")}>{opt.value}</span>
@@ -325,7 +325,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                           <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
                       </div>
                       <div>
-                          <h3 className="font-black text-base sm:text-lg text-slate-900 uppercase tracking-tight">Final Auditor Comments</h3>
+                          <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-slate-100 uppercase tracking-tight">Final Auditor Comments</h3>
                           <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Concluding Remarks for the System Maturity Report.</p>
                       </div>
                     </div>
@@ -337,7 +337,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                           <FormItem>
                               <FormLabel className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">General Experience Remarks</FormLabel>
                               <FormControl>
-                              <Textarea {...field} placeholder="Summarize your overall interaction with the portal..." rows={5} className="bg-slate-50 border-slate-200 shadow-inner text-xs" />
+                              <Textarea {...field} placeholder="Summarize your overall interaction with the portal..." rows={5} className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-inner text-xs" />
                               </FormControl>
                           </FormItem>
                           )}
@@ -349,7 +349,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                           <FormItem>
                               <FormLabel className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">Technical Suggestions</FormLabel>
                               <FormControl>
-                              <Textarea {...field} placeholder="What improvements or new modules would you like to see?" rows={5} className="bg-slate-50 border-slate-200 shadow-inner text-xs" />
+                              <Textarea {...field} placeholder="What improvements or new modules would you like to see?" rows={5} className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-inner text-xs" />
                               </FormControl>
                           </FormItem>
                           )}
@@ -359,7 +359,7 @@ export function Iso25010Form({ isOpen, onOpenChange, onSuccess }: Iso25010FormPr
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="p-4 sm:p-6 border-t bg-slate-50 shrink-0 shadow-inner">
+              <DialogFooter className="p-4 sm:p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 shadow-inner">
                 <div className="flex w-full items-center justify-between">
                   <Button
                     type="button"

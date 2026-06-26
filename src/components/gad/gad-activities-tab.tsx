@@ -188,18 +188,18 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                       <TableRow key={a.id} className="hover:bg-muted/20 transition-colors group">
                           <TableCell className="pl-8 py-5">
                               <div className="space-y-1">
-                                  <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{a.activityName}</p>
+                                  <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">{a.activityName}</p>
                                   <div className="flex items-center gap-2">
                                       <Badge variant="secondary" className="h-4 text-[8px] font-black uppercase bg-primary/5 text-primary border-none">{a.activityId}</Badge>
                                       <span className="text-[9px] font-bold text-muted-foreground">{unitMap.get(a.implementingUnitId)}</span>
                                   </div>
                               </div>
                           </TableCell>
-                          <TableCell className="text-xs font-medium text-slate-600">
+                          <TableCell className="text-xs font-medium text-slate-600 dark:text-slate-400">
                               {a.createdAt?.toDate ? format(a.createdAt.toDate(), 'PP p') : '--'}
                           </TableCell>
                           <TableCell className="text-center">
-                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 shadow-inner">
+                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 shadow-inner">
                                   <span className="text-[10px] font-black text-indigo-600 tabular-nums">M: {a.participants.male}</span>
                                   <span className="text-slate-200">|</span>
                                   <span className="text-[10px] font-black text-rose-600 tabular-nums">F: {a.participants.female}</span>
@@ -230,7 +230,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+          <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <CalendarCheck className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Activity Log</span>
@@ -246,17 +246,17 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4" /> 1. Activity Context</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="activityId" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Official Activity Code</FormLabel><FormControl><Input {...field} placeholder="e.g. QAO-2025-001" className="bg-slate-50 font-mono font-bold" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Official Activity Code</FormLabel><FormControl><Input {...field} placeholder="e.g. QAO-2025-001" className="bg-slate-50 dark:bg-slate-800/50 font-mono font-bold" /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="activityName" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Event Title</FormLabel><FormControl><Input {...field} placeholder="e.g. Gender Sensitivity Seminar" className="bg-slate-50 font-bold" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Event Title</FormLabel><FormControl><Input {...field} placeholder="e.g. Gender Sensitivity Seminar" className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl><FormMessage /></FormItem>
                                 )} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="campusId" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Host Site</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin}>
-                                            <FormControl><SelectTrigger className="h-11 bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-800/50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
                                             <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
@@ -264,7 +264,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                                 <FormField control={form.control} name="implementingUnitId" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Implementing Office</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin && !!userProfile?.unitId}>
-                                            <FormControl><SelectTrigger className="h-11 bg-slate-50"><SelectValue placeholder="Select Office" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-800/50"><SelectValue placeholder="Select Office" /></SelectTrigger></FormControl>
                                             <SelectContent modal={false}>{units.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
@@ -299,9 +299,9 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><LayoutList className="h-4 w-4" /> 3. Sectoral Distribution</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {sectors.map((sector) => (
-                                    <div key={sector} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-primary/20 transition-all">
+                                    <div key={sector} className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col gap-4 group hover:border-primary/20 transition-all">
                                         <div className="flex items-center justify-between">
-                                            <p className="text-xs font-black uppercase text-slate-600">{sector}</p>
+                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-400">{sector}</p>
                                             <Badge variant="secondary" className="h-5 text-[8px] font-black bg-white border-none shadow-sm">{(form.watch(`sectors.${sector}.male`) || 0) + (form.watch(`sectors.${sector}.female`) || 0)} TOTAL</Badge>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
@@ -330,11 +330,11 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Actual Budget Expended (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="actualOutput" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Actual Output Status</FormLabel><FormControl><Input {...field} placeholder="e.g. Conducted sensitivity workshop" className="h-11 bg-slate-50" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Actual Output Status</FormLabel><FormControl><Input {...field} placeholder="e.g. Conducted sensitivity workshop" className="h-11 bg-slate-50 dark:bg-slate-800/50" /></FormControl></FormItem>
                                 )} />
                             </div>
                             <FormField control={form.control} name="varianceAnalysis" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Variance / Implementation Remarks</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Explain any deviations from the original plan..." className="bg-slate-50 italic" /></FormControl></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Variance / Implementation Remarks</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Explain any deviations from the original plan..." className="bg-slate-50 dark:bg-slate-800/50 italic" /></FormControl></FormItem>
                             )} />
                         </section>
                     </form>
@@ -342,7 +342,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+          <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => setIsDialogOpen(false)}>Discard</Button>
                 <Button type="submit" form="activity-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11">

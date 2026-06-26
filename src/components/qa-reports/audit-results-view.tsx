@@ -359,7 +359,7 @@ export function AuditResultsView({
                         {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
                         {campusFilter === 'all' ? 'Print IQA Report' : `Print ${campusMap.get(campusFilter)} Report`}
                     </Button>
-                    <Button onClick={handlePrintByUnit} variant="outline" className="flex-1 h-10 font-black uppercase text-[10px] border-primary/20 text-primary bg-white hover:bg-slate-50 shadow-sm gap-1.5">
+                    <Button onClick={handlePrintByUnit} variant="outline" className="flex-1 h-10 font-black uppercase text-[10px] border-primary/20 text-primary bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 shadow-sm gap-1.5">
                         {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
                         Print IQA Report by Unit
                     </Button>
@@ -399,7 +399,7 @@ export function AuditResultsView({
                               {commendableRegistry.map(s => (
                                   <TableRow key={s.id} className="hover:bg-emerald-50/20">
                                       <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
+                                      <TableCell className="py-5"><p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
                                   </TableRow>
                               ))}
                               {commendableRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No commendable findings logged</p></TableCell></TableRow>}
@@ -426,7 +426,7 @@ export function AuditResultsView({
                               {ofiRegistry.map(s => (
                                   <TableRow key={s.id} className="hover:bg-amber-50/20">
                                       <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryOFI}"</p></TableCell>
+                                      <TableCell className="py-5"><p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">"{s.summaryOFI}"</p></TableCell>
                                   </TableRow>
                               ))}
                               {ofiRegistry.length === 0 && <TableRow><TableCell colSpan={2} className="h-40 text-center opacity-20"><Target className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No OFIs recorded</p></TableCell></TableRow>}
@@ -463,11 +463,11 @@ export function AuditResultsView({
                                   <TableRow key={item.finding.id} className="hover:bg-rose-50/20 transition-colors group">
                                       <TableCell className="pl-8 py-5">
                                           <div className="space-y-1">
-                                              <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule?.targetName}</p>
+                                              <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">{item.schedule?.targetName}</p>
                                               <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase"><User className="h-3 w-3" />{item.schedule?.auditorName}</div>
                                           </div>
                                       </TableCell>
-                                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700">
+                                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700 dark:text-slate-300">
                                           {item.schedule?.scheduledDate ? (
                                               <div className="space-y-1">
                                                   <div className="flex items-center gap-1.5">
@@ -486,7 +486,7 @@ export function AuditResultsView({
                                       <TableCell className="max-w-md py-5">
                                           <div className="space-y-2">
                                               <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">Clause {item.finding.isoClause}</Badge>
-                                              <p className="text-xs font-bold text-slate-800 leading-relaxed italic">"{item.finding.ncStatement || item.finding.description}"</p>
+                                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">"{item.finding.ncStatement || item.finding.description}"</p>
                                           </div>
                                       </TableCell>
                                       <TableCell className="text-center">

@@ -220,11 +220,11 @@ export function BatchDataHub({ programs, compliances, campuses, units, selectedY
                             <TableRow key={stat.id} className="hover:bg-muted/20 transition-colors group">
                                 <TableCell className="pl-8 py-5">
                                     <div className="flex flex-col">
-                                        <span className="font-black text-sm text-slate-900 group-hover:text-primary transition-colors">{stat.name}</span>
+                                        <span className="font-black text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{stat.name}</span>
                                         <span className="text-[9px] font-bold text-muted-foreground uppercase">{stat.abbreviation}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-xs font-bold text-slate-600">
+                                <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-400">
                                     <div className="flex items-center gap-2">
                                         <School className="h-3.5 w-3.5 opacity-30" />
                                         {stat.campus}
@@ -233,8 +233,8 @@ export function BatchDataHub({ programs, compliances, campuses, units, selectedY
 
                                 {dataMode === 'enrollment' && (
                                     <>
-                                        <TableCell className="text-center font-black tabular-nums text-slate-700">{stat.sem1 || '--'}</TableCell>
-                                        <TableCell className="text-center font-black tabular-nums text-slate-700">{stat.sem2 || '--'}</TableCell>
+                                        <TableCell className="text-center font-black tabular-nums text-slate-700 dark:text-slate-300">{stat.sem1 || '--'}</TableCell>
+                                        <TableCell className="text-center font-black tabular-nums text-slate-700 dark:text-slate-300">{stat.sem2 || '--'}</TableCell>
                                     </>
                                 )}
 
@@ -246,7 +246,7 @@ export function BatchDataHub({ programs, compliances, campuses, units, selectedY
 
                                 {dataMode === 'board' && (
                                     <TableCell className="text-center">
-                                        <span className={cn("font-black tabular-nums", stat.latestBoard >= 70 ? "text-emerald-600" : "text-slate-700")}>
+                                        <span className={cn("font-black tabular-nums", stat.latestBoard >= 70 ? "text-emerald-600" : "text-slate-700 dark:text-slate-300")}>
                                             {stat.latestBoard ? `${stat.latestBoard}%` : '--'}
                                         </span>
                                     </TableCell>

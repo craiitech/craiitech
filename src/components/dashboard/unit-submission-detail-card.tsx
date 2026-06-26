@@ -194,7 +194,7 @@ export function UnitSubmissionDetailCard({
                                       </Button>
                                   </>
                               ) : (
-                                  <Badge variant="outline" className={cn("text-[9px] h-4 py-0 font-bold", !isCycleLive ? "text-muted-foreground border-slate-200" : "text-destructive border-destructive/30")}>
+                                  <Badge variant="outline" className={cn("text-[9px] h-4 py-0 font-bold", !isCycleLive ? "text-muted-foreground border-slate-200 dark:border-slate-700" : "text-destructive border-destructive/30")}>
                                       {!isCycleLive ? "NOT STARTED" : "PENDING"}
                                   </Badge>
                               )}

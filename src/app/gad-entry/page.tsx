@@ -148,7 +148,7 @@ export default function PublicGadEntryPage() {
   // Improved loading state to prevent flickering "Registry Closed" during initial fetch
   if (isLoadingSettings) {
       return (
-          <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 gap-4">
+          <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
               <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing GAD Registry...</p>
           </div>
@@ -157,13 +157,13 @@ export default function PublicGadEntryPage() {
 
   if (!settings?.isPublicEntryEnabled) {
       return (
-          <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+          <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50">
               <Card className="max-w-md text-center shadow-xl">
                   <CardHeader>
-                      <div className="mx-auto h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                      <div className="mx-auto h-20 w-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
                           <HandHeart className="h-10 w-10 text-slate-400 opacity-40" />
                       </div>
-                      <CardTitle className="text-xl font-black uppercase text-slate-800">GAD Registry Closed</CardTitle>
+                      <CardTitle className="text-xl font-black uppercase text-slate-800 dark:text-slate-200">GAD Registry Closed</CardTitle>
                       <CardDescription>Public GAD data collection is currently offline. Please contact the Quality Assurance Office for assistance.</CardDescription>
                   </CardHeader>
               </Card>
@@ -183,8 +183,8 @@ export default function PublicGadEntryPage() {
             <div className="mx-auto h-16 w-16 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20 mb-6">
                 <HandHeart className="h-10 w-10" />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none">Gender & Development Hub</h1>
-            <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Public SDD Collection Registry</p>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight leading-none">Gender & Development Hub</h1>
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">Public SDD Collection Registry</p>
         </div>
 
         <Card className="shadow-2xl border-none overflow-hidden bg-white/95">
@@ -207,21 +207,21 @@ export default function PublicGadEntryPage() {
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 border-b pb-2">
                             <Target className="h-5 w-5 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800">1. Activity Identification</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">1. Activity Identification</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="activityId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Official Activity Code</FormLabel><FormControl><Input {...field} placeholder="e.g. QAO-2025-001" className="bg-slate-50 font-mono font-bold" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Official Activity Code</FormLabel><FormControl><Input {...field} placeholder="e.g. QAO-2025-001" className="bg-slate-50 dark:bg-slate-800/50 font-mono font-bold" /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="activityName" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Full Title of Activity</FormLabel><FormControl><Input {...field} placeholder="e.g. Sensitivity Workshop..." className="bg-slate-50 font-bold" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Full Title of Activity</FormLabel><FormControl><Input {...field} placeholder="e.g. Sensitivity Workshop..." className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold uppercase">Campus Site</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger className="h-11 bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                        <FormControl><SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-800/50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
                                         <SelectContent>{campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </FormItem>
@@ -229,7 +229,7 @@ export default function PublicGadEntryPage() {
                             <FormField control={form.control} name="implementingUnitId" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold uppercase">Implementing Office</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
-                                        <FormControl><SelectTrigger className="h-11 bg-slate-50"><SelectValue placeholder={watchCampusId ? "Select Office" : "Select Campus First"} /></SelectTrigger></FormControl>
+                                        <FormControl><SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-800/50"><SelectValue placeholder={watchCampusId ? "Select Office" : "Select Campus First"} /></SelectTrigger></FormControl>
                                         <SelectContent>{units?.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </FormItem>
@@ -241,7 +241,7 @@ export default function PublicGadEntryPage() {
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 border-b pb-2">
                             <Users className="h-5 w-5 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800">2. Participant Headcount (Sex-Disaggregated)</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">2. Participant Headcount (Sex-Disaggregated)</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <FormField control={form.control} name="male" render={({ field }) => (
@@ -268,13 +268,13 @@ export default function PublicGadEntryPage() {
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 border-b pb-2">
                             <LayoutList className="h-5 w-5 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800">3. Sectoral Breakdown (Optional)</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">3. Sectoral Breakdown (Optional)</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {sectors.map((sector) => (
-                                <div key={sector} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-primary/20 transition-all">
+                                <div key={sector} className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col gap-4 group hover:border-primary/20 transition-all">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-xs font-black uppercase text-slate-600">{sector}</p>
+                                        <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-400">{sector}</p>
                                         <Badge variant="secondary" className="h-5 text-[10px] font-black bg-white border-none shadow-sm">{watchSectors[sector]?.male + watchSectors[sector]?.female} TOTAL</Badge>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">

@@ -100,7 +100,7 @@ export function AccreditationPerformanceTab({
     if (level.includes('Level II')) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
     if (level.includes('Level I')) return 'bg-green-100 text-green-800 border-green-200';
     if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-slate-100 text-slate-600 border-slate-200';
+    return 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
   };
 
   const lifecycleBadge = (status: string) => {
@@ -108,7 +108,7 @@ export function AccreditationPerformanceTab({
     if (status === 'Undergoing') return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[8px] font-black">Undergoing</Badge>;
     if (status === 'Completed') return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[8px] font-black">Completed</Badge>;
     if (status === 'Waiting for Official Result') return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[8px] font-black">Awaiting Result</Badge>;
-    return <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">{status}</Badge>;
+    return <Badge variant="outline" className="bg-slate-100 dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-700 text-[8px] font-black">{status}</Badge>;
   };
 
   return (
@@ -120,7 +120,7 @@ export function AccreditationPerformanceTab({
             <CardTitle className="text-[9px] font-black uppercase tracking-widest text-slate-500">Active Programs</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <p className="text-2xl font-black text-slate-900">{stats.active}</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{stats.active}</p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">{stats.withCompliance} with records</p>
           </CardContent>
         </Card>
@@ -147,7 +147,7 @@ export function AccreditationPerformanceTab({
             <CardTitle className="text-[9px] font-black uppercase tracking-widest text-slate-500">Non-Accredited</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <p className="text-2xl font-black text-slate-600">{stats.levels['Non Accredited'] || 0}</p>
+            <p className="text-2xl font-black text-slate-600 dark:text-slate-400">{stats.levels['Non Accredited'] || 0}</p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">No active accreditation</p>
           </CardContent>
         </Card>
@@ -156,7 +156,7 @@ export function AccreditationPerformanceTab({
             <CardTitle className="text-[9px] font-black uppercase tracking-widest text-slate-500">Open Recs</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <p className={cn("text-2xl font-black", stats.openRecs > 0 ? "text-rose-600" : "text-slate-900")}>{stats.openRecs}</p>
+            <p className={cn("text-2xl font-black", stats.openRecs > 0 ? "text-rose-600" : "text-slate-900 dark:text-slate-100")}>{stats.openRecs}</p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">Mandatory recommendations</p>
           </CardContent>
         </Card>
@@ -170,11 +170,11 @@ export function AccreditationPerformanceTab({
             placeholder="Search program name or abbreviation..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-xs bg-white border-slate-200 focus-visible:ring-indigo-500 rounded-xl"
+            className="pl-9 h-9 text-xs bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-xl"
           />
         </div>
         <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 rounded-xl">
+          <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 dark:border-slate-700 rounded-xl">
             <SelectValue placeholder="All Levels" />
           </SelectTrigger>
           <SelectContent>
@@ -188,7 +188,7 @@ export function AccreditationPerformanceTab({
           </SelectContent>
         </Select>
         <Select value={campusFilter} onValueChange={setCampusFilter}>
-          <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 rounded-xl">
+          <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 dark:border-slate-700 rounded-xl">
             <SelectValue placeholder="All Campuses" />
           </SelectTrigger>
           <SelectContent>
@@ -202,10 +202,10 @@ export function AccreditationPerformanceTab({
       </div>
 
       {/* Table */}
-      <Card className="shadow-md border-slate-200/60 overflow-hidden bg-white rounded-2xl">
+      <Card className="shadow-md border-slate-200/60 dark:border-slate-700/60 overflow-hidden bg-white rounded-2xl">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-slate-50/70 border-b">
+            <TableHeader className="bg-slate-50/70 dark:bg-slate-800/70 border-b">
               <TableRow>
                 <TableHead className="pl-6 py-4 text-[10px] font-black uppercase text-slate-500 tracking-wider">Program</TableHead>
                 <TableHead className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Campus</TableHead>
@@ -227,22 +227,22 @@ export function AccreditationPerformanceTab({
                 </TableRow>
               ) : (
                 programsWithAccreditation.map(item => (
-                  <TableRow key={item.program.id} className="hover:bg-slate-50/80 transition-all border-b">
+                  <TableRow key={item.program.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all border-b">
                     <TableCell className="pl-6 py-3">
                       <div className="flex flex-col">
-                        <span className="text-xs font-black text-slate-800">{item.program.name}</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200">{item.program.name}</span>
                         <span className="text-[9px] text-slate-400 font-mono font-bold">{item.program.abbreviation}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-600 font-medium">{item.campusName}</TableCell>
+                    <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-medium">{item.campusName}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("text-[9px] font-black px-2 py-0.5 rounded-full", levelColor(item.level))}>
                         {item.level}
                       </Badge>
                     </TableCell>
                     <TableCell>{lifecycleBadge(item.lifecycle)}</TableCell>
-                    <TableCell className="text-xs text-slate-600 font-medium tabular-nums">{item.nextSurvey}</TableCell>
-                    <TableCell className="text-xs text-slate-600 font-medium max-w-[160px] truncate" title={item.descriptiveRating}>
+                    <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-medium tabular-nums">{item.nextSurvey}</TableCell>
+                    <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-medium max-w-[160px] truncate" title={item.descriptiveRating}>
                       {item.descriptiveRating || <span className="text-slate-300 italic text-[10px]">N/A</span>}
                     </TableCell>
                     <TableCell className="text-right pr-6">

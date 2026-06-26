@@ -243,7 +243,7 @@ export function StrategicSwotAnalysis({
                                         {item.category === 'Academic' && <Award className="h-3 w-3 text-emerald-600" />}
                                         {item.category === 'Audit' && <ClipboardCheck className="h-3 w-3 text-emerald-600" />}
                                         {item.category === 'Risk' && <ShieldCheck className="h-3 w-3 text-emerald-600" />}
-                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.title}</span>
+                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.title}</span>
                                     </div>
                                     <Badge className="bg-emerald-100 text-emerald-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
                                 </div>
@@ -271,7 +271,7 @@ export function StrategicSwotAnalysis({
                                         {item.category === 'Academic' && <School className="h-3 w-3 text-rose-600" />}
                                         {item.category === 'Audit' && <AlertTriangle className="h-3 w-3 text-rose-600" />}
                                         {item.category === 'Governance' && <Gavel className="h-3 w-3 text-rose-600" />}
-                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">{item.title}</span>
+                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight group-hover:text-rose-600 transition-colors">{item.title}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         {item.priority === 'High' && <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase">Critical</Badge>}

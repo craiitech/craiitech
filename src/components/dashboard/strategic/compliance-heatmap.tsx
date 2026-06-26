@@ -72,8 +72,8 @@ export function ComplianceHeatmap({ units, submissions, selectedYear, title = "C
       case 'approved': return 'bg-emerald-50 border-emerald-200';
       case 'submitted': return 'bg-amber-50 border-amber-200';
       case 'rejected': return 'bg-rose-50 border-rose-200';
-      case 'na': return 'bg-slate-50 border-slate-100 opacity-50';
-      default: return 'bg-white border-slate-100';
+      case 'na': return 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-50';
+      default: return 'bg-white border-slate-100 dark:border-slate-700';
     }
   };
 
@@ -123,7 +123,7 @@ export function ComplianceHeatmap({ units, submissions, selectedYear, title = "C
               <tbody>
                 {heatmapData.map(unit => (
                   <tr key={unit.unitId} className="group">
-                    <td className="text-[10px] font-bold text-slate-700 truncate max-w-[150px] p-1 group-hover:text-primary transition-colors">
+                    <td className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[150px] p-1 group-hover:text-primary transition-colors">
                       {unit.unitName}
                     </td>
                     {unit.reports.map((report, idx) => (

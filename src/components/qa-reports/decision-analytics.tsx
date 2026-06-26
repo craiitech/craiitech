@@ -339,7 +339,7 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
                 {analytics.initiatorData.map((item, idx) => (
                     <div key={idx} className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-slate-700 truncate max-w-[200px]">{item.name}</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{item.name}</span>
                             <span className="font-black text-primary tabular-nums">{item.value} Actions</span>
                         </div>
                         <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">

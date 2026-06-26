@@ -132,7 +132,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[92dvh] flex flex-col border-primary/20 shadow-2xl overflow-hidden p-0">
-        <DialogHeader className="bg-slate-50 p-6 border-b shrink-0">
+        <DialogHeader className="bg-slate-50 dark:bg-slate-800/50 p-6 border-b shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <ShieldCheck className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Work log</span>
@@ -149,7 +149,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
                         <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                             <Calendar className="h-3 w-3" /> Conduct Date
                         </FormLabel>
-                        <FormControl><Input type="date" {...field} className="bg-slate-50 font-bold" /></FormControl>
+                        <FormControl><Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -193,7 +193,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
             <FormField control={form.control} name="activityParticular" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary">Activity Particulars / Description</FormLabel>
-                    <FormControl><Textarea {...field} rows={3} placeholder="Describe the task executed..." className="bg-slate-50" /></FormControl>
+                    <FormControl><Textarea {...field} rows={3} placeholder="Describe the task executed..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                     <FormDescription className="text-[9px]">Specify the actual work performed during this session.</FormDescription>
                     <FormMessage />
                 </FormItem>
@@ -222,7 +222,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
             <FormField control={form.control} name="remarks" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500">Additional Remarks</FormLabel>
-                    <FormControl><Input {...field} placeholder="Internal notes..." className="bg-slate-50 text-xs" /></FormControl>
+                    <FormControl><Input {...field} placeholder="Internal notes..." className="bg-slate-50 dark:bg-slate-800/50 text-xs" /></FormControl>
                 </FormItem>
             )} />
 

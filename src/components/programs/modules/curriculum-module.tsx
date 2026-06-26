@@ -70,7 +70,7 @@ function EnrollmentRecordCard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {GAD_SECTORS.map((sector) => (
                     <div key={sector} className="space-y-2 p-2 rounded-lg bg-white border shadow-sm">
-                        <p className="text-[9px] font-black uppercase text-slate-700">{sector}</p>
+                        <p className="text-[9px] font-black uppercase text-slate-700 dark:text-slate-300">{sector}</p>
                         <div className="grid grid-cols-2 gap-2">
                             <FormField control={control} name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.male`} render={({ field: inputField }) => (
                                 <div className="space-y-1">
@@ -181,7 +181,7 @@ function EnrollmentRecordCard({
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-2 px-4 flex justify-between items-center">
                 <p className="text-[8px] font-black uppercase text-primary/50">Institutional GAD Synchronization Active</p>
-                <div className="flex gap-6 text-[10px] font-black text-slate-800">
+                <div className="flex gap-6 text-[10px] font-black text-slate-800 dark:text-slate-200">
                     <div className="flex items-center gap-2">
                         <span className="opacity-40">1ST SEM TOTAL:</span>
                         <span className="text-primary tabular-nums">{calculateTermTotal('firstSemester')}</span>
@@ -492,7 +492,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
             </div>
 
             {showRegistry && (
-                <Card className="bg-slate-50 border-dashed">
+                <Card className="bg-slate-50 dark:bg-slate-800/50 border-dashed">
                     <div className="py-4 px-6">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                             <Calculator className="h-3.5 w-3.5" />

@@ -330,7 +330,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                       <CardContent>
                           <div className="flex items-center gap-3">
                               <Calendar className="h-8 w-8 text-primary opacity-20" />
-                              <p className="text-2xl font-black text-slate-900 uppercase">
+                              <p className="text-2xl font-black text-slate-900 dark:text-slate-100 uppercase">
                                   {program.isNewProgram ? 'NEW PROGRAM' : (analyticsData.latestAccreditation?.statusValidityDate || 'TBA')}
                               </p>
                           </div>
@@ -383,7 +383,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                                   <p className="text-[10px] font-black text-destructive uppercase tracking-[0.1em]">{gap.type}</p>
                                                   <Badge variant="outline" className="h-4 text-[8px] border-destructive/20 text-destructive font-black uppercase">{gap.priority}</Badge>
                                               </div>
-                                              <p className="text-sm font-bold text-slate-800 leading-snug">{gap.msg}</p>
+                                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-snug">{gap.msg}</p>
                                           </div>
                                       </div>
                                   ))
@@ -392,7 +392,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                       <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
                                           <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                                       </div>
-                                      <h4 className="font-black text-slate-900 uppercase text-sm">Full Standard Compliance</h4>
+                                      <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase text-sm">Full Standard Compliance</h4>
                                       <p className="text-xs text-muted-foreground">All quality criteria verified for AY {selectedYear}.</p>
                                   </div>
                               )}
@@ -453,7 +453,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                           </ResponsiveContainer>
                       </ChartContainer>
                       <div className="mt-4 text-center">
-                          <p className="text-2xl font-black text-slate-800 tabular-nums">{analyticsData.totalFaculty}</p>
+                          <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{analyticsData.totalFaculty}</p>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Faculty Pool</p>
                       </div>
                   </CardContent>
@@ -536,7 +536,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                       </Badge>
                                   </TableCell>
                                   <TableCell className="py-5">
-                                      <p className="text-xs font-bold text-slate-800 leading-relaxed italic">"{reco.text}"</p>
+                                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">"{reco.text}"</p>
                                       {reco.additionalInfo && (
                                           <div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase">
                                               <Info className="h-3 w-3" /> Area: {reco.additionalInfo}
@@ -546,7 +546,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                   <TableCell>
                                       <div className="flex flex-wrap gap-1">
                                           {(reco.assignedUnitIds || []).map(uid => (
-                                              <Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">
+                                              <Badge key={uid} variant="outline" className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 h-4 px-1.5 text-[8px] font-bold">
                                                   {unitMap.get(uid) || uid}
                                               </Badge>
                                           ))}
@@ -631,7 +631,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                                   <Check className="h-2 w-2 mr-0.5" /> VERIFIED
                                               </Badge>
                                           </div>
-                                          <p className="text-xs font-bold text-slate-800 truncate leading-tight">{item.title}</p>
+                                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">{item.title}</p>
                                       </div>
                                   </div>
                                   <div className="flex gap-2">
@@ -666,7 +666,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
         <DialogContent className="max-w-6xl h-[92dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-            <DialogHeader className="p-5 border-b bg-slate-50 shrink-0">
+            <DialogHeader className="p-5 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                         <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title}</DialogTitle>

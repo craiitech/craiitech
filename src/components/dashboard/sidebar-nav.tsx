@@ -586,7 +586,7 @@ export function SidebarNav({
                   onClick={(e) => handleNavClick(e, '/communications')}
                   className={cn(
                     "rounded-md hover:bg-sky-950/40 hover:text-sky-200 text-sky-300 [&_svg]:text-sky-300",
-                    "[&[data-active=true]]:bg-sky-500 [&[data-active=true]]:text-slate-950 [&[data-active=true]_svg]:text-slate-950 [&[data-active=true]]:hover:bg-sky-400 [&[data-active=true]]:hover:text-slate-950",
+                    "[&[data-active=true]]:bg-sky-500 [&[data-active=true]]:text-slate-950 dark:text-white [&[data-active=true]_svg]:text-slate-950 dark:text-white [&[data-active=true]]:hover:bg-sky-400 [&[data-active=true]]:hover:text-slate-950 dark:text-white",
                     (!isOnline || isForcedOffline) && "opacity-20 cursor-not-allowed"
                   )}
                 >
@@ -661,7 +661,7 @@ export function SidebarNav({
               <Button 
                 onClick={handlePrintVisitorLogs}
                 disabled={isPrinting}
-                className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="w-full h-12 bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
               >
                 {isPrinting ? (
                   <>
@@ -678,21 +678,21 @@ export function SidebarNav({
                   router.push('/visitor-logbook/settings');
                   setIsVisitorDialogOpen(false);
                 }}
-                className="w-full h-12 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="w-full h-12 bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
               >
                 CSM Settings Page
               </Button>
             </div>
 
             {/* Right column: QR Code + Link */}
-            <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+            <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
 
               <p className="text-[9px] text-slate-500 font-medium text-center leading-relaxed">
                 Download the QR code or copy the link below and send it to your online clients so they can evaluate your unit&apos;s service through the CSM survey.
               </p>
 
-              <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
                 {csmQrUrl ? (
                   <img
                      src={csmQrUrl}
@@ -706,9 +706,9 @@ export function SidebarNav({
                 )}
               </div>
 
-              <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 truncate">
+              <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 truncate">
                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
-                <p className="text-[10px] font-mono text-slate-700 truncate">
+                <p className="text-[10px] font-mono text-slate-700 dark:text-slate-300 truncate">
                   {typeof window !== 'undefined' && userProfile
                     ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
                     : 'Loading...'}
@@ -766,7 +766,7 @@ export function SidebarNav({
                       });
                     }
                   }}
-                  className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200"
+                  className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200 dark:border-slate-700"
                 >
                   <ExternalLink className="h-4 w-4 mr-1" /> Copy Message for Clients
                 </Button>
@@ -790,7 +790,7 @@ export function SidebarNav({
                       });
                     }
                   }}
-                  className="w-full h-9 text-[9px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600"
+                  className="w-full h-9 text-[9px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400"
                 >
                   Copy Link Only
                 </Button>
@@ -799,7 +799,7 @@ export function SidebarNav({
           </div>
 
           <AlertDialogFooter className="border-t pt-3 shrink-0">
-            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200 dark:border-slate-700">
               Close
             </AlertDialogCancel>
           </AlertDialogFooter>

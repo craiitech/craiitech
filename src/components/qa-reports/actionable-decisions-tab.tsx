@@ -411,7 +411,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900">
+            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
                 <ShieldCheck className="h-6 w-6 text-primary" />
                 Actionable Decisions Hub
             </h3>
@@ -537,14 +537,14 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 <TableCell className="text-[10px] font-black text-muted-foreground text-center pl-6">{index + 1}</TableCell>
                                 <TableCell>
                                 <div className="flex flex-col gap-1 max-w-xs">
-                                    <span className="font-bold text-sm text-slate-900 leading-snug group-hover:text-primary transition-colors">{output.description}</span>
+                                    <span className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-snug group-hover:text-primary transition-colors">{output.description}</span>
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
                                             <History className="h-2.5 w-2.5" />
                                             From: {reviewMap.get(output.mrId)?.title || 'MR Session'}
                                         </div>
                                         {output.lineNumber && (
-                                            <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-slate-100 px-1.5 py-0.5 rounded">
+                                            <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
                                                 <Hash className="h-2 w-2" />
                                                 Line: {output.lineNumber}
                                             </div>
@@ -562,8 +562,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                                 <Badge variant="outline" className={cn(
                                                     "text-[8px] h-4 font-bold border-muted-foreground/20",
                                                     a.unitId === ALL_UNITS_ID ? "bg-blue-50 text-blue-700" :
-                                                    a.unitId === ALL_ACADEMIC_ID ? "bg-slate-50 text-slate-700" :
-                                                    a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
+                                                    a.unitId === ALL_ACADEMIC_ID ? "bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300" :
+                                                    a.unitId === ALL_ADMIN_ID ? "bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300" :
                                                     a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
                                                     "text-muted-foreground bg-white"
                                                 )}>
@@ -574,7 +574,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-center">
-                                    <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600">
+                                    <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 dark:text-slate-400">
                                         <Calendar className="h-3 w-3 text-muted-foreground" />
                                         {safeFormatDateLocal(output.followUpDate)}
                                     </div>
@@ -642,7 +642,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         <DialogContent className="max-w-2xl overflow-hidden p-0 border-none shadow-2xl">
             {previewOutput && (
                 <>
-                    <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
+                    <DialogHeader className="p-6 bg-slate-50 dark:bg-slate-800/50 border-b shrink-0">
                         <div className="flex items-center gap-2 text-primary mb-1">
                             <LayoutList className="h-5 w-5" />
                             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Management Decision Review</span>
@@ -662,7 +662,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         </Badge>
                                     )}
                                 </div>
-                                <p className="text-lg font-bold text-slate-900 leading-relaxed italic">
+                                <p className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-relaxed italic">
                                     "{previewOutput.description}"
                                 </p>
                             </div>
@@ -675,11 +675,11 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                     <div className="space-y-3">
                                         <div>
                                             <p className="text-[9px] font-bold text-slate-400 uppercase">Initiator</p>
-                                            <p className="text-xs font-bold text-slate-700">{previewOutput.initiator}</p>
+                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{previewOutput.initiator}</p>
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-bold text-slate-400 uppercase">Source Session</p>
-                                            <p className="text-xs font-bold text-slate-700">{reviewMap.get(previewOutput.mrId)?.title || 'Management Review'}</p>
+                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{reviewMap.get(previewOutput.mrId)?.title || 'Management Review'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -705,7 +705,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-bold text-slate-400 uppercase">Follow-up Deadline</p>
-                                            <p className="text-xs font-black text-slate-700 uppercase tracking-tighter">
+                                            <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter">
                                                 {safeFormatDateLocal(previewOutput.followUpDate)}
                                             </p>
                                         </div>
@@ -719,12 +719,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Accountability Matrix</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     {(previewOutput.assignments || []).map((a, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-slate-50/50">
+                                        <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50">
                                             <div className="flex items-center gap-2">
                                                 <Building2 className="h-3.5 w-3.5 text-primary/60" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] font-black uppercase text-primary leading-none mb-1">{campusMap.get(a.campusId)}</span>
-                                                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[180px]">{unitMap.get(a.unitId)}</span>
+                                                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[180px]">{unitMap.get(a.unitId)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -735,21 +735,21 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             {previewOutput.actionPlan && (
                                 <div className="bg-primary/5 rounded-xl p-6 border border-primary/10">
                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">Proposed Action Strategy</h4>
-                                    <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                         {previewOutput.actionPlan}
                                     </p>
                                 </div>
                             )}
 
                             {previewOutput.followUpRemarks && (
-                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 mb-3">Implementation Progress</h4>
-                                    <p className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap italic">
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300 mb-3">Implementation Progress</h4>
+                                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-wrap italic">
                                         "{previewOutput.followUpRemarks}"
                                     </p>
-                                    <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
-                                        <span className="text-[10px] font-bold text-slate-700 uppercase">Action by: {previewOutput.actionTakenBy}</span>
-                                        <span className="text-[10px] font-bold text-slate-700 uppercase">{safeFormatDateLocal(previewOutput.actionDate)}</span>
+                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">Action by: {previewOutput.actionTakenBy}</span>
+                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">{safeFormatDateLocal(previewOutput.actionDate)}</span>
                                     </div>
                                 </div>
                             )}
@@ -768,7 +768,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                             <div key={entry.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex-1 space-y-2">
-                                                        <p className="text-sm font-semibold text-slate-900 leading-relaxed">
+                                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-relaxed">
                                                             {entry.description}
                                                         </p>
                                                         <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted-foreground">
@@ -819,12 +819,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                                     </div>
                                                 </div>
                                                 {entry.isConfirmed && entry.confirmationRemarks && (
-                                                    <div className="mt-2 pt-3 border-t border-slate-100">
+                                                    <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-700">
                                                         <div className="flex items-start gap-2">
                                                             <MessageSquare className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
                                                             <div>
                                                                 <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-1">Admin Feedback</p>
-                                                                <p className="text-xs text-slate-700 leading-relaxed">{entry.confirmationRemarks}</p>
+                                                                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{entry.confirmationRemarks}</p>
                                                                 <div className="flex items-center gap-3 mt-2 text-[9px] font-bold text-muted-foreground">
                                                                     <span className="flex items-center gap-1">
                                                                         <ShieldCheck className="h-2.5 w-2.5" />
@@ -862,7 +862,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         </div>
                     </ScrollArea>
 
-                    <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+                    <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
                         <div className="flex w-full justify-between items-center">
                             <Button variant="ghost" size="sm" onClick={() => setPreviewOutput(null)} className="text-[10px] font-bold uppercase tracking-widest">
                                 Close Preview
@@ -920,7 +920,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-black uppercase">Date of Action</FormLabel>
                                     <FormControl>
-                                        <Input type="date" {...field} className="bg-slate-50 h-9 text-xs" />
+                                        <Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -929,7 +929,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-black uppercase">Executed By</FormLabel>
                                     <FormControl>
-                                        <Input {...field} placeholder="Name of Person" className="bg-slate-50 h-9 text-xs font-bold" />
+                                        <Input {...field} placeholder="Name of Person" className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs font-bold" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -940,7 +940,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase">Action Taken / Unit Progress Summary</FormLabel>
                                 <FormControl>
-                                    <Textarea {...field} placeholder="Describe the steps taken by your unit to address this MR decision..." rows={4} className="bg-slate-50 text-xs" />
+                                    <Textarea {...field} placeholder="Describe the steps taken by your unit to address this MR decision..." rows={4} className="bg-slate-50 dark:bg-slate-800/50 text-xs" />
                                 </FormControl>
                                 <FormDescription className="text-[9px]">Provide evidence of completion or reasons for ongoing status.</FormDescription>
                                 <FormMessage />
@@ -1007,7 +1007,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         </div>
                     )}
 
-                    <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+                    <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
                         <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4 mr-1.5" />}
@@ -1047,7 +1047,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                   <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase">Action Taken Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Describe the specific action taken by your unit..." rows={4} className="bg-slate-50 text-xs" />
+                      <Textarea {...field} placeholder="Describe the specific action taken by your unit..." rows={4} className="bg-slate-50 dark:bg-slate-800/50 text-xs" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1058,7 +1058,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     <FormItem>
                       <FormLabel className="text-[10px] font-black uppercase">Date of Implementation</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} className="bg-slate-50 h-9 text-xs" />
+                        <Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1067,7 +1067,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     <FormItem>
                       <FormLabel className="text-[10px] font-black uppercase">Google Drive Link</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="https://drive.google.com/..." className="bg-slate-50 h-9 text-xs" />
+                        <Input {...field} placeholder="https://drive.google.com/..." className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs" />
                       </FormControl>
                       <FormDescription className="text-[9px]">Optional evidence file link</FormDescription>
                       <FormMessage />
@@ -1106,10 +1106,10 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
           {selectedActionEntry && (
             <div className="space-y-4 py-2">
-              <div className="border rounded-lg p-4 bg-slate-50 space-y-3">
+              <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800/50 space-y-3">
                 <div>
                   <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Action Description</p>
-                  <p className="text-sm font-semibold text-slate-900">{selectedActionEntry.description}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedActionEntry.description}</p>
                 </div>
                 <div className="flex flex-wrap gap-4 text-[10px] font-bold text-muted-foreground">
                   <span className="flex items-center gap-1">
@@ -1132,7 +1132,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-700 flex items-center gap-1.5">
+                <Label className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <MessageSquare className="h-3 w-3" />
                   Admin Feedback / Remarks
                 </Label>

@@ -475,7 +475,7 @@ export function QaAnalyticsTab() {
                               <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.title}</span>
+                                      <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.title}</span>
                                   </div>
                                   <Badge className="bg-emerald-100 text-emerald-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
                               </div>
@@ -500,7 +500,7 @@ export function QaAnalyticsTab() {
                               <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                       <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
-                                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">{item.title}</span>
+                                      <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight group-hover:text-rose-600 transition-colors">{item.title}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                       {item.priority === 'High' && <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase">Critical</Badge>}
@@ -586,11 +586,11 @@ export function QaAnalyticsTab() {
 
       {/* === Pipeline Insight Bar === */}
       {analytics.totalCars > 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-start gap-3 shadow-sm">
           <BarChart3 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Executive Summary — Corrective Action Pipeline</p>
-            <p className="text-sm font-bold text-slate-700 mt-1 leading-relaxed">{analytics.pipelineText}</p>
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">{analytics.pipelineText}</p>
           </div>
         </div>
       )}
@@ -634,12 +634,12 @@ export function QaAnalyticsTab() {
                   {analytics.carStatusData.map(d => {
                     const pct = analytics.totalCars > 0 ? Math.round((d.value / analytics.totalCars) * 100) : 0;
                     return (
-                      <div key={d.name} className="flex items-center justify-between border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
+                      <div key={d.name} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-1.5 last:border-0 last:pb-0">
                         <div className="flex items-center gap-2">
                           <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: CAR_STATUS_COLORS[d.name] || '#94a3b8' }} />
-                          <span className="text-[10px] font-extrabold uppercase text-slate-700">{d.name}</span>
+                          <span className="text-[10px] font-extrabold uppercase text-slate-700 dark:text-slate-300">{d.name}</span>
                         </div>
-                        <span className="text-[11px] font-black text-slate-900">{d.value} <span className="text-slate-400 font-medium font-mono text-[9px]">({pct}%)</span></span>
+                        <span className="text-[11px] font-black text-slate-900 dark:text-slate-100">{d.value} <span className="text-slate-400 font-medium font-mono text-[9px]">({pct}%)</span></span>
                       </div>
                     );
                   })}
@@ -685,7 +685,7 @@ export function QaAnalyticsTab() {
                     <div key={d.name} className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full shrink-0" style={{ background: NATURE_COLORS[d.name] }} />
                       <div>
-                        <p className="text-sm font-black text-slate-800">{d.value}</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200">{d.value}</p>
                         <p className="text-[9px] font-bold text-muted-foreground uppercase leading-none mt-0.5">{d.name === 'NC' ? 'Non-Conformance' : 'Opportunity for Improvement'}</p>
                       </div>
                     </div>
@@ -693,11 +693,11 @@ export function QaAnalyticsTab() {
                 </div>
               </div>
               {analytics.totalCars > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-100 bg-slate-50 rounded-lg p-2.5 flex items-start gap-2">
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 flex items-start gap-2">
                   <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Analysis</p>
-                    <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{analytics.natureText}</p>
+                    <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{analytics.natureText}</p>
                   </div>
                 </div>
               )}
@@ -733,11 +733,11 @@ export function QaAnalyticsTab() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-2 pt-3 border-t border-slate-100 bg-slate-50 rounded-lg p-2.5 flex items-start gap-2">
+                  <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 flex items-start gap-2">
                     <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                     <div>
                       <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Analysis</p>
-                      <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{analytics.sourceText}</p>
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{analytics.sourceText}</p>
                     </div>
                   </div>
                 </>
@@ -792,11 +792,11 @@ export function QaAnalyticsTab() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                    <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{analytics.agingText}</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{analytics.agingText}</p>
                   </div>
                 </div>
               </>
@@ -839,11 +839,11 @@ export function QaAnalyticsTab() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                    <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{analytics.unitsText}</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{analytics.unitsText}</p>
                   </div>
                 </div>
               </>
@@ -885,11 +885,11 @@ export function QaAnalyticsTab() {
                     <Line type="monotone" dataKey="Closed" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} />
                   </LineChart>
                 </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                    <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{analytics.trendText}</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{analytics.trendText}</p>
                   </div>
                 </div>
               </>
@@ -922,7 +922,7 @@ export function QaAnalyticsTab() {
               </div>
             </div>
             {analytics.totalDecisions > 0 && analytics.mrResolutionRate < 70 && (
-              <div className="mt-2 pt-3 border-t border-slate-100 bg-rose-50 rounded-lg p-2.5 flex items-start gap-2">
+              <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-700 bg-rose-50 rounded-lg p-2.5 flex items-start gap-2">
                 <AlertTriangle className="h-3.5 w-3.5 text-rose-600 shrink-0 mt-0.5" />
                 <p className="text-[10px] font-bold text-rose-700 leading-relaxed">Decision backlog needs attention — less than 70% of management review outputs have been closed.</p>
               </div>
@@ -962,11 +962,11 @@ export function QaAnalyticsTab() {
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                    <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{analytics.campusText}</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{analytics.campusText}</p>
                   </div>
                 </div>
               </>
@@ -1032,7 +1032,7 @@ export function QaAnalyticsTab() {
             <FileText className="h-5 w-5 text-slate-400" />
             <div>
               <p className="text-[9px] font-black uppercase text-muted-foreground">Audit Reports</p>
-              <p className="text-lg font-black text-slate-800">{analytics.totalAudits}</p>
+              <p className="text-lg font-black text-slate-800 dark:text-slate-200">{analytics.totalAudits}</p>
             </div>
           </CardContent>
         </Card>
@@ -1041,7 +1041,7 @@ export function QaAnalyticsTab() {
             <Users className="h-5 w-5 text-slate-400" />
             <div>
               <p className="text-[9px] font-black uppercase text-muted-foreground">MR Sessions</p>
-              <p className="text-lg font-black text-slate-800">{analytics.totalMrSessions}</p>
+              <p className="text-lg font-black text-slate-800 dark:text-slate-200">{analytics.totalMrSessions}</p>
             </div>
           </CardContent>
         </Card>
@@ -1050,7 +1050,7 @@ export function QaAnalyticsTab() {
             <ListTodo className="h-5 w-5 text-slate-400" />
             <div>
               <p className="text-[9px] font-black uppercase text-muted-foreground">MR Decisions</p>
-              <p className="text-lg font-black text-slate-800">{analytics.totalDecisions}</p>
+              <p className="text-lg font-black text-slate-800 dark:text-slate-200">{analytics.totalDecisions}</p>
             </div>
           </CardContent>
         </Card>

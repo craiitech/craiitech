@@ -35,21 +35,21 @@ export default function PublicSoftwareEvaluationPage() {
               <div className="mx-auto bg-primary/10 h-20 w-20 rounded-full flex items-center justify-center mb-6">
                   <MonitorCheck className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="text-3xl font-black tracking-tight text-slate-900">Software Quality Audit</CardTitle>
-              <CardDescription className="text-base text-slate-600">
+              <CardTitle className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">Software Quality Audit</CardTitle>
+              <CardDescription className="text-base text-slate-600 dark:text-slate-400">
                   ISO/IEC 25010 Quality Model Assessment for RSU EOMS Portal.
               </CardDescription>
           </CardHeader>
           <CardContent className="pt-8 space-y-6 text-center">
               <div className="space-y-2">
-                  <h3 className="font-bold text-lg text-slate-800">Direct Stakeholder Participation</h3>
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-slate-200">Direct Stakeholder Participation</h3>
                   <p className="text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
                       Click the button below to launch the formal evaluation instrument. Your input is vital for measuring the system's maturity and operational quality.
                   </p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4">
                   {['Suitability', 'Security', 'Reliability', 'Efficiency'].map(tag => (
-                      <div key={tag} className="px-3 py-1.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-200">
+                      <div key={tag} className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
                           {tag}
                       </div>
                   ))}
@@ -65,7 +65,7 @@ export default function PublicSoftwareEvaluationPage() {
                   Launch Evaluation Instrument
                   <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button variant="ghost" asChild className="text-slate-400 hover:text-slate-900">
+              <Button variant="ghost" asChild className="text-slate-400 hover:text-slate-900 dark:text-slate-100">
                   <Link href="/">
                       <Home className="mr-2 h-4 w-4" /> Back to Home
                   </Link>

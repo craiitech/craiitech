@@ -25,7 +25,7 @@ const highlightText = (text: string, search: string) => {
     <>
       {parts.map((part, i) => 
         regex.test(part) ? (
-          <mark key={i} className="bg-yellow-100 text-slate-900 rounded font-black px-0.5 select-none">{part}</mark>
+          <mark key={i} className="bg-yellow-100 text-slate-900 dark:text-slate-100 rounded font-black px-0.5 select-none">{part}</mark>
         ) : (
           part
         )
@@ -102,7 +102,7 @@ export default function HelpPage() {
                   <HelpCircle className="h-5 w-5 animate-pulse-slow" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Assistance</span>
                 </div>
-                <h2 className="text-2xl font-black uppercase text-slate-800 tracking-tight">EOMS Support Desk</h2>
+                <h2 className="text-2xl font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">EOMS Support Desk</h2>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Access digital manuals, step checklists, and policy directives for Romblon State University.
                 </p>
@@ -125,7 +125,7 @@ export default function HelpPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Type keywords (e.g. risk, privacy, paper size, Certbot)..."
-            className="pl-10 pr-10 py-6 text-xs bg-slate-50 border-slate-200 focus-visible:ring-1 focus-visible:ring-primary rounded-xl"
+            className="pl-10 pr-10 py-6 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-primary rounded-xl"
           />
           {searchQuery && (
             <Button 
@@ -154,7 +154,7 @@ export default function HelpPage() {
                 className={`h-7 px-3.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all hover:scale-[1.02] ${
                   selectedRoleFilter === role.id 
                     ? 'shadow-md shadow-primary/20' 
-                    : 'border-slate-200 text-slate-600 bg-white hover:bg-primary/5'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white hover:bg-primary/5'
                 }`}
               >
                 {role.label}
@@ -182,11 +182,11 @@ export default function HelpPage() {
                 <AccordionItem 
                   key={index} 
                   value={`item-${index}`}
-                  className="border rounded-xl px-5 py-0.5 hover:bg-slate-50/50 transition-colors bg-white shadow-sm"
+                  className="border rounded-xl px-5 py-0.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors bg-white shadow-sm"
                 >
-                  <AccordionTrigger className="text-xs font-black uppercase tracking-tight text-slate-800 hover:no-underline py-4">
+                  <AccordionTrigger className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-slate-200 hover:no-underline py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-left">
-                      <span className="text-slate-700">{highlightText(faq.question, searchQuery)}</span>
+                      <span className="text-slate-700 dark:text-slate-300">{highlightText(faq.question, searchQuery)}</span>
                       <Badge variant="outline" className="w-fit border-none bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest leading-none py-1">
                         {faq.category}
                       </Badge>
@@ -194,9 +194,9 @@ export default function HelpPage() {
                   </AccordionTrigger>
                   <AccordionContent className="pb-4 pt-1">
                     <div className="prose prose-sm max-w-none text-muted-foreground text-xs leading-relaxed font-semibold italic space-y-3">
-                      {faq.answer && <p className="text-slate-600">"{highlightText(faq.answer, searchQuery)}"</p>}
+                      {faq.answer && <p className="text-slate-600 dark:text-slate-400">"{highlightText(faq.answer, searchQuery)}"</p>}
                       {faq.answerBlocks && (
-                        <ul className="list-disc pl-5 space-y-1.5 text-slate-600">
+                        <ul className="list-disc pl-5 space-y-1.5 text-slate-600 dark:text-slate-400">
                           {faq.answerBlocks.map((block: any, i: number) => (
                             <li 
                               key={i} 
@@ -204,7 +204,7 @@ export default function HelpPage() {
                                 __html: searchQuery.trim() 
                                   ? block.content.replace(
                                       new RegExp(`(${searchQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'), 
-                                      '<mark class="bg-yellow-100 text-slate-900 rounded font-black px-0.5 select-none">$1</mark>'
+                                      '<mark class="bg-yellow-100 text-slate-900 dark:text-slate-100 rounded font-black px-0.5 select-none">$1</mark>'
                                     ) 
                                   : block.content 
                               }} 
@@ -218,12 +218,12 @@ export default function HelpPage() {
               ))}
             </Accordion>
           ) : (
-            <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl space-y-4 max-w-md mx-auto">
-              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl space-y-4 max-w-md mx-auto">
+              <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto text-slate-400">
                 <X className="h-6 w-6" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-black uppercase text-slate-700">No matching search results</p>
+                <p className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">No matching search results</p>
                 <p className="text-[10px] text-muted-foreground italic font-medium">"We couldn't find any FAQs or instructions matching '{searchQuery}'."</p>
               </div>
               <Button 
@@ -245,7 +245,7 @@ export default function HelpPage() {
             <HelpIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase text-slate-800">Direct Consultation</p>
+            <p className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">Direct Consultation</p>
             <p className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">Contact QAO romblon state university</p>
           </div>
         </div>

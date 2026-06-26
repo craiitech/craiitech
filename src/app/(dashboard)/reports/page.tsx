@@ -584,7 +584,7 @@ export default function ReportsPage() {
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
-                                    <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.students}</p>
+                                    <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{visualAnalytics.totals.students}</p>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Enrollment</p>
                                 </div>
                             </CardContent>
@@ -605,7 +605,7 @@ export default function ReportsPage() {
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
-                                    <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.faculty}</p>
+                                    <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{visualAnalytics.totals.faculty}</p>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Deduplicated Personnel</p>
                                 </div>
                             </CardContent>
@@ -626,7 +626,7 @@ export default function ReportsPage() {
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
-                                    <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.grads}</p>
+                                    <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{visualAnalytics.totals.grads}</p>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Graduates</p>
                                 </div>
                             </CardContent>
@@ -685,7 +685,7 @@ export default function ReportsPage() {
                                 {allCampuses?.map(campus => <SelectItem key={campus.id} value={campus.id}>{campus.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
-                        <ScrollArea className="h-[400px] rounded-md border p-2 bg-slate-50/50">
+                        <ScrollArea className="h-[400px] rounded-md border p-2 bg-slate-50/50 dark:bg-slate-800/50">
                             <Table>
                                 <TableHeader className="bg-white">
                                     <TableRow><TableHead className="text-[10px] font-black uppercase">Units in {allCampuses?.find(c => c.id === selectedCampusId)?.name || 'Selection'}</TableHead></TableRow>
@@ -693,7 +693,7 @@ export default function ReportsPage() {
                                 <TableBody>
                                     {(selectedCampusId === 'all' ? allUnits : allUnits?.filter(u => u.campusIds?.includes(selectedCampusId || '')) )?.map(unit => (
                                         <TableRow key={unit.id} className="hover:bg-white transition-colors">
-                                            <TableCell className="text-[11px] font-bold text-slate-700">{unit.name}</TableCell>
+                                            <TableCell className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{unit.name}</TableCell>
                                         </TableRow>
                                     ))}
                                     {!selectedCampusId && <TableRow><TableCell className="text-center text-muted-foreground text-[10px] py-10 font-bold uppercase italic">Please select a site</TableCell></TableRow>}
@@ -732,15 +732,15 @@ export default function ReportsPage() {
                                                             <AvatarFallback className="text-[10px] font-black">{user.firstName?.charAt(0)}{user.lastName?.charAt(0)}</AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex flex-col">
-                                                            <span className="text-xs font-black text-slate-900">{user.firstName} {user.lastName}</span>
+                                                            <span className="text-xs font-black text-slate-900 dark:text-slate-100">{user.firstName} {user.lastName}</span>
                                                             <span className="text-[9px] font-bold text-primary uppercase tracking-tighter">{user.role}</span>
                                                         </div>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-xs font-medium text-slate-600">{user.email}</TableCell>
+                                                <TableCell className="text-xs font-medium text-slate-600 dark:text-slate-400">{user.email}</TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <div className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{allCampuses?.find(c => c.id === user.campusId)?.name || 'N/A'}</div>
+                                                        <div className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter">{allCampuses?.find(c => c.id === user.campusId)?.name || 'N/A'}</div>
                                                         <div className="text-[9px] text-muted-foreground font-bold italic truncate max-w-[150px]">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
                                                     </div>
                                                 </TableCell>
@@ -784,7 +784,7 @@ export default function ReportsPage() {
               <CardContent className="flex flex-col items-center justify-center p-12 text-center space-y-4">
                 <AlertTriangle className="h-12 w-12 text-amber-500 animate-pulse" />
                 <div>
-                  <h3 className="text-lg font-black uppercase text-slate-800">CSM Report Awaiting Deployment</h3>
+                  <h3 className="text-lg font-black uppercase text-slate-800 dark:text-slate-200">CSM Report Awaiting Deployment</h3>
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
                     The Client Satisfaction Measurement report for AY {selectedYear} has not been deployed to units yet.
                   </p>
@@ -814,7 +814,7 @@ export default function ReportsPage() {
                       value={csmQrSearch}
                       onChange={(e) => setCsmQrSearch(e.target.value)}
                       placeholder="Search units..."
-                      className="h-9 pl-9 text-xs rounded-xl border-slate-200"
+                      className="h-9 pl-9 text-xs rounded-xl border-slate-200 dark:border-slate-700"
                     />
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -962,16 +962,16 @@ function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, 
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+    <div className="bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-3">
       <div className="flex items-center gap-3">
-        <h4 className="text-sm font-black uppercase text-slate-800 flex-1">{unitName}</h4>
+        <h4 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 flex-1">{unitName}</h4>
         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{unit.id}</span>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
         {/* QR Code */}
         <div className="shrink-0 flex flex-col items-center gap-2">
-          <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-inner w-[110px] h-[110px] flex items-center justify-center">
+          <div className="bg-white p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner w-[110px] h-[110px] flex items-center justify-center">
             {qrUrl ? (
               <img src={qrUrl} alt={`${unitName} CSM QR`} className="w-[100px] h-[100px] object-contain" />
             ) : (
@@ -994,7 +994,7 @@ function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, 
                   URL.revokeObjectURL(url);
                 } catch { }
               }}
-              className="h-7 px-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1"
+              className="h-7 px-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1"
               title="Download QR"
             >
               <Download className="h-3 w-3" /> QR
@@ -1006,7 +1006,7 @@ function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, 
                   toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
                 } catch { }
               }}
-              className="h-7 px-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1"
+              className="h-7 px-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1"
               title="Copy Link"
             >
               <Copy className="h-3 w-3" /> Link
@@ -1016,9 +1016,9 @@ function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, 
 
         {/* Link + Services */}
         <div className="flex-1 min-w-0 space-y-3">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 truncate">
+          <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 truncate">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">CSM Link</p>
-            <p className="text-[9px] font-mono text-slate-700 truncate">{fullCsmUrl}</p>
+            <p className="text-[9px] font-mono text-slate-700 dark:text-slate-300 truncate">{fullCsmUrl}</p>
           </div>
 
           <div className="space-y-2">
@@ -1041,7 +1041,7 @@ function CsmUnitQrRow({ unit, campusId, origin, csmSettings, unitCsmSettingsId, 
                 value={newService}
                 onChange={(e) => setNewService(e.target.value)}
                 placeholder="Add service..."
-                className="h-8 text-xs rounded-lg border-slate-200"
+                className="h-8 text-xs rounded-lg border-slate-200 dark:border-slate-700"
                 disabled={isSaving}
               />
               <Button type="submit" size="sm" disabled={isSaving || !newService.trim()} className="h-8 px-3 text-[9px] font-black uppercase tracking-wider rounded-lg bg-[#1B6535] hover:bg-[#1a5d31] text-white shrink-0">

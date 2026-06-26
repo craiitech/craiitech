@@ -185,7 +185,7 @@ export function GADOverview({ initiatives, compliances, selectedYear, unitName }
                 <div className="flex items-start gap-4 p-6 rounded-2xl bg-muted/20 border border-dashed">
                     <Info className="h-6 w-6 text-primary shrink-0 mt-1" />
                     <div className="space-y-2">
-                        <h4 className="font-black text-slate-900 uppercase text-sm">Institutional Commitment: The 5% Mandate</h4>
+                        <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase text-sm">Institutional Commitment: The 5% Mandate</h4>
                         <p className="text-[11px] text-muted-foreground leading-relaxed">
                             Following PCW guidelines, RSU integrates gender-responsive planning across all units. This dashboard tracks the planning, execution, and disaggregated impact of GAD-aligned projects.
                         </p>
@@ -205,7 +205,7 @@ export function GADOverview({ initiatives, compliances, selectedYear, unitName }
                                     <CheckCircle2 className="h-3.5 w-3.5" />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <p className="text-xs font-bold text-slate-800">{p.title}</p>
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{p.title}</p>
                                     <p className="text-[9px] text-muted-foreground leading-tight">{p.desc}</p>
                                 </div>
                             </li>

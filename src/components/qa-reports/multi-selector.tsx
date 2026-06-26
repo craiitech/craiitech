@@ -57,7 +57,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2 items-center min-h-11 p-2 rounded-md border bg-slate-50/50 shadow-sm">
+      <div className="flex flex-wrap gap-2 items-center min-h-11 p-2 rounded-md border bg-slate-50/50 dark:bg-slate-800/50 shadow-sm">
         {selectedItems.map((item) => (
           <Badge 
             key={item.id} 
@@ -97,7 +97,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
             }}
           >
             <div className="flex flex-col">
-                <div className="flex items-center border-b px-3 py-2 gap-2 bg-slate-50">
+                <div className="flex items-center border-b px-3 py-2 gap-2 bg-slate-50 dark:bg-slate-800/50">
                     <Search className="h-4 w-4 text-muted-foreground opacity-50" />
                     <Input 
                         placeholder={placeholder} 
@@ -127,7 +127,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                                             checked={isSelected}
                                             className="pointer-events-none"
                                         />
-                                        <span className={cn("text-xs truncate font-bold select-none", isSelected ? "text-primary" : "text-slate-600")}>
+                                        <span className={cn("text-xs truncate font-bold select-none", isSelected ? "text-primary" : "text-slate-600 dark:text-slate-400")}>
                                             {item.name}
                                         </span>
                                     </div>
@@ -138,7 +138,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                         )}
                     </div>
                 </ScrollArea>
-                <div className="p-2 border-t bg-slate-50">
+                <div className="p-2 border-t bg-slate-50 dark:bg-slate-800/50">
                     <Button variant="ghost" className="w-full h-8 text-[10px] font-black uppercase" onClick={() => setOpen(false)}>Close List</Button>
                 </div>
             </div>

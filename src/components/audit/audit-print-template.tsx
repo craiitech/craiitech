@@ -33,7 +33,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
   const displayAuditee = schedule.officerInCharge || schedule.auditeeHeadName || '________________';
 
   return (
-    <div className="text-black bg-white mx-auto leading-tight print:p-0" style={{ width: '7.5in', fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
+    <div className="text-black dark:text-white bg-white mx-auto leading-tight print:p-0" style={{ width: '7.5in', fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
       <style>{`
         @media print {
           tr, td {
@@ -145,8 +145,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                 <td className="border-r-2 border-black p-3.5 align-top">
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <p className="font-bold uppercase text-black" style={{ fontSize: '11pt' }}>{clause.title}</p>
-                      <div className="space-y-1 text-black font-normal" style={{ fontSize: '11pt', lineHeight: '1.2' }}>
+                      <p className="font-bold uppercase text-black dark:text-white" style={{ fontSize: '11pt' }}>{clause.title}</p>
+                      <div className="space-y-1 text-black dark:text-white font-normal" style={{ fontSize: '11pt', lineHeight: '1.2' }}>
                         {questions.map((q, i) => (
                           <div key={i} className="flex items-start gap-2 pl-1">
                             <span className="shrink-0">•</span>
@@ -162,9 +162,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                           <p className="font-bold text-xs uppercase text-slate-500 mb-1">Audit Result {idx + 1}:</p>
                         )}
                         <div className="pt-1">
-                          <p className="font-bold uppercase text-black mb-1" style={{ fontSize: '11pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
+                          <p className="font-bold uppercase text-black dark:text-white mb-1" style={{ fontSize: '11pt' }}>AUDITOR OBSERVATIONS / OBJECTIVE EVIDENCE:</p>
                           {isBlankTemplate ? (
-                              <div className="space-y-0.5 pl-1 mt-0.5 font-normal text-black" style={{ fontSize: '11pt' }}>
+                              <div className="space-y-0.5 pl-1 mt-0.5 font-normal text-black dark:text-white" style={{ fontSize: '11pt' }}>
                                   <div>1.</div>
                                   <div>2.</div>
                                   <div>3.</div>
@@ -175,9 +175,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                         </div>
  
                         <div className="pt-1">
-                           <p className="font-bold text-black mb-1" style={{ fontSize: '11pt' }}>Finding Statement</p>
+                           <p className="font-bold text-black dark:text-white mb-1" style={{ fontSize: '11pt' }}>Finding Statement</p>
                            {isBlankTemplate ? (
-                              <div className="space-y-0.5 pl-1 mt-0.5 font-normal text-black" style={{ fontSize: '11pt' }}>
+                              <div className="space-y-0.5 pl-1 mt-0.5 font-normal text-black dark:text-white" style={{ fontSize: '11pt' }}>
                                   <div>1.</div>
                                   <div>2.</div>
                               </div>
@@ -199,7 +199,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
                           {findingsToPrint.length > 1 && (
                             <p className="font-bold text-[8pt] text-slate-500 uppercase mb-1">Result {idx + 1}</p>
                           )}
-                          <div className="space-y-2.5 font-normal text-black w-fit" style={{ fontSize: '11pt' }}>
+                          <div className="space-y-2.5 font-normal text-black dark:text-white w-fit" style={{ fontSize: '11pt' }}>
                             <div className="flex items-center gap-2">
                                 <div className="border border-black flex-shrink-0" style={{ width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: finding?.type === 'Compliance' ? '#000' : 'transparent' }}>
                                     {finding?.type === 'Compliance' && <Check className="h-3 w-3 text-white" />}
@@ -238,7 +238,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
 
       {/* FINAL AUDIT SUMMARY SECTION */}
       <div className="w-full space-y-4 mb-10 break-inside-avoid">
-          <div className="bg-slate-50 border-2 border-black p-2 font-black uppercase text-center" style={{ fontSize: '11pt' }}>
+          <div className="bg-slate-50 dark:bg-slate-800/50 border-2 border-black p-2 font-black uppercase text-center" style={{ fontSize: '11pt' }}>
               Final Audit Report Summary
           </div>
           <table className="w-full border-collapse border-2 border-black" style={{ tableLayout: 'fixed' }}>
@@ -297,7 +297,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       </div>
 
       {/* Pagination & Control Footer */}
-      <div className="mt-12 pt-4 border-t border-slate-200 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '10pt' }}>
+      <div className="mt-12 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '10pt' }}>
         <span>RSU-QAO-IQA-LOG | REV 03-2025</span>
         <span className="font-bold">Page 1 of 1</span>
         <span>Issued by: {leadAuditorName || qaoDirectorName}</span>

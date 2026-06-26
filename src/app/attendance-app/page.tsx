@@ -884,7 +884,7 @@ export default function RsuAttendanceApp() {
           <a
             href="/downloads/rsu-eoms-portal.apk"
             download
-            className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
+            className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 dark:text-white font-black text-[9px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
           >
             <Download className="h-3.5 w-3.5" />
             Download APK
@@ -1080,7 +1080,7 @@ export default function RsuAttendanceApp() {
                     <Button
                       type="submit"
                       disabled={isSubmittingOtp || (!paramActivityId && !chosenActivityId) || otpCode.length !== 3}
-                      className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                      className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
                     >
                       {isSubmittingOtp ? (
                         <>
@@ -1220,7 +1220,7 @@ export default function RsuAttendanceApp() {
                   <a
                     href="/downloads/rsu-eoms-portal.apk"
                     download
-                    className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 font-black text-[8px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
+                    className="h-7 px-3 bg-[#D4AF37] hover:bg-[#c29f32] text-slate-950 dark:text-white font-black text-[8px] uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all"
                   >
                     <Download className="h-3 w-3" /> APK
                   </a>
@@ -1260,7 +1260,7 @@ export default function RsuAttendanceApp() {
                 <Button
                   type="submit"
                   disabled={isAuthLoading || !authEmail.trim() || !authPassword.trim()}
-                  className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                  className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
                 >
                   {isAuthLoading ? (
                     <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
@@ -1418,7 +1418,7 @@ export default function RsuAttendanceApp() {
                 <Button 
                   type="submit" 
                   disabled={isRegistering || !deviceFingerprint}
-                  className="w-full h-11 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-600 hover:to-[#c29f32] border-none text-slate-950 font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                  className="w-full h-11 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-600 hover:to-[#c29f32] border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
                 >
                   {isRegistering ? (
                     <>

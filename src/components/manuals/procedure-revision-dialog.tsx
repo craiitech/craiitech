@@ -260,35 +260,35 @@ export function ProcedureRevisionDialog({
     if (step === 1) {
       content = (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Protocol Stage: Preparation</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Download the template and print/fill it out. Secure the signature of the Unit Head. Ensure you also prepare the revised Microsoft Word version (.docx) of your procedure manual.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Protocol Stage: Preparation</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Download the template and print/fill it out. Secure the signature of the Unit Head. Ensure you also prepare the revised Microsoft Word version (.docx) of your procedure manual.</p>
         </div>
       );
     } else if (step === 2) {
       content = (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Protocol Stage: Revision Details</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Select the exact process manual part to revise. Detail the specific item number and write a clear description of the modified contents.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Protocol Stage: Revision Details</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Select the exact process manual part to revise. Detail the specific item number and write a clear description of the modified contents.</p>
         </div>
       );
     } else if (step === 3) {
       content = (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Protocol Stage: Uploading Evidence</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Provide public Google Drive links to the signed scanned DRRF and the revised manual word file (.docx). Links must be set to <strong>"Anyone with the link can view"</strong>.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Protocol Stage: Uploading Evidence</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Provide public Google Drive links to the signed scanned DRRF and the revised manual word file (.docx). Links must be set to <strong>"Anyone with the link can view"</strong>.</p>
         </div>
       );
     } else if (step === 4) {
       content = (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Protocol Stage: Final Verification</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Review the revision summary. Submitting will register this request into the Quality Assurance Office review pipeline.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Protocol Stage: Final Verification</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Review the revision summary. Submitting will register this request into the Quality Assurance Office review pipeline.</p>
         </div>
       );
     }
 
     return (
-      <div className="mt-10 p-4 rounded-xl border flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500 bg-slate-50 border-slate-200">
+      <div className="mt-10 p-4 rounded-xl border flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
         <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
         {content}
       </div>
@@ -298,7 +298,7 @@ export function ProcedureRevisionDialog({
   const renderStep1 = () => (
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
         <div className="space-y-4">
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+            <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Download className="h-4 w-4" /></div>
                 1. Obtain & Prepare Revision Template (DRRF)
             </h3>
@@ -308,7 +308,7 @@ export function ProcedureRevisionDialog({
             <Card className="border-primary/20 bg-primary/5 shadow-none ml-11">
                 <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="space-y-1">
-                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Official DRRF Template</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Official DRRF Template</p>
                         <p className="text-[10px] text-muted-foreground font-medium italic">Standardized Institutional Form</p>
                     </div>
                     <Button type="button" variant="default" size="sm" className="font-black uppercase text-[10px] tracking-widest h-9" asChild>
@@ -327,7 +327,7 @@ export function ProcedureRevisionDialog({
       <div className="flex items-center justify-between border-b pb-2">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><FileSignature className="h-4 w-4" /></div>
-          <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">2. Specify Revised Manual Parts</h3>
+          <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">2. Specify Revised Manual Parts</h3>
         </div>
         <Button type="button" size="sm" onClick={() => append({ part: '', itemNumber: '', itemContents: '' })} className="h-8 font-black text-[10px] uppercase gap-1.5 shadow-sm">
           <Plus className="h-3.5 w-3.5" /> Add Part
@@ -406,17 +406,17 @@ export function ProcedureRevisionDialog({
     <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center gap-3 border-b pb-2">
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Send className="h-4 w-4" /></div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">3. Document Upload Links</h3>
+            <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">3. Document Upload Links</h3>
         </div>
         
         <div className="space-y-6">
             <FormField control={form.control} name="scannedDRRFLink" render={({ field }) => (
                 <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase text-slate-700">Google Drive Link: Signed scanned DRRF</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Google Drive Link: Signed scanned DRRF</FormLabel>
                     <FormControl>
                         <div className="relative">
                             <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
-                            <Input {...field} placeholder="https://drive.google.com/file/d/..." className="pl-9 h-11 border-primary/20 bg-slate-50 shadow-inner text-xs" />
+                            <Input {...field} placeholder="https://drive.google.com/file/d/..." className="pl-9 h-11 border-primary/20 bg-slate-50 dark:bg-slate-800/50 shadow-inner text-xs" />
                         </div>
                     </FormControl>
                     <FormDescription className="text-[10px]">Provide the link to the PDF scan of the filled-out, signed DRRF.</FormDescription>
@@ -426,11 +426,11 @@ export function ProcedureRevisionDialog({
 
             <FormField control={form.control} name="revisedManualDocxLink" render={({ field }) => (
                 <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase text-slate-700">Google Drive Link: Revised Word Manual Document (.docx)</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Google Drive Link: Revised Word Manual Document (.docx)</FormLabel>
                     <FormControl>
                         <div className="relative">
                             <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
-                            <Input {...field} placeholder="https://drive.google.com/file/d/..." className="pl-9 h-11 border-primary/20 bg-slate-50 shadow-inner text-xs" />
+                            <Input {...field} placeholder="https://drive.google.com/file/d/..." className="pl-9 h-11 border-primary/20 bg-slate-50 dark:bg-slate-800/50 shadow-inner text-xs" />
                         </div>
                     </FormControl>
                     <FormDescription className="text-[10px]">Provide the link to the actual revised Word manual document for text processing.</FormDescription>
@@ -447,13 +447,13 @@ export function ProcedureRevisionDialog({
             <div className="mx-auto h-20 w-20 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
                 <Send className="h-10 w-10" />
             </div>
-            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Verify Revision Submission</h3>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Verify Revision Submission</h3>
             <p className="text-sm text-muted-foreground max-w-lg mx-auto font-medium">Review the summarized parts below. Make sure both Google Drive links are fully accessible.</p>
         </div>
 
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border bg-slate-50/50 shadow-inner">
+                <Card className="border bg-slate-50/50 dark:bg-slate-800/50 shadow-inner">
                     <CardContent className="p-4 space-y-2">
                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DRRF Scanned Copy</p>
                         <a href={scannedDRRFLinkVal} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1.5">
@@ -461,7 +461,7 @@ export function ProcedureRevisionDialog({
                         </a>
                     </CardContent>
                 </Card>
-                <Card className="border bg-slate-50/50 shadow-inner">
+                <Card className="border bg-slate-50/50 dark:bg-slate-800/50 shadow-inner">
                     <CardContent className="p-4 space-y-2">
                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Revised Manual (.docx)</p>
                         <a href={revisedManualDocxLinkVal} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1.5">
@@ -475,7 +475,7 @@ export function ProcedureRevisionDialog({
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Revision Parts Summary ({fields.length} Items)</p>
                 <div className="border rounded-2xl overflow-hidden shadow-lg bg-white">
                     <Table>
-                        <TableHeader className="bg-slate-50">
+                        <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                             <TableRow>
                                 <TableHead className="text-[10px] font-black uppercase py-3 pl-6">Section / Part</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-3 w-[120px]">Item No.</TableHead>
@@ -486,7 +486,7 @@ export function ProcedureRevisionDialog({
                             {fields.map((f, i) => (
                                 <TableRow key={i}>
                                     <TableCell className="text-xs font-black py-4 pl-6 text-primary">{f.part || 'TBA'}</TableCell>
-                                    <TableCell className="text-xs font-bold text-slate-700">{f.itemNumber || 'TBA'}</TableCell>
+                                    <TableCell className="text-xs font-bold text-slate-700 dark:text-slate-300">{f.itemNumber || 'TBA'}</TableCell>
                                     <TableCell className="text-xs text-muted-foreground italic pr-6 max-w-[200px] truncate">{f.itemContents || 'No Description'}</TableCell>
                                 </TableRow>
                             ))}
@@ -525,7 +525,7 @@ export function ProcedureRevisionDialog({
           </ScrollArea>
         )}
 
-        <div className={cn("p-6 border-t bg-slate-50 shrink-0 flex items-center justify-between", isInline ? "rounded-b-xl" : "")}>
+        <div className={cn("p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 flex items-center justify-between", isInline ? "rounded-b-xl" : "")}>
           <button 
             type="button" 
             className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-rose-600 transition-colors" 
@@ -595,12 +595,12 @@ export function ProcedureRevisionDialog({
     <>
       {isInline ? (
         <div className="flex flex-col w-full bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
-          <div className="p-6 border-b bg-slate-50 shrink-0">
+          <div className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
               <ShieldCheck className="h-5 w-5" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em]">Procedure Document Control</span>
             </div>
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">
+            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
               {request ? 'Edit & Resubmit Revision Request' : 'Procedure Revision Application'}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -615,7 +615,7 @@ export function ProcedureRevisionDialog({
       ) : (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
           <DialogContent className="max-w-4xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-            <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+            <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <div className="flex items-center gap-2 text-primary mb-1">
                 <ShieldCheck className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Procedure Document Control</span>

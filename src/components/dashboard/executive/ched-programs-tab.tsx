@@ -287,7 +287,7 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
               {rqatData.slice(0, 12).map(prog => (
                 <div key={prog.id} className={cn('flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors', prog.isOverdue && 'bg-red-50/30')}>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black uppercase text-slate-800 truncate" title={prog.fullName}>{prog.name}</p>
+                    <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 truncate" title={prog.fullName}>{prog.name}</p>
                     <p className="text-[9px] text-muted-foreground font-medium">{prog.campus} • Last Visit: {prog.lastVisit}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">

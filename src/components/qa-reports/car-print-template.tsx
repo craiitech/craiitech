@@ -34,7 +34,7 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
   const directorName = signatories?.qaoDirector || '____________________';
 
   return (
-    <div className="p-0 text-black bg-white mx-auto font-sans leading-tight border-none" style={{ width: '7.5in', fontSize: '11pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white mx-auto font-sans leading-tight border-none" style={{ width: '7.5in', fontSize: '11pt' }}>
       {/* Header - Centered without logo */}
       <div className="text-center mb-4">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
@@ -42,7 +42,7 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
             <h2 className="font-semibold uppercase mt-1" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
             <p style={{ fontSize: '10pt' }} className="italic">Odiongan, Romblon</p>
         </div>
-        <div className="mt-4 border-y-2 border-black py-1.5 bg-slate-50">
+        <div className="mt-4 border-y-2 border-black py-1.5 bg-slate-50 dark:bg-slate-800/50">
           <h2 className="font-black uppercase tracking-[0.2em]" style={{ fontSize: '12pt' }}>CORRECTIVE ACTION REQUEST</h2>
         </div>
       </div>

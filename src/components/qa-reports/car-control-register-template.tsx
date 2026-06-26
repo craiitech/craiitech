@@ -28,7 +28,7 @@ export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: C
   }
 
   return (
-    <div className="p-4 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight shadow-none border-none">
+    <div className="p-4 text-black dark:text-white bg-white max-w-[11in] mx-auto font-sans leading-tight shadow-none border-none">
       <div className="text-center mb-6">
         <h1 className="text-sm font-bold uppercase leading-none">Romblon State University</h1>
         <h2 className="text-xs font-bold uppercase leading-none mt-1">Quality Assurance Office</h2>
@@ -42,7 +42,7 @@ export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: C
 
       <table className="w-full border-collapse border-2 border-black text-[9px]">
         <thead>
-          <tr className="bg-slate-50">
+          <tr className="bg-slate-50 dark:bg-slate-800/50">
             <th className="border-2 border-black p-2 text-center font-bold w-[8%]">CAR NO.</th>
             <th className="border-2 border-black p-2 text-center font-bold w-[18%]">Title</th>
             <th className="border-2 border-black p-2 text-center font-bold w-[14%]">Action Responsible</th>

@@ -588,7 +588,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     { name: 'Level I', color: 'bg-emerald-400', textColor: 'text-emerald-400', borderColor: 'border-emerald-200' },
     { name: 'Candidate', color: 'bg-amber-500', textColor: 'text-amber-600', borderColor: 'border-amber-200' },
     { name: 'New Offering', color: 'bg-purple-500', textColor: 'text-purple-600', borderColor: 'border-purple-200' },
-    { name: 'Non-Accredited', color: 'bg-slate-400', textColor: 'text-slate-500', borderColor: 'border-slate-200' }
+    { name: 'Non-Accredited', color: 'bg-slate-400', textColor: 'text-slate-500', borderColor: 'border-slate-200 dark:border-slate-700' }
   ];
 
   const displayedLevel = programsByLevel[selectedLevelView]?.length > 0 
@@ -609,12 +609,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     <TooltipProvider delayDuration={100}>
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <Card className="bg-slate-50/50 border-slate-200 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+        <Card className="bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label="Scope Portfolio Information">
+                  <button className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none" aria-label="Scope Portfolio Information">
                     <Info className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
@@ -624,9 +624,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className="text-3xl font-black text-slate-900 leading-none mb-2">{analytics.activeCount} Active</div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-slate-200/60">
-              <p className="text-[10px] font-black text-slate-700 leading-tight">
+            <div className="text-3xl font-black text-slate-900 dark:text-slate-100 leading-none mb-2">{analytics.activeCount} Active</div>
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
                 {analytics.activeCount} of {programs.length} total programs active
               </p>
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
@@ -652,7 +652,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </div>
             <div className="text-3xl font-black text-emerald-600 leading-none mb-2">{analytics.activeCopc} Compliant</div>
             <div className="space-y-1.5 mt-auto pt-3 border-t border-emerald-100/60">
-              <p className="text-[10px] font-black text-slate-700 leading-tight">
+              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
                 {analytics.activeCopc} of {analytics.activeCount} active offerings with COPC
               </p>
               <p className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">
@@ -678,23 +678,23 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <div className="space-y-3 my-auto">
               <div>
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700">Undergraduate</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Undergraduate</span>
                   <span className="text-xs font-black text-cyan-600">
                     {ugCopcRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeUgCopc}/{analytics.activeUgCount})</span>
                   </span>
                 </div>
-                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-cyan-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${ugCopcRate}%` }}></div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700">Graduate</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Graduate</span>
                   <span className="text-xs font-black text-cyan-600">
                     {gradCopcRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeGradCopc}/{analytics.activeGradCount})</span>
                   </span>
                 </div>
-                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-cyan-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${gradCopcRate}%` }}></div>
                 </div>
               </div>
@@ -722,7 +722,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </div>
             <div className="text-3xl font-black text-amber-600 leading-none mb-2">{analytics.activeAccredited} Accredited</div>
             <div className="space-y-1.5 mt-auto pt-3 border-t border-amber-100/60">
-              <p className="text-[10px] font-black text-slate-700 leading-tight">
+              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
                 {analytics.activeAccredited} of {analytics.activeCount - analytics.activeNewCount} accreditable programs accredited
               </p>
               <p className="text-[9px] font-bold text-amber-600/70 uppercase tracking-widest">
@@ -748,23 +748,23 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <div className="space-y-3 my-auto">
               <div>
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700">Undergraduate</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Undergraduate</span>
                   <span className="text-xs font-black text-indigo-600">
                     {ugAccredRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeUgAccredited}/{activeUgAccreditable})</span>
                   </span>
                 </div>
-                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${ugAccredRate}%` }}></div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700">Graduate</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Graduate</span>
                   <span className="text-xs font-black text-indigo-600">
                     {gradAccredRate}% <span className="text-[9px] text-slate-500 font-normal">({analytics.activeGradAccredited}/{activeGradAccreditable})</span>
                   </span>
                 </div>
-                <div className="w-full bg-slate-100/75 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${gradAccredRate}%` }}></div>
                 </div>
               </div>
@@ -793,7 +793,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </div>
             <div className="text-3xl font-black text-blue-600 leading-none mb-2">{analytics.dataIntegrityIndex}%</div>
             <div className="space-y-1.5 mt-auto pt-3 border-t border-blue-100/60">
-              <p className="text-[10px] font-black text-slate-700 leading-tight">
+              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
                 {analytics.programsWithRecordThisYear} of {analytics.activeCount} active programs reported
               </p>
               <p className="text-[9px] font-bold text-blue-600/70 uppercase tracking-widest">
@@ -821,7 +821,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label="Accreditation Distribution Information">
+                    <button className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none" aria-label="Accreditation Distribution Information">
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
@@ -853,7 +853,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </ResponsiveContainer>
                   </ChartContainer>
 
-                  <div className="flex flex-wrap gap-1.5 justify-center py-2 border-t border-b border-slate-100 my-2 shrink-0">
+                  <div className="flex flex-wrap gap-1.5 justify-center py-2 border-t border-b border-slate-100 dark:border-slate-700 my-2 shrink-0">
                       {levelCategories.map((cat) => {
                           const count = programsByLevel[cat.name]?.length || 0;
                           const isSelected = displayedLevel === cat.name;
@@ -866,7 +866,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                       "px-2 py-1 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center gap-1 border",
                                       isSelected 
                                           ? `${cat.color} text-white border-transparent shadow-sm scale-105` 
-                                          : `bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100`
+                                          : `bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700`
                                   )}
                               >
                                   <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSelected ? "bg-white" : cat.color)}></span>
@@ -882,8 +882,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               {programsByLevel[displayedLevel]?.map((prog: any) => (
                                   <Tooltip key={prog.id}>
                                       <TooltipTrigger asChild>
-                                          <div className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100/80 transition-colors cursor-help text-center shrink-0">
-                                              <span className="text-[10px] font-black text-slate-800 block leading-tight font-mono">{prog.abbreviation}</span>
+                                          <div className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-100/80 dark:hover:bg-slate-700/80 transition-colors cursor-help text-center shrink-0">
+                                              <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block leading-tight font-mono">{prog.abbreviation}</span>
                                               <span className="text-[7px] text-muted-foreground font-black uppercase tracking-tighter mt-0.5 block">{prog.campus}</span>
                                           </div>
                                       </TooltipTrigger>
@@ -939,21 +939,21 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <CardHeader className="pb-2 border-b bg-blue-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution</CardTitle></CardHeader>
                   <CardContent className="pt-6 flex-1 flex flex-col items-center">
                       <ChartContainer config={{}} className="h-[200px] w-full"><ResponsiveContainer><PieChart><Pie data={analytics.gadData.enrollment} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.enrollment.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer></ChartContainer>
-                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.students.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p></div>
+                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{analytics.totals.students.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p></div>
                   </CardContent>
               </Card>
               <Card className="shadow-md border-primary/10 flex flex-col">
                   <CardHeader className="pb-2 border-b bg-emerald-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><Briefcase className="h-4 w-4 text-emerald-600" /> System Registered User</CardTitle></CardHeader>
                   <CardContent className="pt-6 flex-1 flex flex-col items-center">
                       <ChartContainer config={{}} className="h-[200px] w-full"><ResponsiveContainer><PieChart><Pie data={analytics.gadData.faculty} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.faculty.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer></ChartContainer>
-                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.faculty.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p></div>
+                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{analytics.totals.faculty.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p></div>
                   </CardContent>
               </Card>
               <Card className="shadow-md border-primary/10 flex flex-col">
                   <CardHeader className="pb-2 border-b bg-purple-50/30"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation Audit</CardTitle></CardHeader>
                   <CardContent className="pt-6 flex-1 flex flex-col items-center">
                       <ChartContainer config={{}} className="h-[200px] w-full"><ResponsiveContainer><PieChart><Pie data={analytics.gadData.grads} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{analytics.gadData.grads.map((e, j) => <Cell key={j} fill={e.fill} />)}</Pie><RechartsTooltip content={<ChartTooltipContent hideLabel />} /><Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }} /></PieChart></ResponsiveContainer></ChartContainer>
-                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 tabular-nums">{analytics.totals.grads.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p></div>
+                      <div className="mt-4 text-center"><p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{analytics.totals.grads.toLocaleString()}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p></div>
                   </CardContent>
               </Card>
           </div>
@@ -978,7 +978,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <Table><TableHeader className="bg-muted/30 sticky top-0 z-10"><TableRow><TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead><TableHead className="text-[10px] font-black uppercase">Type</TableHead><TableHead className="text-[10px] font-black uppercase">Accreditor's Recommendation</TableHead><TableHead className="text-[10px] font-black uppercase">Accountable Units / Offices</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                           {filteredRecommendations.map((item, idx) => (
-                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors"><TableCell className="pl-8 py-5"><div className="flex flex-col"><span className="font-black text-xs text-slate-900 leading-tight uppercase">{item.programName}</span><Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge></div></TableCell><TableCell><Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">{item.recommendation.type}</Badge></TableCell><TableCell className="py-5 max-w-md"><p className="text-xs font-bold text-slate-800 italic leading-relaxed">{item.recommendation.text}</p>{item.recommendation.additionalInfo && (<div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase"><Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}</div>)}</TableCell><TableCell><div className="flex flex-wrap gap-1">{(item.recommendation.assignedUnitIds || []).map((uid: string) => (<Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">{unitMap.get(uid) || uid}</Badge>))}{!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}</div></TableCell><TableCell className="text-right pr-8"><Badge className={cn("h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm", item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : item.recommendation.status === 'Move to the Official Current Level' ? "bg-indigo-600 text-white" : "bg-emerald-600 text-white")}>{item.recommendation.status}</Badge></TableCell></TableRow>
+                              <TableRow key={idx} className="hover:bg-muted/20 transition-colors"><TableCell className="pl-8 py-5"><div className="flex flex-col"><span className="font-black text-xs text-slate-900 dark:text-slate-100 leading-tight uppercase">{item.programName}</span><Badge variant="secondary" className="bg-primary/5 text-primary border-none h-4 px-1.5 text-[8px] font-black w-fit mt-1">{item.level}</Badge></div></TableCell><TableCell><Badge variant={item.recommendation.type === 'Mandatory' ? 'destructive' : 'secondary'} className="h-5 text-[8px] font-black uppercase">{item.recommendation.type}</Badge></TableCell><TableCell className="py-5 max-w-md"><p className="text-xs font-bold text-slate-800 dark:text-slate-200 italic leading-relaxed">{item.recommendation.text}</p>{item.recommendation.additionalInfo && (<div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase"><Info className="h-3 w-3" /> Area: {item.recommendation.additionalInfo}</div>)}</TableCell><TableCell><div className="flex flex-wrap gap-1">{(item.recommendation.assignedUnitIds || []).map((uid: string) => (<Badge key={uid} variant="outline" className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 h-4 px-1.5 text-[8px] font-bold">{unitMap.get(uid) || uid}</Badge>))}{!item.recommendation.assignedUnitIds?.length && <span className="text-[9px] text-muted-foreground italic">Institutional</span>}</div></TableCell><TableCell className="text-right pr-8"><Badge className={cn("h-6 px-3 text-[9px] font-black uppercase border-none shadow-sm", item.recommendation.status === 'Open' ? "bg-rose-600 text-white" : item.recommendation.status === 'In Progress' ? "bg-amber-50 text-amber-950" : item.recommendation.status === 'Move to the Official Current Level' ? "bg-indigo-600 text-white" : "bg-emerald-600 text-white")}>{item.recommendation.status}</Badge></TableCell></TableRow>
                           ))}
                       </TableBody>
                   </Table>
@@ -994,10 +994,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <div className="space-y-1"><div className="flex items-center gap-2 text-primary"><CalendarCheck className="h-5 w-5" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle></div><CardDescription className="text-xs font-medium">Strategic temporal view of accreditation targets.</CardDescription></div>
                   <div className="flex flex-wrap items-center gap-3">
                       <div className="flex bg-white rounded-2xl border shadow-sm p-3 gap-6">
-                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L1}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level I</p></div>
-                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L2}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level II</p></div>
-                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L3}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level III</p></div>
-                          <div className="text-center px-1 border-r pr-4 mr-2"><p className="text-xs font-black text-slate-900">{analytics.levelCounts.L4}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level IV</p></div>
+                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900 dark:text-slate-100">{analytics.levelCounts.L1}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level I</p></div>
+                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900 dark:text-slate-100">{analytics.levelCounts.L2}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level II</p></div>
+                          <div className="text-center px-1"><p className="text-xs font-black text-slate-900 dark:text-slate-100">{analytics.levelCounts.L3}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level III</p></div>
+                          <div className="text-center px-1 border-r pr-4 mr-2"><p className="text-xs font-black text-slate-900 dark:text-slate-100">{analytics.levelCounts.L4}</p><p className="text-[8px] font-bold text-muted-foreground uppercase">Level IV</p></div>
                           <div className="text-center bg-indigo-50 px-3 rounded-lg flex flex-col justify-center"><p className="text-sm font-black text-indigo-700 leading-none">{analytics.currentYearAccreditationCount}</p><p className="text-[7px] font-black text-indigo-500 uppercase tracking-tighter mt-1">CURRENT YEAR CONDUCT</p></div>
                       </div>
                   </div>
@@ -1052,11 +1052,11 @@ function RoadmapTable({ data, campusMap }: { data: any[], campusMap: Map<string,
                         <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
                             <TableCell className="pl-8 py-5">
                                 <div className="flex flex-col gap-1">
-                                    <span className="font-black text-sm text-slate-900 group-hover:text-primary transition-colors">{item.name}</span>
+                                    <span className="font-black text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{item.name}</span>
                                     <span className="text-[9px] font-black text-muted-foreground uppercase">{item.level}</span>
                                 </div>
                             </TableCell>
-                            <TableCell className="py-5 text-xs font-bold text-slate-600 uppercase">{campusMap.get(item.campusId) || item.campus}</TableCell>
+                            <TableCell className="py-5 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">{campusMap.get(item.campusId) || item.campus}</TableCell>
                             <TableCell className="py-5">
                                 <Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-white">
                                     {item.currentLevel}

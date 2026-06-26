@@ -208,9 +208,9 @@ export function SubmissionMatrixReport({
                         <Table>
                             <TableHeader>
                             <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                <TableHead rowSpan={2} className="sticky left-0 bg-slate-50 border-r z-20 font-black text-[10px] uppercase min-w-[220px]">Unit / Office Name</TableHead>
+                                <TableHead rowSpan={2} className="sticky left-0 bg-slate-50 dark:bg-slate-800/50 border-r z-20 font-black text-[10px] uppercase min-w-[220px]">Unit / Office Name</TableHead>
                                 {submissionTypes.map(type => (
-                                <TableHead key={type} colSpan={2} className="text-center border-l font-black text-[9px] uppercase py-2 bg-slate-100/50">{type}</TableHead>
+                                <TableHead key={type} colSpan={2} className="text-center border-l font-black text-[9px] uppercase py-2 bg-slate-100/50 dark:bg-slate-700/50">{type}</TableHead>
                                 ))}
                             </TableRow>
                             <TableRow className="bg-muted/30 hover:bg-muted/30">

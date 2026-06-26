@@ -33,7 +33,7 @@ const getYearRowColor = (year: number) => {
     2025: 'bg-green-50/50 hover:bg-green-100/50',
     2026: 'bg-amber-50/50 hover:bg-amber-100/50',
   };
-  return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50';
+  return colors[year] || 'bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-100/50 dark:hover:bg-slate-700/50';
 };
 
 export default function ApprovalsPage() {
@@ -85,7 +85,7 @@ export default function ApprovalsPage() {
   if (!isSupervisor) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-2xl font-black uppercase text-slate-900">Access Denied</h2>
+        <h2 className="text-2xl font-black uppercase text-slate-900 dark:text-slate-100">Access Denied</h2>
         <p className="text-muted-foreground text-sm mt-2">You do not have administrative oversight permissions.</p>
       </div>
     )
@@ -95,7 +95,7 @@ export default function ApprovalsPage() {
     <TooltipProvider>
       <div className="space-y-6">
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
-          <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Institutional Approvals</h2>
+          <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Institutional Approvals</h2>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
             Review and act on submissions awaiting your verification.
           </p>
@@ -131,7 +131,7 @@ export default function ApprovalsPage() {
                     >
                         <TableCell className="pl-6 py-5">
                             <div className="flex flex-col gap-1">
-                                <span className="font-black text-sm text-slate-900 uppercase group-hover:text-primary transition-colors">{submission.reportType}</span>
+                                <span className="font-black text-sm text-slate-900 dark:text-slate-100 uppercase group-hover:text-primary transition-colors">{submission.reportType}</span>
                                 {submission.isDraft && (
                                     <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase w-fit">DRAFT</Badge>
                                 )}
@@ -149,7 +149,7 @@ export default function ApprovalsPage() {
                                 </div>
                             </div>
                         </TableCell>
-                        <TableCell className="text-xs font-medium text-slate-600">
+                        <TableCell className="text-xs font-medium text-slate-600 dark:text-slate-400">
                             {format(subDate, 'PPp')}
                         </TableCell>
                         <TableCell>

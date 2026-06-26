@@ -136,7 +136,7 @@ export function DataBackupManagement() {
                 </Alert>
 
                 <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                    <Label className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <LinkIcon className="h-3.5 w-3.5" />
                         Target Google Drive Link (Root Backup Folder)
                     </Label>
@@ -176,7 +176,7 @@ export function DataBackupManagement() {
             <CardContent className="pt-6 flex-1">
             <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-white border border-primary/10 shadow-sm space-y-3">
-                    <h4 className="text-[10px] font-black uppercase text-slate-800 flex items-center gap-2">
+                    <h4 className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
                         <Info className="h-4 w-4 text-blue-600" />
                         Included Registry Datasets:
                     </h4>

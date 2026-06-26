@@ -17,7 +17,7 @@ export default function TermsPage() {
         </p>
 
         <section className="space-y-3">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">1. User Accounts & Institutional Responsibility</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2">1. User Accounts & Institutional Responsibility</h3>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Eligibility:</strong> Access is strictly restricted to verified personnel of Romblon State University.</li>
             <li><strong>Authentication:</strong> You must use your official RSU-provided email address. Sharing credentials with unauthorized persons is a violation of university security protocols.</li>
@@ -26,7 +26,7 @@ export default function TermsPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">2. Workflow & Document Integrity</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2">2. Workflow & Document Integrity</h3>
           <p>Users are accountable for the accuracy and completeness of all evidence logs submitted. Submissions must adhere to the **Complete Staff Work (CSW)** standard.</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Drafts:</strong> "Draft" mode is intended for preliminary review and does not constitute a final compliance record.</li>
@@ -36,7 +36,7 @@ export default function TermsPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">3. Prohibited Conduct</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2">3. Prohibited Conduct</h3>
           <p>Users are forbidden from:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Attempting to bypass role-based access controls or view data outside their assigned scope.</li>
@@ -46,7 +46,7 @@ export default function TermsPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">4. Disclaimer of Liability</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2">4. Disclaimer of Liability</h3>
           <p>
             The portal is provided "as is" for institutional management purposes. While every effort is made to ensure data integrity, RSU is not liable for data loss due to user negligence or unauthorized Google Drive link modifications.
           </p>

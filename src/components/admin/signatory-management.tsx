@@ -115,7 +115,7 @@ export function SignatoryManagement() {
               name="qaoDirector"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-slate-700">Director, Quality Assurance Office</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Director, Quality Assurance Office</FormLabel>
                   <FormControl>
                     <div className="relative">
                         <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
@@ -134,7 +134,7 @@ export function SignatoryManagement() {
                 name="qmsHead"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-700">Head, QMS Unit</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Head, QMS Unit</FormLabel>
                     <FormControl>
                         <Input placeholder="Enter name" {...field} className="font-semibold" />
                     </FormControl>
@@ -147,7 +147,7 @@ export function SignatoryManagement() {
                 name="accreditationHead"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-700">Head, Accreditation Unit</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Head, Accreditation Unit</FormLabel>
                     <FormControl>
                         <Input placeholder="Enter name" {...field} className="font-semibold" />
                     </FormControl>

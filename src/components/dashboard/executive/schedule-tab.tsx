@@ -124,13 +124,13 @@ function EventItemCard({ event: e, styles }: { event: ScheduleEvent; styles: any
   
   return (
     <div className={cn(
-      "p-3 rounded-xl border bg-slate-50/50 hover:bg-slate-50/80 transition-all flex items-start gap-3 relative group shadow-sm hover:shadow-md",
+      "p-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all flex items-start gap-3 relative group shadow-sm hover:shadow-md",
       isEventOverdue && "border-rose-100 bg-rose-50/20"
     )}>
       {/* Date badge */}
       <div className={cn(
         "flex flex-col items-center justify-center h-10 w-10 rounded-lg border shrink-0 text-center font-bold select-none text-[8px]",
-        isEventOverdue ? "border-rose-200 bg-rose-50 text-rose-700 font-black" : "border-slate-200 bg-slate-50 text-slate-700"
+        isEventOverdue ? "border-rose-200 bg-rose-50 text-rose-700 font-black" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300"
       )}>
         <span className="font-black uppercase leading-none">{format(e.date, 'MMM')}</span>
         <span className="text-sm font-black leading-none mt-0.5">{format(e.date, 'd')}</span>
@@ -161,7 +161,7 @@ function EventItemCard({ event: e, styles }: { event: ScheduleEvent; styles: any
             </span>
           )}
         </div>
-        <h6 className="text-[11px] font-bold text-slate-900 group-hover:text-primary transition-colors leading-tight">
+        <h6 className="text-[11px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors leading-tight">
           {e.title}
         </h6>
         <p className="text-[10px] text-slate-500 font-medium leading-normal line-clamp-2" title={e.description}>
@@ -176,7 +176,7 @@ function EventItemCard({ event: e, styles }: { event: ScheduleEvent; styles: any
         )}
       </div>
 
-      <span className="text-[8px] font-black text-slate-400 absolute top-3 right-3 bg-slate-100 border px-1.5 py-0.5 rounded tabular-nums select-none">
+      <span className="text-[8px] font-black text-slate-400 absolute top-3 right-3 bg-slate-100 dark:bg-slate-700 border px-1.5 py-0.5 rounded tabular-nums select-none">
         {e.displayDate}
       </span>
     </div>
@@ -520,7 +520,7 @@ export function ScheduleTab({
           { label: 'Active Today', value: kpis.activeToday, icon: <Activity className="h-5 w-5" />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
           { label: 'Upcoming (30 Days)', value: kpis.upcomingMonth, icon: <CalendarIcon className="h-5 w-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Overdue Activities', value: kpis.overdueCount, icon: <AlertCircle className="h-5 w-5" />, color: 'text-rose-600', bg: 'bg-rose-50' },
-          { label: 'Total Tracked Activities', value: kpis.totalTracked, icon: <CalendarCheck2 className="h-5 w-5" />, color: 'text-slate-600', bg: 'bg-slate-50' },
+          { label: 'Total Tracked Activities', value: kpis.totalTracked, icon: <CalendarCheck2 className="h-5 w-5" />, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800/50' },
         ].map(({ label, value, icon, color, bg }) => (
           <Card key={label} className="bg-white border-primary/10 shadow-md transition-all hover:scale-105 duration-200">
             <CardContent className="p-5">
@@ -641,8 +641,8 @@ export function ScheduleTab({
                   
                   {/* Left Column: Scheduled Today & Overdue */}
                   <div className="p-6 space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2 border-slate-100 select-none">
-                      <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-1.5">
+                    <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-700 select-none">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-slate-400" />
                         Scheduled Today / Overdue
                       </h5>
@@ -657,7 +657,7 @@ export function ScheduleTab({
                         <EventItemCard key={e.id} event={e} styles={styles} />
                       ))}
                       {todayEvents.length === 0 && (
-                        <div className="py-12 flex flex-col items-center justify-center text-[10px] font-bold text-slate-400 uppercase italic bg-slate-50/50 border border-dashed rounded-xl">
+                        <div className="py-12 flex flex-col items-center justify-center text-[10px] font-bold text-slate-400 uppercase italic bg-slate-50/50 dark:bg-slate-800/50 border border-dashed rounded-xl">
                           No activities scheduled for today
                         </div>
                       )}
@@ -666,8 +666,8 @@ export function ScheduleTab({
 
                   {/* Right Column: Upcoming */}
                   <div className="p-6 space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2 border-slate-100 select-none">
-                      <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-1.5">
+                    <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-700 select-none">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
                         Upcoming Activities
                       </h5>
@@ -682,7 +682,7 @@ export function ScheduleTab({
                         <EventItemCard key={e.id} event={e} styles={styles} />
                       ))}
                       {upcomingEvents.length === 0 && (
-                        <div className="py-12 flex flex-col items-center justify-center text-[10px] font-bold text-slate-400 uppercase italic bg-slate-50/50 border border-dashed rounded-xl">
+                        <div className="py-12 flex flex-col items-center justify-center text-[10px] font-bold text-slate-400 uppercase italic bg-slate-50/50 dark:bg-slate-800/50 border border-dashed rounded-xl">
                           No upcoming activities
                         </div>
                       )}
@@ -696,9 +696,9 @@ export function ScheduleTab({
         })}
 
         {visibleModules.length === 0 && (
-          <div className="py-20 flex flex-col items-center justify-center text-center opacity-25 border border-dashed bg-slate-50/30 rounded-2xl">
+          <div className="py-20 flex flex-col items-center justify-center text-center opacity-25 border border-dashed bg-slate-50/30 dark:bg-slate-800/30 rounded-2xl">
             <CalendarIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <h4 className="font-black text-slate-900 uppercase text-sm">No Activities Match Selection</h4>
+            <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase text-sm">No Activities Match Selection</h4>
             <p className="text-xs text-muted-foreground mt-1 max-w-md">
               Try adjusting your query or resetting filters to find scheduled activities in the active registry.
             </p>

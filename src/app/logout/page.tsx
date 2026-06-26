@@ -142,11 +142,11 @@ export default function LogoutPage() {
                     <div className="mx-auto bg-white p-3 rounded-2xl shadow-xl border border-primary/10 w-fit mb-4">
                         <MonitorCheck className="h-10 w-10 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl font-black uppercase text-slate-900">Final Quality Audit</CardTitle>
+                    <CardTitle className="text-2xl font-black uppercase text-slate-900 dark:text-slate-100">Final Quality Audit</CardTitle>
                     <CardDescription className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-2">Participation required for session closure.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 space-y-6 text-center">
-                    <p className="text-sm font-medium text-slate-600 leading-relaxed font-sans">
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
                         To maintain our **ISO 21001:2018 Certification**, we require all stakeholders to evaluate the portal maturity index. Please complete the assessment before signing out.
                     </p>
                 </CardContent>
@@ -164,7 +164,7 @@ export default function LogoutPage() {
                     <CardTitle className="text-2xl font-black uppercase">Institutional Redundancy</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-8 space-y-4">
-                    <p className="text-sm text-slate-600 font-medium leading-relaxed font-sans text-center">Administrator detected. Perform a full system backup before ending this session?</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed font-sans text-center">Administrator detected. Perform a full system backup before ending this session?</p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 pb-8">
                     <Button className="w-full h-12 text-lg font-black uppercase" onClick={handleBackup} disabled={isBackingUp}>{isBackingUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Yes, Perform Backup</Button>

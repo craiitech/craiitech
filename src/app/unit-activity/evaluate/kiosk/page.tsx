@@ -352,7 +352,7 @@ function KioskContent() {
                   <Button
                     onClick={enterFullscreen}
                     size="sm"
-                    className="h-9 text-[10px] font-black uppercase tracking-wider bg-[#D4AF37] hover:bg-[#b8942e] text-slate-950 rounded-xl px-5"
+                    className="h-9 text-[10px] font-black uppercase tracking-wider bg-[#D4AF37] hover:bg-[#b8942e] text-slate-950 dark:text-white rounded-xl px-5"
                   >
                     <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
                     Enter Full Screen

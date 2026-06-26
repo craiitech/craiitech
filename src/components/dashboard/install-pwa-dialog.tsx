@@ -105,7 +105,7 @@ export function InstallPwaDialog() {
                     <Badge variant="outline" className="h-5 text-[8px] font-black border-primary/20 text-primary uppercase">v2.5 PWA</Badge>
                   </div>
                   <AlertDialogDescription className="space-y-6">
-                    <p className="text-sm font-medium text-slate-700 leading-relaxed">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
                         Experience the Quality Management System as a professional standalone application. Installing provides several institutional benefits:
                     </p>
                     <div className="grid grid-cols-1 gap-3">
@@ -115,9 +115,9 @@ export function InstallPwaDialog() {
                           { icon: <Smartphone className="h-4 w-4 text-purple-600" />, text: "Optimized Mobile Navigation" },
                           { icon: <CheckCircle2 className="h-4 w-4 text-indigo-600" />, text: "Faster Load Times & Reliability" }
                       ].map((benefit, i) => (
-                          <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
+                          <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
                               {benefit.icon}
-                              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{benefit.text}</span>
+                              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{benefit.text}</span>
                           </div>
                       ))}
                     </div>
@@ -142,7 +142,7 @@ export function InstallPwaDialog() {
                     </div>
                   </div>
                   <AlertDialogDescription className="space-y-6">
-                    <p className="text-sm font-medium text-slate-700 leading-relaxed">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
                         Our records indicate that you already have the <strong>RSU EOMS Portal</strong> installed on this device.
                     </p>
                     <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 flex items-start gap-4">

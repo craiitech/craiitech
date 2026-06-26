@@ -281,7 +281,7 @@ export function ProcedureManualManagement() {
         ) : (
           <div className="border rounded-xl overflow-hidden max-w-2xl bg-white shadow-inner">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                 <TableRow>
                   <TableHead className="text-[10px] font-black uppercase py-2 pl-4">Procedure Part / Section Title</TableHead>
                   <TableHead className="text-right text-[10px] font-black uppercase py-2 pr-4 w-[100px]">Action</TableHead>
@@ -291,7 +291,7 @@ export function ProcedureManualManagement() {
                 {revisionConfig?.parts && revisionConfig.parts.length > 0 ? (
                   revisionConfig.parts.map((part, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="text-xs font-bold text-slate-700 py-3 pl-4">{part}</TableCell>
+                      <TableCell className="text-xs font-bold text-slate-700 dark:text-slate-300 py-3 pl-4">{part}</TableCell>
                       <TableCell className="text-right py-3 pr-4">
                         <Button 
                           variant="ghost" 

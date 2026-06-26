@@ -30,7 +30,7 @@ export default function GetAppPage() {
           <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto shadow-lg shadow-primary/5">
             <Smartphone className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-800">RSU EOMS Portal</h1>
+          <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-slate-200">RSU EOMS Portal</h1>
           <p className="text-sm text-muted-foreground font-medium">
             Install the Android app for quick access to the EOMS quality management system.
           </p>
@@ -60,7 +60,7 @@ export default function GetAppPage() {
             </a>
             <button
               onClick={handleCopy}
-              className="flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-xs font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-xs font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
             >
               {copied ? 'Link Copied' : 'Copy Download Link'}
             </button>
@@ -76,7 +76,7 @@ export default function GetAppPage() {
           Scan the QR code with your phone camera to open this page and install the app.
           <br />
           You may need to enable{' '}
-          <span className="font-black text-slate-600">Install from unknown sources</span> in your device settings.
+          <span className="font-black text-slate-600 dark:text-slate-400">Install from unknown sources</span> in your device settings.
         </div>
       </div>
     </div>

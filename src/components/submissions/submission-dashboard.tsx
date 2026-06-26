@@ -236,7 +236,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                     {data.map((item, idx) => (
                         <div key={idx} className="space-y-1.5 p-2 rounded bg-white border border-destructive/5 shadow-sm group hover:border-destructive/30 transition-colors">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-slate-700 truncate leading-none group-hover:text-destructive transition-colors" title={item.type}>{item.type}</span>
+                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate leading-none group-hover:text-destructive transition-colors" title={item.type}>{item.type}</span>
                                 <Badge variant={item.missingCount > 0 ? 'destructive' : 'default'} className="h-4 text-[8px] font-black py-0 px-1.5 border-none">
                                     {item.missingCount > 0 ? `${item.missingCount} GAPS` : 'PARITY REACHED'}
                                 </Badge>
@@ -277,7 +277,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                             "flex flex-col items-center text-center p-4 rounded-2xl border transition-all duration-500",
                             isApproved ? "bg-white border-emerald-500 shadow-md ring-1 ring-emerald-200" : 
                             isDraftCleared ? "bg-blue-50 border-blue-200 shadow-sm" :
-                            "bg-muted/10 border-slate-100 grayscale opacity-40"
+                            "bg-muted/10 border-slate-100 dark:border-slate-700 grayscale opacity-40"
                         )}>
                             <div className={cn(
                                 "h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors shadow-sm",
@@ -368,11 +368,11 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                                       <div className="h-7 w-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                                           {strength.icon}
                                       </div>
-                                      <span className="text-xs font-black text-slate-900 uppercase tracking-tighter">{strength.title}</span>
+                                      <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-tighter">{strength.title}</span>
                                   </div>
                                   <Badge variant="outline" className="h-4 text-[7px] font-black border-emerald-200 text-emerald-700 uppercase">{strength.tag}</Badge>
                               </div>
-                              <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">"{strength.desc}"</p>
+                              <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">"{strength.desc}"</p>
                           </div>
                       ))
                   ) : (

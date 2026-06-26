@@ -185,14 +185,14 @@ export function GADAccomplishmentTab({ plans, activities, campuses, units, selec
                               <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
                                   <TableCell className="pl-8 py-5">
                                       <div className="space-y-1">
-                                          <p className="font-black text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{item.pap}</p>
+                                          <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">{item.pap}</p>
                                           <p className="text-[9px] font-bold text-muted-foreground line-clamp-1 italic">"{item.genderIssue}"</p>
                                       </div>
                                   </TableCell>
                                   <TableCell>
                                       <div className="space-y-1 max-w-[250px]">
                                           <p className="text-[9px] font-bold uppercase text-slate-400">Targets: {item.performanceIndicators}</p>
-                                          <p className="text-[10px] font-bold text-slate-700 leading-tight">{item.targets}</p>
+                                          <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 leading-tight">{item.targets}</p>
                                           {item.isCompleted && (
                                               <div className="pt-1.5 flex items-center gap-2">
                                                   <CheckCircle2 className="h-3 w-3 text-emerald-600" />
@@ -202,7 +202,7 @@ export function GADAccomplishmentTab({ plans, activities, campuses, units, selec
                                       </div>
                                   </TableCell>
                                   <TableCell className="text-center">
-                                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 shadow-inner">
+                                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 shadow-inner">
                                           <span className="text-[10px] font-black text-indigo-600 tabular-nums">M: {item.actualMale}</span>
                                           <span className="text-slate-200">|</span>
                                           <span className="text-[10px] font-black text-rose-600 tabular-nums">F: {item.actualFemale}</span>

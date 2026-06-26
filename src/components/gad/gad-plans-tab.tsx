@@ -202,7 +202,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-800">Annual GAD Plan & Budget (GPB)</h3>
+            <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-slate-200">Annual GAD Plan & Budget (GPB)</h3>
             <p className="text-xs text-muted-foreground font-medium">Strategic roadmap for institutional gender-responsive activities.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -235,14 +235,14 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                               <TableRow key={plan.id} className="hover:bg-muted/20 transition-colors group">
                                   <TableCell className="pl-8 py-5">
                                       <div className="space-y-1 max-w-xs">
-                                          <p className="font-bold text-sm text-slate-900 leading-tight uppercase group-hover:text-primary transition-colors">{plan.genderIssue}</p>
+                                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">{plan.genderIssue}</p>
                                           <p className="text-[10px] text-muted-foreground font-medium italic">Obj: {plan.objective}</p>
                                       </div>
                                   </TableCell>
                                   <TableCell className="max-w-xs font-bold text-xs">{plan.pap}</TableCell>
                                   <TableCell>
                                       <div className="space-y-1 text-xs">
-                                          <p className="font-bold text-slate-700">{plan.targets}</p>
+                                          <p className="font-bold text-slate-700 dark:text-slate-300">{plan.targets}</p>
                                           <p className="text-[10px] text-muted-foreground italic leading-tight">{plan.performanceIndicators}</p>
                                       </div>
                                   </TableCell>
@@ -284,7 +284,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+          <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Target className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Institutional GPB Registry</span>
@@ -300,10 +300,10 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4" /> Issue Identification</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="genderIssue" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Gender Issue</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Identify the client-focused or organization-focused gender issue..." className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Gender Issue</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Identify the client-focused or organization-focused gender issue..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="causeOfIssue" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Cause of Issue</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="What underlying factors contribute to this issue?" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Cause of Issue</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="What underlying factors contribute to this issue?" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                                 )} />
                             </div>
                         </div>
@@ -311,17 +311,17 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         <div className="space-y-6 pt-6 border-t border-dashed">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Target className="h-4 w-4" /> Objective & Activity</h4>
                             <FormField control={form.control} name="objective" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">GAD Objective</FormLabel><FormControl><Input {...field} placeholder="Specific goal to address the issue..." className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">GAD Objective</FormLabel><FormControl><Input {...field} placeholder="Specific goal to address the issue..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="pap" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Program/Activity/Project (PAP)</FormLabel><FormControl><Input {...field} placeholder="Name of the activity..." className="bg-slate-50 font-bold" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Program/Activity/Project (PAP)</FormLabel><FormControl><Input {...field} placeholder="Name of the activity..." className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl><FormMessage /></FormItem>
                             )} />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="performanceIndicators" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Performance Indicators</FormLabel><FormControl><Input {...field} placeholder="How will success be measured?" className="bg-slate-50" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Performance Indicators</FormLabel><FormControl><Input {...field} placeholder="How will success be measured?" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="targets" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Targets</FormLabel><FormControl><Input {...field} placeholder="Quantifiable goal (e.g. 50 participants)" className="bg-slate-50" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Targets</FormLabel><FormControl><Input {...field} placeholder="Quantifiable goal (e.g. 50 participants)" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl></FormItem>
                                 )} />
                             </div>
                         </div>
@@ -359,7 +359,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+          <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => setIsDialogOpen(false)}>Discard</Button>
                 <div className="flex gap-2">

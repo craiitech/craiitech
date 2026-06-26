@@ -205,12 +205,12 @@ export function GuidedTour() {
             </div>
           </CardHeader>
           <CardContent className="pt-4 pb-3 px-4 space-y-2">
-            <h4 className="text-xs font-black uppercase text-slate-800 tracking-tight">{currentStep.title}</h4>
+            <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">{currentStep.title}</h4>
             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
               "{currentStep.content}"
             </p>
           </CardContent>
-          <CardFooter className="bg-slate-50 border-t py-2.5 px-4 flex items-center justify-between">
+          <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-2.5 px-4 flex items-center justify-between">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -225,7 +225,7 @@ export function GuidedTour() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-7 text-[9px] font-black uppercase hover:bg-destructive/5 hover:text-destructive border-slate-200"
+                className="h-7 text-[9px] font-black uppercase hover:bg-destructive/5 hover:text-destructive border-slate-200 dark:border-slate-700"
                 onClick={handleComplete}
               >
                 Skip

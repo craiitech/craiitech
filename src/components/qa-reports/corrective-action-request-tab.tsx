@@ -268,7 +268,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const renderActionVerificationArea = (sectionType: 'follow-up' | 'final') => {
     if (currentActionSteps.length === 0) {
       return (
-        <div className="mt-4 p-4 border border-dashed rounded-lg bg-slate-50 text-center w-full">
+        <div className="mt-4 p-4 border border-dashed rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center w-full">
           <p className="text-xs text-muted-foreground italic">No Action Steps submitted by the unit yet.</p>
         </div>
       );
@@ -276,10 +276,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
     return (
       <div className="mt-4 border rounded-xl overflow-hidden bg-white shadow-sm w-full">
-        <div className="p-3 bg-slate-50 border-b flex items-center justify-between flex-wrap gap-2">
+        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">Unit Action Steps & Evidence Verification</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Unit Action Steps & Evidence Verification</span>
           </div>
           {isInstitutionalViewer && (
             <Button
@@ -310,7 +310,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         </div>
         <div className="divide-y">
           {currentActionSteps.map((step, i) => (
-            <div key={i} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors w-full">
+            <div key={i} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors w-full">
               <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className={cn(
@@ -342,7 +342,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     Target: {step.completionDate ? format(new Date(step.completionDate), 'yyyy-MM-dd') : 'No Date'}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-slate-700 break-words leading-relaxed">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 break-words leading-relaxed">
                   {step.description || <span className="text-rose-500 italic">No description entered yet (please fill in Section 3)</span>}
                 </p>
                 {step.evidenceLink ? (
@@ -719,12 +719,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">{car.procedureTitle}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                                                 <Building2 className="h-3.5 w-3.5 opacity-30" />
                                                 {unitMap.get(car.unitId) || 'Unknown Unit'}
                                             </div>
@@ -756,7 +756,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               <Card className="shadow-md border-amber-200/30 overflow-hidden">
                 <div className="p-4 bg-amber-50/50 border-b flex items-center gap-2">
                     <Activity className="h-4 w-4 text-amber-600" />
-                    <p className="text-xs font-black uppercase text-slate-800">Open & On-going Corrective Action Requests</p>
+                    <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Open & On-going Corrective Action Requests</p>
                 </div>
                 <div className="overflow-x-auto">
                     <Table>
@@ -775,12 +775,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">{car.procedureTitle}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                                                 <Building2 className="h-3.5 w-3.5 opacity-30" />
                                                 {unitMap.get(car.unitId) || 'Unknown Unit'}
                                             </div>
@@ -809,7 +809,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               <Card className="shadow-md border-emerald-200/30 overflow-hidden">
                 <div className="p-4 bg-emerald-50/50 border-b flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <p className="text-xs font-black uppercase text-slate-800">Closed Non-Conformance Records</p>
+                    <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Closed Non-Conformance Records</p>
                 </div>
                 <div className="overflow-x-auto">
                     <Table>
@@ -828,12 +828,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">{car.procedureTitle}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                                                 <Building2 className="h-3.5 w-3.5 opacity-30" />
                                                 {unitMap.get(car.unitId) || 'Unknown Unit'}
                                             </div>
@@ -865,7 +865,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
              <Card className="shadow-md border-primary/10 overflow-hidden">
                 <div className="p-4 bg-muted/10 border-b flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-rose-600" />
-                    <p className="text-xs font-black uppercase text-slate-800">Items Requiring Active Update or Closure Verification</p>
+                    <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Items Requiring Active Update or Closure Verification</p>
                 </div>
                 <div className="overflow-x-auto">
                     <Table>
@@ -884,12 +884,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">{car.procedureTitle}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                                                 <Building2 className="h-3.5 w-3.5 opacity-30" />
                                                 {unitMap.get(car.unitId) || 'Unknown Unit'}
                                             </div>
@@ -921,7 +921,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCar(null); }}>
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+          <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-primary mb-1">
@@ -940,13 +940,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     <ScrollArea className="flex-1">
                         <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
                             <section className="space-y-6">
-                                <div className="flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Administrative Context</h4></div>
+                                <div className="flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">1. Administrative Context</h4></div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <FormField control={form.control} name="carNumber" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel>
                                             <FormControl>
-                                                <Input {...field} className="bg-slate-50 font-black h-11" disabled={isFieldReadOnly('carNumber')} />
+                                                <Input {...field} className="bg-slate-50 dark:bg-slate-800/50 font-black h-11" disabled={isFieldReadOnly('carNumber')} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -955,7 +955,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <FormItem>
                                             <FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel>
                                             <FormControl>
-                                                <Input {...field} value={field.value || ''} className="bg-slate-50 font-bold h-11" disabled={isFieldReadOnly('ncReportNumber')} />
+                                                <Input {...field} value={field.value || ''} className="bg-slate-50 dark:bg-slate-800/50 font-bold h-11" disabled={isFieldReadOnly('ncReportNumber')} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -967,7 +967,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             <FormLabel className="text-xs font-bold uppercase">Campus</FormLabel>
                                             <Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value} disabled={isFieldReadOnly('campusId')}>
                                                 <FormControl>
-                                                    <SelectTrigger className="bg-slate-50">
+                                                    <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50">
                                                         <SelectValue placeholder="Select Campus" />
                                                     </SelectTrigger>
                                                 </FormControl>
@@ -982,7 +982,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             <FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('unitId') || !form.watch('campusId')}>
                                                 <FormControl>
-                                                    <SelectTrigger className="bg-slate-50">
+                                                    <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50">
                                                         <SelectValue placeholder="Select Unit" />
                                                     </SelectTrigger>
                                                 </FormControl>
@@ -996,7 +996,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <FormItem>
                                             <FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel>
                                             <FormControl>
-                                                <Input {...field} className="bg-slate-50 font-bold" disabled={isFieldReadOnly('unitHead')} />
+                                                <Input {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" disabled={isFieldReadOnly('unitHead')} />
                                             </FormControl>
                                         </FormItem>
                                     )} />
@@ -1005,7 +1005,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <FormItem>
                                         <FormLabel className="text-xs font-bold uppercase">Procedure Affected</FormLabel>
                                         <FormControl>
-                                            <Input {...field} className="bg-slate-50 font-bold" disabled={isFieldReadOnly('procedureTitle')} />
+                                            <Input {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" disabled={isFieldReadOnly('procedureTitle')} />
                                         </FormControl>
                                     </FormItem>
                                 )} />
@@ -1013,7 +1013,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <FormItem>
                                         <FormLabel className="text-xs font-bold uppercase">Concerning ISO Clause</FormLabel>
                                         <FormControl>
-                                            <Input {...field} className="bg-slate-50 font-bold" disabled={isFieldReadOnly('concerningClause')} />
+                                            <Input {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" disabled={isFieldReadOnly('concerningClause')} />
                                         </FormControl>
                                     </FormItem>
                                 )} />
@@ -1108,7 +1108,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 <div className="space-y-6">
                                     <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b pb-1">I. Follow-up Result</h5>
                                     {followUpFields.map((field, index) => (
-                                        <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 relative group space-y-6">
+                                        <div key={field.id} className="p-6 rounded-2xl border bg-slate-50/50 dark:bg-slate-800/50 relative group space-y-6">
                                             {renderActionVerificationArea('follow-up')}
                                             <FormField control={form.control} name={`followUpLogs.${index}.result`} render={({ field: iF }) => (
                                                 <FormItem className="md:col-span-2">
@@ -1224,7 +1224,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         </form>
                     </ScrollArea>
                     
-                    <div className="h-32 border-t bg-slate-50 p-4 shrink-0">
+                    <div className="h-32 border-t bg-slate-50 dark:bg-slate-800/50 p-4 shrink-0">
                         <ScrollArea className="h-full">
                             <div className="space-y-2">
                                 <h5 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><ListChecks className="h-3.5 w-3.5" /> Corrective Action Protocol</h5>
@@ -1239,7 +1239,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     </div>
                 </div>
 
-                <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
+                <div className="w-[400px] flex flex-col bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
                     <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-primary flex items-center gap-2 bg-white">
                         <MessageSquare className="h-4 w-4" /> Conversation History
                     </div>
@@ -1257,7 +1257,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 return d && !isNaN(d.getTime()) ? format(d, 'MMM dd, p') : '';
                                             })()}</span>
                                         </div>
-                                        <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700">
+                                        <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700 dark:text-slate-300">
                                             "{comment.text}"
                                         </div>
                                         <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{comment.authorRole}</p>
@@ -1276,7 +1276,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             <FormField control={form.control} name="adminFeedback" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-black uppercase text-primary">Post Feedback / Directive</FormLabel>
-                                    <FormControl><Textarea {...field} placeholder="Add a review note..." className="text-xs italic bg-slate-50 min-h-[80px]" /></FormControl>
+                                    <FormControl><Textarea {...field} placeholder="Add a review note..." className="text-xs italic bg-slate-50 dark:bg-slate-800/50 min-h-[80px]" /></FormControl>
                                 </FormItem>
                             )} />
                         </div>
@@ -1285,7 +1285,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </div>
           </Form>
 
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+          <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex w-full items-center justify-between">
                 <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-[10px] font-black uppercase">Cancel</Button>
                 <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8">

@@ -658,12 +658,12 @@ export function AdminAuditView() {
                                         return (
                                             <TableRow key={schedule.id} className="hover:bg-muted/10 transition-colors">
                                                 <TableCell className="pl-6 py-4">
-                                                    <span className="font-bold text-xs text-slate-800 uppercase">{schedule.targetName}</span>
+                                                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase">{schedule.targetName}</span>
                                                     <p className="text-[9px] font-mono text-muted-foreground uppercase mt-0.5">ID: {schedule.id}</p>
                                                 </TableCell>
-                                                <TableCell className="text-xs font-semibold text-slate-600 uppercase">{campusName}</TableCell>
-                                                <TableCell className="text-xs font-semibold text-slate-600 uppercase">{auditorName}</TableCell>
-                                                <TableCell className="text-xs font-semibold text-slate-600 uppercase">{auditeeName}</TableCell>
+                                                <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{campusName}</TableCell>
+                                                <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{auditorName}</TableCell>
+                                                <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{auditeeName}</TableCell>
                                                 <TableCell className="text-center pr-6">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <Button 
@@ -730,7 +730,7 @@ export function AdminAuditView() {
                             {auditors.map((auditor) => {
                                 const performance = getAuditorPerformance(auditor.id);
                                 return (
-                                    <div key={auditor.id} className="p-6 hover:bg-slate-50/30 transition-colors">
+                                    <div key={auditor.id} className="p-6 hover:bg-slate-50/30 dark:hover:bg-slate-800/30 transition-colors">
                                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                             {/* Auditor Profile Info */}
                                             <div className="space-y-3">
@@ -745,27 +745,27 @@ export function AdminAuditView() {
                                                 
                                                 {/* Performance Mini Grid */}
                                                 <div className="grid grid-cols-3 gap-2 pt-2">
-                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
                                                         <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
                                                             Assigned
                                                         </span>
-                                                        <span className="text-xs font-black text-slate-800 tabular-nums">
+                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 tabular-nums">
                                                             {performance.assignedCount}
                                                         </span>
                                                     </div>
-                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
                                                         <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
                                                             Completed
                                                         </span>
-                                                        <span className="text-xs font-black text-slate-800 tabular-nums">
+                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 tabular-nums">
                                                             {performance.completedCount}
                                                         </span>
                                                     </div>
-                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
                                                         <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
                                                             Findings
                                                         </span>
-                                                        <span className="text-xs font-black text-slate-800 tabular-nums">
+                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 tabular-nums">
                                                             {performance.findingsLoggedCount}
                                                         </span>
                                                     </div>
@@ -784,13 +784,13 @@ export function AdminAuditView() {
                                             </div>
 
                                             {/* Auditor Portfolios List */}
-                                            <div className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
+                                            <div className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-700 pt-4 lg:pt-0 lg:pl-6">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-3">
                                                     Qualifications & Portfolio Files ({auditor.portfolios?.length || 0})
                                                 </span>
 
                                                 {!auditor.portfolios || auditor.portfolios.length === 0 ? (
-                                                    <div className="bg-slate-50/50 border border-dashed rounded-xl p-4 text-center">
+                                                    <div className="bg-slate-50/50 dark:bg-slate-800/50 border border-dashed rounded-xl p-4 text-center">
                                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                                                             No portfolio items uploaded by this auditor.
                                                         </span>
@@ -800,10 +800,10 @@ export function AdminAuditView() {
                                                         {auditor.portfolios.map((portfolio) => (
                                                             <div 
                                                                 key={portfolio.id} 
-                                                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:border-[#1B6535]/20 hover:shadow-sm transition-all"
+                                                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-white hover:border-[#1B6535]/20 hover:shadow-sm transition-all"
                                                             >
                                                                 <div className="space-y-0.5 truncate mr-2">
-                                                                    <span className="font-bold text-[10px] text-slate-700 uppercase leading-snug truncate block">
+                                                                    <span className="font-bold text-[10px] text-slate-700 dark:text-slate-300 uppercase leading-snug truncate block">
                                                                         {portfolio.title}
                                                                     </span>
                                                                     <span className="text-[8px] font-medium text-slate-400 block">

@@ -122,10 +122,10 @@ function EditRoleDialog({ role, isOpen, onOpenChange }: EditRoleDialogProps) {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                         <FormField control={form.control} name="name" render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Role Title</FormLabel><FormControl><Input {...field} className="font-bold bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Role Title</FormLabel><FormControl><Input {...field} className="font-bold bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="description" render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Description / Scope</FormLabel><FormControl><Textarea {...field} rows={3} className="text-xs italic bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Description / Scope</FormLabel><FormControl><Textarea {...field} rows={3} className="text-xs italic bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                         )} />
                         <DialogFooter className="pt-4 border-t">
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

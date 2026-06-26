@@ -188,7 +188,7 @@ export function CsmSettingsManagement() {
               
               {/* STEP 1: SELECT CAMPUS */}
               <div className="space-y-2">
-                <FormLabel className="text-xs font-bold uppercase text-slate-700">Step 1: Select Site / Campus</FormLabel>
+                <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Step 1: Select Site / Campus</FormLabel>
                 <Select value={selectedCampusId} onValueChange={(val) => { setSelectedCampusId(val); form.setValue('managingUnitId', ''); }}>
                   <SelectTrigger className="h-11 font-bold">
                     <School className="h-4 w-4 mr-2 opacity-40" />
@@ -211,7 +211,7 @@ export function CsmSettingsManagement() {
                 name="managingUnitId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-700">Step 2: Designated CSM Managing Unit</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Step 2: Designated CSM Managing Unit</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedCampusId}>
                       <FormControl>
                         <SelectTrigger className="h-11 font-bold">
@@ -247,7 +247,7 @@ export function CsmSettingsManagement() {
 
               {/* STEP 3: CSM SIGNATORIES */}
               <div className="space-y-4 pt-4 border-t">
-                <FormLabel className="text-xs font-black uppercase text-slate-700">Step 3: CSM Report Signatories</FormLabel>
+                <FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Step 3: CSM Report Signatories</FormLabel>
                 <FormDescription className="text-[10px]">
                   These names will appear as official signatories on all generated CSM reports (Harmonized Agency Report, Campus Performance Export, CAIP Matrix).
                 </FormDescription>
@@ -257,7 +257,7 @@ export function CsmSettingsManagement() {
                   name="csmDirector"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-bold uppercase text-slate-700">CSM Director (Prepared By)</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">CSM Director (Prepared By)</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., DR. JUAN DELA CRUZ" {...field} className="font-bold" />
                       </FormControl>
@@ -273,7 +273,7 @@ export function CsmSettingsManagement() {
                     name="csmQualityHead"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-slate-700">CSM Quality Assurance Head (Reviewed By)</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">CSM Quality Assurance Head (Reviewed By)</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter name" {...field} className="font-semibold" />
                         </FormControl>
@@ -288,7 +288,7 @@ export function CsmSettingsManagement() {
                     name="csmCampusCoordinator"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-slate-700">Campus CSM Coordinator (Noted By)</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Campus CSM Coordinator (Noted By)</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter name" {...field} className="font-semibold" />
                         </FormControl>

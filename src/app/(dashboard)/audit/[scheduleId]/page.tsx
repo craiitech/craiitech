@@ -650,7 +650,7 @@ export default function AuditExecutionPage() {
                       <div className="space-y-6">
                         <FormField control={form.control} name="officerInCharge" render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
+                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
                             <FormControl><Input {...field} placeholder="Enter name of the actual representative present..." className="h-11 font-black bg-white" /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -658,28 +658,28 @@ export default function AuditExecutionPage() {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <FormField control={form.control} name="actualDate" render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Actual Conduct Date</FormLabel>
                               <FormControl><Input type="date" {...field} className="h-11 bg-white font-bold" /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )} />
                           <FormField control={form.control} name="actualStartTime" render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Actual Start Time</FormLabel>
                               <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )} />
                           <FormField control={form.control} name="actualEndTime" render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Actual End Time</FormLabel>
                               <FormControl><Input type="time" {...field} className="h-11 bg-white font-bold" /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )} />
                           <FormField control={form.control} name="iqaMethod" render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600">IQA Method</FormLabel>
+                              <FormLabel className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">IQA Method</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger className="h-11 bg-white font-bold">
@@ -744,7 +744,7 @@ export default function AuditExecutionPage() {
                             </div>
                         </Form>
                     </CardContent>
-                    <CardFooter className="bg-slate-50 border-t py-6 px-8">
+                    <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-6 px-8">
                         {isActuallyOffline ? (
                             <div className="w-full p-4 rounded-xl border border-dashed border-primary/20 bg-white flex items-center justify-center gap-3">
                                 <ShieldCheck className="h-5 w-5 text-primary" />
@@ -770,7 +770,7 @@ export default function AuditExecutionPage() {
                         <div className="space-y-3">
                             <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Auditor</p><div className="flex items-center gap-2"><User className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span></div></div>
                             <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Auditee</p><div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{schedule.targetName}</span></div></div>
-                            <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p><div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-slate-400" /><span className="text-sm font-medium text-slate-600">{schedule.auditeeHeadName || 'Not Specified'}</span></div></div>
+                            <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p><div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-slate-400" /><span className="text-sm font-medium text-slate-600 dark:text-slate-400">{schedule.auditeeHeadName || 'Not Specified'}</span></div></div>
                             <div className="space-y-1"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Itinerary Schedule</p><div className="flex items-center gap-2 text-amber-600"><Clock className="h-4 w-4" /><span className="text-sm font-bold">{format(conductDate, 'PPp')}</span></div></div>
                         </div>
                         <Separator />

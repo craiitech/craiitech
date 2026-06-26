@@ -138,17 +138,17 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
                             <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50/50 h-5">
                                 {strength.category}
                             </Badge>
-                            <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 transition-colors">
                                 {strength.title}
                             </CardTitle>
                         </div>
-                        <div className="p-3 rounded-2xl bg-slate-50 group-hover:bg-emerald-50 group-hover:scale-110 transition-all border border-slate-100 group-hover:border-emerald-100">
+                        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 group-hover:bg-emerald-50 group-hover:scale-110 transition-all border border-slate-100 dark:border-slate-700 group-hover:border-emerald-100">
                             {strength.icon}
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4 flex-1">
-                    <p className="text-sm font-bold text-slate-700 leading-snug">{strength.description}</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{strength.description}</p>
                     <div className="p-3 rounded-xl bg-emerald-50/30 border border-emerald-100/50 italic flex gap-3 items-start">
                         <Zap className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
@@ -196,7 +196,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
                       <div key={idx} className="space-y-2.5 p-4 rounded-2xl bg-white border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
-                                  <p className="text-[11px] font-black uppercase text-slate-900 leading-tight truncate" title={entry.program.name}>{entry.program.name}</p>
+                                  <p className="text-[11px] font-black uppercase text-slate-900 dark:text-slate-100 leading-tight truncate" title={entry.program.name}>{entry.program.name}</p>
                                   <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{campusMap.get(entry.program.campusId)}</p>
                               </div>
                               <Badge variant="destructive" className="h-4 px-1.5 text-[8px] font-black shrink-0">{entry.gaps.length} GAPS</Badge>

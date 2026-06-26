@@ -541,7 +541,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                   {catSubs.map(sub => (
                     <div key={sub.id} className="px-3 py-2.5 rounded-md border bg-muted/5 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-700 truncate max-w-[140px]" title={sub.name}>
+                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]" title={sub.name}>
                           {sub.name}
                         </span>
                         <span className="text-xs font-black tabular-nums">{sub.mean.toFixed(2)}</span>
@@ -592,7 +592,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                           {comment.overallScore.toFixed(1)}
                         </div>
                         <div>
-                          <p className="font-bold text-sm text-slate-900">{comment.userName}</p>
+                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100">{comment.userName}</p>
                           <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{comment.date}</p>
                         </div>
                       </div>
@@ -606,7 +606,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                         <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
                           <Info className="h-3 w-3" /> General Experience Remarks
                         </p>
-                        <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 rounded-lg p-3 border border-slate-100 italic">
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-100 dark:border-slate-700 italic">
                           &ldquo;{comment.generalComments}&rdquo;
                         </p>
                       </div>
@@ -617,7 +617,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                         <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" /> Technical Suggestions
                         </p>
-                        <p className="text-sm text-slate-700 leading-relaxed bg-amber-50/50 rounded-lg p-3 border border-amber-100 italic">
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-amber-50/50 rounded-lg p-3 border border-amber-100 italic">
                           &ldquo;{comment.recommendations}&rdquo;
                         </p>
                       </div>
@@ -668,8 +668,8 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                   return (
                     <tr key={sub.id} className={cn("border-b hover:bg-muted/10 transition-colors", i % 2 === 0 ? "" : "bg-muted/5")}>
                       <td className="px-4 py-2.5 font-bold text-muted-foreground tabular-nums">{i + 1}</td>
-                      <td className="px-4 py-2.5 font-semibold text-slate-600">{sub.category}</td>
-                      <td className="px-4 py-2.5 font-bold text-slate-800">{sub.name}</td>
+                      <td className="px-4 py-2.5 font-semibold text-slate-600 dark:text-slate-400">{sub.category}</td>
+                      <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-200">{sub.name}</td>
                       <td className="px-4 py-2.5 text-center font-black tabular-nums">{sub.mean.toFixed(2)}</td>
                       <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">±{sub.sd.toFixed(2)}</td>
                       <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{sub.min}</td>

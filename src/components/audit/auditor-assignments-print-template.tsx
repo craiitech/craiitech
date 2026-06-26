@@ -43,7 +43,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
   };
 
   return (
-    <div className="text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+    <div className="text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       {auditorData.map((auditor, idx) => (
         <div key={idx} className="print-page-break p-0 mb-10 flex flex-col" style={{ pageBreakAfter: 'always' }}>
           {/* Institutional Header */}
@@ -53,7 +53,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
                 <h2 className="font-semibold uppercase mt-1" style={{ fontSize: '12pt' }}>Quality Assurance Office</h2>
                 <p style={{ fontSize: '10pt' }} className="italic">Odiongan, Romblon</p>
             </div>
-            <div className="mt-6 border-y-2 border-black py-2 bg-slate-50/50">
+            <div className="mt-6 border-y-2 border-black py-2 bg-slate-50/50 dark:bg-slate-800/50">
               <h2 className="font-black uppercase tracking-[0.15em]" style={{ fontSize: '13pt' }}>IQA Auditor Assignment Registry</h2>
               <p className="font-bold mt-1" style={{ fontSize: '12pt' }}>FISCAL YEAR {year}</p>
             </div>
@@ -120,7 +120,7 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
           </div>
 
           {/* Footer */}
-          <div className="mt-auto pt-4 border-t border-slate-200 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '10pt' }}>
+          <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '10pt' }}>
             <span>RSU-QAO-IQA-AUDITOR-LOG | REV 02-2025</span>
             <div className="flex gap-6">
                 <span>Page {idx + 1} of {auditorData.length}</span>

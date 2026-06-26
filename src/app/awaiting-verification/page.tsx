@@ -74,7 +74,7 @@ export default function AwaitingVerificationPage() {
   };
 
   const renderNDA = () => (
-    <Card className="w-full max-w-2xl bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-800">
+    <Card className="w-full max-w-2xl bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-700 dark:border-slate-800">
       <CardHeader className="text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
           <ShieldAlert className="h-10 w-10 text-primary" />
@@ -153,7 +153,7 @@ export default function AwaitingVerificationPage() {
   );
 
   const renderConfirmation = () => (
-    <Card className="w-full max-w-md text-center bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-800">
+    <Card className="w-full max-w-md text-center bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-700 dark:border-slate-800">
       <CardHeader>
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
           <CheckCircle className="h-10 w-10 text-green-600" />

@@ -80,15 +80,15 @@ export function SoftwareEvaluationGate({ required = false, onDismiss }: Software
                         <div className="flex items-center justify-center gap-2 mb-1">
                             <Badge variant="outline" className="h-5 text-[8px] font-black tracking-widest border-primary/30 text-primary uppercase bg-white">ISO/IEC 25010:2011</Badge>
                         </div>
-                        <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Institutional Software Audit</CardTitle>
-                        <CardDescription className="text-xs sm:text-sm text-slate-600 font-medium">
+                        <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 leading-tight">Institutional Software Audit</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
                             Quality Assurance Participation Protocol
                         </CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="p-6 sm:p-8 space-y-4">
                     <div className="space-y-4">
-                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-center font-medium">
+                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed text-center font-medium">
                             In alignment with our <strong>ISO 21001:2018 Certification</strong>, all stakeholders are encouraged to evaluate the EOMS Portal.
                         </p>
                         
@@ -111,10 +111,10 @@ export function SoftwareEvaluationGate({ required = false, onDismiss }: Software
                                 { icon: <Landmark className="h-4 w-4 text-purple-600" />, title: "System Reliability", desc: "Uptime and integrity." },
                                 { icon: <Info className="h-4 w-4 text-amber-600" />, title: "Security Maturity", desc: "Data protection." }
                             ].map((item, i) => (
-                                <div key={i} className="flex gap-3 p-2 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-primary/20 transition-all">
+                                <div key={i} className="flex gap-3 p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 group hover:border-primary/20 transition-all">
                                     <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">{item.icon}</div>
                                     <div className="space-y-0.5">
-                                        <h4 className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800">{item.title}</h4>
+                                        <h4 className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">{item.title}</h4>
                                         <p className="text-[8px] text-muted-foreground font-medium">{item.desc}</p>
                                     </div>
                                 </div>
@@ -135,12 +135,12 @@ export function SoftwareEvaluationGate({ required = false, onDismiss }: Software
                     )}
                 </CardContent>
               </ScrollArea>
-              <CardFooter className="bg-slate-50 border-t py-4 px-6 sm:px-10 shrink-0 gap-3">
+              <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-4 px-6 sm:px-10 shrink-0 gap-3">
                   {!required && (
                     <Button 
                         variant="outline"
                         size="lg" 
-                        className="flex-1 h-12 sm:h-14 text-sm font-black uppercase tracking-widest border-slate-200" 
+                        className="flex-1 h-12 sm:h-14 text-sm font-black uppercase tracking-widest border-slate-200 dark:border-slate-700" 
                         onClick={handleSkip}
                     >
                         Skip for Now

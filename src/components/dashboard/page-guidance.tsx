@@ -55,7 +55,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
             <Badge variant="outline" className="h-4 text-[7px] font-black bg-white border-primary/20 text-primary uppercase tracking-tighter">RSU EOMS ASSIST</Badge>
           </div>
           <div className="pt-3">
-              <h3 className="text-sm font-black uppercase text-slate-800 leading-tight">{help.title}</h3>
+              <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 leading-tight">{help.title}</h3>
               <p className="text-[10px] text-muted-foreground font-medium leading-relaxed mt-1 italic">{help.description}</p>
           </div>
         </CardHeader>
@@ -94,10 +94,10 @@ export function PageGuidance({ className }: PageGuidanceProps) {
                                         <div className="h-6 w-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                                             {idx + 1}
                                         </div>
-                                        {idx < help.steps!.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
+                                        {idx < help.steps!.length - 1 && <div className="w-0.5 h-full bg-slate-100 dark:bg-slate-700 my-1" />}
                                     </div>
                                     <div className="space-y-1 pb-1 flex-1">
-                                        <p className="text-[11px] font-black uppercase text-slate-800 tracking-tight leading-tight">{step.title}</p>
+                                        <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight leading-tight">{step.title}</p>
                                         <p className="text-[10px] text-muted-foreground font-medium leading-relaxed italic">"{step.desc}"</p>
                                     </div>
                                 </div>
@@ -122,7 +122,7 @@ export function PageGuidance({ className }: PageGuidanceProps) {
                                         {btn.labelShort || btn.label}
                                     </Badge>
                                     <div className="space-y-0.5 min-w-0">
-                                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter truncate">{btn.label}</p>
+                                        <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter truncate">{btn.label}</p>
                                         <p className="text-[9px] text-muted-foreground leading-tight">{btn.action}</p>
                                     </div>
                                 </div>

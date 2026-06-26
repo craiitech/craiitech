@@ -99,8 +99,8 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   };
   
   const yearColor = colors[year] || { 
-    first: 'bg-slate-50/20 hover:bg-slate-100/40', 
-    final: 'bg-slate-100/40 hover:bg-blue-200/50' 
+    first: 'bg-slate-50/20 dark:bg-slate-800/20 hover:bg-slate-100/40 dark:hover:bg-slate-700/40', 
+    final: 'bg-slate-100/40 dark:bg-slate-700/40 hover:bg-blue-200/50' 
   };
   
   return isFinal ? yearColor.final : yearColor.first;
@@ -346,13 +346,13 @@ export function UnitSubmissionsView({
                               <Printer className="h-4 w-4 mr-2" /> Print QA Notice
                           </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-[100]">
+                      <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5 z-[100]">
                           <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
                           
                           {unitData.missingFirst.length === 0 && (
                               <DropdownMenuItem 
                                   onClick={() => handlePrintNotice('Compliance', 'first')}
-                                  className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                  className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
                               >
                                   Notice of Compliance (First Cycle)
                               </DropdownMenuItem>
@@ -360,7 +360,7 @@ export function UnitSubmissionsView({
                           {unitData.missingFinal.length === 0 && (
                               <DropdownMenuItem 
                                   onClick={() => handlePrintNotice('Compliance', 'final')}
-                                  className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                  className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
                               >
                                   Notice of Compliance (Final Cycle)
                               </DropdownMenuItem>
@@ -443,13 +443,13 @@ export function UnitSubmissionsView({
                                   {unitData.missingFirst.length > 0 && (
                                       <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
                                           <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">1st Cycle To-Do</p>
-                                          <ul className="space-y-1.5">{unitData.missingFirst.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
+                                          <ul className="space-y-1.5">{unitData.missingFirst.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
                                       </div>
                                   )}
                                   {unitData.missingFinal.length > 0 && (
                                       <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
                                           <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">Final Cycle To-Do</p>
-                                          <ul className="space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
+                                          <ul className="space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
                                       </div>
                                   )}
                               </div>
@@ -459,7 +459,7 @@ export function UnitSubmissionsView({
               </div>
 
               <div className="space-y-6">
-                  <div className="flex items-center gap-3 border-b pb-2"><CalendarIcon className="h-5 w-5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Submission Registry Logs</h4></div>
+                  <div className="flex items-center gap-3 border-b pb-2"><CalendarIcon className="h-5 w-5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100">Submission Registry Logs</h4></div>
                   <div className="space-y-8">
                       <div className="space-y-3"><Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-4 h-6 font-black text-[9px] uppercase">1st Cycle Registry</Badge><UnitTable cycleSubs={unitData.firstCycle} onView={(id) => router.push(`/submissions/${id}`)} /></div>
                       <div className="space-y-3"><Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-4 h-6 font-black text-[9px] uppercase">Final Cycle Registry</Badge><UnitTable cycleSubs={unitData.finalCycle} onView={(id) => router.push(`/submissions/${id}`)} /></div>
@@ -487,7 +487,7 @@ function UnitTable({ cycleSubs, onView }: { cycleSubs: any[], onView: (id: strin
                 <TableBody>
                     {cycleSubs.map(sub => (
                         <TableRow key={sub.id} className="transition-colors hover:bg-muted/10">
-                            <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
+                            <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900 dark:text-slate-100">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
                             <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-50 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
                             <TableCell className="text-right pr-6"><Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button></TableCell>
                         </TableRow>

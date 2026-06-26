@@ -324,7 +324,7 @@ export function AuditScheduleDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+        <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <ListChecks className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-widest">Itinerary Provisioning</span>
@@ -353,7 +353,7 @@ export function AuditScheduleDialog({
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <Clock className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Timeline & Target Unit</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">1. Timeline & Target Unit</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
@@ -366,7 +366,7 @@ export function AuditScheduleDialog({
                                             <Input 
                                                 {...field} 
                                                 placeholder="MM/DD/YYYY" 
-                                                className="h-11 font-bold border-slate-200 shadow-sm"
+                                                className="h-11 font-bold border-slate-200 dark:border-slate-700 shadow-sm"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -513,7 +513,7 @@ export function AuditScheduleDialog({
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <ShieldCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">2. Procedure & Scoping</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">2. Procedure & Scoping</h4>
                         </div>
                         <FormField
                             control={form.control}
@@ -522,7 +522,7 @@ export function AuditScheduleDialog({
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Procedure / Audit Focus Area</FormLabel>
                                     <FormControl>
-                                        <Textarea {...field} placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions)..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" />
+                                        <Textarea {...field} placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions)..." rows={4} className="bg-slate-50 dark:bg-slate-800/50 italic text-xs leading-relaxed" />
                                     </FormControl>
                                     <FormDescription className="text-[9px]">Describe the organizational processes covered in this session.</FormDescription>
                                     <FormMessage />
@@ -624,7 +624,7 @@ export function AuditScheduleDialog({
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <UserCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">3. Team Assignment</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">3. Team Assignment</h4>
                         </div>
                         <FormField
                             control={form.control}
@@ -658,7 +658,7 @@ export function AuditScheduleDialog({
                         <div className="flex items-center justify-between border-b pb-2">
                             <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-primary" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">4. Session Documents</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">4. Session Documents</h4>
                             </div>
                             <Button
                                 type="button"
@@ -672,7 +672,7 @@ export function AuditScheduleDialog({
                         </div>
 
                         {docFields.length === 0 ? (
-                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50">
+                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
                                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">No session documents added</p>
                                 <p className="text-[10px] text-muted-foreground mt-1">Add Google Drive links relevant to this itinerary session.</p>
                             </div>
@@ -688,13 +688,13 @@ export function AuditScheduleDialog({
                                                 value={(form.watch as any)(`documents.${index}.name`)}
                                                 onChange={(e) => form.setValue(`documents.${index}.name` as any, e.target.value)}
                                                 placeholder="Document name"
-                                                className="h-8 text-xs font-bold bg-slate-50"
+                                                className="h-8 text-xs font-bold bg-slate-50 dark:bg-slate-800/50"
                                             />
                                             <Input
                                                 value={(form.watch as any)(`documents.${index}.link`)}
                                                 onChange={(e) => form.setValue(`documents.${index}.link` as any, e.target.value)}
                                                 placeholder="https://drive.google.com/..."
-                                                className="h-8 text-xs font-medium bg-slate-50"
+                                                className="h-8 text-xs font-medium bg-slate-50 dark:bg-slate-800/50"
                                             />
                                         </div>
                                         <Button
@@ -715,7 +715,7 @@ export function AuditScheduleDialog({
             </Form>
         </ScrollArea>
 
-        <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+        <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex w-full items-center justify-between">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Itinerary v2.5</p>
                 <div className="flex gap-2">

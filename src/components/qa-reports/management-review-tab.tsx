@@ -324,7 +324,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                 <CardContent className="p-3">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="space-y-1.5 min-w-0">
-                                            <p className={cn("text-xs font-bold leading-tight truncate", selectedMr?.id === review.id ? "text-primary" : "text-slate-700")}>{review.title}</p>
+                                            <p className={cn("text-xs font-bold leading-tight truncate", selectedMr?.id === review.id ? "text-primary" : "text-slate-700 dark:text-slate-300")}>{review.title}</p>
                                             <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
                                                 <Calendar className="h-2.5 w-2.5" />
                                                 {safeFormatDate(review.startDate)}
@@ -435,7 +435,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                 <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
                                                                 <TableCell className="max-w-xs py-4">
                                                                     <div className="flex flex-col gap-1">
-                                                                        <p className="font-bold text-xs text-slate-800 leading-relaxed">{output.description}</p>
+                                                                        <p className="font-bold text-xs text-slate-800 dark:text-slate-200 leading-relaxed">{output.description}</p>
                                                                         <div className="flex flex-wrap items-center gap-3 mt-2 opacity-60">
                                                                             <div className="flex items-center gap-1.5">
                                                                                 <User className="h-2.5 w-2.5" />
@@ -461,7 +461,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                                 <Badge variant="outline" className={cn(
                                                                                     "text-[8px] h-4 py-0 uppercase",
                                                                                     a.unitId === ALL_ACADEMIC_ID ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                                                    a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700 border-slate-200" :
+                                                                                    a.unitId === ALL_ADMIN_ID ? "bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700" :
                                                                                     a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700 border-purple-200" :
                                                                                     "border-primary/20"
                                                                                 )}>
@@ -472,7 +472,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
-                                                                    <span className="text-[10px] font-black tabular-nums text-slate-600">
+                                                                    <span className="text-[10px] font-black tabular-nums text-slate-600 dark:text-slate-400">
                                                                         {output.followUpDate?.toDate ? format(output.followUpDate.toDate(), 'MMM dd, yy') : 'N/A'}
                                                                     </span>
                                                                 </TableCell>
@@ -565,19 +565,19 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
           <Form {...mrForm}>
             <form onSubmit={mrForm.handleSubmit(handleMrSubmit)} className="space-y-4 pt-4">
               <FormField control={mrForm.control} name="title" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase">Meeting Title</FormLabel><FormControl><Input {...field} placeholder="e.g., 1st Quarter Management Review" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="text-xs font-bold uppercase">Meeting Title</FormLabel><FormControl><Input {...field} placeholder="e.g., 1st Quarter Management Review" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
               )} />
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={mrForm.control} name="startDate" render={({ field }) => (
-                  <FormItem><FormLabel className="text-xs font-bold uppercase">Start Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">Start Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={mrForm.control} name="endDate" render={({ field }) => (
-                  <FormItem><FormLabel className="text-xs font-bold uppercase">End Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">End Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
               <FormField control={mrForm.control} name="campusId" render={({ field }) => (
                 <FormItem><FormLabel className="text-xs font-bold uppercase">Review Scope</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50 dark:bg-slate-800/50"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
                     <SelectContent modal={false}>
                       <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
                       {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -585,7 +585,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                   </Select><FormMessage /></FormItem>
               )} />
               <FormField control={mrForm.control} name="minutesLink" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase">Google Drive Minutes Link</FormLabel><FormControl><Input {...field} placeholder="https://drive.google.com/..." className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="text-xs font-bold uppercase">Google Drive Minutes Link</FormLabel><FormControl><Input {...field} placeholder="https://drive.google.com/..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
               )} />
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsMrDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
@@ -601,7 +601,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
       <Dialog open={isOutputDialogOpen} onOpenChange={(open) => { setIsOutputDialogOpen(open); if (!open) setEditingOutput(null); }}>
         <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+          <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ListChecks className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Action Registry</span>
@@ -616,7 +616,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="md:col-span-3">
                             <FormField control={outputForm.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50 h-11" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50 dark:bg-slate-800/50 h-11" /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
                         <FormField control={outputForm.control} name="lineNumber" render={({ field }) => (
@@ -624,7 +624,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                 <FormControl>
                                     <div className="relative">
                                         <Hash className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
-                                        <Input {...field} placeholder="e.g., 42" className="bg-slate-50 h-11 pl-9 font-mono" />
+                                        <Input {...field} placeholder="e.g., 42" className="bg-slate-50 dark:bg-slate-800/50 h-11 pl-9 font-mono" />
                                     </div>
                                 </FormControl>
                                 <FormDescription className="text-[9px]">Reference line from minutes</FormDescription>
@@ -634,10 +634,10 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                     
                     <div className="grid grid-cols-2 gap-6">
                         <FormField control={outputForm.control} name="initiator" render={({ field }) => (
-                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Initiator / Responsible Party</FormLabel><FormControl><Input {...field} placeholder="Name or Office" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Initiator / Responsible Party</FormLabel><FormControl><Input {...field} placeholder="Name or Office" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={outputForm.control} name="followUpDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Follow-up Target Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Follow-up Target Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
                         )} />
                     </div>
 
@@ -676,7 +676,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                     <SelectContent modal={false}>
                                                         <SelectItem value={ALL_UNITS_ID} className="font-bold text-emerald-600 italic">All Relevant Units / Offices</SelectItem>
                                                         <SelectItem value={ALL_ACADEMIC_ID} className="font-bold text-blue-600 italic">All Academic Units</SelectItem>
-                                                        <SelectItem value={ALL_ADMIN_ID} className="font-bold text-slate-600 italic">All Administrative Units</SelectItem>
+                                                        <SelectItem value={ALL_ADMIN_ID} className="font-bold text-slate-600 dark:text-slate-400 italic">All Administrative Units</SelectItem>
                                                         <SelectItem value={ALL_REDI_ID} className="font-bold text-purple-600 italic">All REDi Units</SelectItem>
                                                         {filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                     </SelectContent>
@@ -714,8 +714,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
                     <FormField control={outputForm.control} name="actionPlan" render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-black uppercase text-slate-700">Proposed Action Strategy (Optional)</FormLabel>
-                            <FormControl><Input {...field} value={field.value || ''} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
+                            <FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Proposed Action Strategy (Optional)</FormLabel>
+                            <FormControl><Input {...field} value={field.value || ''} placeholder="Brief suggestion on implementation..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                             <FormDescription className="text-[9px]">Leave blank if the unit will propose their own plan based on the decision.</FormDescription>
                         </FormItem>
                     )} />
@@ -735,7 +735,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+              <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
                 <Button type="button" variant="outline" onClick={() => setIsOutputDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1.5" />}

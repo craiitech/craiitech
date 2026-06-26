@@ -28,7 +28,7 @@ function StarRating({
   const [hoverVal, setHoverVal] = useState<number | null>(null);
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-bold text-slate-800 tracking-tight">{label}</Label>
+      <Label className="text-sm font-bold text-slate-800 dark:text-slate-200 tracking-tight">{label}</Label>
       <div className="flex gap-2 items-center">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -347,7 +347,7 @@ function EvaluationForm() {
         <div className="h-16 w-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-600">
           <Star className="h-8 w-8" />
         </div>
-        <CardTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Invalid Evaluation Link</CardTitle>
+        <CardTitle className="text-2xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Invalid Evaluation Link</CardTitle>
         <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
           No Activity reference code was found in the URL. Please re-scan the QR code displayed at the registration booth.
         </p>
@@ -367,7 +367,7 @@ function EvaluationForm() {
           <CheckCircle2 className="h-10 w-10" />
         </div>
         <div className="space-y-2">
-          <CardTitle className="text-3xl font-black text-slate-800 uppercase tracking-tight">Feedback Submitted!</CardTitle>
+          <CardTitle className="text-3xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Feedback Submitted!</CardTitle>
           <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Thank you for participating</p>
           <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mt-2 italic">
             "Your feedback is highly valued and helps us continuously refine and sustain our QMS operational guidelines and educational quality standards."
@@ -430,7 +430,7 @@ function EvaluationForm() {
         <div className="mx-auto bg-amber-50 h-16 w-16 rounded-full flex items-center justify-center mb-4 text-amber-500 border border-amber-200">
           <Sparkles className="h-8 w-8" />
         </div>
-        <CardTitle className="text-2xl font-black tracking-tight text-slate-900 uppercase">Activity Evaluation</CardTitle>
+        <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 uppercase">Activity Evaluation</CardTitle>
         {activity && (
           <div className="mt-3 mx-auto max-w-sm">
             <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
@@ -445,10 +445,10 @@ function EvaluationForm() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="pt-6 space-y-6">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-4">
             <div className="space-y-1">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
                   Demographic Details {evalFormMode === 'strict' ? '(Required)' : '(Optional)'}
                 </h4>
                 {(name || office) && (
@@ -465,7 +465,7 @@ function EvaluationForm() {
             </div>
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                <Label htmlFor="name" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                   <User className="h-3 w-3" /> Name (First Name, M.I., Last Name) {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                 </Label>
                 <Input
@@ -473,13 +473,13 @@ function EvaluationForm() {
                   placeholder="e.g. John D. Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                  className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs h-10 font-bold"
                   required={evalFormMode === 'strict'}
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="office" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                  <Label htmlFor="office" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                     <Building2 className="h-3 w-3" /> Office {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                   </Label>
                   <Input
@@ -487,12 +487,12 @@ function EvaluationForm() {
                     placeholder="e.g. Registrar Office"
                     value={office}
                     onChange={(e) => setOffice(e.target.value)}
-                    className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                    className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs h-10 font-bold"
                     required={evalFormMode === 'strict'}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="position" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                  <Label htmlFor="position" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                     <User className="h-3 w-3" /> Position {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                   </Label>
                   <Input
@@ -500,7 +500,7 @@ function EvaluationForm() {
                     placeholder="e.g. Administrative Officer"
                     value={position}
                     onChange={(e) => setPosition(e.target.value)}
-                    className="bg-white border-slate-200 shadow-sm text-xs h-10 font-bold"
+                    className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs h-10 font-bold"
                     required={evalFormMode === 'strict'}
                   />
                 </div>
@@ -511,7 +511,7 @@ function EvaluationForm() {
           {/* Structured Rating Questions */}
           <div className="space-y-5">
             {focusList.includes('perfQuality') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingPerfQuality} 
                   onChange={setRatingPerfQuality} 
@@ -521,13 +521,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about quality of delivery of service..."
                   value={commentsPerfQuality}
                   onChange={(e) => setCommentsPerfQuality(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('perfTimeliness') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingPerfTimeliness} 
                   onChange={setRatingPerfTimeliness} 
@@ -537,13 +537,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about timeliness of service..."
                   value={commentsPerfTimeliness}
                   onChange={(e) => setCommentsPerfTimeliness(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('perfStaff') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingPerfStaff} 
                   onChange={setRatingPerfStaff} 
@@ -553,13 +553,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about staff behavior..."
                   value={commentsPerfStaff}
                   onChange={(e) => setCommentsPerfStaff(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('venue') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingVenue} 
                   onChange={setRatingVenue} 
@@ -569,13 +569,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about the venue..."
                   value={commentsVenue}
                   onChange={(e) => setCommentsVenue(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('facility') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingFacility} 
                   onChange={setRatingFacility} 
@@ -585,13 +585,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about event facilities..."
                   value={commentsFacility}
                   onChange={(e) => setCommentsFacility(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('food') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingFood} 
                   onChange={setRatingFood} 
@@ -601,13 +601,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about the food/meals served..."
                   value={commentsFood}
                   onChange={(e) => setCommentsFood(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('materials') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingMaterials} 
                   onChange={setRatingMaterials} 
@@ -617,13 +617,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about reference files or digital materials..."
                   value={commentsMaterials}
                   onChange={(e) => setCommentsMaterials(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('overall') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingOverall} 
                   onChange={setRatingOverall} 
@@ -633,14 +633,14 @@ function EvaluationForm() {
                   placeholder="Additional feedback about your overall experience..."
                   value={commentsOverall}
                   onChange={(e) => setCommentsOverall(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {/* Legacy Category Support */}
             {focusList.includes('objectives') && (
-              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <StarRating 
                   value={ratingObjectives} 
                   onChange={setRatingObjectives} 
@@ -650,13 +650,13 @@ function EvaluationForm() {
                   placeholder="Additional feedback about the event objectives..."
                   value={commentsObjectives}
                   onChange={(e) => setCommentsObjectives(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
 
             {focusList.includes('speaker') && (
-              <div className="space-y-4 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="space-y-4 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <div className="space-y-3">
                   <StarRating 
                     value={ratingSpeaker} 
@@ -673,65 +673,65 @@ function EvaluationForm() {
                   placeholder="Additional feedback about the speaker or the topic..."
                   value={commentsSpeaker}
                   onChange={(e) => setCommentsSpeaker(e.target.value)}
-                  className="bg-white border-slate-200 text-xs h-9"
+                  className="bg-white border-slate-200 dark:border-slate-700 text-xs h-9"
                 />
               </div>
             )}
           </div>
 
           {/* Qualitative Open-Ended Feedback Section */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
-            <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Qualitative Feedback (Optional)</h4>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-4">
+            <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Qualitative Feedback (Optional)</h4>
             
             <div className="space-y-3.5">
               <div className="space-y-1.5">
-                <Label htmlFor="q1" className="text-xs font-bold text-slate-600">1. What was your single biggest takeaway or most valuable part of this activity, and why?</Label>
+                <Label htmlFor="q1" className="text-xs font-bold text-slate-600 dark:text-slate-400">1. What was your single biggest takeaway or most valuable part of this activity, and why?</Label>
                 <Textarea
                   id="q1"
                   placeholder="Type your takeaway and what you found most valuable here..."
                   value={ansTakeaways}
                   onChange={(e) => setAnsTakeaways(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                  className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs min-h-[60px]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q2" className="text-xs font-bold text-slate-600">2. Did this activity meet your expectations and how did it make you feel? Why or why not?</Label>
+                <Label htmlFor="q2" className="text-xs font-bold text-slate-600 dark:text-slate-400">2. Did this activity meet your expectations and how did it make you feel? Why or why not?</Label>
                 <Textarea
                   id="q2"
                   placeholder="Type your expectations review and reflections here..."
                   value={ansExpectations}
                   onChange={(e) => setAnsExpectations(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                  className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs min-h-[60px]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q3" className="text-xs font-bold text-slate-600">3. Was there a specific topic or activity you wish had been included?</Label>
+                <Label htmlFor="q3" className="text-xs font-bold text-slate-600 dark:text-slate-400">3. Was there a specific topic or activity you wish had been included?</Label>
                 <Textarea
                   id="q3"
                   placeholder="Type missed topics or suggestions here..."
                   value={ansMissed}
                   onChange={(e) => setAnsMissed(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                  className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs min-h-[60px]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q4" className="text-xs font-bold text-slate-600">4. If you could change one thing, or what suggestions do you have to make our next activity even better?</Label>
+                <Label htmlFor="q4" className="text-xs font-bold text-slate-600 dark:text-slate-400">4. If you could change one thing, or what suggestions do you have to make our next activity even better?</Label>
                 <Textarea
                   id="q4"
                   placeholder="Type changes or recommendations here..."
                   value={ansSuggestions}
                   onChange={(e) => setAnsSuggestions(e.target.value)}
-                  className="bg-white border-slate-200 shadow-sm text-xs min-h-[60px]"
+                  className="bg-white border-slate-200 dark:border-slate-700 shadow-sm text-xs min-h-[60px]"
                 />
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="comments" className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+            <Label htmlFor="comments" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
               <MessageSquare className="h-3 w-3" /> General Comments & Suggestions
             </Label>
             <Textarea
@@ -739,7 +739,7 @@ function EvaluationForm() {
               placeholder="Any other comments or feedback about the event..."
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              className="bg-slate-50/50 border-slate-200 shadow-inner text-xs min-h-[80px]"
+              className="bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-inner text-xs min-h-[80px]"
             />
           </div>
 
@@ -784,7 +784,7 @@ function EvaluationForm() {
               </>
             )}
           </Button>
-          <Button variant="ghost" asChild className="text-slate-400 hover:text-slate-900 text-xs">
+          <Button variant="ghost" asChild className="text-slate-400 hover:text-slate-900 dark:text-slate-100 text-xs">
             <Link href="/">
               <Home className="mr-2 h-4 w-4" /> Back to Home
             </Link>

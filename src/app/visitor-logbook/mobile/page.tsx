@@ -496,7 +496,7 @@ function MobileVisitorLogbookContent() {
       <div className="flex min-h-screen w-full items-center justify-center bg-[#0d2a18] p-4 text-center">
         <div className="bg-white rounded-3xl p-6 border border-rose-200 max-w-sm space-y-4">
           <h2 className="text-xl font-black text-rose-600 uppercase">Authentication Error</h2>
-          <p className="text-slate-600 text-sm">{authError}</p>
+          <p className="text-slate-600 dark:text-slate-400 text-sm">{authError}</p>
           <p className="text-xs text-slate-400">Please scan the QR code again or connect to the internet.</p>
         </div>
       </div>
@@ -564,7 +564,7 @@ function MobileVisitorLogbookContent() {
               </p>
             </div>
             
-            <p className="text-sm font-bold text-slate-600 leading-relaxed">
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
               {csmSubmitted 
                 ? t[csmLanguage].thankYouMessage 
                 : 'We hope your visit was productive. Thank you for logging your checkout. Have a safe journey back!'}
@@ -587,8 +587,8 @@ function MobileVisitorLogbookContent() {
                 <Sparkles className="h-8 w-8" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-slate-800 uppercase">Client Satisfaction Survey</h3>
-                <p className="text-sm font-semibold text-slate-600 leading-relaxed">
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">Client Satisfaction Survey</h3>
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
                   The receptionist has requested that you complete the Client Satisfaction Survey on your device.
                 </p>
               </div>
@@ -614,7 +614,7 @@ function MobileVisitorLogbookContent() {
                     localStorage.removeItem('rsu_mobile_visitor_name');
                     localStorage.removeItem('rsu_mobile_visitor_sex');
                   }}
-                  className="w-full text-sm font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 py-3 rounded-xl"
+                  className="w-full text-sm font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:text-slate-400 py-3 rounded-xl"
                 >
                   No, Thanks
                 </Button>
@@ -633,7 +633,7 @@ function MobileVisitorLogbookContent() {
                 
                 <div className="space-y-1">
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] border border-[#D4AF37]/30 px-2 py-0.5 rounded bg-[#D4AF37]/5">Active Session</span>
-                  <h3 className="text-xl font-black text-slate-800 uppercase pt-2">Welcome, {storedVisitorName}!</h3>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 uppercase pt-2">Welcome, {storedVisitorName}!</h3>
                   <p className="text-xs font-bold text-slate-500 uppercase">You are currently logged into {unitName}</p>
                 </div>
 
@@ -659,7 +659,7 @@ function MobileVisitorLogbookContent() {
                   <h2 className="text-lg font-black uppercase text-[#1B6535] leading-snug">
                     {csmLanguage === 'EN' ? 'Client Satisfaction Survey' : 'Pagsukat ng Kasiyahan'}
                   </h2>
-                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 self-start">
+                  <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl border border-slate-200 dark:border-slate-700 self-start">
                     <button
                       type="button"
                       onClick={() => setCsmLanguage('EN')}
@@ -691,7 +691,7 @@ function MobileVisitorLogbookContent() {
                   <div className={`space-y-2 p-2 rounded-xl border transition-all ${
                     getBlinkingField() === 'ageGroup' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
                   }`}>
-                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center gap-1">
+                    <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -703,7 +703,7 @@ function MobileVisitorLogbookContent() {
                           className={`py-2 px-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider text-center transition-all ${
                             csmAgeGroup === age
                               ? 'bg-[#1B6535] text-white border-[#1B6535]'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {age === 'Below 20' ? t[csmLanguage].ageUnder : age === '65 and above' ? t[csmLanguage].ageOver : age}
@@ -716,7 +716,7 @@ function MobileVisitorLogbookContent() {
                   <div className={`space-y-2 p-2 rounded-xl border transition-all ${
                     getBlinkingField() === 'clientType' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
                   }`}>
-                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center gap-1">
+                    <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -728,7 +728,7 @@ function MobileVisitorLogbookContent() {
                           className={`py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wider text-center transition-all ${
                             csmClientType === type
                               ? 'bg-[#1B6535] text-white border-[#1B6535]'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {type}
@@ -748,7 +748,7 @@ function MobileVisitorLogbookContent() {
                   <div className={`space-y-2 p-3 rounded-xl border transition-all ${
                     getBlinkingField() === 'cc1' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
                   }`}>
-                    <p className="text-xs font-black text-slate-800 leading-snug">
+                    <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-snug">
                       {t[csmLanguage].cc1Q} <span className="text-rose-500">*</span>
                     </p>
                     <div className="grid grid-cols-1 gap-2 pt-1">
@@ -774,7 +774,7 @@ function MobileVisitorLogbookContent() {
                           className={`text-left p-3 rounded-lg border text-xs font-semibold leading-relaxed transition-all ${
                             csmCC1 === opt.val
                               ? 'bg-[#1B6535]/10 text-[#1B6535] border-[#1B6535] font-bold'
-                              : 'bg-slate-50 text-slate-700 border-slate-200'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                           }`}
                         >
                           {opt.label}
@@ -790,7 +790,7 @@ function MobileVisitorLogbookContent() {
                       <div className={`space-y-2 p-2 rounded-xl border transition-all ${
                         getBlinkingField() === 'cc2' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
                       }`}>
-                        <p className="text-xs font-black text-slate-800 leading-snug">
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-snug">
                           {t[csmLanguage].cc2Q} <span className="text-rose-500">*</span>
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1">
@@ -807,7 +807,7 @@ function MobileVisitorLogbookContent() {
                               className={`text-left p-2 rounded-lg border text-[10px] font-semibold leading-tight transition-all ${
                                 csmCC2 === opt.val
                                   ? 'bg-[#1B6535]/15 text-[#1B6535] border-[#1B6535] font-bold'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                                  : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                               }`}
                             >
                               {opt.label}
@@ -820,7 +820,7 @@ function MobileVisitorLogbookContent() {
                       <div className={`space-y-2 p-2 rounded-xl border transition-all ${
                         getBlinkingField() === 'cc3' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
                       }`}>
-                        <p className="text-xs font-black text-slate-800 leading-snug">
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-snug">
                           {t[csmLanguage].cc3Q} <span className="text-rose-500">*</span>
                         </p>
                         <div className="grid grid-cols-1 gap-2 pt-1">
@@ -836,7 +836,7 @@ function MobileVisitorLogbookContent() {
                               className={`text-left p-2.5 rounded-lg border text-xs font-semibold leading-relaxed transition-all ${
                                 csmCC3 === opt.val
                                   ? 'bg-[#1B6535]/15 text-[#1B6535] border-[#1B6535] font-bold'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                                  : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                               }`}
                             >
                               {opt.label}
@@ -874,9 +874,9 @@ function MobileVisitorLogbookContent() {
                       ];
 
                       return (
-                        <div key={sqd.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2.5">
+                        <div key={sqd.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-2.5">
                           <div>
-                            <p className="text-[11px] font-black text-slate-800 uppercase leading-snug">{sqd.label}</p>
+                            <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase leading-snug">{sqd.label}</p>
                             <p className="text-[10px] font-semibold text-slate-500 leading-tight mt-0.5">{sqd.desc}</p>
                           </div>
                           <div className="flex items-center justify-between gap-2">
@@ -890,7 +890,7 @@ function MobileVisitorLogbookContent() {
                                   className={`flex flex-col items-center justify-center py-2.5 flex-1 rounded-xl border transition-all ${
                                     sqd.val === opt.rating
                                       ? 'bg-[#1B6535] text-white border-[#1B6535]'
-                                      : 'bg-white text-slate-700 border-slate-200 disabled:opacity-20'
+                                      : 'bg-white text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 disabled:opacity-20'
                                   }`}
                                 >
                                   <span className="text-xl leading-none">{opt.emoji}</span>
@@ -906,7 +906,7 @@ function MobileVisitorLogbookContent() {
                                 className={`px-2.5 py-3.5 rounded-xl border text-[9px] font-black uppercase transition-all shrink-0 ${
                                   sqd.val === 0
                                     ? 'bg-amber-500 text-white border-amber-500'
-                                    : 'bg-white text-slate-650 border-slate-200'
+                                    : 'bg-white text-slate-650 border-slate-200 dark:border-slate-700'
                                 }`}
                               >
                                 {t[csmLanguage].na}
@@ -921,7 +921,7 @@ function MobileVisitorLogbookContent() {
 
                 {/* Comments */}
                 <div className="space-y-1.5">
-                  <label htmlFor="csmComments" className="text-[11px] font-black uppercase text-slate-700">
+                  <label htmlFor="csmComments" className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
                     {t[csmLanguage].comments}
                   </label>
                   <textarea
@@ -930,7 +930,7 @@ function MobileVisitorLogbookContent() {
                     placeholder={t[csmLanguage].commentsPlaceholder}
                     value={csmComments}
                     onChange={(e) => setCsmComments(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 transition-all"
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 transition-all"
                   />
                 </div>
 
@@ -955,7 +955,7 @@ function MobileVisitorLogbookContent() {
                     variant="ghost"
                     disabled={isSubmittingCsm}
                     onClick={() => submitCsmCheckout(true)}
-                    className="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 py-2.5 rounded-xl"
+                    className="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:text-slate-400 py-2.5 rounded-xl"
                   >
                     {t[csmLanguage].skip}
                   </Button>
@@ -966,13 +966,13 @@ function MobileVisitorLogbookContent() {
         ) : (
           /* MOBILE VISITOR SIGN IN FORM */
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b border-slate-100 p-5">
+            <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 p-5">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                   <ClipboardList className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-800">Sign In Form</CardTitle>
+                  <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Sign In Form</CardTitle>
                   <CardDescription className="text-slate-500 text-[10px] font-bold uppercase leading-none mt-0.5">Please provide your details</CardDescription>
                 </div>
               </div>
@@ -982,7 +982,7 @@ function MobileVisitorLogbookContent() {
               <form onSubmit={handleSignIn} className="space-y-4 text-left">
                 {/* Visitor Name */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                  <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Your Full Name
                   </Label>
                   <div className="relative">
@@ -994,14 +994,14 @@ function MobileVisitorLogbookContent() {
                       value={visitorName}
                       onChange={(e) => setVisitorName(e.target.value)}
                       required
-                      className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
+                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
                     />
                   </div>
                 </div>
 
                 {/* Sex */}
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Sex
                   </Label>
                   <div className="grid grid-cols-3 gap-2">
@@ -1011,7 +1011,7 @@ function MobileVisitorLogbookContent() {
                       className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                         sex === 'Male'
                           ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md shadow-[#1B6535]/15'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       Male
@@ -1022,7 +1022,7 @@ function MobileVisitorLogbookContent() {
                       className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                         sex === 'Female'
                           ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md shadow-[#1B6535]/15'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       Female
@@ -1033,7 +1033,7 @@ function MobileVisitorLogbookContent() {
                       className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                         sex === 'LGBTQA+'
                           ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md shadow-[#1B6535]/15'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       LGBTQA+
@@ -1045,7 +1045,7 @@ function MobileVisitorLogbookContent() {
                 <div className="space-y-1.5">
                   {unitCsmSettingsDoc?.services && unitCsmSettingsDoc.services.length > 0 ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="purposeSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                      <Label htmlFor="purposeSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                         Purpose of Visit
                       </Label>
                       <div className="relative">
@@ -1062,7 +1062,7 @@ function MobileVisitorLogbookContent() {
                             }
                           }}
                           required
-                          className="w-full h-11 px-3 pl-9 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
+                          className="w-full h-11 px-3 pl-9 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
                         >
                           <option value="">-- SELECT PURPOSE --</option>
                           {unitCsmSettingsDoc.services.map((svc: string) => (
@@ -1074,7 +1074,7 @@ function MobileVisitorLogbookContent() {
                       
                       {selectedService === 'Others' && (
                         <div className="space-y-1.5 pt-2 animate-in slide-in-from-top-2 duration-300">
-                          <Label htmlFor="customPurpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                          <Label htmlFor="customPurpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                             Please specify your purpose
                           </Label>
                           <div className="relative">
@@ -1086,7 +1086,7 @@ function MobileVisitorLogbookContent() {
                               value={purpose}
                               onChange={(e) => setPurpose(e.target.value)}
                               required
-                              className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
+                              className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
                             />
                           </div>
                         </div>
@@ -1094,7 +1094,7 @@ function MobileVisitorLogbookContent() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                      <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                         Purpose of Visit
                       </Label>
                       <div className="relative">
@@ -1106,7 +1106,7 @@ function MobileVisitorLogbookContent() {
                           value={purpose}
                           onChange={(e) => setPurpose(e.target.value)}
                           required
-                          className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
+                          className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
                         />
                       </div>
                     </div>
@@ -1115,7 +1115,7 @@ function MobileVisitorLogbookContent() {
 
                 {/* Looking For */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="lookingForSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                  <Label htmlFor="lookingForSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Who are you looking for?
                   </Label>
                   <div className="relative">
@@ -1135,7 +1135,7 @@ function MobileVisitorLogbookContent() {
                             }
                           }}
                           required
-                          className="w-full h-11 px-3 pl-9 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
+                          className="w-full h-11 px-3 pl-9 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
                         >
                           <option value="">-- SELECT PERSONNEL --</option>
                           {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
@@ -1146,7 +1146,7 @@ function MobileVisitorLogbookContent() {
 
                         {selectedLookingFor === 'Others' && (
                           <div className="space-y-1.5 pt-2 animate-in slide-in-from-top-2 duration-300">
-                            <Label htmlFor="customLookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                            <Label htmlFor="customLookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                               Please specify the person you are looking for
                             </Label>
                             <div className="relative">
@@ -1158,7 +1158,7 @@ function MobileVisitorLogbookContent() {
                                 value={lookingFor}
                                 onChange={(e) => setLookingFor(e.target.value)}
                                 required
-                                className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600 font-bold text-xs uppercase"
+                                className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600 font-bold text-xs uppercase"
                               />
                             </div>
                           </div>
@@ -1172,7 +1172,7 @@ function MobileVisitorLogbookContent() {
                         value={lookingFor}
                         onChange={(e) => setLookingFor(e.target.value)}
                         required
-                        className="pl-9 h-11 bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
+                        className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
                       />
                     )}
                   </div>

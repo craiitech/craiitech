@@ -484,7 +484,7 @@ function ClauseForm({
                                                             <Badge className={cn("h-4 text-[8px] font-black uppercase border-none", statusColor)}>
                                                                 {statusLabel}
                                                             </Badge>
-                                                            <Badge variant="outline" className="h-4 text-[8px] font-bold text-slate-500 capitalize bg-slate-50/50">
+                                                            <Badge variant="outline" className="h-4 text-[8px] font-bold text-slate-500 capitalize bg-slate-50/50 dark:bg-slate-800/50">
                                                                 {sub.cycleId || "First"} Cycle
                                                             </Badge>
                                                             <Badge variant="outline" className="h-4 text-[8px] font-black uppercase text-indigo-700 border-indigo-200 bg-indigo-50/30">
@@ -568,7 +568,7 @@ function ClauseForm({
                     {clauseCars.map(car => (
                         <div key={car.id} className="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-primary/5 shadow-sm">
                             <div className="min-w-0">
-                                <p className="text-[10px] font-black text-slate-900 uppercase">CAR NO: {car.carNumber}</p>
+                                <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase">CAR NO: {car.carNumber}</p>
                                 <p className="text-[10px] text-muted-foreground truncate italic">"{car.descriptionOfNonconformance}"</p>
                             </div>
                             <Badge className={cn(
@@ -614,7 +614,7 @@ function ClauseForm({
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-black text-amber-800 uppercase tracking-wide">OFI Reference: {ofi.id}</p>
-                      <p className="text-[9px] text-slate-700 italic leading-relaxed mt-1">"{ofi.description || ofi.evidence || 'No description available'}"</p>
+                      <p className="text-[9px] text-slate-700 dark:text-slate-300 italic leading-relaxed mt-1">"{ofi.description || ofi.evidence || 'No description available'}"</p>
                       {ofi.verification && (
                         <div className="flex items-center gap-2 mt-2">
                           <Badge variant="outline" className="h-4 text-[7px] font-black bg-amber-50 border-amber-200 text-amber-700">
@@ -677,13 +677,13 @@ function ClauseForm({
             name="evidence"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">1. Objective Audit Evidence / Verified Observations</FormLabel>
+                <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">1. Objective Audit Evidence / Verified Observations</FormLabel>
                 <FormControl>
                     <Textarea 
                       {...field} 
                       rows={4} 
                       placeholder="Record verifiable observations..." 
-                      className="bg-white border-slate-200 shadow-inner text-xs" 
+                      className="bg-white border-slate-200 dark:border-slate-700 shadow-inner text-xs" 
                     />
                 </FormControl>
                 </FormItem>
@@ -732,8 +732,8 @@ function ClauseForm({
             {watchType !== 'Non-Conformance' && watchType !== '' && (
                 <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem className="animate-in fade-in duration-300">
-                        <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800">3. Detailed Description of Finding</FormLabel>
-                        <FormControl><Textarea {...field} rows={3} placeholder="Provide further context..." className="bg-white border-slate-200 text-xs" /></FormControl>
+                        <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">3. Detailed Description of Finding</FormLabel>
+                        <FormControl><Textarea {...field} rows={3} placeholder="Provide further context..." className="bg-white border-slate-200 dark:border-slate-700 text-xs" /></FormControl>
                     </FormItem>
                 )} />
             )}
@@ -792,18 +792,18 @@ function ClauseForm({
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Reason for Revisit</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Reason for Revisit</Label>
                     <Textarea
                       value={revisitReason}
                       onChange={(e) => setRevisitReason(e.target.value)}
                       placeholder="e.g., Additional documents needed, further verification required..."
                       rows={3}
-                      className="bg-white border-slate-200 text-xs"
+                      className="bg-white border-slate-200 dark:border-slate-700 text-xs"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Revisit Date</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Revisit Date</Label>
                       <Input
                         type="date"
                         value={revisitDate}
@@ -812,7 +812,7 @@ function ClauseForm({
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Revisit Time</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Revisit Time</Label>
                       <Input
                         type="time"
                         value={revisitTime}
@@ -1017,7 +1017,7 @@ export function AuditChecklist({
           </div>
           <div>
             <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
-            <p className="text-sm font-black text-slate-800 truncate max-w-[400px]">{openClause.title}</p>
+            <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate max-w-[400px]">{openClause.title}</p>
           </div>
         </div>
       </div>
@@ -1065,13 +1065,13 @@ export function AuditChecklist({
             }];
 
             return (
-              <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+              <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                 <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex items-center justify-between w-full pr-6 text-left">
                     <div className="flex items-center gap-4">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">{clause.id}</div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-800 uppercase tracking-tighter">{clause.title}</span>
+                            <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter">{clause.title}</span>
                             {relevantCars.length > 0 && <div className="flex items-center gap-1.5 mt-1"><History className="h-3 w-3 text-amber-600" /><span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">{relevantCars.length} history detected</span></div>}
                         </div>
                     </div>

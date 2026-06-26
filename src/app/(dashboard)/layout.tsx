@@ -128,7 +128,7 @@ function SidebarEomsPoints({ eomsSubmissions, cycles, userProfile, allUnits }: {
         <span className={cn(
           "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm tracking-wider",
           eomsPoints.tier === 'Gold' && 'bg-yellow-400 text-yellow-900',
-          eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800',
+          eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800 dark:text-slate-200',
           eomsPoints.tier === 'Bronze' && 'bg-amber-700 text-amber-100',
           eomsPoints.tier === 'Unranked' && 'bg-white/10 text-white/50'
         )}>{eomsPoints.tier}</span>
@@ -710,22 +710,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isAuditorOfflineLockActive) {
       return (
-          <div className="flex h-dvh w-full items-center justify-center p-8 bg-slate-100">
+          <div className="flex h-dvh w-full items-center justify-center p-8 bg-slate-100 dark:bg-slate-700">
               <Card className="max-w-md w-full border-destructive/20 shadow-2xl">
                   <CardHeader className="bg-destructive/5 text-center pb-8 border-b">
                       <div className="mx-auto h-20 w-20 rounded-full bg-destructive flex items-center justify-center text-white mb-6 animate-pulse">
                           <WifiOff className="h-10 w-10" />
                       </div>
                       <CardTitle className="text-2xl font-black uppercase text-destructive">Offline Access Restricted</CardTitle>
-                      <CardDescription className="text-slate-600 font-bold mt-2">No local institutional mirror detected on this device.</CardDescription>
+                      <CardDescription className="text-slate-600 dark:text-slate-400 font-bold mt-2">No local institutional mirror detected on this device.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-8 space-y-6">
-                      <div className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 italic text-sm text-slate-500">
+                      <div className="flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 italic text-sm text-slate-500">
                           <Info className="h-5 w-5 shrink-0 mt-0.5" />
                           <p>To conduct audits without an internet connection, you must first connect to the university network and perform a <strong>Deep Mirroring</strong> handshake in the Auditor Workspace.</p>
                       </div>
                   </CardContent>
-                  <CardFooter className="bg-slate-50 border-t py-6">
+                  <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-6">
                       <Button onClick={() => window.location.reload()} className="w-full h-12 font-black uppercase tracking-widest gap-2 shadow-xl shadow-primary/20">
                           <RotateCw className="h-4 w-4" /> Try Reconnecting
                       </Button>
@@ -756,16 +756,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
                 <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
                   <p className="font-black text-sm leading-tight text-white">{displayName}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mt-1">{displayRole}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mt-1">{displayRole}</p>
                   <div className="mt-2 space-y-1">
                     {userProfile?.unitId && (
-                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 font-bold uppercase tracking-tight">
-                          <Building2 className="h-3 w-3 text-slate-900/40 shrink-0" />
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight">
+                          <Building2 className="h-3 w-3 text-slate-900/40 dark:text-slate-100/40 shrink-0" />
                           <span className="truncate max-w-[150px]">{allUnits?.find(u => u.id === userProfile.unitId)?.name || 'Loading Unit...'}</span>
                       </div>
                     )}
                     {userProfile?.campusId && (
-                      <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 italic font-bold">
+                      <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 dark:text-slate-100/60 italic font-bold">
                           <School className="h-3 w-3 shrink-0 opacity-40" />
                           <span className="truncate max-w-[150px]">{allCampuses?.find(c => c.id === userProfile.campusId)?.name || 'Loading Site...'}</span>
                       </div>

@@ -167,7 +167,7 @@ export function UnitActionCenter({
                 <Badge variant="outline" className="bg-white border-none font-black text-[10px] h-5 px-2">{count} ITEMS</Badge>
             </div>
             <div>
-                <p className="text-xs font-black uppercase tracking-tight text-slate-900 leading-tight">{title}</p>
+                <p className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 leading-tight">{title}</p>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 opacity-70">{label}</p>
             </div>
         </div>
@@ -224,7 +224,7 @@ export function UnitActionCenter({
                               {isHelpOpen ? 'Hide Help' : 'Help?'}
                               {isHelpOpen ? <ChevronUp className="ml-1.5 h-3 w-3" /> : <ChevronDown className="ml-1.5 h-3 w-3" />}
                           </Button>
-                          <Button asChild className="bg-white text-rose-600 hover:bg-slate-100 font-black text-[10px] uppercase tracking-widest px-8 shadow-xl">
+                          <Button asChild className="bg-white text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700 font-black text-[10px] uppercase tracking-widest px-8 shadow-xl">
                               <Link href="/risk-register">Update Register</Link>
                           </Button>
                       </div>

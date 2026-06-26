@@ -35,7 +35,7 @@ export function WfhReportTemplate({
   const isTeaching = type === 'Teaching';
 
   return (
-    <div className="p-0 text-black bg-white mx-auto font-sans leading-tight border-none" style={{ width: '7.5in', fontSize: '11pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white mx-auto font-sans leading-tight border-none" style={{ width: '7.5in', fontSize: '11pt' }}>
       {/* Header */}
       <div className="text-center mb-4">
         <h1 className="font-black uppercase tracking-widest" style={{ fontSize: '13pt' }}>WORK FROM HOME MONITORING SHEET</h1>
@@ -131,7 +131,7 @@ export function WfhReportTemplate({
                       <p className="italic leading-snug" style={{ fontSize: '10pt' }}>{a.accomplishment}</p>
                       {a.evidenceLink && (
                         <div className="pt-1">
-                          <p className="font-black uppercase text-slate-800 leading-none mb-1" style={{ fontSize: '8.5pt' }}>ATTACHMENT/EVIDENCES:</p>
+                          <p className="font-black uppercase text-slate-800 dark:text-slate-200 leading-none mb-1" style={{ fontSize: '8.5pt' }}>ATTACHMENT/EVIDENCES:</p>
                           <a href={a.evidenceLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline break-all font-bold" style={{ fontSize: '9pt' }}>
                             {a.evidenceLink}
                           </a>
@@ -157,7 +157,7 @@ export function WfhReportTemplate({
                 {userName}
             </div>
             <div className="border-t-2 border-black mt-0.5 pt-0.5">
-              <p className="uppercase font-black text-slate-900" style={{ fontSize: '9pt' }}>EMPLOYEE'S SIGNATURE OVER PRINTED NAME</p>
+              <p className="uppercase font-black text-slate-900 dark:text-slate-100" style={{ fontSize: '9pt' }}>EMPLOYEE'S SIGNATURE OVER PRINTED NAME</p>
             </div>
         </div>
       </div>

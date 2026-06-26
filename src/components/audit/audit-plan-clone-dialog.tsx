@@ -177,7 +177,7 @@ export function AuditPlanCloneDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+        <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <Copy className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-widest">Framework Replication Wizard</span>
@@ -243,7 +243,7 @@ export function AuditPlanCloneDialog({
                                     Detailed Statement of Scope & Criteria
                                 </FormLabel>
                                 <FormControl>
-                                    <Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" />
+                                    <Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={4} className="bg-slate-50 dark:bg-slate-800/50 italic text-xs leading-relaxed" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -253,14 +253,14 @@ export function AuditPlanCloneDialog({
                             <FormField control={form.control} name="openingMeetingDate" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Opening Meeting (New Campus)</FormLabel>
-                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50" /></FormControl>
+                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="closingMeetingDate" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Closing Meeting (New Campus)</FormLabel>
-                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50" /></FormControl>
+                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -290,7 +290,7 @@ export function AuditPlanCloneDialog({
                         <div className="flex items-center justify-between border-b pb-2">
                             <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-primary" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">Itinerary Date Shifting</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Itinerary Date Shifting</h4>
                             </div>
                             <p className="text-[10px] font-bold text-muted-foreground italic">Updating dates for {fields.length} individual sessions</p>
                         </div>
@@ -300,7 +300,7 @@ export function AuditPlanCloneDialog({
                                 <div key={field.id} className="p-4 rounded-xl border bg-muted/10 grid grid-cols-1 md:grid-cols-12 gap-4 items-end group hover:border-primary/20 transition-all">
                                     <div className="md:col-span-4 min-w-0">
                                         <p className="text-[9px] font-black uppercase text-primary leading-none mb-1">Auditee</p>
-                                        <p className="text-xs font-bold text-slate-700 truncate">{field.targetName}</p>
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{field.targetName}</p>
                                     </div>
                                     <div className="md:col-span-3">
                                         <FormField control={form.control} name={`schedules.${idx}.newDate`} render={({ field: inputField }) => (
@@ -328,7 +328,7 @@ export function AuditPlanCloneDialog({
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+              <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
                 <div className="flex w-full items-center justify-between">
                     <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <div className="flex gap-2">

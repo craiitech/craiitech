@@ -349,7 +349,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
                 </div>
             </ScrollArea>
 
-            <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+            <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting || !!duplicationError} className="min-w-[140px] shadow-lg shadow-primary/20">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

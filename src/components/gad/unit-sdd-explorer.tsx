@@ -111,8 +111,8 @@ export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExp
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {unitData.map((unit) => (
-                    <Card key={unit.id} className="shadow-sm border-slate-100 hover:border-primary/20 transition-all flex flex-col group">
-                        <CardHeader className="p-3 border-b bg-slate-50/50 group-hover:bg-primary/5 transition-colors text-center">
+                    <Card key={unit.id} className="shadow-sm border-slate-100 dark:border-slate-700 hover:border-primary/20 transition-all flex flex-col group">
+                        <CardHeader className="p-3 border-b bg-slate-50/50 dark:bg-slate-800/50 group-hover:bg-primary/5 transition-colors text-center">
                             <CardTitle className="text-[10px] font-black uppercase truncate" title={unit.name}>{unit.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 flex flex-col items-center justify-center">
@@ -135,7 +135,7 @@ export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExp
                                 </ResponsiveContainer>
                             </ChartContainer>
                             <div className="mt-2 text-center">
-                                <p className="text-xl font-black text-slate-800 tabular-nums">{unit.total}</p>
+                                <p className="text-xl font-black text-slate-800 dark:text-slate-200 tabular-nums">{unit.total}</p>
                                 <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Total Stakeholders</p>
                             </div>
                         </CardContent>

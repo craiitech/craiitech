@@ -212,7 +212,7 @@ export default function ProcedureManualsPage() {
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Procedure Manuals Hub</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Procedure Manuals Hub</h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
               Access official operating procedures and apply for revisions.
             </p>
@@ -342,7 +342,7 @@ export default function ProcedureManualsPage() {
                               )}
                           </div>
                       </CardHeader>
-                      <CardContent className="flex-1 p-0 bg-slate-100 relative shadow-inner">
+                      <CardContent className="flex-1 p-0 bg-slate-100 dark:bg-slate-700 relative shadow-inner">
                       {previewUrl ? (
                           <iframe
                             src={previewUrl}
@@ -385,7 +385,7 @@ export default function ProcedureManualsPage() {
                       <div className="space-y-6 pb-10">
                         <div className="flex justify-between items-center bg-muted/10 border p-4 rounded-xl">
                           <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800">Apply for Procedure Revision</h4>
+                            <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Apply for Procedure Revision</h4>
                             <p className="text-[10px] text-muted-foreground italic">Submit a signed Document Registration and Revision Form (DRRF) to request changes to manual sections.</p>
                           </div>
                           {canApplyRevision && (
@@ -417,7 +417,7 @@ export default function ProcedureManualsPage() {
                                   <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
                                     <TableCell className="pl-6 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}</TableCell>
                                     <TableCell className="font-mono text-xs font-bold text-primary">{req.controlNumber || 'RSU-REV-...'}</TableCell>
-                                    <TableCell className="text-xs font-semibold text-slate-700">{req.revisedParts.length} Parts Modified</TableCell>
+                                    <TableCell className="text-xs font-semibold text-slate-700 dark:text-slate-300">{req.revisedParts.length} Parts Modified</TableCell>
                                     <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none", statusColors[req.status])}>{req.status}</Badge></TableCell>
                                     <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                                       <div className="flex justify-end gap-1.5">
@@ -463,7 +463,7 @@ export default function ProcedureManualsPage() {
                         <div className="space-y-6 pb-10">
                           <div className="flex items-center justify-between bg-muted/10 border p-4 rounded-xl">
                             <div className="space-y-1">
-                              <h4 className="text-xs font-black uppercase text-slate-800">Revisions Review Inbox</h4>
+                              <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Revisions Review Inbox</h4>
                               <p className="text-[10px] text-muted-foreground italic">Review and process revision applications from all units.</p>
                             </div>
                             {!isInboxLoaded && (
@@ -498,7 +498,7 @@ export default function ProcedureManualsPage() {
                                         <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}</TableCell>
                                         <TableCell>
                                           <div className="flex flex-col">
-                                            <span className="font-bold text-xs uppercase text-slate-800">{req.unitName}</span>
+                                            <span className="font-bold text-xs uppercase text-slate-800 dark:text-slate-200">{req.unitName}</span>
                                             <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
                                                 <School className="h-2.5 w-2.5" />
                                                 {campusMap.get(req.campusId) || 'Site Context'}
@@ -506,7 +506,7 @@ export default function ProcedureManualsPage() {
                                           </div>
                                         </TableCell>
                                         <TableCell className="text-xs">{req.submitterName}</TableCell>
-                                        <TableCell className="text-xs font-semibold text-slate-700">{req.revisedParts.length} Sections</TableCell>
+                                        <TableCell className="text-xs font-semibold text-slate-700 dark:text-slate-300">{req.revisedParts.length} Sections</TableCell>
                                         <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
                                         <TableCell className="text-right pr-6">
                                           <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">

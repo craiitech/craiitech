@@ -279,7 +279,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-7xl h-[92dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+        <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-primary mb-1">
@@ -310,11 +310,11 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                             <section className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-5 rounded-2xl border border-primary/5">
                                 <div>
                                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Requesting Unit</p>
-                                    <p className="text-sm font-black text-slate-800 uppercase flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-primary opacity-40" />{request.unitName}</p>
+                                    <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-primary opacity-40" />{request.unitName}</p>
                                 </div>
                                 <div>
                                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Institutional Submitter</p>
-                                    <p className="text-sm font-bold text-slate-800 flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary opacity-40" />{request.submitterName}</p>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary opacity-40" />{request.submitterName}</p>
                                 </div>
                             </section>
 
@@ -322,7 +322,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
                                     <ShieldCheck className="h-4 w-4" /> 1. Registration Evidence (Signed DRF)
                                 </h4>
-                                <div className="aspect-video w-full rounded-2xl border-2 border-slate-100 bg-muted overflow-hidden shadow-inner relative group">
+                                <div className="aspect-video w-full rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-muted overflow-hidden shadow-inner relative group">
                                     <iframe 
                                         src={getEmbedUrl(request.scannedRegistrationFormLink)} 
                                         className="absolute inset-0 w-full h-full border-none bg-white"
@@ -348,7 +348,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                 </div>
                                 <div className="border rounded-2xl overflow-hidden shadow-md">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                                             <TableRow>
                                                 <TableHead className="text-[10px] font-black uppercase w-[150px] pl-6">Code</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
@@ -360,7 +360,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                             {request.requestedForms.map((f, i) => (
                                                 <TableRow key={i} className={cn("transition-colors cursor-pointer group", activeFormPreview?.link === f.link ? "bg-primary/5" : "hover:bg-muted/20")} onClick={() => setActiveFormPreview({ name: f.name, link: f.link })}>
                                                     <TableCell className="pl-6"><span className="font-mono text-[10px] font-black text-primary uppercase group-hover:underline underline-offset-4 decoration-primary/30">{f.code}</span></TableCell>
-                                                    <TableCell className="text-[11px] font-bold text-slate-700">{f.name}</TableCell>
+                                                    <TableCell className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{f.name}</TableCell>
                                                     <TableCell className="text-center"><Badge variant="outline" className="h-4 text-[8px] font-black border-primary/20 bg-white">Rev {f.revision}</Badge></TableCell>
                                                     <TableCell className="text-right pr-6">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8" asChild onClick={(e) => e.stopPropagation()}>
@@ -397,7 +397,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                     </ScrollArea>
                 </div>
 
-                <div className="w-[400px] flex flex-col bg-slate-50/50 shrink-0">
+                <div className="w-[400px] flex flex-col bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
                     <Tabs defaultValue="actions" className="flex-1 flex flex-col min-h-0">
                         <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
                             <TabsTrigger value="actions" className="text-[10px] font-black uppercase tracking-widest gap-2"><CheckCircle2 className="h-4 w-4" /> Review Actions</TabsTrigger>
@@ -531,7 +531,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                                          <div className="space-y-4 pt-4 border-t">
                                                              <div className="flex items-center gap-2">
                                                                  <MessageSquare className="h-4 w-4 text-primary" />
-                                                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Findings / Comments</h4>
+                                                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Official Findings / Comments</h4>
                                                              </div>
                                                              <Form {...form}>
                                                                  <form className="space-y-4">
@@ -584,7 +584,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                                             <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">{c.authorName}</span>
                                                             <span className="text-[8px] font-mono text-muted-foreground">{getFormattedCommentDate(c.createdAt)}</span>
                                                         </div>
-                                                        <p className="text-[11px] text-slate-700 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
+                                                        <p className="text-[11px] text-slate-700 dark:text-slate-300 italic leading-relaxed whitespace-pre-wrap">"{c.text}"</p>
                                                         <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{c.authorRole}</p>
                                                     </div>
                                                 ))}
@@ -604,7 +604,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
                                             onChange={(e) => setDiscussionComment(e.target.value)}
                                             placeholder="Write a message to the discussion..."
                                             rows={3}
-                                            className="text-xs italic bg-slate-50 border-slate-200"
+                                            className="text-xs italic bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                                         />
                                         <Button
                                             size="sm"
@@ -626,7 +626,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange, onEdi
             <div className="p-12 text-center text-muted-foreground font-black uppercase tracking-widest opacity-20">Request record not found</div>
         )}
 
-        <DialogFooter className="p-4 border-t bg-slate-50 shrink-0">
+        <DialogFooter className="p-4 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <Button variant="ghost" size="sm" className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => onOpenChange(false)}>Close Oversight Workspace</Button>
         </DialogFooter>
       </DialogContent>

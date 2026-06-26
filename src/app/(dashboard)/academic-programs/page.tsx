@@ -220,7 +220,7 @@ export default function AcademicProgramsPage() {
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900">
+                    <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
                         <GraduationCap className="h-8 w-8 text-primary" />
                         CHED Programs Monitoring
                     </h2>

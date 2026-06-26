@@ -195,7 +195,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                 <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
                   <TableCell className="pl-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{item.title}</span>
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{item.title}</span>
                       <span className="text-[9px] text-muted-foreground uppercase font-black tracking-tighter mt-0.5">
                         {unitMap.get(item.unitId)} &bull; {campusMap.get(item.campusId)}
                       </span>
@@ -261,7 +261,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+          <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Target className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Project Enrollment</span>
@@ -279,10 +279,10 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                                 <Info className="h-3 w-3" /> Basic Project Identity
                             </h4>
                             <FormField control={form.control} name="title" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Project Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Sensitivity Training for Unit Coordinators" className="bg-slate-50 font-bold" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Project Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Sensitivity Training for Unit Coordinators" className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Activity Description</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Explain the purpose and expected GAD impact..." className="bg-slate-50 text-xs" /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Activity Description</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Explain the purpose and expected GAD impact..." className="bg-slate-50 dark:bg-slate-800/50 text-xs" /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
 
@@ -311,7 +311,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="budget" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Planned Budget (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 font-mono font-bold" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Planned Budget (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-mono font-bold" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="utilizedAmount" render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs font-black uppercase">Actual Utilization (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="bg-emerald-50/50 font-mono font-bold border-emerald-100" /></FormControl></FormItem>
@@ -325,10 +325,10 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField control={form.control} name="beneficiariesMale" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Male Beneficiaries</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 font-bold" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Male Beneficiaries</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="beneficiariesFemale" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Female Beneficiaries</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 font-bold" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-black uppercase">Female Beneficiaries</FormLabel><FormControl><Input type="number" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl></FormItem>
                                 )} />
                             </div>
                         </div>
@@ -343,7 +343,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+          <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => setIsDialogOpen(false)}>Discard</Button>
                 <Button type="submit" form="initiative-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-11">

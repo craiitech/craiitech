@@ -14,7 +14,7 @@ const categories: UnitCategory[] = ['Academic', 'Administrative', 'Research', 'S
 
 const categoryColors: Record<UnitCategory, string> = {
     'Academic': 'bg-blue-50 text-blue-700 border-blue-200',
-    'Administrative': 'bg-slate-50 text-slate-700 border-slate-200',
+    'Administrative': 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
     'Research': 'bg-purple-50 text-purple-700 border-purple-200',
     'Support': 'bg-amber-50 text-amber-700 border-amber-200',
 };
@@ -96,7 +96,7 @@ export function UnitGroupingExplorer() {
                                     <TableCell className="align-top py-4 pl-6">
                                         <div className="flex items-center gap-2">
                                             <School className="h-4 w-4 text-primary" />
-                                            <span className="font-black text-xs uppercase text-slate-700">{breakdown.campus.name}</span>
+                                            <span className="font-black text-xs uppercase text-slate-700 dark:text-slate-300">{breakdown.campus.name}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-4">
@@ -105,7 +105,7 @@ export function UnitGroupingExplorer() {
                                                 <Badge 
                                                     key={unit.id} 
                                                     variant="outline" 
-                                                    className="bg-white border-slate-200 text-slate-600 font-bold text-[10px] h-7 px-3 flex items-center gap-2 shadow-sm hover:border-primary/40 transition-colors"
+                                                    className="bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] h-7 px-3 flex items-center gap-2 shadow-sm hover:border-primary/40 transition-colors"
                                                 >
                                                     <Building className="h-3 w-3 opacity-40" />
                                                     {unit.name}

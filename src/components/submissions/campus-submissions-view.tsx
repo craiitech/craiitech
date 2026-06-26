@@ -115,8 +115,8 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   };
   
   const yearColor = colors[year] || { 
-    first: 'bg-slate-50/20 hover:bg-slate-100/40', 
-    final: 'bg-slate-100/40 hover:bg-blue-200/50' 
+    first: 'bg-slate-50/20 dark:bg-slate-800/20 hover:bg-slate-100/40 dark:hover:bg-slate-700/40', 
+    final: 'bg-slate-100/40 dark:bg-slate-700/40 hover:bg-blue-200/50' 
   };
   
   return isFinal ? yearColor.final : yearColor.first;
@@ -626,7 +626,7 @@ export function CampusSubmissionsView({
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
                     <div className="space-y-1">
-                        <h3 className="font-black text-xl uppercase tracking-tight text-slate-900">{unitMap.get(selectedUnitId)}</h3>
+                        <h3 className="font-black text-xl uppercase tracking-tight text-slate-900 dark:text-slate-100">{unitMap.get(selectedUnitId)}</h3>
                         <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                             <span className="flex items-center gap-1.5"><CalendarIcon className="h-3.5 w-3.5" /> AY {selectedYear}</span>
                         </div>
@@ -637,13 +637,13 @@ export function CampusSubmissionsView({
                                 <Printer className="h-4 w-4 mr-2" /> Print QA Notice
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-[100]">
+                        <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5 z-[100]">
                             <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
                             
                             {unitData.missingFirst.length === 0 && (
                                 <DropdownMenuItem 
                                     onClick={() => handlePrintUnitNotice('Compliance', 'first')}
-                                    className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                    className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
                                 >
                                     Notice of Compliance (First Cycle)
                                 </DropdownMenuItem>
@@ -651,7 +651,7 @@ export function CampusSubmissionsView({
                             {unitData.missingFinal.length === 0 && (
                                 <DropdownMenuItem 
                                     onClick={() => handlePrintUnitNotice('Compliance', 'final')}
-                                    className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                    className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
                                 >
                                     Notice of Compliance (Final Cycle)
                                 </DropdownMenuItem>
@@ -780,13 +780,13 @@ export function CampusSubmissionsView({
                                     Print Consolidated Notice
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-[100]">
+                            <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5 z-[100]">
                                 <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
                                 
                                 {campusSummary.unitPerformance.every(u => u.missingFirst.length === 0) && (
                                     <DropdownMenuItem 
                                         onClick={() => handlePrintCampusNotice('Compliance', 'first')}
-                                        className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                        className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
                                     >
                                         Notice of Compliance (First Cycle)
                                     </DropdownMenuItem>
@@ -794,7 +794,7 @@ export function CampusSubmissionsView({
                                 {campusSummary.unitPerformance.every(u => u.missingFinal.length === 0) && (
                                     <DropdownMenuItem 
                                         onClick={() => handlePrintCampusNotice('Compliance', 'final')}
-                                        className="text-[11px] font-bold text-slate-700 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                                        className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
                                     >
                                         Notice of Compliance (Final Cycle)
                                     </DropdownMenuItem>
@@ -877,7 +877,7 @@ function UnitTable({ cycleSubs, onView, isAdmin, onDeleteClick }: { cycleSubs: S
                 <TableBody>
                     {cycleSubs.map(sub => (
                         <TableRow key={sub.id} className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}>
-                            <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
+                            <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900 dark:text-slate-100">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
                             <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-50 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
                             <TableCell className="text-right pr-6 space-x-2">
                                 <Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button>

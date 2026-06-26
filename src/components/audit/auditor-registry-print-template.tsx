@@ -92,7 +92,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
   };
 
   return (
-    <div className="text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none animate-in fade-in duration-300" style={{ fontSize: '10pt' }}>
+    <div className="text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none animate-in fade-in duration-300" style={{ fontSize: '10pt' }}>
       {/* Institutional Header */}
       <div className="text-center mb-6">
         <div className="flex flex-col items-center justify-center gap-0.5 mb-1">
@@ -100,17 +100,17 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
             <h2 className="font-semibold uppercase leading-none m-0 mt-0.5" style={{ fontSize: '11pt' }}>Quality Assurance Office</h2>
             <p style={{ fontSize: '9pt' }} className="italic m-0 mt-0.5">Odiongan, Romblon</p>
         </div>
-        <div className="mt-4 border-y border-black py-2 bg-slate-50/50">
+        <div className="mt-4 border-y border-black py-2 bg-slate-50/50 dark:bg-slate-800/50">
           <h2 className="font-black uppercase tracking-[0.12em] m-0" style={{ fontSize: '11pt' }}>Active System Auditors Registry & Completion</h2>
           <p className="font-bold m-0 mt-0.5" style={{ fontSize: '10pt' }}>ACADEMIC YEAR {year}</p>
-          <p className="font-bold m-0 mt-0.5 text-slate-600" style={{ fontSize: '9pt' }}>Updated as of {format(new Date(), 'MMMM dd, yyyy')}</p>
+          <p className="font-bold m-0 mt-0.5 text-slate-600 dark:text-slate-400" style={{ fontSize: '9pt' }}>Updated as of {format(new Date(), 'MMMM dd, yyyy')}</p>
         </div>
       </div>
 
       {/* Roster Table */}
       <table className="w-full border-collapse border border-black mb-8 leading-tight">
           <thead>
-              <tr className="bg-slate-100">
+              <tr className="bg-slate-100 dark:bg-slate-700">
                   <th className="border border-black py-1 px-2 text-left font-black uppercase w-[30%]" style={{ fontSize: '9.5pt' }}>Name of Auditor</th>
                   <th className="border border-black py-1 px-2 text-left font-black uppercase w-[50%]" style={{ fontSize: '9.5pt' }}>List of Units Audited</th>
                   <th className="border border-black py-1 px-2 text-center font-black uppercase w-[20%]" style={{ fontSize: '9.5pt' }}>Status</th>
@@ -136,7 +136,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                               <td className="border border-black py-1 px-2 text-left font-black uppercase" style={{ fontSize: '9.5pt' }}>
                                   {auditor.name}
                               </td>
-                              <td className="border border-black py-1 px-2 text-left text-slate-700 leading-tight" style={{ fontSize: '9.5pt' }}>
+                              <td className="border border-black py-1 px-2 text-left text-slate-700 dark:text-slate-300 leading-tight" style={{ fontSize: '9.5pt' }}>
                                   <span className="italic text-slate-400">No Audited Units</span>
                               </td>
                               <td className="border border-black py-1 px-2 text-center font-black" style={{ fontSize: '9.5pt' }}>
@@ -160,13 +160,13 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
                               <td className="py-1 px-2 text-left font-black uppercase" style={{ fontSize: '9.5pt', ...getMergedCellBorderStyle(asgnIdx, sortedAssignments.length) }}>
                                   {asgnIdx === 0 ? auditor.name : ''}
                               </td>
-                              <td className="border border-black py-1 px-2 text-left text-slate-700 leading-tight" style={{ fontSize: '9.5pt' }}>
+                              <td className="border border-black py-1 px-2 text-left text-slate-700 dark:text-slate-300 leading-tight" style={{ fontSize: '9.5pt' }}>
                                   <div className="flex items-start gap-1.5 leading-tight m-0 p-0">
-                                      <span className="shrink-0 text-black select-none">•</span>
+                                      <span className="shrink-0 text-black dark:text-white select-none">•</span>
                                       <div className="m-0 p-0">
-                                          <span className="font-semibold text-black uppercase">{asgn.unitName}</span>
-                                          <span className="block text-slate-600 text-[8.5pt] normal-case font-medium m-0 p-0 mt-0.5">
-                                              Campus/Site: <span className="font-semibold text-slate-800">{asgn.campus || 'Institutional'}</span> | Date/Time: <span className="font-semibold text-slate-800">{dateTimeStr || 'Not scheduled'}</span>
+                                          <span className="font-semibold text-black dark:text-white uppercase">{asgn.unitName}</span>
+                                          <span className="block text-slate-600 dark:text-slate-400 text-[8.5pt] normal-case font-medium m-0 p-0 mt-0.5">
+                                              Campus/Site: <span className="font-semibold text-slate-800 dark:text-slate-200">{asgn.campus || 'Institutional'}</span> | Date/Time: <span className="font-semibold text-slate-800 dark:text-slate-200">{dateTimeStr || 'Not scheduled'}</span>
                                           </span>
                                       </div>
                                   </div>
@@ -204,7 +204,7 @@ export function AuditorRegistryPrintTemplate({ auditorData, year, qaoDirector, l
       </div>
 
       {/* Footer */}
-      <div className="mt-8 pt-2 border-t border-slate-200 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '8pt' }}>
+      <div className="mt-8 pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-slate-400 italic uppercase tracking-widest" style={{ fontSize: '8pt' }}>
         <span>RSU-QAO-IQA-AUDITOR-REGISTRY | REV 01-2026</span>
         <span>Generated via RSU EOMS Portal</span>
       </div>

@@ -116,7 +116,7 @@ export function LogoManagement() {
               name="logoUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-slate-700">Official Logo URL</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Official Logo URL</FormLabel>
                   <FormControl>
                     <Input placeholder="https://..." {...field} className="h-11 font-bold" />
                   </FormControl>

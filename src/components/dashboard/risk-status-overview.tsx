@@ -188,13 +188,13 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
                             <div className="space-y-4">
                                 <div className="flex gap-3">
                                     <div className="h-5 w-5 rounded-full bg-white flex items-center justify-center text-[10px] font-black text-primary shadow-sm shrink-0">1</div>
-                                    <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
+                                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                         Ensure that your unit has <strong>taken action</strong> on the identified risk and that these actions are fully documented.
                                     </p>
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="h-5 w-5 rounded-full bg-white flex items-center justify-center text-[10px] font-black text-primary shadow-sm shrink-0">2</div>
-                                    <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
+                                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                         Navigate to the <strong>Risk & Opportunity Registry</strong> module from the sidebar.
                                     </p>
                                 </div>
@@ -202,13 +202,13 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
                             <div className="space-y-4">
                                 <div className="flex gap-3">
                                     <div className="h-5 w-5 rounded-full bg-white flex items-center justify-center text-[10px] font-black text-primary shadow-sm shrink-0">3</div>
-                                    <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
+                                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                         Select the specific <strong>Risk or Opportunity</strong> you want to update from your unit list.
                                     </p>
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="h-5 w-5 rounded-full bg-white flex items-center justify-center text-[10px] font-black text-primary shadow-sm shrink-0">4</div>
-                                    <p className="text-[11px] text-slate-700 leading-relaxed font-bold">
+                                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-bold">
                                         Provide the necessary updates in <strong>Section #4 (Final Assessment)</strong> based on your actual ROR documents and implementation results.
                                     </p>
                                 </div>

@@ -442,7 +442,7 @@ export default function NewSubmissionPage() {
           <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-destructive">
             Previous Year ({selectedYear - 1}) Compliance Warning
           </AlertTitle>
-          <AlertDescription className="mt-2 text-xs space-y-2 text-slate-800">
+          <AlertDescription className="mt-2 text-xs space-y-2 text-slate-800 dark:text-slate-200">
             <p className="font-bold">
               Our records show that your unit has pending requirements for the academic/calendar year {selectedYear - 1}. Please resolve these to ensure continuous quality compliance:
             </p>
@@ -451,7 +451,7 @@ export default function NewSubmissionPage() {
                 <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Unsubmitted EOMS Documents ({missingPrevYearSubmissions.length}):</p>
                 <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
                   {missingPrevYearSubmissions.map((docName, idx) => (
-                    <li key={idx} className="text-slate-700">{docName}</li>
+                    <li key={idx} className="text-slate-700 dark:text-slate-300">{docName}</li>
                   ))}
                 </ul>
               </div>
@@ -461,7 +461,7 @@ export default function NewSubmissionPage() {
                 <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Open Risks / Opportunities in Digital ROR ({openPrevYearRisks.length}):</p>
                 <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
                   {openPrevYearRisks.map((risk, idx) => (
-                    <li key={idx} className="text-slate-700">
+                    <li key={idx} className="text-slate-700 dark:text-slate-300">
                       <span className="font-bold">[{risk.type}]</span> {risk.description.substring(0, 80)}... ({risk.status})
                     </li>
                   ))}
@@ -742,7 +742,7 @@ export default function NewSubmissionPage() {
                                         <Alert variant="destructive">
                                             <XCircle className="h-4 w-4" />
                                             <AlertTitle className="font-extrabold uppercase text-[10px] text-destructive tracking-wider">Submission Locked</AlertTitle>
-                                            <AlertDescription className="text-xs font-semibold leading-relaxed mt-1 text-slate-800">
+                                            <AlertDescription className="text-xs font-semibold leading-relaxed mt-1 text-slate-800 dark:text-slate-200">
                                                 You cannot submit or update documents for {selectedYear} because your unit has pending requirements or open risks for the previous year ({selectedYear - 1}). Please refer to the warning banner above for the complete list of outstanding items.
                                             </AlertDescription>
                                         </Alert>

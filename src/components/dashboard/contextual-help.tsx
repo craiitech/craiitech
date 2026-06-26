@@ -74,7 +74,7 @@ export function ContextualHelp() {
                                     {i + 1}
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[11px] font-black uppercase text-slate-800 tracking-tight">{step.title}</p>
+                                    <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">{step.title}</p>
                                     <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">"{step.desc}"</p>
                                 </div>
                             </div>
@@ -86,11 +86,11 @@ export function ContextualHelp() {
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Control Legend</h4>
                                 <div className="grid grid-cols-1 gap-2">
                                     {currentHelp.buttons?.map((btn, i) => (
-                                        <div key={i} className="p-2.5 rounded-lg border bg-slate-50 flex items-start gap-3">
+                                        <div key={i} className="p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3">
                                             <Badge variant="secondary" className="h-5 px-1.5 text-[7px] font-black uppercase shrink-0 mt-0.5">{btn.labelShort || btn.label}</Badge>
                                             <div className="space-y-0.5 min-w-0">
-                                                <p className="text-[10px] font-black uppercase tracking-tight text-slate-700 truncate">{btn.label}</p>
-                                                <p className="text-[10px] text-slate-600 leading-tight font-medium">{btn.action}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-300 truncate">{btn.label}</p>
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-tight font-medium">{btn.action}</p>
                                             </div>
                                         </div>
                                     ))}

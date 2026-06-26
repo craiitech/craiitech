@@ -157,7 +157,7 @@ export default function EomsPolicyManualPage() {
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 p-0 bg-slate-100 overflow-hidden relative">
+            <CardContent className="flex-1 p-0 bg-slate-100 dark:bg-slate-700 overflow-hidden relative">
                {isLoading ? (
                  <div className="flex h-full items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20"/>

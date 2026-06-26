@@ -75,15 +75,15 @@ const findAnswer = (query: string): { answer: string | React.ReactNode, question
   if (bestMatch && bestScore >= 4) {
     const ans = bestMatch.answerBlocks ? (
       <div className="space-y-2">
-        <p className="font-semibold text-slate-800 text-[11px] uppercase tracking-wide">Detailed Guide:</p>
-        <ul className="list-disc space-y-1.5 pl-4 text-slate-600">
+        <p className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wide">Detailed Guide:</p>
+        <ul className="list-disc space-y-1.5 pl-4 text-slate-600 dark:text-slate-400">
             {bestMatch.answerBlocks.map((block, i) => (
                 <li key={i} dangerouslySetInnerHTML={{ __html: block.content }} />
             ))}
         </ul>
       </div>
     ) : (
-      <p className="leading-relaxed text-slate-600 font-medium">{bestMatch.answer}</p>
+      <p className="leading-relaxed text-slate-600 dark:text-slate-400 font-medium">{bestMatch.answer}</p>
     );
     
     return { answer: ans, question: bestMatch.question };
@@ -166,7 +166,7 @@ export function Chatbot() {
                 <Sparkles className="h-3.5 w-3.5 animate-pulse" />
                 Context Action Detected
               </p>
-              <p className="text-[11px] text-slate-700 italic">"I see you are currently viewing the **{pageHelp.title}** module. Would you like a step-by-step summary explanation of this page?"</p>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300 italic">"I see you are currently viewing the **{pageHelp.title}** module. Would you like a step-by-step summary explanation of this page?"</p>
               <Button 
                 onClick={handleExplainPage} 
                 size="sm" 
@@ -210,15 +210,15 @@ export function Chatbot() {
     setTimeout(() => {
       const explanationMsg = (
         <div className="space-y-3">
-          <p className="font-bold text-xs uppercase text-slate-800 border-b pb-1">Procedure: {pageHelp.title}</p>
-          <p className="text-[11px] font-medium text-slate-600 italic">"{pageHelp.description}"</p>
+          <p className="font-bold text-xs uppercase text-slate-800 dark:text-slate-200 border-b pb-1">Procedure: {pageHelp.title}</p>
+          <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 italic">"{pageHelp.description}"</p>
           
           <div className="space-y-3 mt-2">
             {pageHelp.steps.map((step, i) => (
               <div key={i} className="flex gap-2.5 items-start">
                 <span className="h-4 w-4 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-black">{i + 1}</span>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-slate-700">{step.title}</p>
+                  <p className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">{step.title}</p>
                   <p className="text-[10px] text-muted-foreground italic">"{step.desc}"</p>
                 </div>
               </div>
@@ -261,7 +261,7 @@ export function Chatbot() {
                 <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
                   <CheckCircleIcon className="h-3.5 w-3.5" /> Found QA Standard Answer
                 </div>
-                <p className="text-xs font-bold text-slate-700">Q: "{found.question}"</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Q: "{found.question}"</p>
                 <div className="text-xs">{found.answer}</div>
               </div>
             );
@@ -271,7 +271,7 @@ export function Chatbot() {
                 <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
                   <AlertCircle className="h-3.5 w-3.5" /> No Direct FAQ Match
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                   I couldn't find a direct match in the database, but you can find exhaustive procedures in the{' '}
                   <Link href="/help/manual" className="underline font-bold text-primary hover:text-primary/80" target="_blank">
                     Institutional User Manual
@@ -310,7 +310,7 @@ export function Chatbot() {
                       <Bot className="h-5 w-5" />
                     </div>
                     <div>
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-800">QA Support Assistant</CardTitle>
+                        <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">QA Support Assistant</CardTitle>
                         <CardDescription className="text-[9px] font-black uppercase text-muted-foreground tracking-wider mt-0.5">RSU EOMS Digital Companion</CardDescription>
                     </div>
                 </div>
@@ -333,14 +333,14 @@ export function Chatbot() {
                           className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs shadow-sm break-words leading-relaxed ${
                             message.role === 'user'
                               ? 'bg-primary text-primary-foreground font-semibold rounded-tr-none'
-                              : 'bg-white border text-slate-700 rounded-tl-none font-medium'
+                              : 'bg-white border text-slate-700 dark:text-slate-300 rounded-tl-none font-medium'
                           }`}
                         >
                             {message.content}
                         </div>
                         {message.role === 'user' && (
                           <Avatar className="h-7 w-7 border shadow-sm mt-0.5">
-                            <AvatarFallback className="bg-slate-100 text-[10px] font-bold text-slate-700">{userFallback}</AvatarFallback>
+                            <AvatarFallback className="bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300">{userFallback}</AvatarFallback>
                           </Avatar>
                         )}
                       </div>
@@ -367,7 +367,7 @@ export function Chatbot() {
                                     key={i} 
                                     variant="outline" 
                                     size="sm" 
-                                    className="w-auto max-w-full text-left justify-start h-auto py-1.5 px-3 bg-white text-[10px] leading-tight font-bold italic border-slate-200 text-slate-700 hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all rounded-xl" 
+                                    className="w-auto max-w-full text-left justify-start h-auto py-1.5 px-3 bg-white text-[10px] leading-tight font-bold italic border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all rounded-xl" 
                                     onClick={() => handleSend(q)}
                                   >
                                       "{q}"
@@ -379,7 +379,7 @@ export function Chatbot() {
                   </div>
                 </ScrollArea>
               </CardContent>
-              <CardFooter className="bg-slate-50/80 border-t py-3 px-5 shrink-0">
+              <CardFooter className="bg-slate-50/80 dark:bg-slate-800/80 border-t py-3 px-5 shrink-0">
                 <div className="flex w-full items-center space-x-2">
                   <Input
                     value={input}
@@ -387,7 +387,7 @@ export function Chatbot() {
                     placeholder="Ask a question about the system..."
                     onKeyPress={handleKeyPress}
                     disabled={isLoading}
-                    className="h-10 text-xs bg-white border-slate-200 rounded-xl focus-visible:ring-1 focus-visible:ring-primary shadow-sm"
+                    className="h-10 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-xl focus-visible:ring-1 focus-visible:ring-primary shadow-sm"
                   />
                   <Button 
                     onClick={() => handleSend()} 

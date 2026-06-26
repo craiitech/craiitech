@@ -77,7 +77,7 @@ const features = [
     {
         title: "Institutional Activity Log",
         desc: "Performance Tracking. Daily task registry for personnel and Work From Home (WFH) accomplishment sheets with integrated supervisor verification.",
-        icon: <UserCheck className="h-6 w-6 text-slate-700" />,
+        icon: <UserCheck className="h-6 w-6 text-slate-700 dark:text-slate-300" />,
         tag: "PERSONNEL"
     },
     {
@@ -253,24 +253,24 @@ export default function Home() {
                 <div className="container mx-auto max-w-7xl">
                     <div className="text-center mb-16 space-y-3">
                         <Badge className="bg-primary text-white px-4 py-1 font-black uppercase text-[10px] tracking-[0.2em]">Platform Capabilities</Badge>
-                        <h2 className="text-3xl font-black text-slate-900 sm:text-4xl uppercase tracking-tight">Operational Excellence, Digitized.</h2>
-                        <p className="text-slate-600 max-w-2xl mx-auto font-medium">A comprehensive suite of modules designed to ensure institutional compliance, risk proactivity, and academic quality parity.</p>
+                        <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100 sm:text-4xl uppercase tracking-tight">Operational Excellence, Digitized.</h2>
+                        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">A comprehensive suite of modules designed to ensure institutional compliance, risk proactivity, and academic quality parity.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {features.map((feature, idx) => (
-                            <Card key={idx} className="group border-slate-200 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full bg-white">
+                            <Card key={idx} className="group border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full bg-white">
                                 <CardHeader className="p-8 pb-4">
                                     <div className="flex items-start justify-between">
                                         <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-500">
                                             {feature.icon}
                                         </div>
-                                        <Badge variant="outline" className="text-[9px] font-black tracking-widest border-slate-200 text-slate-400 group-hover:text-primary group-hover:border-primary/40 transition-colors uppercase">{feature.tag}</Badge>
+                                        <Badge variant="outline" className="text-[9px] font-black tracking-widest border-slate-200 dark:border-slate-700 text-slate-400 group-hover:text-primary group-hover:border-primary/40 transition-colors uppercase">{feature.tag}</Badge>
                                     </div>
-                                    <CardTitle className="text-lg font-black text-slate-900 mt-6 group-hover:text-primary transition-colors uppercase tracking-tight leading-tight">{feature.title}</CardTitle>
+                                    <CardTitle className="text-lg font-black text-slate-900 dark:text-slate-100 mt-6 group-hover:text-primary transition-colors uppercase tracking-tight leading-tight">{feature.title}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-8 pt-0 flex-1">
-                                    <p className="text-sm text-slate-600 leading-relaxed font-medium">{feature.desc}</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{feature.desc}</p>
                                 </CardContent>
                                 <CardFooter className="p-8 pt-0 mt-auto">
                                     <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-[-10px] group-hover:translate-x-0">

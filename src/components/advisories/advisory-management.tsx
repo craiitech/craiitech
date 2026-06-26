@@ -181,7 +181,7 @@ export function AdvisoryManagement() {
                 <FormField control={form.control} name="controlNumber" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-[10px] font-bold uppercase">Control Number</FormLabel>
-                    <FormControl><Input {...field} placeholder="yyyy-###" className="font-mono bg-slate-50" /></FormControl>
+                    <FormControl><Input {...field} placeholder="yyyy-###" className="font-mono bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

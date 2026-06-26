@@ -8,7 +8,7 @@ export default function PrivacyPage() {
     <Card className="shadow-lg border-primary/10">
       <CardHeader className="bg-primary/5 border-b">
         <CardTitle className="text-3xl font-black uppercase tracking-tight">Data Privacy Statement</CardTitle>
-        <CardDescription className="font-bold text-slate-700">
+        <CardDescription className="font-bold text-slate-700 dark:text-slate-300">
           In Compliance with Republic Act No. 10173 (Data Privacy Act of 2012)
         </CardDescription>
       </CardHeader>
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         </p>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2 flex items-center gap-2">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2 flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" /> 1. Information Collection
           </h3>
           <p>We collect and process the following personal data necessary for institutional identification and access control:</p>
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2 flex items-center gap-2">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2 flex items-center gap-2">
             <Eye className="h-5 w-5 text-primary" /> 2. Purpose of Processing
           </h3>
           <p>Your data is utilized strictly for the following purposes:</p>
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2 flex items-center gap-2">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2 flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" /> 3. Data Protection
           </h3>
           <p>
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2 flex items-center gap-2">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 border-b pb-2 flex items-center gap-2">
             <Scale className="h-5 w-5 text-primary" /> 4. User Rights
           </h3>
           <p>

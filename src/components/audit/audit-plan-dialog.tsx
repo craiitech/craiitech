@@ -259,7 +259,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[95dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+        <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <LayoutList className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-widest">Institutional Framework Provisioning</span>
@@ -278,7 +278,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <FileText className="h-4 w-4 text-primary" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">1. Institutional Registry Info</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">1. Institutional Registry Info</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <FormField control={form.control} name="auditNumber" render={({ field }) => (
@@ -323,7 +323,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <ShieldCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">2. Scope & Process Groups</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">2. Scope & Process Groups</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-6">
@@ -390,12 +390,12 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
                             <div className="space-y-6">
                                 <FormField control={form.control} name="referenceDocument" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-[10px] font-bold uppercase">Audit Reference Document</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-medium" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-[10px] font-bold uppercase">Audit Reference Document</FormLabel><FormControl><Input {...field} className="bg-slate-50 dark:bg-slate-800/50 font-medium" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={form.control} name="scope" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-[10px] font-bold uppercase">Detailed Statement of Scope & Criteria</FormLabel>
-                                        <FormControl><Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={6} className="bg-slate-50 italic text-xs leading-relaxed" /></FormControl>
+                                        <FormControl><Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={6} className="bg-slate-50 dark:bg-slate-800/50 italic text-xs leading-relaxed" /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
@@ -407,7 +407,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                     <div className="space-y-6 pt-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <ListChecks className="h-4 w-4 text-primary" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">3. Strategic Standard Clause Mapping (Itinerary Presets)</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">3. Strategic Standard Clause Mapping (Itinerary Presets)</h4>
                         </div>
                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3">
                             <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
@@ -465,7 +465,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                                                                 {isSelected && <Check className="h-3 w-3" />}
                                                                             </div>
                                                                             <div className="min-w-0">
-                                                                                <p className={cn("text-[11px] leading-tight mb-0.5", isSelected ? "font-black text-primary" : "font-bold text-slate-700")}>Clause {clause.id}</p>
+                                                                                <p className={cn("text-[11px] leading-tight mb-0.5", isSelected ? "font-black text-primary" : "font-bold text-slate-700 dark:text-slate-300")}>Clause {clause.id}</p>
                                                                                 <p className="text-[9px] text-muted-foreground truncate">{clause.title}</p>
                                                                             </div>
                                                                         </CommandItem>
@@ -487,7 +487,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                     <div className="space-y-6 pt-6 border-t">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <CalendarCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">4. Lead Auditor & Meeting Milestones</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">4. Lead Auditor & Meeting Milestones</h4>
                         </div>
                         <FormField control={form.control} name="leadAuditorId" render={({ field }) => (
                             <FormItem>
@@ -505,14 +505,14 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                             <FormField control={form.control} name="openingMeetingDate" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Opening Meeting (Date/Time)</FormLabel>
-                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50" /></FormControl>
+                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="closingMeetingDate" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Closing Meeting (Date/Time)</FormLabel>
-                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50" /></FormControl>
+                                    <FormControl><Input type="datetime-local" {...field} className="bg-slate-50 dark:bg-slate-800/50" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -524,7 +524,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                         <div className="flex items-center justify-between border-b pb-2">
                             <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-primary" />
-                                <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">5. Plan Documents (Google Drive Links)</h4>
+                                <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">5. Plan Documents (Google Drive Links)</h4>
                             </div>
                             <Button 
                                 type="button" 
@@ -538,14 +538,14 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                         </div>
                         
                         {fields.length === 0 ? (
-                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50">
+                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
                                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">No reference documents added yet</p>
                                 <p className="text-[10px] text-muted-foreground mt-1">Add Google Drive links to EOMS templates or audit scope files.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 {fields.map((field, index) => (
-                                    <div key={field.id} className="space-y-4 bg-slate-50/50 p-4 rounded-xl border">
+                                    <div key={field.id} className="space-y-4 bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-xl border">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-dashed pb-2">
                                             <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Document Ref #{index + 1}</span>
                                             {form.watch(`documents.${index}.communicationId`) ? (
@@ -653,7 +653,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
             </Form>
         </ScrollArea>
 
-        <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+        <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" form="plan-form" disabled={isSubmitting} className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

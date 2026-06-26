@@ -283,8 +283,8 @@ export function FormRegistrationDialog({
         </div>
       ) : (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Final Protocol: Preparation</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Secure official signatures from the Unit Head on the printed DRF. <strong>All signatures must be visible</strong> on the scanned copy to qualify for registration.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Final Protocol: Preparation</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Secure official signatures from the Unit Head on the printed DRF. <strong>All signatures must be visible</strong> on the scanned copy to qualify for registration.</p>
         </div>
       );
     } else if (step === 2) {
@@ -295,8 +295,8 @@ export function FormRegistrationDialog({
         </div>
       ) : (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Final Protocol: Uploading</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Upload the signed DRF (PDF) and the final versions of your forms. Ensure links are set to <strong>"Anyone with the link can view"</strong> for institutional verification.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Final Protocol: Uploading</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Upload the signed DRF (PDF) and the final versions of your forms. Ensure links are set to <strong>"Anyone with the link can view"</strong> for institutional verification.</p>
         </div>
       );
     } else if (step === 3) {
@@ -307,8 +307,8 @@ export function FormRegistrationDialog({
         </div>
       ) : (
         <div className="space-y-1">
-          <p className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Final Protocol: Final Review</p>
-          <p className="text-[11px] text-slate-600 leading-relaxed">Confirm that all signatures are present and all links are accessible. Approval of this request will <strong>officially enroll these forms</strong> into your unit's controlled roster.</p>
+          <p className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-widest">Final Protocol: Final Review</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">Confirm that all signatures are present and all links are accessible. Approval of this request will <strong>officially enroll these forms</strong> into your unit's controlled roster.</p>
         </div>
       );
     }
@@ -316,7 +316,7 @@ export function FormRegistrationDialog({
     return (
       <div className={cn(
         "mt-10 p-4 rounded-xl border flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500",
-        isDraft ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-200"
+        isDraft ? "bg-blue-50 border-blue-100" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
       )}>
         {isDraft ? <LayoutList className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" /> : <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />}
         {content}
@@ -327,7 +327,7 @@ export function FormRegistrationDialog({
   const renderStep1 = () => (
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
         <div className="space-y-4">
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+            <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Download className="h-4 w-4" /></div>
                 1. Prepare Document Registration Form (DRF)
             </h3>
@@ -337,7 +337,7 @@ export function FormRegistrationDialog({
             <Card className="border-primary/20 bg-primary/5 shadow-none ml-11">
                 <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="space-y-1">
-                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Official DRF Template</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Official DRF Template</p>
                         <p className="text-[10px] text-muted-foreground font-medium italic">Standardized Institutional Form</p>
                     </div>
                     <Button type="button" variant="default" size="sm" className="font-black uppercase text-[10px] tracking-widest h-9" asChild>
@@ -356,7 +356,7 @@ export function FormRegistrationDialog({
         <section className="space-y-6">
             <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Send className="h-4 w-4" /></div>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">2. Submission Type & Evidence</h3>
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">2. Submission Type & Evidence</h3>
             </div>
             
             <div className="pl-11 space-y-6">
@@ -386,11 +386,11 @@ export function FormRegistrationDialog({
 
                 <FormField control={form.control} name="scannedRegistrationFormLink" render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-700">Google Drive Link: DRF Document</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Google Drive Link: DRF Document</FormLabel>
                         <FormControl>
                             <div className="relative">
                                 <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
-                                <Input {...field} placeholder="https://drive.google.com/..." className="pl-9 h-11 border-primary/20 bg-slate-50 shadow-inner" />
+                                <Input {...field} placeholder="https://drive.google.com/..." className="pl-9 h-11 border-primary/20 bg-slate-50 dark:bg-slate-800/50 shadow-inner" />
                             </div>
                         </FormControl>
                         <FormMessage />
@@ -405,7 +405,7 @@ export function FormRegistrationDialog({
             <div className="flex items-center justify-between pl-11">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><FilePlus className="h-4 w-4" /></div>
-                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">3. Individual Forms Roster</h3>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">3. Individual Forms Roster</h3>
                 </div>
                 <Button type="button" size="sm" onClick={() => append({ name: '', code: '', link: '', revision: '00' })} className="h-8 font-black text-[10px] uppercase gap-1.5 shadow-sm">
                     <PlusCircle className="h-3.5 w-3.5" /> Add Form
@@ -461,7 +461,7 @@ export function FormRegistrationDialog({
             <div className="mx-auto h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
                 <Send className="h-10 w-10" />
             </div>
-            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Institutional Review Prep</h3>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Institutional Review Prep</h3>
             <p className="text-sm text-muted-foreground max-w-lg mx-auto font-medium">Please verify the summary below. All links must be accessible to the Quality Assurance Office.</p>
         </div>
 
@@ -473,7 +473,7 @@ export function FormRegistrationDialog({
                     </div>
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">DRF Evidence Status</p>
-                        <p className="text-sm font-bold text-slate-900">{isDraftValue ? 'PRELIMINARY DRAFT' : 'FINAL SIGNED DOCUMENT'}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{isDraftValue ? 'PRELIMINARY DRAFT' : 'FINAL SIGNED DOCUMENT'}</p>
                     </div>
                 </div>
                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
@@ -483,7 +483,7 @@ export function FormRegistrationDialog({
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Roster Summary ({fields.length} Items)</p>
                 <div className="border rounded-2xl overflow-hidden shadow-lg">
                     <Table>
-                        <TableHeader className="bg-slate-50">
+                        <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                             <TableRow>
                                 <TableHead className="text-[10px] font-black uppercase py-3 pl-6">Code</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-3">Official Title</TableHead>
@@ -494,7 +494,7 @@ export function FormRegistrationDialog({
                             {fields.map((f, i) => (
                                 <TableRow key={i}>
                                     <TableCell className="font-mono text-[11px] font-black py-4 pl-6 text-primary">{f.code || 'TBA'}</TableCell>
-                                    <TableCell className="text-xs font-bold text-slate-700">{f.name || 'Untitled Form'}</TableCell>
+                                    <TableCell className="text-xs font-bold text-slate-700 dark:text-slate-300">{f.name || 'Untitled Form'}</TableCell>
                                     <TableCell className="text-right pr-6"><Badge variant="secondary" className="h-5 text-[8px] font-black uppercase bg-primary/5 text-primary">READY</Badge></TableCell>
                                 </TableRow>
                             ))}
@@ -531,7 +531,7 @@ export function FormRegistrationDialog({
           </ScrollArea>
         )}
 
-        <div className={cn("p-6 border-t bg-slate-50 shrink-0 flex items-center justify-between", isInline ? "rounded-b-xl" : "")}>
+        <div className={cn("p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 flex items-center justify-between", isInline ? "rounded-b-xl" : "")}>
           <button 
             type="button" 
             className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-rose-600 transition-colors" 
@@ -601,12 +601,12 @@ export function FormRegistrationDialog({
     <>
       {isInline ? (
         <div className="flex flex-col w-full bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
-          <div className="p-6 border-b bg-slate-50 shrink-0">
+          <div className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
               <ShieldCheck className="h-5 w-5" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span>
             </div>
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">
+            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
               {request ? 'Edit & Resubmit Request' : 'Form Registration Request'}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -621,7 +621,7 @@ export function FormRegistrationDialog({
       ) : (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
           <DialogContent className="max-w-4xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-            <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+            <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <div className="flex items-center gap-2 text-primary mb-1">
                 <ShieldCheck className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Document Control</span>

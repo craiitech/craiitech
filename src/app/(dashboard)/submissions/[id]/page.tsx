@@ -649,7 +649,7 @@ export default function SubmissionDetailPage() {
                                                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type} ({risk.year})</span>
                                                           <Badge className={cn("text-[8px] font-black h-4 py-0 px-1.5 border-none", risk.type === 'Risk' ? (risk.preTreatment.rating === 'High' ? "bg-rose-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-emerald-600") : (risk.preTreatment.rating === 'High' ? "bg-emerald-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-rose-600"))}>{risk.preTreatment.rating} ({risk.preTreatment.magnitude})</Badge>
                                                       </div>
-                                                      <p className="text-sm font-bold text-slate-800 leading-tight truncate">{risk.description}</p>
+                                                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight truncate">{risk.description}</p>
                                                       
                                                       {risk.verification && (
                                                           <div className="flex items-center gap-2 pt-1">
@@ -699,7 +699,7 @@ export default function SubmissionDetailPage() {
                                                         </Label>
                                                         <Textarea 
                                                             placeholder="Add a specific comment for the unit coordinator regarding this risk..." 
-                                                            className="text-xs italic bg-slate-50 border-primary/10 shadow-inner min-h-[80px]"
+                                                            className="text-xs italic bg-slate-50 dark:bg-slate-800/50 border-primary/10 shadow-inner min-h-[80px]"
                                                             defaultValue={risk.auditorRemarks || ''}
                                                             onBlur={(e) => handleUpdateRiskRemarks(risk.id, e.target.value)}
                                                         />
@@ -712,7 +712,7 @@ export default function SubmissionDetailPage() {
                                                         </div>
                                                         <div className="space-y-1">
                                                             <p className="text-[10px] font-black uppercase text-amber-700 tracking-widest">Auditor Feedback / Guidance:</p>
-                                                            <p className="text-sm text-slate-800 leading-relaxed italic font-medium">"{risk.auditorRemarks}"</p>
+                                                            <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed italic font-medium">"{risk.auditorRemarks}"</p>
                                                             <p className="text-[8px] font-bold text-amber-600/60 uppercase pt-1">Issued by: {risk.auditorRemarksBy || 'QA Auditor'}</p>
                                                         </div>
                                                     </div>
@@ -838,7 +838,7 @@ export default function SubmissionDetailPage() {
                                     <div className="flex items-start gap-3">
                                         <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                                         <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-900">Admin: Risk Registry Bridge</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Admin: Risk Registry Bridge</p>
                                             <p className="text-xs text-muted-foreground">Directly log the entries from this document into the system risk registry.</p>
                                         </div>
                                     </div>
@@ -852,7 +852,7 @@ export default function SubmissionDetailPage() {
                       </Card>
                   )}
                   {submission.statusId === 'rejected' && !isAdminReviewOverride && (
-                      <Card className="border-primary/20 bg-primary/5 shadow-sm"><CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6"><div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" /><div className="space-y-1"><p className="text-sm font-bold text-slate-900">Administrative Override Available</p><p className="text-xs text-muted-foreground">Re-review this rejected document without waiting for a resubmission.</p></div></div><Button onClick={() => setIsAdminReviewOverride(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"><ClipboardCheck className="h-4 w-4" />Review Rejected Document</Button></CardContent></Card>
+                      <Card className="border-primary/20 bg-primary/5 shadow-sm"><CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6"><div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" /><div className="space-y-1"><p className="text-sm font-bold text-slate-900 dark:text-slate-100">Administrative Override Available</p><p className="text-xs text-muted-foreground">Re-review this rejected document without waiting for a resubmission.</p></div></div><Button onClick={() => setIsAdminReviewOverride(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"><ClipboardCheck className="h-4 w-4" />Review Rejected Document</Button></CardContent></Card>
                   )}
               </div>
           )}
@@ -982,7 +982,7 @@ export default function SubmissionDetailPage() {
                     <AlertDialogTitle>Delete Digital Record?</AlertDialogTitle>
                 </div>
                 <AlertDialogDescription className="space-y-4">
-                    <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
                         You are about to remove the digital entry: <br/>
                         <strong className="text-destructive">"{riskToDelete?.description}"</strong>
                     </p>

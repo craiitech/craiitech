@@ -781,7 +781,7 @@ export function ExecutiveOverview({
           <CardHeader className="bg-primary/5 pb-4 border-b">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 flex items-center gap-2">
+                <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-emerald-600" />
                   {scope === 'unit' ? 'Unit EOMS Quality Score' : scope === 'campus' ? 'Campus EOMS Health Score' : 'EOMS Executive Health Score'}
                 </CardTitle>
@@ -823,7 +823,7 @@ export function ExecutiveOverview({
               </svg>
               {/* Center Text */}
               <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-4xl font-black text-slate-900 tracking-tight">{eomsQualityScore}%</span>
+                <span className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{eomsQualityScore}%</span>
                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">EOMS Index</span>
               </div>
             </div>
@@ -835,8 +835,8 @@ export function ExecutiveOverview({
                 {activeMetrics.map((metric, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex justify-between text-[10px] font-bold">
-                      <span className="text-slate-600 truncate max-w-[120px]">{metric.name}</span>
-                      <span className="text-slate-900 font-extrabold">{metric.value}%</span>
+                      <span className="text-slate-600 dark:text-slate-400 truncate max-w-[120px]">{metric.name}</span>
+                      <span className="text-slate-900 dark:text-slate-100 font-extrabold">{metric.value}%</span>
                     </div>
                     <Progress value={metric.value} className={cn("h-1.5", metric.color)} />
                   </div>
@@ -846,10 +846,10 @@ export function ExecutiveOverview({
           </CardContent>
 
           {/* INSIGHTS & ACTION PLAN */}
-          <div className="border-t border-slate-100 bg-slate-50/50 p-6 space-y-4">
+          <div className="border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 p-6 space-y-4">
             <div>
               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">EOMS Quality Insights</h4>
-              <p className="text-xs font-semibold text-slate-700 mt-1 leading-relaxed">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">
                 {insights.explanation}
               </p>
             </div>
@@ -858,7 +858,7 @@ export function ExecutiveOverview({
               <h5 className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Required Actions to Improve Score</h5>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 list-none">
                 {insights.recommendations.map((rec, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-[10px] font-bold text-slate-600">
+                  <li key={idx} className="flex items-start gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400">
                     <span className="text-amber-500 font-extrabold select-none mt-0.5">•</span>
                     <span>{rec}</span>
                   </li>
@@ -876,7 +876,7 @@ export function ExecutiveOverview({
         {scope !== 'unit' && (
           <Card className="lg:col-span-3 border-primary/20 bg-white shadow-lg flex flex-col justify-between">
             <CardHeader className="bg-primary/5 pb-4 border-b">
-              <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 flex items-center gap-2">
+              <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Building className="h-5 w-5 text-indigo-600" />
                 {scope === 'campus' ? 'Department Standings' : 'Campus Standings'}
               </CardTitle>
@@ -891,10 +891,10 @@ export function ExecutiveOverview({
               {visibleStandings.map((cRate, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-slate-800 uppercase truncate max-w-[170px]">{cRate.name}</span>
-                    <span className="text-slate-900 font-black">{cRate.rate}% <span className="text-slate-400 font-medium font-mono text-[9px]">({cRate.approved}/{cRate.expected})</span></span>
+                    <span className="text-slate-800 dark:text-slate-200 uppercase truncate max-w-[170px]">{cRate.name}</span>
+                    <span className="text-slate-900 dark:text-slate-100 font-black">{cRate.rate}% <span className="text-slate-400 font-medium font-mono text-[9px]">({cRate.approved}/{cRate.expected})</span></span>
                   </div>
-                  <div className="relative w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="relative w-full h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
@@ -907,7 +907,7 @@ export function ExecutiveOverview({
               ))}
               
               {scope === 'campus' && complianceStandings.length > 10 && (
-                <div className="space-y-2 pt-4 border-t border-slate-100">
+                <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700">
                   <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500 tracking-wider">
                     <span>Move Slider to Scroll</span>
                     <span className="font-extrabold">{currentStartIndex + 1}-{currentStartIndex + visibleStandings.length} of {complianceStandings.length}</span>
@@ -971,7 +971,7 @@ export function ExecutiveOverview({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Icon className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                          <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">
                             {item.title}
                           </span>
                         </div>
@@ -998,7 +998,7 @@ export function ExecutiveOverview({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Icon className="h-3.5 w-3.5 text-rose-600 shrink-0" />
-                          <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight group-hover:text-rose-600 transition-colors">
                             {item.title}
                           </span>
                         </div>
@@ -1029,15 +1029,15 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Internal Audit</span>
               <Calendar className="h-4 w-4 text-indigo-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">IQA Schedule</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 mt-2">IQA Schedule</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{yearSchedules.length} <span className="text-[10px] text-muted-foreground font-bold">Planned</span></div>
+            <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{yearSchedules.length} <span className="text-[10px] text-muted-foreground font-bold">Planned</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
               <span>Completed</span>
-              <span className="text-slate-900 font-extrabold">{completedAudits.length} ({iqaProgressRate}%)</span>
+              <span className="text-slate-900 dark:text-slate-100 font-extrabold">{completedAudits.length} ({iqaProgressRate}%)</span>
             </div>
-            <Progress value={iqaProgressRate} className="h-1 bg-slate-100" />
+            <Progress value={iqaProgressRate} className="h-1 bg-slate-100 dark:bg-slate-700" />
           </CardContent>
         </Card>
 
@@ -1048,13 +1048,13 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">CAR Oversight</span>
               <ListChecks className="h-4 w-4 text-rose-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">Corrective Actions</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 mt-2">Corrective Actions</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{yearCars.length} <span className="text-[10px] text-muted-foreground font-bold">Issued</span></div>
+            <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{yearCars.length} <span className="text-[10px] text-muted-foreground font-bold">Issued</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
               <span>Closed</span>
-              <span className="text-slate-900 font-extrabold">{closedCars.length} ({carResolutionRate}%)</span>
+              <span className="text-slate-900 dark:text-slate-100 font-extrabold">{closedCars.length} ({carResolutionRate}%)</span>
             </div>
             <Progress value={carResolutionRate} className="h-1 bg-rose-50" />
           </CardContent>
@@ -1067,17 +1067,17 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Accreditation</span>
               <Award className="h-4 w-4 text-teal-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">Program Performance</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 mt-2">Program Performance</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{accreditationRate}% <span className="text-[10px] text-muted-foreground font-bold">Score</span></div>
+            <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{accreditationRate}% <span className="text-[10px] text-muted-foreground font-bold">Score</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
               <span>Level Achievement</span>
-              <span className="text-slate-900 font-extrabold">{accreditationLevelRate}%</span>
+              <span className="text-slate-900 dark:text-slate-100 font-extrabold">{accreditationLevelRate}%</span>
             </div>
             <Progress value={accreditationRate} className="h-1 bg-teal-50" />
             {accreditationByLevel.undergrad.length > 0 && (
-              <div className="pt-1.5 border-t border-slate-100">
+              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-700">
                 <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-1">Undergrad / TVET</p>
                 <div className="flex flex-wrap gap-1">
                   {accreditationByLevel.undergrad.map(item => (
@@ -1089,7 +1089,7 @@ export function ExecutiveOverview({
               </div>
             )}
             {accreditationByLevel.graduate.length > 0 && (
-              <div className="pt-1.5 border-t border-slate-100">
+              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-700">
                 <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-1">Graduate</p>
                 <div className="flex flex-wrap gap-1">
                   {accreditationByLevel.graduate.map(item => (
@@ -1110,13 +1110,13 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Risks & Opps</span>
               <TriangleAlert className="h-4 w-4 text-amber-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">Risk Registers</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 mt-2">Risk Registers</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{yearRisks.length} <span className="text-[10px] text-muted-foreground font-bold">Identified</span></div>
+            <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{yearRisks.length} <span className="text-[10px] text-muted-foreground font-bold">Identified</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
               <span>Mitigated</span>
-              <span className="text-slate-900 font-extrabold">{mitigatedRisks.length} ({riskControlRate}%)</span>
+              <span className="text-slate-900 dark:text-slate-100 font-extrabold">{mitigatedRisks.length} ({riskControlRate}%)</span>
             </div>
             <Progress value={riskControlRate} className="h-1 bg-amber-50" />
           </CardContent>
@@ -1129,13 +1129,13 @@ export function ExecutiveOverview({
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Academic Quality</span>
               <GraduationCap className="h-4 w-4 text-blue-500" />
             </div>
-            <CardTitle className="text-xs font-black uppercase text-slate-900 mt-2">CHED Compliance</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 mt-2">CHED Compliance</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">{totalProgramsCount} <span className="text-[10px] text-muted-foreground font-bold">Programs</span></div>
+            <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{totalProgramsCount} <span className="text-[10px] text-muted-foreground font-bold">Programs</span></div>
             <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase">
               <span>With COPC</span>
-              <span className="text-slate-900 font-extrabold">{copcCompliant.length} ({copcComplianceRate}%)</span>
+              <span className="text-slate-900 dark:text-slate-100 font-extrabold">{copcCompliant.length} ({copcComplianceRate}%)</span>
             </div>
             <Progress value={copcComplianceRate} className="h-1 bg-blue-50" />
           </CardContent>
@@ -1166,7 +1166,7 @@ export function ExecutiveOverview({
                     </div>
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-800">{item.title}</span>
+                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-800 dark:text-slate-200">{item.title}</span>
                         <Badge variant="outline" className={cn(
                           "text-[7px] font-black uppercase h-4 px-1.5",
                           item.severity === 'high' ? "border-rose-200 text-rose-700 bg-rose-50" : "border-amber-200 text-amber-700 bg-amber-50"

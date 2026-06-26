@@ -352,7 +352,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       </div>
       <Button
         type="submit"
-        className="w-full bg-white text-black hover:bg-gray-200"
+        className="w-full bg-white text-black dark:text-white hover:bg-gray-200"
         disabled={isSubmitting}
       >
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -472,7 +472,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
       <Button
         type="submit"
-        className="w-full bg-white text-black hover:bg-gray-200"
+        className="w-full bg-white text-black dark:text-white hover:bg-gray-200"
         disabled={isSubmitting || !privacyPolicyAgreed}
       >
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -598,7 +598,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
                 <Button 
                     onClick={handleResetPasswordSubmit} 
                     disabled={isSendingReset || !resetEmail}
-                    className="bg-white text-black hover:bg-gray-200 h-11 px-8"
+                    className="bg-white text-black dark:text-white hover:bg-gray-200 h-11 px-8"
                 >
                     {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Send Reset Link

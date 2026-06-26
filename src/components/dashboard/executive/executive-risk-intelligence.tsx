@@ -377,7 +377,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Siren className="h-4 w-4 text-red-500" />
-              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700">Active Alerts Requiring Executive Attention</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Active Alerts Requiring Executive Attention</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {alertWatch.map((alert, i) => (
@@ -399,7 +399,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                           {alert.icon}
                         </span>
                         <div>
-                          <p className="text-[10px] font-black text-slate-800">{alert.title}</p>
+                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{alert.title}</p>
                           <p className="text-[9px] text-slate-500 font-bold">{alert.count} item(s)</p>
                         </div>
                       </div>
@@ -410,10 +410,10 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                         'bg-blue-500'
                       )}>{alert.type}</Badge>
                     </div>
-                    <p className="text-[10px] text-slate-600 font-medium leading-relaxed mb-2">{alert.description}</p>
-                    <div className="bg-white/60 p-2.5 rounded-lg border border-slate-200/50">
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-2">{alert.description}</p>
+                    <div className="bg-white/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                       <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Recommended Action</p>
-                      <p className="text-[9px] text-slate-700 font-bold leading-relaxed">{alert.action}</p>
+                      <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">{alert.action}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -468,7 +468,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                  <button className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none">
                     <Info className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
@@ -483,7 +483,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
             {objectiveRiskMap.length > 0 ? (
               <div className="space-y-3">
                 {objectiveRiskMap.slice(0, 10).map((obj, i) => (
-                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50/50 border border-slate-100">
+                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
                     <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-black text-xs"
                       style={{ backgroundColor: obj.riskScore >= 20 ? '#fef2f2' : obj.riskScore >= 10 ? '#fff7ed' : '#f0fdf4' }}>
                       <span className={obj.riskScore >= 20 ? 'text-red-600' : obj.riskScore >= 10 ? 'text-amber-600' : 'text-emerald-600'}>
@@ -492,7 +492,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[10px] font-black text-slate-800 truncate">{obj.objective}</p>
+                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">{obj.objective}</p>
                         <span className="text-[8px] text-slate-400 font-bold">({obj.total} risks)</span>
                       </div>
                       <div className="flex items-center gap-3 text-[8px] font-bold text-slate-500">
@@ -509,7 +509,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                       </div>
                     </div>
                     <div className="shrink-0 w-24">
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                         <div
                           className={cn('h-full rounded-full', obj.riskScore >= 20 ? 'bg-red-500' : obj.riskScore >= 10 ? 'bg-amber-500' : 'bg-emerald-500')}
                           style={{ width: `${Math.min(100, obj.riskScore * 5)}%` }}
@@ -550,7 +550,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                       <p className="font-black uppercase mb-1.5">{label}</p>
                       {data && (
                         <div className="space-y-0.5">
-                          <p className="font-bold">Total: <span className="text-slate-700">{data.total}</span></p>
+                          <p className="font-bold">Total: <span className="text-slate-700 dark:text-slate-300">{data.total}</span></p>
                           <p className="font-bold text-amber-600">Open: {data.open}</p>
                           <p className="font-bold text-red-600">Critical: {data.critical}</p>
                           <p className="font-bold text-indigo-600">Treatment: {data.treatmentRate}%</p>
@@ -606,7 +606,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
             <div className="divide-y divide-slate-100">
               {filteredRegister.slice(0, 20).map((entry, i) => (
                 <div key={entry.id} className={cn(
-                  'p-4 transition-colors hover:bg-slate-50/50',
+                  'p-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50',
                   entry.needsTreatment && 'bg-red-50/30',
                   entry.isOverdue && !entry.needsTreatment && 'bg-amber-50/30'
                 )}>
@@ -620,21 +620,21 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3 mb-1">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-black text-slate-800 leading-relaxed mb-1">
+                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 leading-relaxed mb-1">
                             {entry.description.length > 150 ? entry.description.slice(0, 150) + '...' : entry.description}
                           </p>
                         </div>
                         <div className="shrink-0 flex flex-col items-end gap-1">
                           <Badge className={cn(
                             'text-[8px] font-black uppercase tracking-wider border',
-                            RATING_BG[entry.rating] || 'bg-slate-50 border-slate-200',
-                            RATING_TEXT[entry.rating] || 'text-slate-700'
+                            RATING_BG[entry.rating] || 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700',
+                            RATING_TEXT[entry.rating] || 'text-slate-700 dark:text-slate-300'
                           )}>{entry.rating}</Badge>
                           <Badge variant="outline" className={cn(
                             'text-[8px] font-bold',
                             entry.status === 'Closed' ? 'text-emerald-600 border-emerald-200' :
                             entry.status === 'In Progress' ? 'text-amber-600 border-amber-200' :
-                            'text-slate-600 border-slate-200'
+                            'text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                           )}>{entry.status}</Badge>
                         </div>
                       </div>
@@ -657,14 +657,14 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                         'p-2.5 rounded-lg border',
                         entry.needsTreatment ? 'bg-red-50/80 border-red-200' :
                         entry.isOverdue ? 'bg-amber-50/80 border-amber-200' :
-                        'bg-slate-50/80 border-slate-100'
+                        'bg-slate-50/80 dark:bg-slate-800/80 border-slate-100 dark:border-slate-700'
                       )}>
                         <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Executive Recommendation</p>
                         <p className={cn(
                           'text-[9px] font-bold leading-relaxed',
                           entry.needsTreatment ? 'text-red-700' :
                           entry.isOverdue ? 'text-amber-700' :
-                          'text-slate-600'
+                          'text-slate-600 dark:text-slate-400'
                         )}>{entry.recommendation}</p>
                       </div>
                     </div>
@@ -673,7 +673,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
               ))}
             </div>
             {filteredRegister.length > 20 && (
-              <div className="p-4 text-center border-t border-slate-100">
+              <div className="p-4 text-center border-t border-slate-100 dark:border-slate-700">
                 <p className="text-[10px] text-slate-400 font-bold">+ {filteredRegister.length - 20} more risks — refine filters for focused view</p>
               </div>
             )}
@@ -699,7 +699,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                   rec.priority === 'critical' ? 'border-red-200 bg-red-50/40' :
                   rec.priority === 'high' ? 'border-amber-200 bg-amber-50/30' :
                   rec.priority === 'medium' ? 'border-blue-200 bg-blue-50/30' :
-                  'border-slate-200 bg-slate-50/30'
+                  'border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30'
                 )}>
                   <div className="flex items-start gap-3">
                     <div className={cn(
@@ -707,7 +707,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                       rec.priority === 'critical' ? 'bg-red-100 text-red-600' :
                       rec.priority === 'high' ? 'bg-amber-100 text-amber-600' :
                       rec.priority === 'medium' ? 'bg-blue-100 text-blue-600' :
-                      'bg-slate-100 text-slate-600'
+                      'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                     )}>
                       {rec.priority === 'critical' ? <AlertOctagon className="h-4 w-4" /> :
                        rec.priority === 'high' ? <AlertTriangle className="h-4 w-4" /> :
@@ -716,7 +716,7 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[10px] font-black text-slate-800 uppercase">{rec.message}</p>
+                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase">{rec.message}</p>
                         <Badge className={cn(
                           'text-[7px] font-black uppercase tracking-widest',
                           rec.priority === 'critical' ? 'bg-red-600' :
@@ -726,9 +726,9 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                         )}>{rec.priority.toUpperCase()}</Badge>
                       </div>
                       <p className="text-[9px] text-slate-500 font-medium mb-2">{rec.rationale}</p>
-                      <div className="bg-white/60 p-2.5 rounded-lg border border-slate-200/50">
+                      <div className="bg-white/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                         <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Recommended Action</p>
-                        <p className="text-[9px] text-slate-700 font-bold">{rec.action}</p>
+                        <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold">{rec.action}</p>
                       </div>
                     </div>
                   </div>

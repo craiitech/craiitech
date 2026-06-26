@@ -89,7 +89,7 @@ function CampusFindingsSection({
 
   return (
     <div className="space-y-4 break-before-page pt-8 first:pt-0">
-      <h4 className="font-black text-[11pt] uppercase text-slate-800 tracking-widest border-b pb-1">
+      <h4 className="font-black text-[11pt] uppercase text-slate-800 dark:text-slate-200 tracking-widest border-b pb-1">
         AUDIT REPORT SITE - ({campusLabel.toUpperCase()})
       </h4>
 
@@ -184,7 +184,7 @@ function CampusFindingsSection({
                       {/* CRITICAL: We remove s.summaryNC here to avoid duplicating findings with the individual mapped findings list */}
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
-                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200">
+                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200 dark:border-slate-700">
                             <p className="text-[10pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
                             <p className="text-[11pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
@@ -248,7 +248,7 @@ function UnitFindingsSection({
 
   return (
     <div className="space-y-4 break-before-page pt-8 first:pt-0">
-      <h4 className="font-black text-[11pt] uppercase text-slate-800 tracking-widest border-b pb-1">
+      <h4 className="font-black text-[11pt] uppercase text-slate-800 dark:text-slate-200 tracking-widest border-b pb-1">
         IQA REPORT BY UNIT - ({unitName.toUpperCase()})
       </h4>
 
@@ -349,7 +349,7 @@ function UnitFindingsSection({
                     <div className="space-y-4">
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
-                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200">
+                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200 dark:border-slate-700">
                             <p className="text-[9pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
                             <p className="text-[10pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
@@ -452,36 +452,36 @@ export function ConsolidatedAuditReportTemplate({
   }, [byUnit, unitFilter, schedules, unitMap]);
 
   return (
-    <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       
       {/* OFFICIAL HEADER TABLE */}
       <table className="w-full border-collapse border-[1.5px] border-slate-400 mb-8">
         <tbody>
           <tr>
             <td className="border-[1.5px] border-slate-400 p-4 w-[70%] text-center align-middle space-y-1">
-              <p className="text-xs font-bold text-slate-600 leading-none">Romblon State University</p>
-              <p className="text-sm font-black uppercase tracking-widest text-slate-800">INTERNAL QUALITY AUDIT</p>
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-none">Romblon State University</p>
+              <p className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">INTERNAL QUALITY AUDIT</p>
               <div className="h-px bg-slate-300 w-24 mx-auto my-1" />
-              <p className="text-sm font-black uppercase text-slate-900">{plan.year} INTERNAL QUALITY AUDIT REPORT</p>
+              <p className="text-sm font-black uppercase text-slate-900 dark:text-slate-100">{plan.year} INTERNAL QUALITY AUDIT REPORT</p>
               <p className="text-[10pt] italic">Main Campus, Odiongan, Romblon</p>
             </td>
             <td className="border-[1.5px] border-slate-400 w-[30%] p-0">
               <table className="w-full border-collapse h-full">
                 <tbody>
                   <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 w-1/3 text-[10pt]">Doc. Num.</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 w-1/3 text-[10pt]">Doc. Num.</td>
                     <td className="p-1.5 text-[10pt]">{plan.auditNumber}</td>
                   </tr>
                   <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 text-[10pt]">Standard</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">Standard</td>
                     <td className="p-1.5 font-bold text-[10pt]">ISO 21001:2018</td>
                   </tr>
                   <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 text-[10pt]">Date of Audit</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">Date of Audit</td>
                     <td className="p-1.5 text-[9pt]">{auditDateRange}</td>
                   </tr>
                   <tr>
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 text-[10pt]">Page No.</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">Page No.</td>
                     <td className="p-1.5 font-bold text-slate-400 text-[10pt]">Page 1 of 1</td>
                   </tr>
                 </tbody>
@@ -494,7 +494,7 @@ export function ConsolidatedAuditReportTemplate({
       {/* SECTION: AUDIT FINDINGS */}
       <div className="space-y-10">
         <div className="space-y-2">
-          <h3 className="font-black text-sm text-slate-900" style={{ fontSize: '13pt' }}>Audit Findings</h3>
+          <h3 className="font-black text-sm text-slate-900 dark:text-slate-100" style={{ fontSize: '13pt' }}>Audit Findings</h3>
           <p className="leading-relaxed">
             The following audit findings are gained during the audit and will assist the university in preparing for the next stage of the external audit.
           </p>
@@ -535,7 +535,7 @@ export function ConsolidatedAuditReportTemplate({
         <h3 className="font-black text-sm uppercase border-b border-black pb-1 flex items-center gap-2" style={{ fontSize: '13pt' }}>
           V. Auditor Team Conclusion
         </h3>
-        <div className="border border-black p-6 min-h-[150px] leading-relaxed italic text-slate-700">
+        <div className="border border-black p-6 min-h-[150px] leading-relaxed italic text-slate-700 dark:text-slate-300">
           Based on the objective evidence collected across the university units, the Internal Quality Audit team concludes that the Romblon State University Educational Organizations Management System (EOMS) is...
         </div>
       </section>
@@ -562,7 +562,7 @@ export function ConsolidatedAuditReportTemplate({
       </div>
 
       {/* FOOTER */}
-      <div className="mt-16 pt-4 border-t border-slate-200 flex justify-between items-center text-[10pt] text-slate-400 italic uppercase tracking-widest">
+      <div className="mt-16 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[10pt] text-slate-400 italic uppercase tracking-widest">
         <span>RSU-QAO-CONSOLIDATED-AUDIT-REPORT | REV 03-2025</span>
         <span className="font-bold">Authenticated Institutional Record</span>
         <span>Generated via RSU EOMS Portal</span>

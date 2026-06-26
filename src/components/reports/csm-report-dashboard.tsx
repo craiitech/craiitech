@@ -1915,7 +1915,7 @@ export function CsmReportDashboard({
           <div className="flex flex-col">
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Data Stream</span>
             <Select value={dataSource} onValueChange={(v: any) => setDataSource(v)}>
-              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md">
+              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1929,7 +1929,7 @@ export function CsmReportDashboard({
           <div className="flex flex-col">
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Campus Site</span>
             <Select value={localCampusId} onValueChange={(v) => { setLocalCampusId(v); setSelectedUnitId('all'); }} disabled={!hasAccessToAll}>
-              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md">
+              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                 <SelectValue placeholder="University-Wide" />
               </SelectTrigger>
               <SelectContent>
@@ -1946,7 +1946,7 @@ export function CsmReportDashboard({
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Office / Unit</span>
             <div className="flex items-center gap-1.5">
               <Select value={selectedUnitId} onValueChange={setSelectedUnitId} disabled={!hasAccessToAll}>
-                <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md">
+                <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                   <SelectValue placeholder="All Units/Offices" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1962,7 +1962,7 @@ export function CsmReportDashboard({
                     placeholder="Search office..."
                     value={unitSearchQuery}
                     onChange={(e) => setUnitSearchQuery(e.target.value)}
-                    className="w-[120px] h-9 bg-white text-[11px] font-extrabold text-slate-800 border-none shadow-md pl-7 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="w-[120px] h-9 bg-white text-[11px] font-extrabold text-slate-800 dark:text-slate-200 border-none shadow-md pl-7 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
                 </div>
@@ -1974,7 +1974,7 @@ export function CsmReportDashboard({
 
       {/* DASHBOARD GRID TABS */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-slate-100/80 p-1 border shadow-inner rounded-xl w-max flex gap-1 h-10">
+        <TabsList className="bg-slate-100/80 dark:bg-slate-700/80 p-1 border shadow-inner rounded-xl w-max flex gap-1 h-10">
           <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
             <Users className="h-3.5 w-3.5" /> Executive Overview
           </TabsTrigger>
@@ -2001,7 +2001,7 @@ export function CsmReportDashboard({
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             
             {/* Satisfaction Gauge */}
-            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Overall Score</span>
@@ -2023,14 +2023,14 @@ export function CsmReportDashboard({
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.overallSatisfactionRate}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.overallSatisfactionRate}%</span>
                 </div>
                 <p className="text-[8.5px] text-emerald-600 font-bold uppercase mt-1">Satisfied & Very Satisfied</p>
               </CardContent>
             </Card>
 
             {/* Participation Gauge */}
-            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#D4AF37]" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Response Rate</span>
@@ -2052,14 +2052,14 @@ export function CsmReportDashboard({
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.participationRate}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.participationRate}%</span>
                 </div>
                 <p className="text-[8.5px] text-slate-500 font-bold uppercase mt-1">Evaluations per Logged visit</p>
               </CardContent>
             </Card>
 
             {/* CC1 Gauge */}
-            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-blue-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Awareness</span>
@@ -2081,14 +2081,14 @@ export function CsmReportDashboard({
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.cc1AwarePercent}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.cc1AwarePercent}%</span>
                 </div>
                 <p className="text-[8.5px] text-blue-600 font-bold uppercase mt-1">Charter Awareness</p>
               </CardContent>
             </Card>
 
             {/* CC2 Gauge */}
-            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-purple-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Visibility</span>
@@ -2110,14 +2110,14 @@ export function CsmReportDashboard({
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.cc2VisibilityPercent}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.cc2VisibilityPercent}%</span>
                 </div>
                 <p className="text-[8.5px] text-purple-600 font-bold uppercase mt-1">Easy / Somewhat Easy to see</p>
               </CardContent>
             </Card>
 
             {/* CC3 Gauge */}
-            <Card className="shadow-sm border-slate-200/80 flex flex-col justify-between overflow-hidden relative">
+            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Helpfulness</span>
@@ -2139,7 +2139,7 @@ export function CsmReportDashboard({
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800">{displayStats.cc3HelpfulnessPercent}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.cc3HelpfulnessPercent}%</span>
                 </div>
                 <p className="text-[8.5px] text-rose-600 font-bold uppercase mt-1">Helped Transaction</p>
               </CardContent>
@@ -2147,7 +2147,7 @@ export function CsmReportDashboard({
           </div>
 
           {/* Quick Print score card bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
+          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 dark:border-slate-700/85 gap-3">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-[#D4AF37]" />
               <span className="text-xs font-semibold text-slate-650 uppercase tracking-wider">
@@ -2168,9 +2168,9 @@ export function CsmReportDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Sex Donut */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Sex Distribution</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Sex Distribution</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-[180px] w-full flex items-center justify-center">
@@ -2194,7 +2194,7 @@ export function CsmReportDashboard({
                     <span className="text-xs text-muted-foreground">No demographics logged</span>
                   )}
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] border-t pt-3 font-semibold text-slate-600">
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] border-t pt-3 font-semibold text-slate-600 dark:text-slate-400">
                   {displayStats.demographics.sexData.map((e, idx) => (
                     <div key={idx} className="flex justify-between items-center">
                       <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
@@ -2206,9 +2206,9 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Customer Type Donut */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Customer Types</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Customer Types</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-[180px] w-full flex items-center justify-center">
@@ -2244,9 +2244,9 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Internal vs External Stakeholders */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Stakeholder Classification</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Stakeholder Classification</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-[180px] w-full flex items-center justify-center">
@@ -2286,9 +2286,9 @@ export function CsmReportDashboard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Age Distribution */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Age Bracket Distribution</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Age Bracket Distribution</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <ResponsiveContainer width="100%" height={240}>
@@ -2305,9 +2305,9 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Campus distribution */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Campus distribution</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Campus distribution</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <ResponsiveContainer width="100%" height={280}>
@@ -2325,9 +2325,9 @@ export function CsmReportDashboard({
           </div>
 
           {/* Citizen's Charter 100% Stacked Bar chart */}
-          <Card className="shadow-md border-slate-200/80">
-            <CardHeader className="bg-slate-50/50 border-b py-3">
-              <CardTitle className="text-xs font-black uppercase text-slate-700">
+          <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+              <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
                 Citizen's Charter (CC) Option Stack Distribution (100% Stacked)
               </CardTitle>
               <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
@@ -2356,7 +2356,7 @@ export function CsmReportDashboard({
         <TabsContent value="sqd" className="space-y-6 animate-in fade-in duration-500">
           
           {/* Print SQD Report bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
+          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 dark:border-slate-700/85 gap-3">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-emerald-600" />
               <span className="text-xs font-semibold text-slate-650 uppercase tracking-wider">
@@ -2372,9 +2372,9 @@ export function CsmReportDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* Diverging Stacked Bar Chart */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
                   Diverging Stacked Likert Sentiment Distribution
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
@@ -2404,9 +2404,9 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Radar Spider Chart */}
-            <Card className="shadow-md border-slate-200/80">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
                   SQD dimension satisfaction profile
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
@@ -2442,7 +2442,7 @@ export function CsmReportDashboard({
                   {dssInsights.map(insight => (
                     <div key={insight.id} className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-2.5">
                       <div className="flex items-center justify-between border-b pb-1.5">
-                        <span className="text-[10px] font-black uppercase text-slate-800 tracking-tight">{insight.name}</span>
+                        <span className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">{insight.name}</span>
                         {insight.id !== 99 ? (
                           <Badge variant="destructive" className="text-[8px] uppercase font-black px-1.5 py-0.5">
                             {insight.positivePercent}% Positive
@@ -2453,12 +2453,12 @@ export function CsmReportDashboard({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-[10.5px] font-bold text-slate-600 italic">"{insight.recommendation}"</p>
-                      <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
+                      <p className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 italic">"{insight.recommendation}"</p>
+                      <div className="bg-slate-50/80 dark:bg-slate-800/80 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700">
                         <span className="text-[9px] font-black uppercase text-amber-800 tracking-wider">Corrective Action Plan Checklist:</span>
                         <ul className="list-disc list-inside mt-1 space-y-1">
                           {insight.checklist.map((item: string, idx: number) => (
-                            <li key={idx} className="text-[9.5px] font-medium text-slate-700 leading-tight">{item}</li>
+                            <li key={idx} className="text-[9.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">{item}</li>
                           ))}
                         </ul>
                       </div>
@@ -2470,10 +2470,10 @@ export function CsmReportDashboard({
           )}
 
           {/* Service Quality score tables & heatmap */}
-          <Card className="shadow-md border-slate-200/80">
-            <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-700">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
                   Service-Level Satisfaction Index Matrix (Heatmap)
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
@@ -2489,13 +2489,13 @@ export function CsmReportDashboard({
                     setServiceSearch(e.target.value);
                     setServicePage(0);
                   }}
-                  className="h-8 text-xs font-bold w-[250px] bg-white border-slate-200"
+                  className="h-8 text-xs font-bold w-[250px] bg-white border-slate-200 dark:border-slate-700"
                 />
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                   <TableRow>
                     <TableHead className="font-black text-[10px] uppercase pl-4">Service Provided</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Campus site</TableHead>
@@ -2522,8 +2522,8 @@ export function CsmReportDashboard({
                       }
 
                       return (
-                        <TableRow key={idx} className="hover:bg-slate-50/50">
-                          <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-700">
+                        <TableRow key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                          <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-700 dark:text-slate-300">
                             {svc.name.toUpperCase()}
                           </TableCell>
                           <TableCell className="text-xs font-bold text-slate-500 uppercase">{svc.campus}</TableCell>
@@ -2541,7 +2541,7 @@ export function CsmReportDashboard({
                 </TableBody>
               </Table>
               {filteredServices.length > servicePageSize && (
-                <div className="flex justify-end items-center gap-2 p-3 border-t bg-slate-50/40">
+                <div className="flex justify-end items-center gap-2 p-3 border-t bg-slate-50/40 dark:bg-slate-800/40">
                   <Button 
                     size="sm" 
                     variant="outline" 
@@ -2573,7 +2573,7 @@ export function CsmReportDashboard({
         <TabsContent value="qualitative" className="space-y-6 animate-in fade-in duration-500">
           
           {/* Print Qualitative Feedback bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 gap-3">
+          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 dark:border-slate-700/85 gap-3">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-emerald-600" />
               <span className="text-xs font-semibold text-slate-650 uppercase tracking-wider">
@@ -2588,9 +2588,9 @@ export function CsmReportDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Pareto Chart for comments count */}
-            <Card className="shadow-md border-slate-200/80 lg:col-span-2">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
                   Pareto Analysis of Qualitative Friction Themes
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
@@ -2614,10 +2614,10 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Categorized Matrix Feed */}
-            <Card className="shadow-md border-slate-200/80 lg:col-span-1 flex flex-col justify-between">
-              <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-1 flex flex-col justify-between">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-xs font-black uppercase text-slate-700">
+                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
                     Qualitative Matrix Feed
                   </CardTitle>
                   <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
@@ -2630,25 +2630,25 @@ export function CsmReportDashboard({
                     placeholder="Search comments..."
                     value={commentSearch}
                     onChange={(e) => setCommentSearch(e.target.value)}
-                    className="h-8 text-xs font-bold w-[160px] bg-white border-slate-200"
+                    className="h-8 text-xs font-bold w-[160px] bg-white border-slate-200 dark:border-slate-700"
                   />
                 </div>
               </CardHeader>
               <CardContent className="pt-4 flex-1 p-0">
-                <ScrollArea className="h-[320px] bg-slate-50/20 p-4">
+                <ScrollArea className="h-[320px] bg-slate-50/20 dark:bg-slate-800/20 p-4">
                   {filteredComments.length > 0 ? (
                     <div className="space-y-3">
                       {filteredComments.map((comment, idx) => (
-                        <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-1.5">
+                        <div key={idx} className="bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-sm space-y-1.5">
                           <div className="flex justify-between items-start border-b pb-1">
                             <span className="text-xs font-black text-[#1B6535] uppercase">
                               {maskName(comment.visitorName)}
                             </span>
-                            <Badge className="bg-slate-100 text-slate-800 border-none text-[8.5px] font-black uppercase">
+                            <Badge className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border-none text-[8.5px] font-black uppercase">
                               {comment.category.split(' ')[0]}
                             </Badge>
                           </div>
-                          <p className="text-[11px] text-slate-700 italic font-semibold">"{comment.comments}"</p>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 italic font-semibold">"{comment.comments}"</p>
                           <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
                             {comment.campus} &bull; {comment.type}
                           </div>
@@ -2672,11 +2672,11 @@ export function CsmReportDashboard({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Harmonized Agency Report Card */}
-            <Card className="shadow-md border-slate-200/85 overflow-hidden relative">
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-600" />
               <CardHeader className="pb-2 pt-5">
                 <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">Mandated ARTA Output</span>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 mt-1">
+                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
                   Harmonized CSM Agency Report
                 </CardTitle>
                 <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
@@ -2686,7 +2686,7 @@ export function CsmReportDashboard({
               <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
                 Compiles the consolidated survey evaluations into the layout required for submissions to the Anti-Red Tape Authority (ARTA). Includes structured Methodology, CC tables, and SQD interpretations.
               </CardContent>
-              <CardFooter className="border-t bg-slate-50/50 p-4 flex justify-between items-center">
+              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase text-slate-400">PDF / Print-ready</span>
                 <Button size="sm" onClick={handlePrintHarmonizedReport} className="h-8 text-[9px] font-black uppercase tracking-wider">
                   <Printer className="h-3.5 w-3.5 mr-1" /> Print / Export
@@ -2695,11 +2695,11 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Campus specific performance Card */}
-            <Card className="shadow-md border-slate-200/85 overflow-hidden relative">
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600" />
               <CardHeader className="pb-2 pt-5">
                 <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">Regional breakdown</span>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 mt-1">
+                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
                   Campus Performance Export
                 </CardTitle>
                 <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
@@ -2709,7 +2709,7 @@ export function CsmReportDashboard({
               <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
                 Generates a report isolation specifically for local campuses. Extracts only the transactions, satisfaction rate indices, and qualitative suggestions scoped to Campus Directors (e.g. Cajidiocan).
               </CardContent>
-              <CardFooter className="border-t bg-slate-50/50 p-4 flex flex-col items-stretch gap-2.5">
+              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex flex-col items-stretch gap-2.5">
                 <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase">
                   <span>Target Campus</span>
                   <span>Isolation Print</span>
@@ -2737,11 +2737,11 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CAIP matrix Card */}
-            <Card className="shadow-md border-slate-200/85 overflow-hidden relative">
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-[#D4AF37]" />
               <CardHeader className="pb-2 pt-5">
                 <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">Quality improvement</span>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 mt-1">
+                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
                   Improvement Plan (CAIP) Matrix
                 </CardTitle>
                 <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
@@ -2751,7 +2751,7 @@ export function CsmReportDashboard({
               <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
                 Compiles the Continuous Agency Improvement Plan tracking matrix containing targeted satisfaction goals, QR kiosk system deployment status, and customer service seminars schedules.
               </CardContent>
-              <CardFooter className="border-t bg-slate-50/50 p-4 flex justify-between items-center">
+              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase text-slate-400">Target Year: 2026</span>
                 <Button size="sm" onClick={handlePrintCaipReport} className="h-8 text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 border-none">
                   <Printer className="h-3.5 w-3.5 mr-1" /> Print Matrix
@@ -2766,7 +2766,7 @@ export function CsmReportDashboard({
           <TabsContent value="deployment" className="space-y-6 animate-in fade-in duration-500">
             
             {/* Admin Drilldown selectors */}
-            <Card className="border-slate-200/85 shadow-sm bg-slate-50/40">
+            <Card className="border-slate-200/85 dark:border-slate-700/85 shadow-sm bg-slate-50/40 dark:bg-slate-800/40">
               <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
                   <div className="flex flex-col">
@@ -2829,16 +2829,16 @@ export function CsmReportDashboard({
 
             {/* Rankings Benchmarks Table */}
             {unitBenchmarks.length > 0 && (
-              <Card className="shadow-md border-slate-200/80 overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b py-3.5">
-                  <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-700">
+              <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 overflow-hidden">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3.5">
+                  <CardTitle className="text-xs font-black uppercase flex items-center gap-2 text-slate-700 dark:text-slate-300">
                     <Building2 className="h-4 w-4 text-primary" />
                     Unit Client Satisfaction Benchmarks & Rankings
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                       <TableRow>
                         <TableHead className="font-black text-[10px] uppercase pl-4">Unit / Office</TableHead>
                         <TableHead className="font-black text-[10px] uppercase">Campus Site</TableHead>
@@ -2851,13 +2851,13 @@ export function CsmReportDashboard({
                     </TableHeader>
                     <TableBody>
                       {unitBenchmarks.map(u => (
-                        <TableRow key={u.id} className="hover:bg-slate-50/50">
-                          <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800">{u.name}</TableCell>
+                        <TableRow key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                          <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800 dark:text-slate-200">{u.name}</TableCell>
                           <TableCell className="text-xs font-bold text-slate-500 uppercase">{u.campuses}</TableCell>
-                          <TableCell className="text-center font-bold text-xs text-slate-600">{u.totalVisitors}</TableCell>
-                          <TableCell className="text-center font-bold text-xs text-slate-600">{u.totalResponses}</TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-600 dark:text-slate-400">{u.totalVisitors}</TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-600 dark:text-slate-400">{u.totalResponses}</TableCell>
                           <TableCell className="text-center font-bold text-xs">
-                            <span className={u.participationRate >= 30 ? 'text-slate-800 font-bold' : 'text-amber-600 font-black'}>
+                            <span className={u.participationRate >= 30 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-amber-600 font-black'}>
                               {u.participationRate}%
                             </span>
                           </TableCell>
@@ -2876,13 +2876,13 @@ export function CsmReportDashboard({
             )}
 
             {/* Deployments Center publish cycle controls */}
-            <Card className="border-slate-200/80 shadow-md">
-              <CardHeader className="bg-slate-50/40 border-b py-3.5">
+            <Card className="border-slate-200/80 dark:border-slate-700/80 shadow-md">
+              <CardHeader className="bg-slate-50/40 dark:bg-slate-800/40 border-b py-3.5">
                 <div className="flex items-center gap-2 mb-1">
                   <Radio className="h-4.5 w-4.5 text-primary" />
                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Cycle deployment Manager</span>
                 </div>
-                <CardTitle className="text-sm font-black uppercase text-slate-800">CSM Unit Deployment Center</CardTitle>
+                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">CSM Unit Deployment Center</CardTitle>
                 <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
                   Publish or recall Client Satisfaction Monitoring reports. Deployed periods become visible for all units to view and print.
                 </CardDescription>
@@ -2905,9 +2905,9 @@ export function CsmReportDashboard({
                         const isDeploying = deployingCycleIds[dId] || false;
 
                         return (
-                          <TableRow key={dId} className="hover:bg-slate-50">
+                          <TableRow key={dId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                             <TableCell className="font-bold text-xs pl-4">AY {cycle.year}</TableCell>
-                            <TableCell className="font-bold text-xs uppercase text-slate-600">{cycle.name} Cycle</TableCell>
+                            <TableCell className="font-bold text-xs uppercase text-slate-600 dark:text-slate-400">{cycle.name} Cycle</TableCell>
                             <TableCell className="text-center font-bold text-xs">
                               {isPublished ? (
                                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[8.5px] uppercase font-black">

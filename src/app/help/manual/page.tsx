@@ -88,7 +88,7 @@ const manualSections = [
                     <li><strong>Refinement:</strong> Address auditor comments directly in your document.</li>
                     <li><strong>Final Filing:</strong> Once the content is cleared, print, sign, scan to PDF, and submit as "Final" to achieve "Approved" status.</li>
                 </ol>
-                <p class="mt-4 font-bold text-slate-800">The 6 Core Documents:</p>
+                <p class="mt-4 font-bold text-slate-800 dark:text-slate-200">The 6 Core Documents:</p>
                 <p class="text-xs">1. SWOT | 2. Needs & Expectations | 3. Operational Plan | 4. Quality Objectives | 5. Risk Registry | 6. Risk Action Plan (if Medium/High risk).</p>
             `
         },
@@ -185,7 +185,7 @@ export default function UserManualPage() {
                     <BookOpen className="h-10 w-10" />
                 </div>
                 <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">Institutional User Manual</h2>
+                    <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 leading-none">Institutional User Manual</h2>
                     <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mt-2 flex items-center gap-2">
                         <ShieldCheck className="h-4 w-4 text-emerald-600" />
                         RSU EOMS Digital Portal Standard Operating Procedures
@@ -208,7 +208,7 @@ export default function UserManualPage() {
                 <div key={i} className="p-4 rounded-2xl border bg-muted/20 flex flex-col items-center gap-2 text-center group hover:bg-primary/5 transition-colors">
                     <div className="h-10 w-10 rounded-xl bg-white border flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">{item.icon}</div>
                     <div className="space-y-0.5">
-                        <p className="text-[10px] font-black uppercase text-slate-800">{item.title}</p>
+                        <p className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">{item.title}</p>
                         <p className="text-[9px] text-muted-foreground font-bold">{item.desc}</p>
                     </div>
                 </div>
@@ -226,11 +226,11 @@ export default function UserManualPage() {
         <Accordion type="multiple" className="w-full space-y-6">
           {manualSections.map((roleSection, idx) => (
             <div key={roleSection.role} className="space-y-4">
-              <div className="flex items-center gap-3 mb-2 mt-8 bg-slate-50 p-4 rounded-xl border-l-4 border-primary shadow-sm">
+              <div className="flex items-center gap-3 mb-2 mt-8 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border-l-4 border-primary shadow-sm">
                   <div className="h-8 w-8 rounded-lg bg-white border flex items-center justify-center shadow-inner">
                     {roleSection.icon}
                   </div>
-                  <h3 className="text-lg font-black uppercase tracking-widest text-slate-800">
+                  <h3 className="text-lg font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
                     {roleSection.role}
                   </h3>
               </div>
@@ -241,7 +241,7 @@ export default function UserManualPage() {
                         value={`${roleSection.role}-${index}`} 
                         className="border rounded-2xl px-6 hover:bg-muted/5 transition-all bg-white shadow-sm"
                     >
-                        <AccordionTrigger className="text-xs font-black uppercase hover:no-underline py-5 text-slate-700 tracking-tight group">
+                        <AccordionTrigger className="text-xs font-black uppercase hover:no-underline py-5 text-slate-700 dark:text-slate-300 tracking-tight group">
                             <span className="group-hover:text-primary transition-colors">{section.title}</span>
                         </AccordionTrigger>
                         <AccordionContent className="pb-6">
@@ -264,7 +264,7 @@ export default function UserManualPage() {
                 <Info className="h-6 w-6" />
             </div>
             <div className="space-y-2 flex-1">
-                <p className="text-xs font-black uppercase text-slate-800 tracking-[0.1em]">Technical & Operational Support</p>
+                <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-[0.1em]">Technical & Operational Support</p>
                 <p className="text-sm text-muted-foreground leading-relaxed font-medium">
                     For technical errors, password resets, or role adjustments, please contact the <strong>Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)</strong>. You may also utilize the internal AI Chatbot on your dashboard for contextual navigation help.
                 </p>

@@ -281,7 +281,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                                 </ResponsiveContainer>
                             </ChartContainer>
                             <div className="text-center">
-                                <p className="text-4xl font-black text-slate-900 tabular-nums leading-none">{aggregatedData.totals.s1.toLocaleString()}</p>
+                                <p className="text-4xl font-black text-slate-900 dark:text-slate-100 tabular-nums leading-none">{aggregatedData.totals.s1.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Total Enrolled Baseline</p>
                             </div>
                         </>
@@ -459,7 +459,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                 <ShieldCheck className="h-6 w-6" />
             </div>
             <div className="space-y-2">
-                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                     The RSU EOMS Portal automatically consolidates SDD from academic monitoring (students) and the personnel census (employees). This data is critical for generating the university's <strong>GAD Accomplishment Reports</strong> for the Philippine Commission on Women.
                 </p>
             </div>

@@ -315,7 +315,7 @@ export default function EmployeeActivityLogPage() {
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-6 institutional-header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900">
+                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
                     <UserCheck className="h-8 w-8 text-primary" />
                     Institutional Activity Registry
                 </h2>
@@ -397,17 +397,17 @@ export default function EmployeeActivityLogPage() {
                                 <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
                                     <TableCell className="pl-6 py-4">
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-xs font-black text-slate-800 uppercase tabular-nums">{format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MM/dd/yy')}</span>
+                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tabular-nums">{format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MM/dd/yy')}</span>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase">{activity.startTime} - {activity.endTime}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="max-w-xs py-4">
                                         <div className="flex flex-col gap-1">
-                                            <p className="font-bold text-sm text-slate-900 leading-tight">{activity.activityParticular}</p>
+                                            <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">{activity.activityParticular}</p>
                                             {viewScope !== 'personal' && <span className="text-[9px] font-black text-primary uppercase">{activity.userName}</span>}
                                         </div>
                                     </TableCell>
-                                    <TableCell><span className="text-xs font-medium text-slate-600">{activity.output || '--'}</span></TableCell>
+                                    <TableCell><span className="text-xs font-medium text-slate-600 dark:text-slate-400">{activity.output || '--'}</span></TableCell>
                                     <TableCell className="text-center">
                                         {activity.googleDriveLink ? <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild><a href={activity.googleDriveLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button> : <span className="text-[9px] text-muted-foreground opacity-20">None</span>}
                                     </TableCell>
@@ -464,10 +464,10 @@ export default function EmployeeActivityLogPage() {
                             {filteredWfhActivities.map((activity) => (
                                 <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
                                     <TableCell className="pl-6 py-4">
-                                        <span className="text-xs font-black text-slate-800 uppercase tabular-nums">{format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MM/dd/yy')}</span>
+                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tabular-nums">{format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MM/dd/yy')}</span>
                                     </TableCell>
-                                    <TableCell className="max-w-xs py-4"><p className="text-xs font-bold text-slate-900 leading-snug">{activity.deliverables}</p></TableCell>
-                                    <TableCell className="max-w-xs py-4"><p className="text-xs font-medium text-slate-600 italic leading-snug">{activity.accomplishment}</p></TableCell>
+                                    <TableCell className="max-w-xs py-4"><p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">{activity.deliverables}</p></TableCell>
+                                    <TableCell className="max-w-xs py-4"><p className="text-xs font-medium text-slate-600 dark:text-slate-400 italic leading-snug">{activity.accomplishment}</p></TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/30 text-primary">{activity.type}</Badge>
                                     </TableCell>
@@ -504,12 +504,12 @@ export default function EmployeeActivityLogPage() {
                 <div className="space-y-4">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Personnel Type</Label>
                     <RadioGroup value={wfhPrintType} onValueChange={(v: any) => setWfhPrintType(v)} className="grid grid-cols-2 gap-4">
-                        <Label htmlFor="type-teaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Teaching' ? "border-primary bg-primary/5" : "border-slate-100")}>
+                        <Label htmlFor="type-teaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Teaching' ? "border-primary bg-primary/5" : "border-slate-100 dark:border-slate-700")}>
                             <RadioGroupItem value="Teaching" id="type-teaching" className="sr-only" />
                             <GraduationCap className={cn("h-8 w-8", wfhPrintType === 'Teaching' ? "text-primary" : "text-muted-foreground")} />
                             <span className="text-xs font-black uppercase">Teaching</span>
                         </Label>
-                        <Label htmlFor="type-nonteaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Non-Teaching' ? "border-primary bg-primary/5" : "border-slate-100")}>
+                        <Label htmlFor="type-nonteaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Non-Teaching' ? "border-primary bg-primary/5" : "border-slate-100 dark:border-slate-700")}>
                             <RadioGroupItem value="Non-Teaching" id="type-nonteaching" className="sr-only" />
                             <Briefcase className={cn("h-8 w-8", wfhPrintType === 'Non-Teaching' ? "text-primary" : "text-muted-foreground")} />
                             <span className="text-xs font-black uppercase">Non-Teaching</span>
@@ -518,14 +518,14 @@ export default function EmployeeActivityLogPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
-                    <div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-widest text-slate-800">Identify Official Signatories</Label></div>
+                    <div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Identify Official Signatories</Label></div>
                     {wfhPrintType === 'Teaching' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Department / Program Chair</Label><Input value={wfhDeptChair} onChange={(e) => setWfhDeptChair(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50" /></div>
-                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Dean / Campus Director</Label><Input value={wfhDeanDirector} onChange={(e) => setWfhDeanDirector(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50" /></div>
+                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Department / Program Chair</Label><Input value={wfhDeptChair} onChange={(e) => setWfhDeptChair(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50" /></div>
+                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Dean / Campus Director</Label><Input value={wfhDeanDirector} onChange={(e) => setWfhDeanDirector(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50" /></div>
                         </div>
                     ) : (
-                        <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label><Input value={wfhImmediateHead} onChange={(e) => setWfhImmediateHead(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50" /></div>
+                        <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label><Input value={wfhImmediateHead} onChange={(e) => setWfhImmediateHead(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50" /></div>
                     )}
                 </div>
             </div>

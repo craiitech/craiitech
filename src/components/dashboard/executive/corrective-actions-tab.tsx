@@ -307,22 +307,22 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
                 {statusData.map(d => {
                   const pct = cars.length > 0 ? Math.round((d.value / cars.length) * 100) : 0;
                   return (
-                    <div key={d.name} className="flex items-center justify-between border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
+                    <div key={d.name} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-1.5 last:border-0 last:pb-0">
                       <div className="flex items-center gap-2">
                         <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: STATUS_COLORS[d.name] || '#94a3b8' }} />
-                        <span className="text-[10px] font-extrabold uppercase text-slate-700">{d.name}</span>
+                        <span className="text-[10px] font-extrabold uppercase text-slate-700 dark:text-slate-300">{d.name}</span>
                       </div>
-                      <span className="text-[11px] font-black text-slate-900">{d.value} <span className="text-slate-400 font-medium font-mono text-[9px]">({pct}%)</span></span>
+                      <span className="text-[11px] font-black text-slate-900 dark:text-slate-100">{d.value} <span className="text-slate-400 font-medium font-mono text-[9px]">({pct}%)</span></span>
                     </div>
                   );
                 })}
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.pipelineText}</p>
+                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.pipelineText}</p>
               </div>
             </div>
           </CardContent>
@@ -355,18 +355,18 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
                     <div key={d.name} className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full shrink-0" style={{ background: NATURE_COLORS[d.name] }} />
                       <div>
-                        <p className="text-sm font-black text-slate-800">{d.value}</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200">{d.value}</p>
                         <p className="text-[9px] font-bold text-muted-foreground uppercase leading-none mt-0.5">{d.name === 'NC' ? 'Non-Conformance' : 'Opportunity for Improvement'}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-slate-100 bg-slate-50 rounded-lg p-2.5 flex items-start gap-2">
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 flex items-start gap-2">
                 <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Analysis</p>
-                  <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.natureText}</p>
+                  <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.natureText}</p>
                 </div>
               </div>
             </CardContent>
@@ -398,11 +398,11 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div className="mt-3 pt-3 border-t border-slate-100 bg-slate-50 rounded-lg p-2.5 flex items-start gap-2">
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 flex items-start gap-2">
                 <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Analysis</p>
-                  <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.sourceText}</p>
+                  <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.sourceText}</p>
                 </div>
               </div>
             </CardContent>
@@ -444,11 +444,11 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.agingText}</p>
+                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.agingText}</p>
               </div>
             </div>
           </CardContent>
@@ -485,11 +485,11 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-                    <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.unitsText}</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.unitsText}</p>
                   </div>
                 </div>
               </>
@@ -525,11 +525,11 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
               <Line type="monotone" dataKey="Closed" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} />
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
             <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-              <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.trendText}</p>
+              <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.trendText}</p>
             </div>
           </div>
         </CardContent>
@@ -558,11 +558,11 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
               ))}
             </BarChart>
           </ResponsiveContainer>
-          <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 rounded-lg p-3 flex items-start gap-2">
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-start gap-2">
             <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Analysis & Action Plan</p>
-              <p className="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">{correctiveActionInsights.campusText}</p>
+              <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{correctiveActionInsights.campusText}</p>
             </div>
           </div>
         </CardContent>

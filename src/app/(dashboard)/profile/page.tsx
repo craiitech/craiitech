@@ -263,7 +263,7 @@ export default function ProfilePage() {
                 );
             }
         }
-        return <div className="flex gap-1.5 items-center justify-center py-4 bg-slate-50 border rounded-2xl shadow-inner">{stars}</div>;
+        return <div className="flex gap-1.5 items-center justify-center py-4 bg-slate-50 dark:bg-slate-800/50 border rounded-2xl shadow-inner">{stars}</div>;
     };
 
     const getTierBadge = (tier: string) => {
@@ -277,7 +277,7 @@ export default function ProfilePage() {
                 );
             case 'Silver':
                 return (
-                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-br from-slate-200 via-zinc-300 to-slate-400 text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-md shadow-zinc-400/25 border border-zinc-200/50">
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-br from-slate-200 via-zinc-300 to-slate-400 text-slate-900 dark:text-slate-100 font-black text-[10px] uppercase tracking-widest shadow-md shadow-zinc-400/25 border border-zinc-200/50">
                         <Award className="h-4 w-4" />
                         Silver Compliance
                     </div>
@@ -291,7 +291,7 @@ export default function ProfilePage() {
                 );
             default:
                 return (
-                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest border border-slate-200">
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 font-black text-[10px] uppercase tracking-widest border border-slate-200 dark:border-slate-700">
                         <Info className="h-4 w-4" />
                         Unranked
                     </div>
@@ -832,7 +832,7 @@ export default function ProfilePage() {
                                                 className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">First Submission Cycle</span>
+                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">First Submission Cycle</span>
                                                     <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/10 text-primary border-none">
                                                         {computedPointsData.breakdown.first.reduce((sum: number, item: any) => sum + item.points, 0).toFixed(1)} / 6.0 Stars
                                                     </Badge>
@@ -845,7 +845,7 @@ export default function ProfilePage() {
                                                     {computedPointsData.breakdown.first.map((item: any, idx: number) => (
                                                         <div key={idx} className="p-3 bg-white rounded-lg border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all hover:border-slate-300">
                                                             <div className="space-y-1 flex-1 min-w-0">
-                                                                <p className="text-xs font-bold text-slate-800 truncate">{item.type}</p>
+                                                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{item.type}</p>
                                                                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
                                                                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Submitted: {formatDate(item.submissionDate)}</span>
                                                                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Deadline: {formatDate(item.deadlineDate)}</span>
@@ -887,7 +887,7 @@ export default function ProfilePage() {
                                                 className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">Final Submission Cycle</span>
+                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Final Submission Cycle</span>
                                                     <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/10 text-primary border-none">
                                                         {computedPointsData.breakdown.final.reduce((sum: number, item: any) => sum + item.points, 0).toFixed(1)} / 6.0 Stars
                                                     </Badge>
@@ -900,7 +900,7 @@ export default function ProfilePage() {
                                                     {computedPointsData.breakdown.final.map((item: any, idx: number) => (
                                                         <div key={idx} className="p-3 bg-white rounded-lg border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all hover:border-slate-300">
                                                             <div className="space-y-1 flex-1 min-w-0">
-                                                                <p className="text-xs font-bold text-slate-800 truncate">{item.type}</p>
+                                                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{item.type}</p>
                                                                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
                                                                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Submitted: {formatDate(item.submissionDate)}</span>
                                                                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Deadline: {formatDate(item.deadlineDate)}</span>
@@ -959,7 +959,7 @@ export default function ProfilePage() {
                                                 <FormControl>
                                                     <div className="relative">
                                                         <KeyRound className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground opacity-50" />
-                                                        <Input type="password" {...field} className="pl-9 bg-slate-50" placeholder="••••••••" disabled={!canEdit} />
+                                                        <Input type="password" {...field} className="pl-9 bg-slate-50 dark:bg-slate-800/50" placeholder="••••••••" disabled={!canEdit} />
                                                     </div>
                                                 </FormControl>
                                                 <FormMessage />
@@ -1043,7 +1043,7 @@ export default function ProfilePage() {
                         <CardContent className="pt-6 space-y-4">
                             <div className="flex flex-col gap-4">
                                 <div className="space-y-1">
-                                    <h4 className="text-sm font-bold text-slate-900">Delete This Account</h4>
+                                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete This Account</h4>
                                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                                         Once deleted, you will no longer have access to the RSU EOMS Portal. Your personal profile data and login credentials will be removed.
                                     </p>
@@ -1052,7 +1052,7 @@ export default function ProfilePage() {
                                 <Alert className="bg-white border-primary/20">
                                     <ShieldCheck className="h-4 w-4 text-primary" />
                                     <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-primary">Data Privacy Provision (RA 10173)</AlertTitle>
-                                    <AlertDescription className="text-[10px] font-medium leading-tight text-slate-600">
+                                    <AlertDescription className="text-[10px] font-medium leading-tight text-slate-600 dark:text-slate-400">
                                         In accordance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, specifically the <em>Right to Erasure or Blocking</em>, you may request the removal of your personal identity data from this system. Note that institutional evidence (submissions) is retained for legal and auditing purposes as permitted by law.
                                     </AlertDescription>
                                 </Alert>
@@ -1078,7 +1078,7 @@ export default function ProfilePage() {
                                                 <AlertDialogTitle>Account Deletion Request</AlertDialogTitle>
                                             </div>
                                             <AlertDialogDescription className="space-y-4">
-                                                <p className="text-sm font-bold text-slate-900">Are you absolutely sure you want to delete your institutional account?</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Are you absolutely sure you want to delete your institutional account?</p>
                                                 <p className="text-xs text-muted-foreground leading-relaxed italic">
                                                     This action will remove your profile and authentication record. Your submissions will be preserved in the RSU EOMS Registry for quality auditing compliance.
                                                 </p>
@@ -1092,7 +1092,7 @@ export default function ProfilePage() {
                                                                     <FormItem>
                                                                         <FormLabel className="text-[10px] font-black uppercase text-slate-500">Enter Password to Confirm</FormLabel>
                                                                         <FormControl>
-                                                                            <Input type="password" {...field} className="h-10 bg-slate-50" placeholder="••••••••" />
+                                                                            <Input type="password" {...field} className="h-10 bg-slate-50 dark:bg-slate-800/50" placeholder="••••••••" />
                                                                         </FormControl>
                                                                         <FormMessage />
                                                                     </FormItem>

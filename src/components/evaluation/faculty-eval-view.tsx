@@ -55,7 +55,7 @@ export function FacultyEvalView() {
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary">Final Weighted Rating</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-10 space-y-2">
-            <div className="text-6xl font-black text-slate-900 tabular-nums tracking-tighter">
+            <div className="text-6xl font-black text-slate-900 dark:text-slate-100 tabular-nums tracking-tighter">
               {latestResult?.finalScore.toFixed(2) || '0.00'}
             </div>
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Out of 5.0 Points</p>
@@ -69,7 +69,7 @@ export function FacultyEvalView() {
           <Card className="shadow-md">
             <CardHeader className="pb-2">
               <CardDescription className="text-[10px] font-black uppercase tracking-widest">Student Satisfaction Mean</CardDescription>
-              <CardTitle className="text-3xl font-black text-slate-800">{latestResult?.studentMean.toFixed(2) || '--'}</CardTitle>
+              <CardTitle className="text-3xl font-black text-slate-800 dark:text-slate-200">{latestResult?.studentMean.toFixed(2) || '--'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -81,7 +81,7 @@ export function FacultyEvalView() {
           <Card className="shadow-md">
             <CardHeader className="pb-2">
               <CardDescription className="text-[10px] font-black uppercase tracking-widest">Supervisor Review Score</CardDescription>
-              <CardTitle className="text-3xl font-black text-slate-800">{latestResult?.supervisorMean.toFixed(2) || '--'}</CardTitle>
+              <CardTitle className="text-3xl font-black text-slate-800 dark:text-slate-200">{latestResult?.supervisorMean.toFixed(2) || '--'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">

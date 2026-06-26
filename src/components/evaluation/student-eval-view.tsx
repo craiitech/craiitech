@@ -48,7 +48,7 @@ export function StudentEvalView() {
           <Card className="bg-primary/5 border-primary/10">
             <CardHeader>
               <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Current Session</CardTitle>
-              <CardDescription className="text-lg font-bold text-slate-900">
+              <CardDescription className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 {activeCycles[0].academicYear} &bull; {activeCycles[0].semester} ({activeCycles[0].type})
               </CardDescription>
             </CardHeader>
@@ -81,9 +81,9 @@ export function StudentEvalView() {
         </div>
       )}
 
-      <Card className="border-none bg-slate-100/50">
+      <Card className="border-none bg-slate-100/50 dark:bg-slate-700/50">
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2 font-bold text-sm text-slate-700">
+          <div className="flex items-center gap-2 font-bold text-sm text-slate-700 dark:text-slate-300">
             <ClipboardCheck className="h-5 w-5 text-primary" />
             Evaluation Guidelines & Anonymity
           </div>

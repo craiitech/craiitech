@@ -80,8 +80,8 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   };
   
   const yearColor = colors[year] || { 
-    first: 'bg-slate-50/20 hover:bg-slate-100/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
-    final: 'bg-slate-100/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
+    first: 'bg-slate-50/20 dark:bg-slate-800/20 hover:bg-slate-100/40 dark:hover:bg-slate-700/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
+    final: 'bg-slate-100/40 dark:bg-slate-700/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
   };
   
   return isFinal ? yearColor.final : yearColor.first;
@@ -321,7 +321,7 @@ export default function SubmissionsPage() {
             <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">EOMS SUBMISSION HUB</h2>
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">EOMS SUBMISSION HUB</h2>
                     <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Manage unit compliance documentation and track overall performance.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -500,7 +500,7 @@ export default function SubmissionsPage() {
                         <Card className="shadow-md border-primary/10 overflow-hidden">
                             <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b bg-muted/5">
                                 <div className="space-y-1">
-                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">
+                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900 dark:text-slate-100">
                                         {activeDetailedTab === 'all' ? 'Submission Audit Log' : activeDetailedTab}
                                     </CardTitle>
                                     <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -527,12 +527,12 @@ export default function SubmissionsPage() {
                                         <Table>
                                             <TableHeader className="bg-muted/30">
                                                 <TableRow className="hover:bg-transparent">
-                                                    <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900">Report & Control Info</TableHead>
-                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
-                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
-                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
-                                                    <TableHead className="text-center font-bold uppercase text-[10px] py-3 text-slate-900">Status & Guidance</TableHead>
-                                                    <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900 dark:text-slate-100">Report & Control Info</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900 dark:text-slate-100">Origin Unit / Office</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900 dark:text-slate-100">Uploader</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900 dark:text-slate-100">Submission Date</TableHead>
+                                                    <TableHead className="text-center font-bold uppercase text-[10px] py-3 text-slate-900 dark:text-slate-100">Status & Guidance</TableHead>
+                                                    <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900 dark:text-slate-100">Actions</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -548,7 +548,7 @@ export default function SubmissionsPage() {
                                                             <TableCell className="pl-6 py-4">
                                                                 <div className="flex flex-col gap-1.5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="font-bold text-sm text-black">{sub.reportType}</span>
+                                                                        <span className="font-bold text-sm text-black dark:text-white">{sub.reportType}</span>
                                                                         {sub.isDraft && (
                                                                             <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
                                                                                 <LayoutList className="h-2.5 w-2.5" /> DRAFT
@@ -579,25 +579,25 @@ export default function SubmissionsPage() {
                                                                             </Tooltip>
                                                                         )}
                                                                     </div>
-                                                                    <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
+                                                                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-mono uppercase tracking-tighter">
                                                                         {sub.cycleId} Cycle {sub.year} & bull; {sub.controlNumber}
                                                                     </span>
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell>
                                                                 <div className="flex flex-col text-xs">
-                                                                    <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
-                                                                    <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                                    <span className="flex items-center gap-1 font-bold text-black dark:text-white"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
+                                                                    <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell className="text-xs">
                                                                 <div className="flex items-center gap-2">
-                                                                    <User className="h-3.5 w-3.5 text-slate-600 opacity-40" />
-                                                                    <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
+                                                                    <User className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400 opacity-40" />
+                                                                    <span className="font-bold text-black dark:text-white">{userMap.get(sub.userId) || '...'}</span>
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell className="text-xs">
-                                                                <div className="flex items-center gap-1 font-bold text-black">
+                                                                <div className="flex items-center gap-1 font-bold text-black dark:text-white">
                                                                     <CalendarIcon className="h-3 w-3 opacity-50" /> 
                                                                     {safeFormatDate(sub.submissionDate)}
                                                                 </div>
@@ -610,7 +610,7 @@ export default function SubmissionsPage() {
                                                                             sub.statusId === 'approved' && "bg-emerald-600 text-white",
                                                                             sub.statusId === 'rejected' && "bg-rose-600 text-white",
                                                                             sub.statusId === 'submitted' && "bg-amber-50 text-amber-950",
-                                                                            sub.statusId === 'pending' && "bg-slate-50 text-white"
+                                                                            sub.statusId === 'pending' && "bg-slate-50 dark:bg-slate-800/50 text-white"
                                                                         )}
                                                                     >
                                                                         {getStatusText(sub)}
@@ -641,7 +641,7 @@ export default function SubmissionsPage() {
                                                                                                     <span>{c.authorName} ({c.authorRole})</span>
                                                                                                     <span>{safeFormatDate(c.createdAt)}</span>
                                                                                                 </div>
-                                                                                                <p className="text-[10px] text-slate-700 leading-relaxed bg-white p-2 rounded border border-slate-100 italic">"{c.text}"</p>
+                                                                                                <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-relaxed bg-white p-2 rounded border border-slate-100 dark:border-slate-700 italic">"{c.text}"</p>
                                                                                             </div>
                                                                                         ))}
                                                                                     </div>

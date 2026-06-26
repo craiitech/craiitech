@@ -231,7 +231,7 @@ export function EditUnitDialog({
                                       "cursor-pointer px-3 py-1.5 text-[10px] font-black uppercase transition-all select-none border rounded-xl flex items-center gap-1.5 hover:scale-105 duration-150",
                                       isSelected
                                         ? "bg-primary border-primary text-white hover:bg-primary/90"
-                                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                                        : "bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-300"
                                     )}
                                   >
                                     {isSelected && <Check className="h-3 w-3 shrink-0" />}

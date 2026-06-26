@@ -31,7 +31,7 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
     : 'Program Accreditation Recommendations';
 
   return (
-    <div className="p-0 text-black bg-white mx-auto font-serif leading-tight" style={{ width: '7.5in', fontSize: '11pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white mx-auto font-serif leading-tight" style={{ width: '7.5in', fontSize: '11pt' }}>
       {/* Header */}
       <div className="text-center mb-10 border-b-2 border-black pb-6">
         <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Romblon State University</h1>
@@ -39,7 +39,7 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
         <div className="mt-8">
           <h2 className="font-black uppercase underline decoration-2 underline-offset-4" style={{ fontSize: '13pt' }}>{currentTitle}</h2>
           {unitName && (
-              <h3 className="font-black uppercase text-slate-900 mt-4 tracking-tight" style={{ fontSize: '16pt' }}>{unitName}</h3>
+              <h3 className="font-black uppercase text-slate-900 dark:text-slate-100 mt-4 tracking-tight" style={{ fontSize: '16pt' }}>{unitName}</h3>
           )}
           <p className="font-bold mt-2 uppercase tracking-widest" style={{ fontSize: '10pt' }}>ACADEMIC YEAR: {year}</p>
         </div>
@@ -54,7 +54,7 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
       {/* Registry Table */}
       <table className="w-full border-collapse border-2 border-black mb-12">
         <thead>
-          <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
+          <tr className="bg-slate-50 dark:bg-slate-800/50 font-black text-center uppercase border-b-2 border-black">
             <th className="border border-black p-2 w-[22%]" style={{ fontSize: '9pt' }}>Program Offering</th>
             <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>Type</th>
             <th className="border border-black p-2 w-[30%]" style={{ fontSize: '9pt' }}>Accreditor's Recommendation</th>
@@ -67,14 +67,14 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
           {items.map((item, i) => (
             <tr key={i} className="border-b border-black">
               <td className="border border-black p-2 align-top">
-                <p className="font-black leading-tight uppercase text-slate-900" style={{ fontSize: '9.5pt' }}>{item.programName}</p>
-                <div className="text-slate-600 mt-1 font-bold uppercase space-y-0.5" style={{ fontSize: '8pt' }}>
+                <p className="font-black leading-tight uppercase text-slate-900 dark:text-slate-100" style={{ fontSize: '9.5pt' }}>{item.programName}</p>
+                <div className="text-slate-600 dark:text-slate-400 mt-1 font-bold uppercase space-y-0.5" style={{ fontSize: '8pt' }}>
                     {item.college && <p>College: {item.college}</p>}
                     {item.campus && <p>Campus: {item.campus}</p>}
                     <p>{item.level} | {item.surveyDate || 'TBA'}</p>
                 </div>
                 {item.certificateLink && (
-                  <div className="mt-2 pt-1 border-t border-slate-200">
+                  <div className="mt-2 pt-1 border-t border-slate-200 dark:border-slate-700">
                     <a href={item.certificateLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline font-bold uppercase tracking-tight text-[7.5pt] block hover:text-blue-900">
                       View Certificate
                     </a>
@@ -87,13 +87,13 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
               <td className="border border-black p-2 align-top italic leading-relaxed" style={{ fontSize: '9pt' }}>
                 "{item.recommendation.text}"
                 {item.recommendation.additionalInfo && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 not-italic font-bold" style={{ fontSize: '8pt' }}>
+                    <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 not-italic font-bold" style={{ fontSize: '8pt' }}>
                         <span className="uppercase text-slate-400 mr-1">Admin Notes:</span>
                         {item.recommendation.additionalInfo}
                     </div>
                 )}
               </td>
-              <td className="border border-black p-2 align-top font-bold uppercase text-slate-800" style={{ fontSize: '8pt' }}>
+              <td className="border border-black p-2 align-top font-bold uppercase text-slate-800 dark:text-slate-200" style={{ fontSize: '8pt' }}>
                 <div className="flex flex-col gap-1">
                   {(item.recommendation.assignedUnitIds || []).map((uid: string) => (
                     <div key={uid} className="leading-tight">

@@ -205,7 +205,7 @@ export function UnitsWithoutSubmissions({
                                     >
                                         <div className="flex items-center gap-2">
                                             <Building className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />
-                                            <span className="text-[11px] font-bold text-slate-700 truncate text-left">{unit.name}</span>
+                                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate text-left">{unit.name}</span>
                                         </div>
                                         <Badge variant="destructive" className="text-[8px] font-black h-4">0%</Badge>
                                     </Button>

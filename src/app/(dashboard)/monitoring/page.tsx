@@ -228,7 +228,7 @@ export default function MonitoringPage() {
             <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">{isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}</h2>
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">{isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}</h2>
                     <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">{isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record, analyze, and review on-site monitoring performance.'}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

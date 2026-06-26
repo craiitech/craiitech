@@ -50,7 +50,7 @@ export function RiskOverdueWarning({ risks, isLoading }: RiskOverdueWarningProps
         <AlertTitle className="font-black uppercase tracking-tight text-destructive">Urgent: Risk Treatment Overdue</AlertTitle>
         <AlertDescription className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-            <span className="text-sm font-bold text-slate-800">
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
               <strong className="text-destructive">{overdueCount}</strong> Risk Treatment(s) have passed their target implementation date. Please update the <strong>Final Assessment</strong> immediately to maintain audit compliance.
             </span>
             <div className="flex items-center gap-2 shrink-0">
@@ -86,8 +86,8 @@ export function RiskOverdueWarning({ risks, isLoading }: RiskOverdueWarningProps
                             <div className="flex gap-3">
                                 <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">1</div>
                                 <div className="space-y-1">
-                                    <p className="text-[11px] font-black uppercase text-slate-800">Execution Check</p>
-                                    <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                    <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Execution Check</p>
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">
                                         Confirm that your unit has already <strong>taken action</strong> on the Risk and that the implementation is fully documented with evidence.
                                     </p>
                                 </div>
@@ -95,8 +95,8 @@ export function RiskOverdueWarning({ risks, isLoading }: RiskOverdueWarningProps
                             <div className="flex gap-3">
                                 <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">2</div>
                                 <div className="space-y-1">
-                                    <p className="text-[11px] font-black uppercase text-slate-800">Registry Navigation</p>
-                                    <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                    <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Registry Navigation</p>
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">
                                         Navigate to the <strong>Risk & Opportunity Registry</strong> module from the main sidebar.
                                     </p>
                                 </div>
@@ -107,8 +107,8 @@ export function RiskOverdueWarning({ risks, isLoading }: RiskOverdueWarningProps
                             <div className="flex gap-3">
                                 <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">3</div>
                                 <div className="space-y-1">
-                                    <p className="text-[11px] font-black uppercase text-slate-800">Entry Selection</p>
-                                    <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                    <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Entry Selection</p>
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">
                                         Locate and select the specific <strong>Risk or Opportunity</strong> from your unit list that requires the update.
                                     </p>
                                 </div>
@@ -116,8 +116,8 @@ export function RiskOverdueWarning({ risks, isLoading }: RiskOverdueWarningProps
                             <div className="flex gap-3">
                                 <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">4</div>
                                 <div className="space-y-1">
-                                    <p className="text-[11px] font-black uppercase text-slate-800">Final Assessment</p>
-                                    <p className="text-[10px] text-slate-900 leading-relaxed font-bold">
+                                    <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Final Assessment</p>
+                                    <p className="text-[10px] text-slate-900 dark:text-slate-100 leading-relaxed font-bold">
                                         Provide the necessary updates in <strong>Section #4 (Final Assessment)</strong> based on your actual ROR documents and actions.
                                     </p>
                                 </div>

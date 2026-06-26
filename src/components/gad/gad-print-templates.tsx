@@ -34,7 +34,7 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
   const directorName = signatories?.qaoDirector || '____________________';
 
   return (
-    <div className="p-4 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight">
+    <div className="p-4 text-black dark:text-white bg-white max-w-[11in] mx-auto font-sans leading-tight">
       <div className="text-center mb-8 border-b-2 border-black pb-4">
         <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
         <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD PLAN AND BUDGET (GPB)</h2>
@@ -44,7 +44,7 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
 
       <table className="w-full border-collapse border-[1.5px] border-black text-[9px]">
         <thead>
-          <tr className="bg-slate-100 text-center font-black uppercase">
+          <tr className="bg-slate-100 dark:bg-slate-700 text-center font-black uppercase">
             <th className="border border-black p-2 w-[15%]">Gender Issue / GAD Mandate</th>
             <th className="border border-black p-2 w-[15%]">Cause of Gender Issue</th>
             <th className="border border-black p-2 w-[15%]">GAD Objective</th>
@@ -110,7 +110,7 @@ export function GADAccomplishmentReportTemplate({ data, unitName, campusName, ye
   const directorName = signatories?.qaoDirector || '____________________';
 
   return (
-    <div className="p-4 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight">
+    <div className="p-4 text-black dark:text-white bg-white max-w-[11in] mx-auto font-sans leading-tight">
       <div className="text-center mb-8 border-b-2 border-black pb-4">
         <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
         <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD ACCOMPLISHMENT REPORT (GAD AR)</h2>
@@ -120,7 +120,7 @@ export function GADAccomplishmentReportTemplate({ data, unitName, campusName, ye
 
       <table className="w-full border-collapse border-[1.5px] border-black text-[8px]">
         <thead>
-          <tr className="bg-slate-100 text-center font-black uppercase">
+          <tr className="bg-slate-100 dark:bg-slate-700 text-center font-black uppercase">
             <th className="border border-black p-1 w-[12%]">GAD PAP</th>
             <th className="border border-black p-1 w-[12%]">Target Output</th>
             <th className="border border-black p-1 w-[12%]">Actual Accomplishment</th>
@@ -141,7 +141,7 @@ export function GADAccomplishmentReportTemplate({ data, unitName, campusName, ye
               <td className="border border-black p-1 text-center font-black">
                 M: {item.actualMale} | F: {item.actualFemale}
               </td>
-              <td className="border border-black p-1 italic text-slate-600 leading-relaxed">
+              <td className="border border-black p-1 italic text-slate-600 dark:text-slate-400 leading-relaxed">
                 {item.varianceBudget !== 0 ? (
                   <span>
                     Budget Variance: ₱{Math.abs(item.varianceBudget).toLocaleString()} ({item.varianceBudget < 0 ? 'Over' : 'Under'} spend).{' '}

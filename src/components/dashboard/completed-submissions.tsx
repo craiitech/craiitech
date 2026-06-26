@@ -150,7 +150,7 @@ export function CompletedSubmissions({
                                     <li key={unit.id} className="flex justify-between items-center p-2 rounded-md hover:bg-green-50 transition-colors">
                                         <div className="flex items-center gap-2">
                                             <Building className="h-3 w-3 text-green-600" />
-                                            <span className="text-[11px] font-bold text-slate-700 truncate text-left">{unit.name}</span>
+                                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate text-left">{unit.name}</span>
                                         </div>
                                         <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                                     </li>

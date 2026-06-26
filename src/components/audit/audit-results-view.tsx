@@ -321,7 +321,7 @@ export function AuditResultsView({
                         {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />} 
                         {campusFilter === 'all' ? 'Print IQA Report' : `Print ${campusMap.get(campusFilter)} Report`}
                     </Button>
-                    <Button onClick={handlePrintByUnit} variant="outline" className="flex-1 h-10 font-black uppercase text-[10px] border-primary/20 text-primary bg-white hover:bg-slate-50 shadow-sm gap-1.5">
+                    <Button onClick={handlePrintByUnit} variant="outline" className="flex-1 h-10 font-black uppercase text-[10px] border-primary/20 text-primary bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 shadow-sm gap-1.5">
                         {isProcessingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
                         Print IQA Report by Unit
                     </Button>
@@ -369,7 +369,7 @@ export function AuditResultsView({
                                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
                                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
                                       </TableCell>
-                                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700">
+                                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700 dark:text-slate-300">
                                           {schedule?.scheduledDate ? (
                                               <div className="space-y-1">
                                                   <div className="flex items-center gap-1.5">
@@ -444,7 +444,7 @@ export function AuditResultsView({
                                           <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
                                       </TableCell>
                                       <TableCell className="py-5">
-                                          <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
+                                          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed">"{finding.description}"</p>
                                       </TableCell>
                                       <TableCell className="py-5">
                                           <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
@@ -492,7 +492,7 @@ export function AuditResultsView({
                                           <Badge variant="secondary" className="text-[9px] font-black uppercase">Clause {finding.isoClause}</Badge>
                                       </TableCell>
                                       <TableCell className="py-5">
-                                          <p className="text-xs font-medium text-slate-700 leading-relaxed">"{finding.description}"</p>
+                                          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed">"{finding.description}"</p>
                                       </TableCell>
                                       <TableCell className="py-5">
                                           <p className="text-xs font-medium text-slate-500 italic leading-relaxed">{finding.evidence || 'No evidence logged.'}</p>
@@ -533,7 +533,7 @@ export function AuditResultsView({
                                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{campusName}</p>
                                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Auditee: {auditeeName}</p>
                                       </TableCell>
-                                      <TableCell className="py-5"><p className="text-sm text-slate-700 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
+                                      <TableCell className="py-5"><p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">"{s.summaryCommendable}"</p></TableCell>
                                   </TableRow>
                               );
                           })}
@@ -551,7 +551,7 @@ export function AuditResultsView({
             <DialogHeader><DialogTitle className="font-black uppercase tracking-tight">Refine Audit Statement</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
                 <Label className="text-[10px] font-black uppercase text-slate-500">Statement Description</Label>
-                <Textarea value={editFindingText} onChange={(e) => setEditFindingText(e.target.value)} rows={6} className="bg-slate-50 italic text-xs leading-relaxed" />
+                <Textarea value={editFindingText} onChange={(e) => setEditFindingText(e.target.value)} rows={6} className="bg-slate-50 dark:bg-slate-800/50 italic text-xs leading-relaxed" />
                 <Alert className="bg-primary/5 border-primary/20"><ShieldCheck className="h-4 w-4 text-primary" /><AlertTitle className="text-[10px] font-black uppercase text-primary">System Override</AlertTitle><AlertDescription className="text-[10px] italic">Updates will be synchronized across all official institutional reports.</AlertDescription></Alert>
             </div>
             <DialogFooter><Button variant="ghost" onClick={() => setEditingFinding(null)} className="font-bold text-xs uppercase">Cancel</Button><Button onClick={handleSaveFindingUpdate} disabled={isSavingFinding} className="font-black uppercase text-xs shadow-lg">{isSavingFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save & Refine</Button></DialogFooter>

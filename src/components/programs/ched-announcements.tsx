@@ -190,7 +190,7 @@ export function ChedAnnouncements() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
+          <h3 className="text-lg font-black uppercase tracking-tight text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Megaphone className="h-5 w-5 text-amber-500" />
             JC03 Announcements & Updates
           </h3>
@@ -215,7 +215,7 @@ export function ChedAnnouncements() {
           <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
             <Megaphone className="h-8 w-8 text-muted-foreground opacity-60" />
           </div>
-          <CardTitle className="text-xl font-black uppercase text-slate-700">No Announcements Yet</CardTitle>
+          <CardTitle className="text-xl font-black uppercase text-slate-700 dark:text-slate-300">No Announcements Yet</CardTitle>
           <CardDescription className="max-w-md mx-auto mt-2 text-xs font-medium uppercase tracking-wider">
             All JC03 directives and updates for CHED Program Monitoring will be displayed here.
           </CardDescription>
@@ -233,14 +233,14 @@ export function ChedAnnouncements() {
 
             return (
               <Card key={ann.id} className="shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-500 overflow-hidden">
-                <CardHeader className="pb-3 bg-slate-50/50">
+                <CardHeader className="pb-3 bg-slate-50/50 dark:bg-slate-800/50">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground tracking-wider">
                         <Calendar className="h-3.5 w-3.5 text-amber-500" />
                         <span>{formattedDate()}</span>
                       </div>
-                      <CardTitle className="text-lg font-black text-slate-800 leading-tight uppercase tracking-tight">
+                      <CardTitle className="text-lg font-black text-slate-800 dark:text-slate-200 leading-tight uppercase tracking-tight">
                         {ann.title}
                       </CardTitle>
                     </div>
@@ -249,7 +249,7 @@ export function ChedAnnouncements() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-slate-100"
+                          className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700"
                           onClick={() => handleOpenEdit(ann)}
                         >
                           <Edit className="h-4 w-4" />
@@ -267,7 +267,7 @@ export function ChedAnnouncements() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
-                  <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+                  <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-medium">
                     {ann.description}
                   </div>
 
@@ -402,7 +402,7 @@ export function ChedAnnouncements() {
                 />
               </div>
 
-              <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+              <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>

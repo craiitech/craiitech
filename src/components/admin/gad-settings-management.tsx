@@ -151,7 +151,7 @@ export function GadSettingsManagement() {
             
             {/* STEP 1: SELECT CAMPUS */}
             <div className="space-y-2">
-                <FormLabel className="text-xs font-bold uppercase text-slate-700">Step 1: Select Site / Campus</FormLabel>
+                <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Step 1: Select Site / Campus</FormLabel>
                 <Select value={selectedCampusId} onValueChange={(val) => { setSelectedCampusId(val); form.setValue('leadershipUnitId', ''); }}>
                     <SelectTrigger className="h-11 font-bold">
                         <School className="h-4 w-4 mr-2 opacity-40" />
@@ -174,7 +174,7 @@ export function GadSettingsManagement() {
               name="leadershipUnitId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-slate-700">Step 2: Institutional GAD Leadership Unit</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Step 2: Institutional GAD Leadership Unit</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedCampusId}>
                     <FormControl>
                       <SelectTrigger className="h-11 font-bold">

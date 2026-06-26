@@ -300,7 +300,7 @@ export default function RiskRegisterPage() {
       <Tabs defaultValue="visual-insights" className="space-y-4">
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Risk & Opportunity Registry</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Centralized module for institutional risk management.</p></div>
+                <div><h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Risk & Opportunity Registry</h2><p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Centralized module for institutional risk management.</p></div>
                 <div className="flex flex-wrap items-center gap-2 md:justify-end">
                 <div className="space-y-1 w-full sm:w-auto">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label>
@@ -442,8 +442,8 @@ export default function RiskRegisterPage() {
         <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
             <Card className="shadow-md border-primary/10 overflow-hidden">
                 <Tabs value={detailedTab} onValueChange={(val) => setDetailedTab(val as any)} className="w-full">
-                    <div className="flex items-center justify-between border-b bg-slate-50/50 px-6 py-2">
-                        <TabsList className="bg-slate-100 p-0.5 border rounded-lg h-8 w-max shadow-sm">
+                    <div className="flex items-center justify-between border-b bg-slate-50/50 dark:bg-slate-800/50 px-6 py-2">
+                        <TabsList className="bg-slate-100 dark:bg-slate-700 p-0.5 border rounded-lg h-8 w-max shadow-sm">
                             <TabsTrigger value="all" className="gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 h-6 rounded-md">
                                 <Layers className="h-3 w-3" /> All Entries ({filteredRisks.length})
                             </TabsTrigger>
@@ -510,7 +510,7 @@ export default function RiskRegisterPage() {
       {/* --- DUPLICATE AUDIT DIALOG --- */}
       <Dialog open={isDuplicateAuditOpen} onOpenChange={setIsDuplicateAuditOpen}>
         <DialogContent className="max-w-3xl h-[80dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-            <div className="p-6 border-b bg-slate-50 shrink-0">
+            <div className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
                 <div className="flex items-center gap-2 text-rose-600 mb-1">
                     <ShieldAlert className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Data Integrity</span>
@@ -529,7 +529,7 @@ export default function RiskRegisterPage() {
                                         <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black uppercase text-rose-700 tracking-widest">Conflicting Description</p>
-                                            <p className="text-sm font-bold text-slate-900 leading-relaxed italic">"{desc}"</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed italic">"{desc}"</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-2 pl-8">
@@ -543,7 +543,7 @@ export default function RiskRegisterPage() {
                                                 <div className="flex items-center gap-3">
                                                     <Badge variant="secondary" className={cn("h-5 text-[8px] font-black uppercase", isConfirming ? "bg-white/20 text-white" : "bg-primary/5 text-primary")}>{risk.type}</Badge>
                                                     <div className="flex flex-col">
-                                                        <span className={cn("text-[10px] font-black uppercase tracking-tighter tabular-nums", isConfirming ? "text-white" : "text-slate-700")}>LOG ID: {risk.id.substring(0,8)}</span>
+                                                        <span className={cn("text-[10px] font-black uppercase tracking-tighter tabular-nums", isConfirming ? "text-white" : "text-slate-700 dark:text-slate-300")}>LOG ID: {risk.id.substring(0,8)}</span>
                                                         <span className={cn("text-[9px] font-medium italic", isConfirming ? "text-white/80" : "text-muted-foreground")}>Logged by: {risk.responsiblePersonName || 'Personnel'}</span>
                                                     </div>
                                                 </div>
@@ -564,7 +564,7 @@ export default function RiskRegisterPage() {
                                                                 variant="default" 
                                                                 size="sm" 
                                                                 onClick={() => handleDeleteRisk(risk.id)}
-                                                                className="h-7 text-[8px] font-black uppercase bg-white text-rose-600 hover:bg-slate-50"
+                                                                className="h-7 text-[8px] font-black uppercase bg-white text-rose-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                                                 disabled={isDeleting}
                                                             >
                                                                 {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
@@ -605,7 +605,7 @@ export default function RiskRegisterPage() {
                                 <CheckCircle2 className="h-10 w-10" />
                             </div>
                             <div className="space-y-1">
-                                <h4 className="text-lg font-black uppercase text-slate-800">Registry Integrity Verified</h4>
+                                <h4 className="text-lg font-black uppercase text-slate-800 dark:text-slate-200">Registry Integrity Verified</h4>
                                 <p className="text-sm text-muted-foreground max-w-xs font-medium">No redundant descriptions detected for the current unit and fiscal year.</p>
                             </div>
                         </div>
@@ -613,7 +613,7 @@ export default function RiskRegisterPage() {
                 </div>
             </ScrollArea>
 
-            <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+            <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
                 <div className="flex w-full items-center justify-between">
                     <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest italic flex items-center gap-2">
                         <Info className="h-3.5 w-3.5" />
@@ -641,7 +641,7 @@ export default function RiskRegisterPage() {
                     <AlertDialogTitle>Delete Registry Entry?</AlertDialogTitle>
                 </div>
                 <AlertDialogDescription className="space-y-4">
-                    <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
                         You are about to remove the entry: <br/>
                         <strong className="text-destructive font-black">"{deletingRisk?.description}"</strong>
                     </p>

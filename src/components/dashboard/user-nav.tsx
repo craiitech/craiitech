@@ -159,7 +159,7 @@ export function UserNav({
                                             <Bell className="h-4 w-4" />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-[10px] font-black uppercase text-slate-800 leading-tight truncate">{item.label}</p>
+                                            <p className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 leading-tight truncate">{item.label}</p>
                                             <p className="text-[10px] font-medium text-muted-foreground mt-0.5 leading-tight">{item.description}</p>
                                         </div>
                                     </div>

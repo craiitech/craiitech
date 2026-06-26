@@ -136,13 +136,13 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     key={program.id} 
                     className={cn(
                         "transition-colors group",
-                        program.isActive ? "hover:bg-muted/30" : "bg-slate-50/50 opacity-70 grayscale-[0.5] hover:bg-slate-100/50"
+                        program.isActive ? "hover:bg-muted/30" : "bg-slate-50/50 dark:bg-slate-800/50 opacity-70 grayscale-[0.5] hover:bg-slate-100/50 dark:hover:bg-slate-700/50"
                     )}
                 >
                   <TableCell className="pl-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className={cn("font-bold text-sm leading-tight", program.isActive ? "text-slate-900" : "text-slate-500")}>
+                        <span className={cn("font-bold text-sm leading-tight", program.isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-500")}>
                             {program.name}
                         </span>
                         {!program.isActive && (
@@ -167,7 +167,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                   </TableCell>
                   <TableCell className="py-4">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[11px] font-bold text-slate-700 leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
                       <Badge variant="outline" className="text-[8px] h-3.5 w-fit py-0 uppercase tracking-tighter opacity-60 font-mono border-muted-foreground/20">{program.collegeId}</Badge>
                     </div>
                   </TableCell>
@@ -194,7 +194,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                         <div className="flex items-center gap-2">
                           <Users className="h-3.5 w-3.5 text-primary/40" />
                           <div className="flex flex-col">
-                            <span className="text-xs font-black tabular-nums text-slate-800">{facultyStats.m}M / {facultyStats.f}F</span>
+                            <span className="text-xs font-black tabular-nums text-slate-800 dark:text-slate-200">{facultyStats.m}M / {facultyStats.f}F</span>
                             <span className="text-[10px] font-bold text-primary">({facultyStats.total} TOTAL)</span>
                           </div>
                         </div>
@@ -204,7 +204,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     <TableCell className="py-4">
                         <div className="flex items-center gap-2">
                             <Hash className="h-3 w-3 text-primary opacity-40" />
-                            <span className="text-xs font-black font-mono text-slate-700">{record?.ched?.closureReferendumNumber || '--'}</span>
+                            <span className="text-xs font-black font-mono text-slate-700 dark:text-slate-300">{record?.ched?.closureReferendumNumber || '--'}</span>
                         </div>
                     </TableCell>
                   )}

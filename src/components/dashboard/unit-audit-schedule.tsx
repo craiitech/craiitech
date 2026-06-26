@@ -701,7 +701,7 @@ export function UnitAuditSchedule({
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-xs font-black text-slate-900 uppercase truncate" title={schedule.targetName}>
+                                        <p className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase truncate" title={schedule.targetName}>
                                             {schedule.targetName}
                                         </p>
                                         {campuses.find(c => c.id === schedule.campusId) && (
@@ -892,7 +892,7 @@ export function UnitAuditSchedule({
                                             {recoItem.recommendation.type}
                                         </Badge>
                                     </div>
-                                    <p className="text-xs font-medium text-slate-800 italic leading-relaxed">
+                                    <p className="text-xs font-medium text-slate-800 dark:text-slate-200 italic leading-relaxed">
                                         "{recoItem.recommendation.text}"
                                     </p>
                                     {recoItem.recommendation.additionalInfo && (
@@ -904,7 +904,7 @@ export function UnitAuditSchedule({
                                     {/* Assigned units/offices badges */}
                                     <div className="flex flex-wrap gap-1 mt-1.5">
                                         {(recoItem.recommendation.assignedUnitIds || []).map((uid: string) => (
-                                            <Badge key={uid} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 h-4 px-1.5 text-[8px] font-bold">
+                                            <Badge key={uid} variant="outline" className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 h-4 px-1.5 text-[8px] font-bold">
                                                 {unitMap.get(uid) || uid}
                                             </Badge>
                                         ))}

@@ -84,7 +84,7 @@ export function Header({
     <header className={cn("flex h-16 items-center justify-between px-4 lg:px-8 bg-card sticky top-0 z-30 institutional-header")}>
         <div className="flex items-center gap-2 min-w-0">
             <SidebarTrigger className="shrink-0" />
-            <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800">{getPageTitle(pathname)}</h1>
+            <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800 dark:text-slate-200">{getPageTitle(pathname)}</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
             {pathname === '/dashboard' && availableYears.length > 0 && (

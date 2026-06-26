@@ -1275,7 +1275,7 @@ export default function UnitActivityPage() {
           <select 
             value={selectedActivityId} 
             onChange={(e) => setSelectedActivityId(e.target.value)}
-            className="h-9 px-3 bg-white font-extrabold text-xs text-slate-800 border-none shadow-md rounded-xl outline-none"
+            className="h-9 px-3 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md rounded-xl outline-none"
           >
             <option value="all">📁 All activities / logs</option>
             {sortedActivities?.map(act => (
@@ -1287,7 +1287,7 @@ export default function UnitActivityPage() {
 
       {/* TABS SELECTOR */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 border shadow-inner rounded-xl w-max flex gap-1 h-10">
+        <TabsList className="bg-slate-100 dark:bg-slate-700 p-1 border shadow-inner rounded-xl w-max flex gap-1 h-10">
           <TabsTrigger value="activities" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8">
             <Calendar className="h-3.5 w-3.5" /> Session Manager
           </TabsTrigger>
@@ -1310,9 +1310,9 @@ export default function UnitActivityPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Create Activity Form */}
-            <Card className="shadow-md border-slate-200/80 lg:col-span-1">
-              <CardHeader className="bg-slate-50/50 border-b py-4">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Setup New Activity Session</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-1">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-4">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Setup New Activity Session</CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">Configure cutoff time and threshold values.</CardDescription>
               </CardHeader>
 
@@ -1325,7 +1325,7 @@ export default function UnitActivityPage() {
                       placeholder="e.g. QMS Audit Briefing"
                       value={newActivityName}
                       onChange={(e) => setNewActivityName(e.target.value)}
-                      className="h-10 text-xs font-bold bg-white border-slate-200"
+                      className="h-10 text-xs font-bold bg-white border-slate-200 dark:border-slate-700"
                     />
                   </div>
 
@@ -1337,7 +1337,7 @@ export default function UnitActivityPage() {
                       min="0"
                       value={lateThreshold}
                       onChange={(e) => setLateThreshold(e.target.value)}
-                      className="h-10 text-xs font-bold bg-white border-slate-200"
+                      className="h-10 text-xs font-bold bg-white border-slate-200 dark:border-slate-700"
                     />
                   </div>
 
@@ -1371,9 +1371,9 @@ export default function UnitActivityPage() {
                       </Button>
                     </div>
                     {newActivityDocs.length > 0 && (
-                      <div className="p-2 border rounded-xl bg-slate-50 space-y-1">
+                      <div className="p-2 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-1">
                         {newActivityDocs.map((doc, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
+                          <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700 dark:text-slate-300">
                             <span className="truncate max-w-[180px]">{doc.description}</span>
                             <Button
                               type="button"
@@ -1397,7 +1397,7 @@ export default function UnitActivityPage() {
                         type="button"
                         variant="outline"
                         onClick={handleAddSession}
-                        className="h-7 text-[9px] font-black uppercase px-2.5 bg-white border-slate-200"
+                        className="h-7 text-[9px] font-black uppercase px-2.5 bg-white border-slate-200 dark:border-slate-700"
                       >
                         + Add Session
                       </Button>
@@ -1408,7 +1408,7 @@ export default function UnitActivityPage() {
                     ) : (
                       <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
                         {newActivitySessions.map((session, idx) => (
-                          <div key={session.id} className="p-3 border rounded-xl bg-slate-50 space-y-2 relative">
+                          <div key={session.id} className="p-3 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2 relative">
                             <button
                               type="button"
                               onClick={() => handleRemoveSession(session.id)}
@@ -1468,7 +1468,7 @@ export default function UnitActivityPage() {
                                 </select>
                               </div>
                             </div>
-                            <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-slate-600 cursor-pointer pt-1">
+                            <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-slate-600 dark:text-slate-400 cursor-pointer pt-1">
                               <input
                                 type="checkbox"
                                 checked={session.requiresLogout}
@@ -1498,14 +1498,14 @@ export default function UnitActivityPage() {
             </Card>
 
             {/* Activities Table List */}
-            <Card className="shadow-md border-slate-200/80 lg:col-span-2">
-              <CardHeader className="bg-slate-50/50 border-b py-4">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Registered Activities</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-4">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Registered Activities</CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">Scheduled attendance sessions for your unit.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
-                  <TableHeader className="bg-slate-50">
+                  <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                     <TableRow>
                       <TableHead className="font-black text-[10px] uppercase pl-4">Session Name</TableHead>
                       <TableHead className="font-black text-[10px] uppercase">Start Time</TableHead>
@@ -1533,8 +1533,8 @@ export default function UnitActivityPage() {
                       sortedActivities.map(act => {
                         const isEnded = act.status === 'COMPLETED' || act.status === 'CANCELLED';
                         return (
-                          <TableRow key={act.id} className="hover:bg-slate-50/50">
-                            <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 max-w-[180px]">
+                          <TableRow key={act.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                            <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 dark:text-slate-200 max-w-[180px]">
                               <span className="block truncate">{act.name}</span>
                               {act.documents && act.documents.length > 0 && (
                                 <div className="mt-1.5 flex flex-col gap-1">
@@ -1571,7 +1571,7 @@ export default function UnitActivityPage() {
                                 act.status === 'ACTIVE' || act.status === 'UPCOMING'
                                   ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                                   : act.status === 'COMPLETED'
-                                  ? 'bg-slate-100 text-slate-500 border border-slate-300'
+                                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 border border-slate-300'
                                   : 'bg-rose-100 text-rose-600 border border-rose-300'
                               }`}>
                                 {act.status}
@@ -1603,7 +1603,7 @@ export default function UnitActivityPage() {
                                     variant="outline"
                                     disabled={isDeletingActivityId === act.id}
                                     onClick={() => setConfirmDeleteActivityId(null)}
-                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-slate-600 border-slate-300 hover:bg-slate-50 flex items-center gap-1"
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-1"
                                   >
                                     <X className="h-3 w-3" />
                                     Cancel
@@ -1699,10 +1699,10 @@ export default function UnitActivityPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Camera Viewport and Controller */}
-            <Card className="shadow-md border-slate-200/80 lg:col-span-2 overflow-hidden flex flex-col justify-between">
-              <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-row items-center justify-between">
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2 overflow-hidden flex flex-col justify-between">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-xs font-black uppercase text-slate-700">Scan Session Camera</CardTitle>
+                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Scan Session Camera</CardTitle>
                   <CardDescription className="text-[10px] text-slate-500">
                     Active: <span className="font-extrabold text-[#1B6535]">{activeActivity ? activeActivity.name : "None selected"}</span>
                   </CardDescription>
@@ -1720,7 +1720,7 @@ export default function UnitActivityPage() {
                 {selectedActivityId === 'all' ? (
                   <div className="text-center max-w-sm space-y-3">
                     <ShieldAlert className="h-12 w-12 text-[#D4AF37] animate-pulse mx-auto" />
-                    <h3 className="text-sm font-black uppercase text-slate-800">Scanner Locked</h3>
+                    <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">Scanner Locked</h3>
                     <p className="text-[11px] font-bold text-slate-500 uppercase leading-normal">
                       Please select an active activity session in the header dropdown list first to configure your scanner logic.
                     </p>
@@ -1729,7 +1729,7 @@ export default function UnitActivityPage() {
                   <div className="text-center max-w-sm space-y-4">
                     <Camera className="h-10 w-10 text-slate-400 mx-auto" />
                     <div>
-                      <h4 className="text-xs font-black uppercase text-slate-700">Camera stream offline</h4>
+                      <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Camera stream offline</h4>
                       <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Activate scanning permissions to capture codes.</p>
                     </div>
                     <Button 
@@ -1756,9 +1756,9 @@ export default function UnitActivityPage() {
             </Card>
 
             {/* Validation Panel Feed */}
-            <Card className="shadow-md border-slate-200/80 lg:col-span-1 flex flex-col justify-between">
-              <CardHeader className="bg-slate-50/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Scan Validation Result</CardTitle>
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-1 flex flex-col justify-between">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Scan Validation Result</CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">Real-time authentication feedback.</CardDescription>
               </CardHeader>
               
@@ -1799,7 +1799,7 @@ export default function UnitActivityPage() {
 
                     {/* Attendee Details */}
                     {scanResult.details && (
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2.5">
                         <div className="flex justify-between items-center border-b pb-1.5 text-[9px] font-black uppercase text-slate-400">
                           <span>User Verified</span>
                           <Badge className={`${
@@ -1807,18 +1807,18 @@ export default function UnitActivityPage() {
                               ? 'bg-emerald-100 text-emerald-800 border-none' 
                               : scanResult.details.status === 'LATE'
                               ? 'bg-amber-100 text-amber-800 border-none'
-                              : 'bg-slate-200 text-slate-800 border-none'
+                              : 'bg-slate-200 text-slate-800 dark:text-slate-200 border-none'
                           } text-[8px] font-black uppercase px-2`}>
                             {scanResult.details.status}
                           </Badge>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Employee Name:</span>
-                          <span className="text-xs font-black text-slate-800 uppercase block">{scanResult.details.name}</span>
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block">{scanResult.details.name}</span>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Office / Unit:</span>
-                          <span className="text-[11px] font-bold text-slate-600 uppercase block">{scanResult.details.office}</span>
+                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase block">{scanResult.details.office}</span>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Timestamp:</span>
@@ -1829,7 +1829,7 @@ export default function UnitActivityPage() {
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="border-t bg-slate-50/50 p-4 justify-center">
+              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 justify-center">
                 <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-wider">Verification engine active (2026 EOMS)</span>
               </CardFooter>
             </Card>
@@ -1838,10 +1838,10 @@ export default function UnitActivityPage() {
 
         {/* ==================== SUB-TAB 3: ATTENDANCE RECORDS ==================== */}
         <TabsContent value="records" className="space-y-6 animate-in fade-in duration-500">
-          <Card className="shadow-md border-slate-200/80">
-            <CardHeader className="bg-slate-50/50 border-b py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Attendance Logbook Entries</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Attendance Logbook Entries</CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">
                   Showing logs for: <span className="font-extrabold text-[#1B6535]">{activeActivity ? activeActivity.name : "All sessions"}</span>
                 </CardDescription>
@@ -1853,7 +1853,7 @@ export default function UnitActivityPage() {
                     <select
                       value={selectedSessionIdFilter}
                       onChange={(e) => setSelectedSessionIdFilter(e.target.value)}
-                      className="h-8 px-2 bg-white font-extrabold text-[11px] text-slate-800 border shadow-sm rounded-xl outline-none"
+                      className="h-8 px-2 bg-white font-extrabold text-[11px] text-slate-800 dark:text-slate-200 border shadow-sm rounded-xl outline-none"
                     >
                       <option value="all">📁 All Sessions</option>
                       {activeActivity.sessions.map(s => (
@@ -1866,7 +1866,7 @@ export default function UnitActivityPage() {
                   size="sm" 
                   onClick={handlePrintAttendanceSheet}
                   disabled={!activeActivity || activeActivity.status !== 'COMPLETED'}
-                  className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-white border border-[#1B6535]/25 hover:bg-slate-50 text-[#1B6535] shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40"
+                  className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-white border border-[#1B6535]/25 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40"
                   title={!activeActivity ? "Please select a specific completed activity from the dropdown above to print." : activeActivity.status !== 'COMPLETED' ? "Print attendance sheet is locked until the activity has ended." : "Print attendance sheet"}
                 >
                   <Calendar className="h-3.5 w-3.5 mr-1 text-amber-500" /> Print Official Sheet
@@ -1882,7 +1882,7 @@ export default function UnitActivityPage() {
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                   <TableRow>
                     <TableHead className="font-black text-[10px] uppercase pl-4">Name</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Unit/Office</TableHead>
@@ -1905,14 +1905,14 @@ export default function UnitActivityPage() {
                     </TableRow>
                   ) : (
                     sortedLogs.map((log) => (
-                      <TableRow key={log.id} className="hover:bg-slate-50/50">
-                        <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 uppercase">
+                      <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                        <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase">
                           {log.userName}
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-slate-650 uppercase">
                           {log.unitName}
                         </TableCell>
-                        <TableCell className="text-xs font-bold text-slate-600">
+                        <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-400">
                           {log.contactNumber || 'N/A'}
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-slate-500">
@@ -1955,10 +1955,10 @@ export default function UnitActivityPage() {
 
         {/* ==================== SUB-TAB 4: DEVICE LOCK REGISTRY ==================== */}
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-          <Card className="shadow-md border-slate-200/80">
-            <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-700">Official Device Registry</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Official Device Registry</CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">
                   Enforces strict one account per physical device lock mapping.
                 </CardDescription>
@@ -1969,13 +1969,13 @@ export default function UnitActivityPage() {
                   placeholder="Search registered user name or office..."
                   value={bindingSearch}
                   onChange={(e) => setBindingSearch(e.target.value)}
-                  className="h-8 text-xs font-bold w-[250px] bg-white border-slate-200"
+                  className="h-8 text-xs font-bold w-[250px] bg-white border-slate-200 dark:border-slate-700"
                 />
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                   <TableRow>
                     <TableHead className="font-black text-[10px] uppercase pl-4">Locked Name</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Office / Unit</TableHead>
@@ -2000,11 +2000,11 @@ export default function UnitActivityPage() {
                     </TableRow>
                   ) : (
                     filteredBindings.map((bind) => (
-                      <TableRow key={bind.id} className="hover:bg-slate-50/50">
-                        <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 uppercase flex items-center gap-2">
+                      <TableRow key={bind.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                        <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2">
                           <Smartphone className="h-4 w-4 text-[#D4AF37]" /> {bind.userName}
                         </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-600 uppercase">{bind.unitName}</TableCell>
+                        <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{bind.unitName}</TableCell>
                         <TableCell className="text-xs font-mono font-bold text-slate-400">
                           {bind.id}
                         </TableCell>
@@ -2035,9 +2035,9 @@ export default function UnitActivityPage() {
         {/* ==================== SUB-TAB 5: DECISION SUPPORT ANALYTICS ==================== */}
         <TabsContent value="analytics" className="space-y-6 animate-in fade-in duration-500">
           {selectedActivityId === 'all' ? (
-            <Card className="shadow-md border-slate-200/80 p-12 text-center space-y-4">
+            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 p-12 text-center space-y-4">
               <Sparkles className="h-12 w-12 text-amber-500 animate-pulse mx-auto" />
-              <h3 className="text-sm font-black uppercase text-slate-800">Analytics Lock</h3>
+              <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">Analytics Lock</h3>
               <p className="text-[11px] font-bold text-slate-500 uppercase leading-normal max-w-md mx-auto">
                 Please select a specific activity from the dropdown at the top of the page to unlock session analytics, demographics profiling, and participant feedback evaluations.
               </p>
@@ -2062,13 +2062,13 @@ export default function UnitActivityPage() {
                   if (item.id === 'topic') return focusList.includes('speaker');
                   return focusList.includes(item.id);
                 }).map((item, idx) => (
-                  <Card key={idx} className="shadow-sm border-slate-200 bg-white">
+                  <Card key={idx} className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
                     <CardHeader className="p-4 pb-2">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.title}</p>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-slate-800 tracking-tight">{item.val > 0 ? item.val.toFixed(1) : 'N/A'}</span>
+                        <span className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tight">{item.val > 0 ? item.val.toFixed(1) : 'N/A'}</span>
                         {item.val > 0 && <span className="text-xs text-amber-500">★</span>}
                       </div>
                     </CardContent>
@@ -2078,9 +2078,9 @@ export default function UnitActivityPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Chart 1: Punctuality */}
-                <Card className="shadow-sm border-slate-200 bg-white">
-                  <CardHeader className="bg-slate-50/50 border-b py-3">
-                    <CardTitle className="text-xs font-black uppercase text-slate-700">Attendee Punctuality Distribution</CardTitle>
+                <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Attendee Punctuality Distribution</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px] flex items-center justify-center">
                     {punctualityData.length === 0 ? (
@@ -2109,9 +2109,9 @@ export default function UnitActivityPage() {
                 </Card>
 
                 {/* Chart 2: Demographics */}
-                <Card className="shadow-sm border-slate-200 bg-white">
-                  <CardHeader className="bg-slate-50/50 border-b py-3">
-                    <CardTitle className="text-xs font-black uppercase text-slate-700">Gender/Sex Demographics</CardTitle>
+                <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Gender/Sex Demographics</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px] flex items-center justify-center">
                     {genderData.length === 0 ? (
@@ -2140,9 +2140,9 @@ export default function UnitActivityPage() {
                 </Card>
 
                 {/* Chart 3: Evaluation Ratings */}
-                <Card className="shadow-sm border-slate-200 bg-white md:col-span-2">
-                  <CardHeader className="bg-slate-50/50 border-b py-3">
-                    <CardTitle className="text-xs font-black uppercase text-slate-700">Evaluation Categories Ratings</CardTitle>
+                <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white md:col-span-2">
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
+                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Evaluation Categories Ratings</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px]">
                     {averageRatings.length === 0 ? (
@@ -2181,9 +2181,9 @@ export default function UnitActivityPage() {
               )}
 
               {/* Feedback Comments list */}
-              <Card className="shadow-sm border-slate-200 bg-white">
-                <CardHeader className="bg-slate-50/50 border-b py-3 flex flex-row justify-between items-center">
-                  <CardTitle className="text-xs font-black uppercase text-slate-700">Participant Feedback Remarks</CardTitle>
+              <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-row justify-between items-center">
+                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Participant Feedback Remarks</CardTitle>
                   <Badge className="bg-amber-100 text-amber-800 border-none text-[9px] font-black">{filteredEvaluations.length} Reviews</Badge>
                 </CardHeader>
                 <CardContent className="p-0 max-h-[300px] overflow-y-auto">
@@ -2196,11 +2196,11 @@ export default function UnitActivityPage() {
                       {filteredEvaluations.map((evalItem) => (
                         <div 
                           key={evalItem.id} 
-                          className="p-4 space-y-1 hover:bg-slate-100/50 cursor-pointer transition-colors"
+                          className="p-4 space-y-1 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
                           onClick={() => setSelectedEvaluation(evalItem)}
                         >
                           <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-slate-700 uppercase flex items-center gap-1.5">
+                            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase flex items-center gap-1.5">
                               {evalItem.participantName || 'Anonymous'}
                               {evalItem.ratingOverall && (
                                 <span className="text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
@@ -2214,7 +2214,7 @@ export default function UnitActivityPage() {
                                 : 'N/A'}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-600 font-medium line-clamp-2">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2">
                             {evalItem.comments || evalItem.commentsOverall || evalItem.ansTakeaways || "Click to view detailed feedback ratings & open-ended comments."}
                           </p>
                         </div>
@@ -2233,11 +2233,11 @@ export default function UnitActivityPage() {
       {/* ================================================================== */}
       {editingActivity && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90dvh] flex flex-col">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl max-h-[90dvh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
               <div>
-                <h3 className="text-sm font-black uppercase text-slate-800 tracking-tight flex items-center gap-2">
+                <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-2">
                   <Pencil className="h-4 w-4 text-blue-500" />
                   Edit Activity
                 </h3>
@@ -2245,7 +2245,7 @@ export default function UnitActivityPage() {
               </div>
               <button
                 onClick={() => setEditingActivity(null)}
-                className="text-slate-400 hover:text-slate-700 transition-colors"
+                className="text-slate-400 hover:text-slate-700 dark:text-slate-300 transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -2261,7 +2261,7 @@ export default function UnitActivityPage() {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="e.g. QMS Audit Briefing"
-                    className="h-10 text-xs font-bold bg-white border-slate-200"
+                    className="h-10 text-xs font-bold bg-white border-slate-200 dark:border-slate-700"
                   />
                 </div>
 
@@ -2273,7 +2273,7 @@ export default function UnitActivityPage() {
                     min="0"
                     value={editThreshold}
                     onChange={(e) => setEditThreshold(e.target.value)}
-                    className="h-10 text-xs font-bold bg-white border-slate-200"
+                    className="h-10 text-xs font-bold bg-white border-slate-200 dark:border-slate-700"
                   />
                 </div>
 
@@ -2307,9 +2307,9 @@ export default function UnitActivityPage() {
                     </Button>
                   </div>
                   {editActivityDocs.length > 0 && (
-                    <div className="p-2 border rounded-xl bg-slate-50 space-y-1">
+                    <div className="p-2 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-1">
                       {editActivityDocs.map((doc, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
+                        <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700 dark:text-slate-300">
                           <span className="truncate max-w-[300px]">{doc.description}</span>
                           <Button
                             type="button"
@@ -2333,7 +2333,7 @@ export default function UnitActivityPage() {
                       type="button"
                       variant="outline"
                       onClick={handleAddEditSession}
-                      className="h-7 text-[9px] font-black uppercase px-2.5 bg-white border-slate-200"
+                      className="h-7 text-[9px] font-black uppercase px-2.5 bg-white border-slate-200 dark:border-slate-700"
                     >
                       + Add Session
                     </Button>
@@ -2344,7 +2344,7 @@ export default function UnitActivityPage() {
                   ) : (
                     <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
                       {editActivitySessions.map((session, idx) => (
-                        <div key={session.id} className="p-3 border rounded-xl bg-slate-50 space-y-2 relative">
+                        <div key={session.id} className="p-3 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2 relative">
                           <button
                             type="button"
                             onClick={() => handleRemoveEditSession(session.id)}
@@ -2404,7 +2404,7 @@ export default function UnitActivityPage() {
                               </select>
                             </div>
                           </div>
-                          <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-slate-600 cursor-pointer pt-1">
+                          <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-slate-600 dark:text-slate-400 cursor-pointer pt-1">
                             <input
                               type="checkbox"
                               checked={session.requiresLogout}
@@ -2421,7 +2421,7 @@ export default function UnitActivityPage() {
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+              <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 rounded-b-2xl">
                 <Button
                   type="button"
                   variant="outline"
@@ -2446,9 +2446,9 @@ export default function UnitActivityPage() {
 
       {/* EVALUATION STRATEGY WIZARD DIALOG */}
       <Dialog open={isEvalWizardOpen} onOpenChange={setIsEvalWizardOpen}>
-        <DialogContent className="max-w-md bg-white border-slate-200 text-slate-900 rounded-2xl shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-md bg-white border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
-            <DialogTitle className="text-base font-black uppercase text-slate-800 flex items-center gap-2">
+            <DialogTitle className="text-base font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#D4AF37] animate-pulse" />
               Evaluation Strategy Wizard
             </DialogTitle>
@@ -2459,7 +2459,7 @@ export default function UnitActivityPage() {
 
           {/* Wizard step progress indicator */}
           <div className="px-6 pt-4 flex items-center gap-3">
-            <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+            <div className="flex-1 h-1 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
               <div 
                 className="h-full bg-[#D4AF37] transition-all duration-300"
                 style={{ width: `${(wizardStep / 3) * 100}%` }}
@@ -2473,11 +2473,11 @@ export default function UnitActivityPage() {
               /* Step 1: Security & PIN Settings */
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Step 1: Security & Identity Strategy</h4>
+                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Step 1: Security & Identity Strategy</h4>
                   <p className="text-[10px] text-slate-400">Establish access credentials to prevent unauthorized or spam feedback submissions.</p>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl space-y-4">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <Checkbox
                       checked={evalRequirePin}
@@ -2485,7 +2485,7 @@ export default function UnitActivityPage() {
                       className="mt-0.5"
                     />
                     <div className="space-y-0.5">
-                      <span className="text-xs font-black uppercase text-slate-800">Require Submission PIN</span>
+                      <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Require Submission PIN</span>
                       <p className="text-[9.5px] text-slate-400 leading-normal">
                         Participants must enter a 4-digit PIN code displayed on screen/projector to submit their reviews.
                       </p>
@@ -2517,8 +2517,8 @@ export default function UnitActivityPage() {
                   )}
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                  <span className="text-xs font-black uppercase text-slate-800 block">Demographics Identity Strategy</span>
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
+                  <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 block">Demographics Identity Strategy</span>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -2527,7 +2527,7 @@ export default function UnitActivityPage() {
                         "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
                         evalFormMode === 'open' 
                           ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                          : "bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       )}
                     >
                       <span className="text-[10px] font-black uppercase">Open/Anonymous</span>
@@ -2540,7 +2540,7 @@ export default function UnitActivityPage() {
                         "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
                         evalFormMode === 'strict' 
                           ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                          : "bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       )}
                     >
                       <span className="text-[10px] font-black uppercase">Strict Verification</span>
@@ -2555,7 +2555,7 @@ export default function UnitActivityPage() {
               /* Step 2: Custom Focus Areas */
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Step 2: Customize Feedback Focus</h4>
+                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Step 2: Customize Feedback Focus</h4>
                   <p className="text-[10px] text-slate-400">Select the specific evaluation aspects you want participants to rate for this activity.</p>
                 </div>
 
@@ -2579,8 +2579,8 @@ export default function UnitActivityPage() {
                         className={cn(
                           "p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5",
                           isChecked 
-                            ? "bg-slate-50 border-slate-300"
-                            : "bg-white border-slate-100 hover:bg-slate-50/50"
+                            ? "bg-slate-50 dark:bg-slate-800/50 border-slate-300"
+                            : "bg-white border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
                         )}
                       >
                         <Checkbox
@@ -2604,7 +2604,7 @@ export default function UnitActivityPage() {
                           className="mt-0.5"
                         />
                         <div className="space-y-0.5">
-                          <span className="text-xs font-extrabold text-slate-800">{cat.label}</span>
+                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{cat.label}</span>
                           <p className="text-[9.5px] text-slate-400 leading-normal font-medium">{cat.desc}</p>
                         </div>
                       </label>
@@ -2621,24 +2621,24 @@ export default function UnitActivityPage() {
                   <Check className="h-8 w-8" />
                 </div>
                 <div className="space-y-1.5">
-                  <h4 className="text-sm font-black uppercase text-slate-800 tracking-tight">Evaluation Strategy Deployed!</h4>
+                  <h4 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">Evaluation Strategy Deployed!</h4>
                   <p className="text-[10.5px] text-slate-500 leading-relaxed font-semibold max-w-xs mx-auto">
                     Your evaluation settings have been synchronized. The portal is ready to receive structured ratings.
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2.5 max-w-sm mx-auto text-xs font-semibold">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-left space-y-2.5 max-w-sm mx-auto text-xs font-semibold">
                   <div className="flex justify-between border-b pb-1.5 uppercase font-black text-[9.5px] text-slate-400">
                     <span>Configured Strategy</span>
                     <span>Status</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Submission Mode:</span>
-                    <span className="font-bold uppercase text-slate-700">{evalFormMode === 'strict' ? 'Verified Demographics' : 'Anonymous Open'}</span>
+                    <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{evalFormMode === 'strict' ? 'Verified Demographics' : 'Anonymous Open'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">PIN Security:</span>
-                    <span className="font-bold text-slate-700">{evalRequirePin ? `Required (Code: ${evalPinCode})` : 'Disabled'}</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{evalRequirePin ? `Required (Code: ${evalPinCode})` : 'Disabled'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Aspects Selected:</span>
@@ -2663,7 +2663,7 @@ export default function UnitActivityPage() {
                     onClick={() => {
                       setIsEvalWizardOpen(false);
                     }}
-                    className="w-full h-11 text-xs font-black uppercase tracking-wider text-slate-600 border-slate-200"
+                    className="w-full h-11 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                   >
                     Done & Close
                   </Button>
@@ -2674,7 +2674,7 @@ export default function UnitActivityPage() {
 
           {/* Footer buttons for step 1 & 2 */}
           {wizardStep < 3 && (
-            <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4 flex gap-2 sm:justify-end">
+            <DialogFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 p-4 flex gap-2 sm:justify-end">
               {wizardStep > 1 && (
                 <Button
                   type="button"
@@ -2755,14 +2755,14 @@ export default function UnitActivityPage() {
           </DialogHeader>
 
           {/* Scrollable content */}
-          <div id="eval-summary-content" className="overflow-y-auto flex-1 p-6 space-y-8 bg-white text-slate-800">
+          <div id="eval-summary-content" className="overflow-y-auto flex-1 p-6 space-y-8 bg-white text-slate-800 dark:text-slate-200">
 
             {/* ---- Cover / Title Block ---- */}
             <div className="text-center space-y-2 pb-6 border-b-2 border-emerald-600">
               <div className="flex justify-center mb-3">
                 <img src="/rsulogo.png" alt="RSU" className="h-16 w-16 object-contain opacity-80" />
               </div>
-              <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">Activity Evaluation Summary Report</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Activity Evaluation Summary Report</h1>
               <h2 className="text-base font-bold text-emerald-700 uppercase">{activeActivity?.name}</h2>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                 Total Respondents: {filteredEvaluations.length} &nbsp;|&nbsp; Report Generated: {format(new Date(), 'MMMM d, yyyy')}
@@ -2777,11 +2777,11 @@ export default function UnitActivityPage() {
               <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
                 I. Summary of Evaluation Ratings
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 The table below presents the mean ratings per evaluation category based on responses gathered from {filteredEvaluations.length} participant{filteredEvaluations.length !== 1 ? 's' : ''}.
                 Ratings are on a 5-point scale where <strong>1 = Poor</strong>, <strong>2 = Fair</strong>, <strong>3 = Satisfactory</strong>, <strong>4 = Very Satisfactory</strong>, and <strong>5 = Excellent</strong>.
               </p>
-              <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-emerald-600 text-white">
@@ -2810,9 +2810,9 @@ export default function UnitActivityPage() {
                       const vi = item.val >= 4.5 ? 'Excellent' : item.val >= 3.5 ? 'Very Satisfactory' : item.val >= 2.5 ? 'Satisfactory' : item.val >= 1.5 ? 'Fair' : item.val > 0 ? 'Poor' : 'N/A';
                       const viColor = item.val >= 4.5 ? 'text-emerald-700' : item.val >= 3.5 ? 'text-blue-700' : item.val >= 2.5 ? 'text-amber-700' : item.val > 0 ? 'text-rose-700' : 'text-slate-400';
                       return (
-                        <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                          <td className="px-4 py-2.5 font-semibold text-slate-700">{item.label}</td>
-                          <td className="px-4 py-2.5 text-center font-black text-slate-800">
+                        <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50 dark:bg-slate-800/50'}>
+                          <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300">{item.label}</td>
+                          <td className="px-4 py-2.5 text-center font-black text-slate-800 dark:text-slate-200">
                             {item.val > 0 ? item.val.toFixed(2) : '—'}
                           </td>
                           <td className={`px-4 py-2.5 text-center font-black uppercase tracking-wide ${viColor}`}>{vi}</td>
@@ -2854,7 +2854,7 @@ export default function UnitActivityPage() {
               <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
                 II. Evaluation Discussion by Category
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 The following discussion presents a synthesis of the quantitative ratings and qualitative comments per evaluation category.
                 Comments are listed verbatim as submitted by respondents and analyzed to surface common themes and patterns.
               </p>
@@ -2930,7 +2930,7 @@ export default function UnitActivityPage() {
                     <div key={cat.id} className="space-y-3">
                       <div className="flex items-baseline gap-3">
                         <span className="text-[10px] font-black text-slate-400 uppercase w-6 shrink-0">{catIdx + 1}.</span>
-                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{cat.label}</h4>
+                        <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{cat.label}</h4>
                         {cat.val > 0 && (
                           <span className={`ml-auto text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 ${
                             cat.val >= 4.5 ? 'bg-emerald-100 text-emerald-700' :
@@ -2945,7 +2945,7 @@ export default function UnitActivityPage() {
 
                       {/* Narrative discussion paragraph */}
                       {discussion ? (
-                        <p className="text-xs text-slate-700 leading-relaxed pl-9">{discussion}</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-9">{discussion}</p>
                       ) : (
                         <p className="text-xs text-slate-400 italic pl-9">No data collected for this category.</p>
                       )}
@@ -2956,8 +2956,8 @@ export default function UnitActivityPage() {
                           <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Respondent Comments ({cat.comments.length}):</p>
                           <ul className="space-y-1.5">
                             {cat.comments.map((c, ci) => (
-                              <li key={ci} className="flex items-start gap-2 text-xs text-slate-600">
-                                <span className="shrink-0 h-4 w-4 bg-slate-100 rounded-full flex items-center justify-center text-[9px] font-black text-slate-500 mt-0.5">{ci + 1}</span>
+                              <li key={ci} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                <span className="shrink-0 h-4 w-4 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-[9px] font-black text-slate-500 mt-0.5">{ci + 1}</span>
                                 <span className="leading-relaxed italic">&ldquo;{c}&rdquo;</span>
                               </li>
                             ))}
@@ -2975,7 +2975,7 @@ export default function UnitActivityPage() {
                 <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
                   III. Open-Ended Qualitative Feedback
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   The following section compiles verbatim responses to the open-ended questions included in the evaluation form.
                   These responses offer deeper qualitative insights into participant experiences, expectations, and suggestions.
                 </p>
@@ -3004,10 +3004,10 @@ export default function UnitActivityPage() {
                   if (answers.length === 0) return null;
                   return (
                     <div key={qi} className="space-y-2">
-                      <p className="text-xs font-black text-slate-700">{item.q}</p>
+                      <p className="text-xs font-black text-slate-700 dark:text-slate-300">{item.q}</p>
                       <ul className="space-y-1.5 pl-4">
                         {answers.map((ans, ai) => (
-                          <li key={ai} className="flex items-start gap-2 text-xs text-slate-600">
+                          <li key={ai} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
                             <span className="shrink-0 h-4 w-4 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center text-[9px] font-black text-emerald-700 mt-0.5">{ai + 1}</span>
                             <span className="leading-relaxed">{ans}</span>
                           </li>
@@ -3054,7 +3054,7 @@ export default function UnitActivityPage() {
                   .sort((a, b) => a.val - b.val)
                   .slice(0, 3);
                 return (
-                  <div className="space-y-3 text-xs text-slate-700 leading-relaxed">
+                  <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                     <p>
                       Based on the evaluation results gathered from <strong>{filteredEvaluations.length}</strong> respondent{filteredEvaluations.length !== 1 ? 's' : ''}, the
                       activity <strong>&ldquo;{activeActivity?.name}&rdquo;</strong> obtained a grand mean rating of <strong>{grand.toFixed(2)}</strong>,
@@ -3088,7 +3088,7 @@ export default function UnitActivityPage() {
 
           </div>
 
-          <DialogFooter className="px-6 py-3 border-t bg-slate-50 shrink-0">
+          <DialogFooter className="px-6 py-3 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <Button variant="outline" onClick={() => setShowSummaryModal(false)} className="text-xs font-black uppercase">
               Close
             </Button>
@@ -3103,9 +3103,9 @@ export default function UnitActivityPage() {
       </Dialog>
 
       <Dialog open={!!selectedEvaluation} onOpenChange={(open) => { if (!open) setSelectedEvaluation(null); }}>
-        <DialogContent className="max-w-2xl bg-white border-slate-200 text-slate-900 rounded-2xl shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl bg-white border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
-            <DialogTitle className="text-base font-black uppercase text-slate-800 flex items-center gap-2">
+            <DialogTitle className="text-base font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#D4AF37]" />
               Participant Evaluation Details
             </DialogTitle>
@@ -3116,24 +3116,24 @@ export default function UnitActivityPage() {
 
           <div className="p-6 space-y-6 max-h-[60dvh] overflow-y-auto">
             {/* Demographics Card */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-3 gap-4">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 grid grid-cols-3 gap-4">
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Participant Name</p>
-                <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantName || 'Anonymous'}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">{selectedEvaluation?.participantName || 'Anonymous'}</p>
               </div>
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Office</p>
-                <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantOffice || 'Not Provided'}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">{selectedEvaluation?.participantOffice || 'Not Provided'}</p>
               </div>
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Position</p>
-                <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">{selectedEvaluation?.participantPosition || 'Not Provided'}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">{selectedEvaluation?.participantPosition || 'Not Provided'}</p>
               </div>
             </div>
 
             {/* Structured Ratings */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Structured Category Ratings</h4>
+              <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Structured Category Ratings</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { label: 'Quality of Service', rating: selectedEvaluation?.ratingPerfQuality, comment: selectedEvaluation?.commentsPerfQuality },
@@ -3149,9 +3149,9 @@ export default function UnitActivityPage() {
                   { label: 'Speaker & Facilitator', rating: selectedEvaluation?.ratingSpeaker, comment: selectedEvaluation?.commentsSpeaker },
                   { label: 'Topic Relevance (Speaker Sub-Criteria)', rating: selectedEvaluation?.ratingTopic }
                 ].filter(r => r.rating !== undefined && r.rating > 0).map((r, idx) => (
-                  <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                  <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-extrabold text-slate-700">{r.label}</span>
+                      <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{r.label}</span>
                       <div className="flex gap-0.5">
                         {[1, 2, 3, 4, 5].map((s) => (
                           <Star 
@@ -3165,7 +3165,7 @@ export default function UnitActivityPage() {
                       </div>
                     </div>
                     {r.comment && (
-                      <p className="text-[11px] text-slate-600 italic bg-slate-50/50 p-2 rounded-lg border border-slate-50">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 italic bg-slate-50/50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-50">
                         "{r.comment}"
                       </p>
                     )}
@@ -3176,18 +3176,18 @@ export default function UnitActivityPage() {
 
             {/* Qualitative Feedback Answers */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Qualitative Feedback Responses</h4>
-              <div className="divide-y divide-slate-100 bg-slate-50 rounded-xl border border-slate-200/60 overflow-hidden">
+              <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Qualitative Feedback Responses</h4>
+              <div className="divide-y divide-slate-100 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
                 {[
                   { q: '1. What was your single biggest takeaway or most valuable part of this activity, and why?', val: selectedEvaluation?.ansTakeaways || selectedEvaluation?.ansValuable },
                   { q: '2. Did this activity meet your expectations and how did it make you feel? Why or why not?', val: selectedEvaluation?.ansExpectations || selectedEvaluation?.ansFeelings },
                   { q: '3. Was there a specific topic or activity you wish had been included?', val: selectedEvaluation?.ansMissed },
                   { q: '4. If you could change one thing, or what suggestions do you have to make our next activity even better?', val: selectedEvaluation?.ansSuggestions || selectedEvaluation?.ansChange }
                 ].map((item, idx) => (
-                  <div key={idx} className="p-4 space-y-1.5 hover:bg-slate-100/30 transition-colors">
-                    <p className="text-xs font-bold text-slate-700">{item.q}</p>
+                  <div key={idx} className="p-4 space-y-1.5 hover:bg-slate-100/30 dark:hover:bg-slate-700/30 transition-colors">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.q}</p>
                     {item.val ? (
-                      <p className="text-xs text-slate-600 bg-white p-2.5 rounded-lg border shadow-sm whitespace-pre-line leading-relaxed font-medium">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 bg-white p-2.5 rounded-lg border shadow-sm whitespace-pre-line leading-relaxed font-medium">
                         {item.val}
                       </p>
                     ) : (
@@ -3201,15 +3201,15 @@ export default function UnitActivityPage() {
             {/* General comments */}
             {selectedEvaluation?.comments && (
               <div className="space-y-2">
-                <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">General Comments & Suggestions</h4>
-                <p className="text-xs text-slate-600 italic bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl shadow-inner whitespace-pre-line leading-relaxed font-semibold">
+                <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">General Comments & Suggestions</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 italic bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl shadow-inner whitespace-pre-line leading-relaxed font-semibold">
                   "{selectedEvaluation.comments}"
                 </p>
               </div>
             )}
           </div>
 
-          <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4">
+          <DialogFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 p-4">
             <Button
               type="button"
               onClick={() => setSelectedEvaluation(null)}

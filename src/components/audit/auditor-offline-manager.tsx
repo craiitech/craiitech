@@ -427,7 +427,7 @@ export function AuditorOfflineManager() {
                 <div className="p-5 rounded-2xl bg-white border border-primary/20 shadow-sm space-y-4">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800">1. Selective Site Mirroring</h4>
+                            <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">1. Selective Site Mirroring</h4>
                             <p className="text-[10px] text-muted-foreground italic">Sync: {lastDownload ? format(lastDownload, 'PP p') : 'Never'}</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={handleSearchMirror} disabled={isScanning || isDownloading} className="h-8 px-3 font-black uppercase text-[9px] bg-white border-primary/20 text-primary gap-1.5">
@@ -439,7 +439,7 @@ export function AuditorOfflineManager() {
                     <div className="space-y-2">
                         <Label className="text-[9px] font-black uppercase text-slate-500">Scope Context Selection</Label>
                         <Select value={selectedSite} onValueChange={setSelectedSite} disabled={isDownloading || isNetworkDisabled}>
-                            <SelectTrigger className="h-10 font-bold bg-slate-50 border-primary/10">
+                            <SelectTrigger className="h-10 font-bold bg-slate-50 dark:bg-slate-800/50 border-primary/10">
                                 <SelectValue placeholder="Select Scope" />
                             </SelectTrigger>
                             <SelectContent>
@@ -480,7 +480,7 @@ export function AuditorOfflineManager() {
 
                 <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-sm space-y-4">
                     <div className="space-y-1">
-                        <h4 className="text-xs font-black uppercase text-slate-800">2. Smart Connectivity Lock</h4>
+                        <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">2. Smart Connectivity Lock</h4>
                         <p className="text-[10px] text-muted-foreground italic">Bypass unstable Wi-Fi.</p>
                     </div>
                     {isNetworkDisabled ? (
@@ -499,7 +499,7 @@ export function AuditorOfflineManager() {
 
                 <div className="p-5 rounded-2xl bg-white border border-blue-100 shadow-sm space-y-4">
                     <div className="space-y-1">
-                        <h4 className="text-xs font-black uppercase text-slate-800">3. Workspace Portability</h4>
+                        <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">3. Workspace Portability</h4>
                         <p className="text-[10px] text-muted-foreground italic">Manual database transfer.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">

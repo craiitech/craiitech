@@ -164,7 +164,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                                             key={item.id} 
                                             className={cn(
                                                 "flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group",
-                                                currentScores[item.id] ? "bg-emerald-50/50 border-emerald-100 shadow-sm" : "bg-background border-slate-100 hover:border-primary/20"
+                                                currentScores[item.id] ? "bg-emerald-50/50 border-emerald-100 shadow-sm" : "bg-background border-slate-100 dark:border-slate-700 hover:border-primary/20"
                                             )}
                                             onClick={() => handleToggle(item.id)}
                                         >
@@ -178,7 +178,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                                                 )}
                                             </div>
                                             <div className="flex-1 space-y-1">
-                                                <p className={cn("text-sm font-bold leading-snug", currentScores[item.id] ? "text-emerald-900" : "text-slate-700")}>{item.label}</p>
+                                                <p className={cn("text-sm font-bold leading-snug", currentScores[item.id] ? "text-emerald-900" : "text-slate-700 dark:text-slate-300")}>{item.label}</p>
                                                 {currentScores[item.id] && (
                                                     <p className="text-[9px] font-black uppercase text-emerald-600/70 tracking-tighter flex items-center gap-1">
                                                         <ShieldCheck className="h-2.5 w-2.5" /> Verified Operational
@@ -195,7 +195,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                 </div>
             </ScrollArea>
         </CardContent>
-        <CardFooter className="p-4 bg-slate-50 border-t flex justify-between items-center px-8">
+        <CardFooter className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t flex justify-between items-center px-8">
             <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
                 <History className="h-3.5 w-3.5" />
                 Last Update: {checklist?.updatedAt ? format(checklist.updatedAt.toDate(), 'PPP p') : 'Pending Initial Assessment'}

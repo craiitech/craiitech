@@ -311,7 +311,7 @@ export default function UnitFormsPage() {
         <div className="sticky top-0 z-20 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Unit Forms & Records</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Unit Forms & Records</h2>
                 <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Access official operating forms for verified university units.</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -373,7 +373,7 @@ export default function UnitFormsPage() {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <History className="h-4 w-4 text-primary" />
-                                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800">My Requests</CardTitle>
+                                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">My Requests</CardTitle>
                                 </div>
                                 {!isHistoryActive && (
                                     <button onClick={() => setIsHistoryActive(true)} className="text-[9px] font-black uppercase text-primary hover:underline">Load History</button>
@@ -407,7 +407,7 @@ export default function UnitFormsPage() {
                                                          <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
                                                      </div>
                                                  </div>
-                                                 <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
+                                                 <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
                                             </div>
                                         ))}
                                     </div>
@@ -513,7 +513,7 @@ export default function UnitFormsPage() {
                                                         <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
                                                             <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                                                             <div className="space-y-1">
-                                                                <p className="text-xs font-black uppercase text-slate-800">Operational Continuity</p>
+                                                                <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Operational Continuity</p>
                                                                 <p className="text-[11px] text-muted-foreground leading-relaxed italic">This folder contains the complete roster of forms for <strong>{selectedUnit.name}</strong>.</p>
                                                             </div>
                                                         </div>
@@ -525,7 +525,7 @@ export default function UnitFormsPage() {
                                                     </div>
                                                     {isAdmin && (
                                                         <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4">
-                                                            <div className="flex items-center gap-2 border-b pb-2 mb-2"><PlusCircle className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-900">Log New Roster Revision</h4></div>
+                                                            <div className="flex items-center gap-2 border-b pb-2 mb-2"><PlusCircle className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-900 dark:text-slate-100">Log New Roster Revision</h4></div>
                                                             <div className="space-y-3">
                                                                 <div className="space-y-1"><Label className="text-[9px] font-black uppercase text-primary">Folder Link</Label><Input value={editRosterLink} onChange={(e) => setEditRosterLink(e.target.value)} className="h-8 text-[10px]" /></div>
                                                                 <div className="grid grid-cols-2 gap-3">
@@ -547,7 +547,7 @@ export default function UnitFormsPage() {
                                                     <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-primary/5 text-primary">Rev {activeMasterlistData.rev}</Badge>
                                                 </div>
                                             </CardHeader>
-                                            <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
+                                            <CardContent className="p-0 bg-slate-100 dark:bg-slate-700 min-h-[500px] relative shadow-inner">
                                                 {activeMasterlistData.link ? <iframe src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} className="absolute inset-0 h-full w-full border-none bg-white" allow="autoplay" title="Unit Masterlist Preview" /> : <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3"><FileText className="h-16 w-16" /><p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p></div>}
                                             </CardContent>
                                         </Card>
@@ -568,7 +568,7 @@ export default function UnitFormsPage() {
                                                         {isLoadingForms ? <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow> : forms?.length ? forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
                                                             <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
                                                                 <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
-                                                                <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
+                                                                <TableCell className="text-[12px] font-bold text-slate-800 dark:text-slate-200">{form.formName}</TableCell>
                                                                 <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">{form.revision}</Badge></TableCell>
                                                                 <TableCell className="text-right pr-6"><Button variant="default" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5" onClick={() => setDownloadingForm(form)}><Download className="h-3 w-3" /> Request Download</Button></TableCell>
                                                             </TableRow>

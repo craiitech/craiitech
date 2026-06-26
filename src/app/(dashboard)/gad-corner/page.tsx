@@ -215,7 +215,7 @@ export default function GadCornerPage() {
                         </div>
                     </div>
                     <div className="flex-1 max-w-sm space-y-1">
-                        <Label className="text-[10px] font-bold uppercase text-slate-600">Total University Appropriations (Annual)</Label>
+                        <Label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Total University Appropriations (Annual)</Label>
                         <div className="flex gap-2">
                             <Input 
                                 type="number" 

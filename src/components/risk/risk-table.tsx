@@ -85,7 +85,7 @@ const getTargetDateBadge = (risk: Risk) => {
     );
   }
   return (
-    <Badge className="bg-slate-100 text-slate-700 border border-slate-300 text-[8px] font-black uppercase flex items-center gap-1">
+    <Badge className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 text-[8px] font-black uppercase flex items-center gap-1">
       <Clock className="h-2.5 w-2.5" />
       {format(target, 'MMM dd, yyyy')}
     </Badge>
@@ -306,7 +306,7 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
             <TableCell>
                 {getTargetDateBadge(risk)}
             </TableCell>
-            <TableCell className="text-[10px] font-bold text-slate-600">{risk.responsiblePersonName}</TableCell>
+            <TableCell className="text-[10px] font-bold text-slate-600 dark:text-slate-400">{risk.responsiblePersonName}</TableCell>
             <TableCell className="text-[10px] font-bold text-muted-foreground tabular-nums">{formatDate(risk.updatedAt)}</TableCell>
             <TableCell className="text-right pr-6 whitespace-nowrap">
               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

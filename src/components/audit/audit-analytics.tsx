@@ -419,14 +419,14 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         const data = payload[0].payload;
         const pct = analytics.totalFindings ? Math.round((data.value / analytics.totalFindings) * 100) : 0;
         return (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs">
                 <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.fill }} />
-                    <span className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">{data.name}</span>
+                    <span className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 dark:text-slate-100">{data.name}</span>
                 </div>
                 <div className="space-y-1 font-semibold text-slate-600 dark:text-slate-400">
-                    <p className="text-[10px] uppercase">Findings: <span className="text-slate-900 dark:text-white font-black">{data.value}</span></p>
-                    <p className="text-[10px] uppercase">Proportion: <span className="text-slate-900 dark:text-white font-black">{pct}%</span></p>
+                    <p className="text-[10px] uppercase">Findings: <span className="text-slate-900 dark:text-slate-100 dark:text-white font-black">{data.value}</span></p>
+                    <p className="text-[10px] uppercase">Proportion: <span className="text-slate-900 dark:text-slate-100 dark:text-white font-black">{pct}%</span></p>
                 </div>
             </div>
         );
@@ -437,8 +437,8 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
   const CustomMaturityTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs space-y-2">
-                <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 border-b pb-1">{label} Processes</p>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs space-y-2">
+                <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 dark:text-slate-100 border-b pb-1">{label} Processes</p>
                 <div className="space-y-1">
                     {payload.map((p: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between gap-4">
@@ -446,7 +446,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || p.fill }} />
                                 <span className="text-[10px] font-bold text-muted-foreground uppercase">{p.name || p.dataKey}</span>
                             </div>
-                            <span className="font-black text-slate-900 dark:text-white">{p.value}</span>
+                            <span className="font-black text-slate-900 dark:text-slate-100 dark:text-white">{p.value}</span>
                         </div>
                     ))}
                 </div>
@@ -461,12 +461,12 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         const data = payload[0].payload;
         const compRate = Math.round((data.completed / (data.count || 1)) * 100);
         return (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs space-y-2">
-                <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 border-b pb-1">{label}</p>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:border-slate-800 p-3 rounded-lg shadow-md text-xs space-y-2">
+                <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 dark:text-slate-100 border-b pb-1">{label}</p>
                 <div className="space-y-1 font-semibold text-slate-600 dark:text-slate-400">
                     <div className="flex justify-between gap-4">
                         <span className="text-[10px] uppercase">Assigned Audits:</span>
-                        <span className="font-black text-slate-900 dark:text-white">{data.count}</span>
+                        <span className="font-black text-slate-900 dark:text-slate-100 dark:text-white">{data.count}</span>
                     </div>
                     <div className="flex justify-between gap-4">
                         <span className="text-[10px] uppercase">Completed Audits:</span>
@@ -487,13 +487,13 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg shadow-md max-w-[280px] text-xs">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:border-slate-800 p-3 rounded-lg shadow-md max-w-[280px] text-xs">
                 <p className="font-black text-destructive uppercase tracking-wide border-b pb-1 mb-1">ISO Clause {data.id}</p>
-                <p className="font-bold text-slate-800 dark:text-slate-100 mt-1 leading-normal">{data.title}</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200 dark:text-slate-100 mt-1 leading-normal">{data.title}</p>
                 {data.description && <p className="text-[10px] text-muted-foreground mt-1 leading-normal italic font-medium line-clamp-3">{data.description}</p>}
-                <div className="border-t border-slate-100 dark:border-slate-800 mt-2 pt-1.5 flex justify-between items-center font-bold">
+                <div className="border-t border-slate-100 dark:border-slate-700 dark:border-slate-800 mt-2 pt-1.5 flex justify-between items-center font-bold">
                     <span className="text-[9px] uppercase text-muted-foreground">Audit Findings:</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">{data.count}</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-slate-100 dark:text-white">{data.count}</span>
                 </div>
             </div>
         );
@@ -757,7 +757,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                               {analytics.hotspots.slice(0, 10).map((h, i) => (
                                   <TableRow key={i}>
                                       <TableCell className="pl-6 font-bold text-xs uppercase">{h.name}</TableCell>
-                                      <TableCell className="text-xs font-semibold text-slate-600 uppercase">{h.campusName}</TableCell>
+                                      <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{h.campusName}</TableCell>
                                       <TableCell className="text-center"><Badge variant="destructive" className="h-5 font-black">{h.nc} NC</Badge></TableCell>
                                   </TableRow>
                               ))}
@@ -796,7 +796,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                           {analytics.auditorData.map((auditor, aIdx) => (
                               <div key={aIdx} className="p-4 hover:bg-muted/10 transition-colors">
                                   <div className="flex items-center justify-between">
-                                    <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-tight">{auditor.name}</h4>
+                                    <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase text-[11px] tracking-tight">{auditor.name}</h4>
                                     <Badge variant="secondary" className="h-4 text-[8px] font-black">{auditor.count} ASSIGNMENTS</Badge>
                                   </div>
                                   <div className="pl-4 mt-2 text-[10px] text-muted-foreground italic truncate">{auditor.assignments.map(a => a.unitName).join(', ')}</div>

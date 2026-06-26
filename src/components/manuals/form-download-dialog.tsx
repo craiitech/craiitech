@@ -115,7 +115,7 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md border-primary/20 shadow-2xl">
-        <DialogHeader className="bg-slate-50 p-6 border-b -m-6 mb-6">
+        <DialogHeader className="bg-slate-50 dark:bg-slate-800/50 p-6 border-b -m-6 mb-6">
           <div className="flex items-center gap-2 text-primary mb-1">
             <ShieldCheck className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Access Control</span>
@@ -128,7 +128,7 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
             <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
                 <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{form.formName}</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">{form.formName}</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase">
@@ -144,7 +144,7 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
                 <form id="download-form" onSubmit={downloadForm.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField control={downloadForm.control} name="requesterName" render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                            <FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                 <User className="h-3.5 w-3.5" /> Full Name of Requester
                             </FormLabel>
                             <FormControl><Input {...field} placeholder="Institutional name..." className="h-10 text-sm font-bold" /></FormControl>
@@ -153,7 +153,7 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
                     )} />
                     <FormField control={downloadForm.control} name="requestDate" render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                            <FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                 <Calendar className="h-3.5 w-3.5" /> Date of Request
                             </FormLabel>
                             <FormControl><Input type="date" {...field} className="h-10 text-sm" /></FormControl>

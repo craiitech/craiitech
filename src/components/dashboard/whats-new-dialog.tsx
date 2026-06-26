@@ -117,10 +117,10 @@ export function WhatsNewDialog({ isOpen, onOpenChange, onAcknowledge }: WhatsNew
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-center gap-3">
-                                    <h4 className="font-black text-slate-900 uppercase tracking-tight">{update.title}</h4>
+                                    <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">{update.title}</h4>
                                     <Badge variant="outline" className="text-[8px] font-black tracking-tighter border-primary/20 text-primary h-4">{update.tag}</Badge>
                                 </div>
-                                <p className="text-sm text-slate-600 leading-relaxed font-medium">{update.desc}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{update.desc}</p>
                             </div>
                         </div>
                     ))}
@@ -128,7 +128,7 @@ export function WhatsNewDialog({ isOpen, onOpenChange, onAcknowledge }: WhatsNew
             </ScrollArea>
         </div>
 
-        <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+        <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex w-full items-center justify-between">
                 <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                     <Activity className="h-3 w-3" />

@@ -144,7 +144,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl border-primary/20 shadow-2xl overflow-hidden p-0">
-        <DialogHeader className="bg-slate-50 p-6 border-b shrink-0">
+        <DialogHeader className="bg-slate-50 dark:bg-slate-800/50 p-6 border-b shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <Home className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Work from Home Monitor</span>
@@ -161,7 +161,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
                         <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                             <Calendar className="h-3 w-3" /> Date
                         </FormLabel>
-                        <FormControl><Input type="date" {...field} className="bg-slate-50 font-bold" /></FormControl>
+                        <FormControl><Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -184,7 +184,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
             <div className="p-4 rounded-xl border bg-muted/5 space-y-4">
                 <FormField control={form.control} name="natureOfAppointment" render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-600">Nature of Appointment</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Nature of Appointment</FormLabel>
                         <FormControl><Input {...field} placeholder="e.g. Permanent, Lecturer, Part-Time" className="bg-white h-9 text-xs" /></FormControl>
                     </FormItem>
                 )} />
@@ -215,7 +215,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
                         <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                             <ClipboardCheck className="h-3.5 w-3.5" /> Deliverables
                         </FormLabel>
-                        <FormControl><Textarea {...field} rows={3} placeholder="What was approved for this period?" className="bg-slate-50 text-xs" /></FormControl>
+                        <FormControl><Textarea {...field} rows={3} placeholder="What was approved for this period?" className="bg-slate-50 dark:bg-slate-800/50 text-xs" /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />

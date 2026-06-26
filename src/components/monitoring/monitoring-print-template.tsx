@@ -20,7 +20,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
     : (record.visitDate ? new Date(record.visitDate) : new Date());
 
   return (
-    <div className="p-8 text-black bg-white max-w-4xl mx-auto font-sans leading-tight shadow-none border-none">
+    <div className="p-8 text-black dark:text-white bg-white max-w-4xl mx-auto font-sans leading-tight shadow-none border-none">
       {/* Header - Logo Removed */}
       <div className="text-center border-b-2 border-black pb-4 mb-6">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">

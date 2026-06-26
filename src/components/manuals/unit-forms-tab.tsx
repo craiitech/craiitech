@@ -124,7 +124,7 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
                                 {forms?.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
                                     <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
                                         <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
-                                        <TableCell className="text-[13px] font-bold text-slate-800">{form.formName}</TableCell>
+                                        <TableCell className="text-[13px] font-bold text-slate-800 dark:text-slate-200">{form.formName}</TableCell>
                                         <TableCell><Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">{form.revision}</Badge></TableCell>
                                         <TableCell className="text-right pr-6">
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
@@ -206,7 +206,7 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">Registration Request</p>
+                                                <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase leading-tight">Registration Request</p>
                                                 <p className="text-[10px] text-muted-foreground font-medium">{req.requestedForms.length} Individual Forms Linked</p>
                                             </div>
                                             <div className="flex items-center justify-between pt-1">

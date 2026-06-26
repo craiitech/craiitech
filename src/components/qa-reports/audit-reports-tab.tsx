@@ -194,7 +194,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                     <TableRow key={report.id} className="hover:bg-muted/30 transition-colors group">
                         <TableCell>
                         <div className="flex flex-col">
-                            <span className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{report.title}</span>
+                            <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{report.title}</span>
                             <div className="flex items-center gap-2 mt-1">
                                 {report.standard && (
                                     <Badge variant="secondary" className="text-[9px] h-4 bg-primary/5 text-primary font-black border-none">{report.standard}</Badge>
@@ -222,7 +222,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                             </div>
                         </TableCell>
                         <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                            <div className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tighter">
                                 <div className="flex items-center gap-1.5">
                                     <Calendar className="h-3 w-3 opacity-50" />
                                     {report.startDate?.toDate ? format(report.startDate.toDate(), 'PP') : 'N/A'}
@@ -363,7 +363,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
 
       <Dialog open={!!previewReport} onOpenChange={() => setPreviewDoc(null)}>
         <DialogContent className="max-w-5xl h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-4 border-b bg-slate-50 shrink-0">
+          <DialogHeader className="p-4 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                     <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewReport?.title}</DialogTitle>

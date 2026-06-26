@@ -108,7 +108,7 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
+        <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
                 <div className="flex items-center gap-2 text-primary mb-1">
@@ -157,7 +157,7 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
             )}
         </div>
 
-        <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
+        <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <div className="flex items-start gap-3 max-w-md">
                     <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />

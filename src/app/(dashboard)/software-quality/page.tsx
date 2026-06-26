@@ -100,7 +100,7 @@ export default function SoftwareQualityDashboardPage() {
                               evaluations.map((evaluation) => (
                                   <div key={evaluation.id} className="flex items-center justify-between p-6 hover:bg-muted/30 transition-colors">
                                       <div className="space-y-1">
-                                          <p className="font-bold text-slate-900">Audit by {evaluation.userName}</p>
+                                          <p className="font-bold text-slate-900 dark:text-slate-100">Audit by {evaluation.userName}</p>
                                           <p className="text-xs text-muted-foreground flex items-center gap-2 uppercase tracking-widest font-semibold">
                                               <History className="h-3 w-3" />
                                               {evaluation.timestamp?.toDate ? evaluation.timestamp.toDate().toLocaleString() : new Date(evaluation.timestamp).toLocaleString()}

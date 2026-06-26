@@ -90,7 +90,7 @@ function CampusFindingsSection({
 
   return (
     <div className="space-y-4 break-before-page pt-8 first:pt-0">
-      <h4 className="font-black text-[11pt] uppercase text-slate-800 tracking-widest border-b pb-1">
+      <h4 className="font-black text-[11pt] uppercase text-slate-800 dark:text-slate-200 tracking-widest border-b pb-1">
         AUDIT REPORT SITE - ({campusLabel.toUpperCase()})
       </h4>
 
@@ -185,7 +185,7 @@ function CampusFindingsSection({
                       {/* CRITICAL: We remove s.summaryNC here to avoid duplicating findings with the individual mapped findings list */}
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
-                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200">
+                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200 dark:border-slate-700">
                             <p className="text-[10pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
                             <p className="text-[11pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
@@ -249,7 +249,7 @@ function UnitFindingsSection({
 
   return (
     <div className="space-y-4 break-before-page pt-8 first:pt-0">
-      <h4 className="font-black text-[11pt] uppercase text-slate-800 tracking-widest border-b pb-1">
+      <h4 className="font-black text-[11pt] uppercase text-slate-800 dark:text-slate-200 tracking-widest border-b pb-1">
         IQA REPORT BY UNIT - ({unitName.toUpperCase()})
       </h4>
 
@@ -350,7 +350,7 @@ function UnitFindingsSection({
                     <div className="space-y-4">
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
-                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200">
+                          <div key={fIdx} className="pl-2 border-l-2 border-slate-200 dark:border-slate-700">
                             <p className="text-[9pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
                             <p className="text-[10pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
@@ -461,12 +461,12 @@ export function ConsolidatedAuditReportTemplate({
       reportYear={plan.year}
       campusLocation="Main Campus, Odiongan, Romblon"
     >
-      <div className="p-0 text-black bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+      <div className="p-0 text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       
       {/* SECTION: AUDIT FINDINGS */}
       <div className="space-y-10">
         <div className="space-y-2">
-          <h3 className="font-black text-sm text-slate-900" style={{ fontSize: '13pt' }}>Audit Findings</h3>
+          <h3 className="font-black text-sm text-slate-900 dark:text-slate-100" style={{ fontSize: '13pt' }}>Audit Findings</h3>
           <p className="leading-relaxed">
             The following audit findings are gained during the audit and will assist the university in preparing for the next stage of the external audit.
           </p>
@@ -507,7 +507,7 @@ export function ConsolidatedAuditReportTemplate({
         <h3 className="font-black text-sm uppercase border-b border-black pb-1 flex items-center gap-2" style={{ fontSize: '13pt' }}>
           V. Auditor Team Conclusion
         </h3>
-        <div className="border border-black p-6 min-h-[150px] leading-relaxed italic text-slate-700">
+        <div className="border border-black p-6 min-h-[150px] leading-relaxed italic text-slate-700 dark:text-slate-300">
           Based on the objective evidence collected across the university units, the Internal Quality Audit team concludes that the Romblon State University Educational Organizations Management System (EOMS) is...
         </div>
       </section>
@@ -534,7 +534,7 @@ export function ConsolidatedAuditReportTemplate({
       </div>
 
       {/* FOOTER */}
-      <div className="mt-16 pt-4 border-t border-slate-200 flex justify-between items-center text-[10pt] text-slate-400 italic uppercase tracking-widest">
+      <div className="mt-16 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[10pt] text-slate-400 italic uppercase tracking-widest">
         <span>RSU-QAO-CONSOLIDATED-AUDIT-REPORT | REV 03-2025</span>
         <span className="font-bold">Authenticated Institutional Record</span>
         <span>Generated via RSU EOMS Portal</span>

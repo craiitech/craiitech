@@ -398,7 +398,7 @@ export function ActionableDecisionsTab({
     { id: 'urgent-high', label: 'High Impact & Urgent', sub: 'Act Now', color: 'border-red-300 bg-red-50/40', labelColor: 'text-red-700' },
     { id: 'not-urgent-high', label: 'High Impact, Not Urgent', sub: 'Plan & Schedule', color: 'border-amber-300 bg-amber-50/40', labelColor: 'text-amber-700' },
     { id: 'urgent-low', label: 'Low Impact & Urgent', sub: 'Delegate', color: 'border-blue-300 bg-blue-50/40', labelColor: 'text-blue-700' },
-    { id: 'not-urgent-low', label: 'Low Impact, Not Urgent', sub: 'Monitor', color: 'border-slate-200 bg-slate-50/40', labelColor: 'text-slate-600' },
+    { id: 'not-urgent-low', label: 'Low Impact, Not Urgent', sub: 'Monitor', color: 'border-slate-200 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40', labelColor: 'text-slate-600 dark:text-slate-400' },
   ] as const;
 
   return (
@@ -437,7 +437,7 @@ export function ActionableDecisionsTab({
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{metric.label}</p>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none" aria-label={`Information for ${metric.label}`}>
+                      <button className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none" aria-label={`Information for ${metric.label}`}>
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
@@ -453,7 +453,7 @@ export function ActionableDecisionsTab({
                     {metric.value}%
                   </span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
                   <div
                     className={cn('h-full rounded-full transition-all duration-500', metric.value >= 75 ? 'bg-emerald-500' : metric.value >= 50 ? 'bg-amber-500' : 'bg-red-500')}
                     style={{ width: `${metric.value}%` }}
@@ -461,7 +461,7 @@ export function ActionableDecisionsTab({
                 </div>
               </div>
               <div className="mt-auto space-y-1">
-                <p className="text-[10px] font-black text-slate-700 leading-tight">
+                <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
                   {metric.breakdownLabel}
                 </p>
                 <p className="text-[9px] text-slate-400 font-bold leading-tight">
@@ -499,7 +499,7 @@ export function ActionableDecisionsTab({
                       <div key={flag.id} className="flex items-start gap-2">
                         <span className="text-xs">{SEVERITY_CONFIG[flag.severity].icon}</span>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black text-slate-700 leading-tight">{flag.title}</p>
+                          <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">{flag.title}</p>
                           <p className="text-[9px] font-bold text-muted-foreground">{flag.value}</p>
                         </div>
                       </div>
@@ -523,7 +523,7 @@ export function ActionableDecisionsTab({
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Flag className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">All Decision Flags</h3>
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">All Decision Flags</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {flags.map(flag => {
@@ -549,7 +549,7 @@ export function ActionableDecisionsTab({
                           {flag.icon}
                         </div>
                         <div className="min-w-0">
-                          <h4 className="text-[11px] font-black uppercase text-slate-800 leading-tight truncate">{flag.title}</h4>
+                          <h4 className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200 leading-tight truncate">{flag.title}</h4>
                           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5">{flag.sourceInfo}</span>
                         </div>
                       </div>
@@ -566,14 +566,14 @@ export function ActionableDecisionsTab({
                     </div>
 
                     {/* Description / Definition Block */}
-                    <div className="bg-white/80 p-3 rounded-lg border border-slate-200/50 space-y-2">
-                      <p className="text-[10px] text-slate-600 font-bold leading-relaxed">
+                    <div className="bg-white/80 p-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 space-y-2">
+                      <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">
                         {flag.description}
                       </p>
-                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-200/60">
+                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
                         <Layers className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                          Data Label: <span className="text-slate-700 normal-case font-extrabold">{flag.breakdownLabel}</span>
+                          Data Label: <span className="text-slate-700 dark:text-slate-300 normal-case font-extrabold">{flag.breakdownLabel}</span>
                         </p>
                       </div>
                     </div>
@@ -594,7 +594,7 @@ export function ActionableDecisionsTab({
                     </div>
                     <div className="min-w-0">
                       <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Decision Recommendation</p>
-                      <p className="text-[10px] text-slate-600 font-bold leading-normal">
+                      <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold leading-normal">
                         {flag.recommendation}
                       </p>
                     </div>

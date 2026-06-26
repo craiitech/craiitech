@@ -165,7 +165,7 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
         <Card className="border-primary/20 shadow-sm overflow-hidden">
             <CardHeader className="bg-muted/30 border-b py-4 flex flex-row items-center justify-between">
             <div className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
                 <GraduationCap className="h-4 w-4 text-primary" />
                 Major-Disaggregated Graduation Registry
                 </CardTitle>
@@ -237,7 +237,7 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
         <Card className="shadow-sm border-primary/10 overflow-hidden">
             <CardHeader className="bg-muted/30 border-b py-4 flex flex-row items-center justify-between">
             <div className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
                 <BarChart3 className="h-4 w-4 text-primary" />
                 Disaggregated Tracer Study Log
                 </CardTitle>

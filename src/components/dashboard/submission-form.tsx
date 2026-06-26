@@ -687,8 +687,8 @@ export function SubmissionForm({
                                         <div className="flex gap-3">
                                             <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">1</div>
                                             <div className="space-y-1">
-                                                <p className="text-[11px] font-black uppercase text-slate-800">Module Access</p>
-                                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Module Access</p>
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">
                                                     Open the <strong>Risk & Opportunity Registry</strong> from the main menu.
                                                 </p>
                                             </div>
@@ -696,8 +696,8 @@ export function SubmissionForm({
                                         <div className="flex gap-3">
                                             <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">2</div>
                                             <div className="space-y-1">
-                                                <p className="text-[11px] font-black uppercase text-slate-800">Balanced Registry</p>
-                                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Balanced Registry</p>
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">
                                                     Ensure at least one <strong>Risk</strong> and one <strong>Opportunity</strong> are registered for your unit.
                                                 </p>
                                             </div>
@@ -707,8 +707,8 @@ export function SubmissionForm({
                                         <div className="flex gap-3">
                                             <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">3</div>
                                             <div className="space-y-1">
-                                                <p className="text-[11px] font-black uppercase text-slate-800">Baseline Analysis</p>
-                                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Baseline Analysis</p>
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium italic">
                                                     For each entry, populate <strong>Section #2 (Initial Baseline)</strong> to match your ROR document exactly.
                                                 </p>
                                             </div>
@@ -716,8 +716,8 @@ export function SubmissionForm({
                                         <div className="flex gap-3">
                                             <div className="h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center text-[10px] font-black text-destructive shrink-0">4</div>
                                             <div className="space-y-1">
-                                                <p className="text-[11px] font-black uppercase text-slate-800">Final Validation</p>
-                                                <p className="text-[10px] text-slate-900 leading-relaxed font-bold">
+                                                <p className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">Final Validation</p>
+                                                <p className="text-[10px] text-slate-900 dark:text-slate-100 leading-relaxed font-bold">
                                                     Return to this page to complete your document upload once the digital entries are verified.
                                                 </p>
                                             </div>
@@ -745,18 +745,18 @@ export function SubmissionForm({
                         Institutional quality standards require all Risks and Opportunities from the previous academic year (**AY {year - 1}**) to be marked as **Closed** before you can submit a new registry for **AY {year}**.
                     </p>
                     <div className="p-3 bg-white/95 rounded-lg border border-destructive/20 max-w-xl">
-                        <p className="text-[10px] font-black uppercase text-slate-800 tracking-wider mb-2 flex items-center gap-1">
+                        <p className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider mb-2 flex items-center gap-1">
                             <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                             Unclosed Register Entries ({unclosedPreviousRisks.length}):
                         </p>
                         <div className="max-h-36 overflow-y-auto space-y-1.5 pr-2">
                             {unclosedPreviousRisks.map((r) => (
-                                <div key={r.id} className="text-[11px] font-bold text-slate-700 bg-destructive/5 p-2 rounded border border-destructive/10 flex items-start justify-between gap-4">
+                                <div key={r.id} className="text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-destructive/5 p-2 rounded border border-destructive/10 flex items-start justify-between gap-4">
                                     <div className="min-w-0 flex-1">
                                         <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase bg-white py-0 h-4 border-destructive/30 text-destructive mb-1">
                                             {r.type}
                                         </Badge>
-                                        <p className="line-clamp-2 text-slate-800 font-medium italic mt-0.5">"{r.description}"</p>
+                                        <p className="line-clamp-2 text-slate-800 dark:text-slate-200 font-medium italic mt-0.5">"{r.description}"</p>
                                     </div>
                                     <Badge className="h-4 text-[9px] font-black shrink-0 bg-amber-500 hover:bg-amber-600 border-none text-white">
                                         {r.status}
@@ -820,18 +820,18 @@ export function SubmissionForm({
                         The Final Submission for the Risk Registry is <strong>BLOCKED</strong> because one or more entries in your digital register for the current year (<strong>AY {year}</strong>) are not marked as <strong>Closed</strong>.
                     </p>
                     <div className="p-3 bg-white/95 rounded-lg border border-destructive/20 max-w-xl">
-                        <p className="text-[10px] font-black uppercase text-slate-800 tracking-wider mb-2 flex items-center gap-1">
+                        <p className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider mb-2 flex items-center gap-1">
                             <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                             Unclosed Register Entries ({unclosedCurrentRisks.length}):
                         </p>
                         <div className="max-h-36 overflow-y-auto space-y-1.5 pr-2">
                             {unclosedCurrentRisks.map((r) => (
-                                <div key={r.id} className="text-[11px] font-bold text-slate-700 bg-destructive/5 p-2 rounded border border-destructive/10 flex items-start justify-between gap-4">
+                                <div key={r.id} className="text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-destructive/5 p-2 rounded border border-destructive/10 flex items-start justify-between gap-4">
                                     <div className="min-w-0 flex-1">
                                         <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase bg-white py-0 h-4 border-destructive/30 text-destructive mb-1">
                                             {r.type}
                                         </Badge>
-                                        <p className="line-clamp-2 text-slate-800 font-medium italic mt-0.5">"{r.description}"</p>
+                                        <p className="line-clamp-2 text-slate-800 dark:text-slate-200 font-medium italic mt-0.5">"{r.description}"</p>
                                     </div>
                                     <Badge className="h-4 text-[9px] font-black shrink-0 bg-amber-500 hover:bg-amber-600 border-none text-white">
                                         {r.status}

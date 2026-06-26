@@ -999,7 +999,7 @@ export default function VisitorLogbookPage() {
           </button>
 
           {pendingSyncCount > 0 && (
-            <div className="flex items-center gap-2 bg-amber-500 text-slate-950 px-4 py-1.5 rounded-full shadow-lg border border-amber-400 animate-pulse">
+            <div className="flex items-center gap-2 bg-amber-500 text-slate-950 dark:text-white px-4 py-1.5 rounded-full shadow-lg border border-amber-400 animate-pulse">
               <div className="h-2 w-2 rounded-full bg-slate-950 animate-ping" />
               <span className="text-[9px] font-black uppercase tracking-widest">
                 {pendingSyncCount} Sync Pending
@@ -1144,13 +1144,13 @@ export default function VisitorLogbookPage() {
         {/* Middle column: Form Card */}
         <div className="w-full xl:w-[36%] max-w-md flex flex-col h-full justify-stretch">
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden h-full flex flex-col">
-            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4 md:p-5 shrink-0">
+            <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 p-4 md:p-5 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                   <ClipboardList className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800">Sign In</CardTitle>
+                  <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Sign In</CardTitle>
                   <CardDescription className="text-slate-500 text-[10px] font-bold uppercase mt-0.5">Please log your credentials below</CardDescription>
                 </div>
               </div>
@@ -1161,7 +1161,7 @@ export default function VisitorLogbookPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Visitor Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Your Full Name
                     </Label>
                     <div className="relative">
@@ -1173,14 +1173,14 @@ export default function VisitorLogbookPage() {
                         value={visitorName}
                         onChange={(e) => setVisitorName(e.target.value)}
                         required
-                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                        className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Sex Selection */}
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Sex
                     </Label>
                     <div className="grid grid-cols-3 gap-2.5">
@@ -1190,7 +1190,7 @@ export default function VisitorLogbookPage() {
                         className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'Male'
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
-                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         Male
@@ -1201,7 +1201,7 @@ export default function VisitorLogbookPage() {
                         className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'Female'
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
-                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         Female
@@ -1212,7 +1212,7 @@ export default function VisitorLogbookPage() {
                         className={`h-11 rounded-xl font-bold text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'LGBTQA+'
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
-                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         LGBTQA+
@@ -1224,7 +1224,7 @@ export default function VisitorLogbookPage() {
                   <div className="space-y-4">
                     {unitCsmSettingsDoc?.services && unitCsmSettingsDoc.services.length > 0 ? (
                       <div className="space-y-2 animate-in fade-in duration-300">
-                        <Label htmlFor="purposeSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                        <Label htmlFor="purposeSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                           Purpose of Visit
                         </Label>
                         <div className="relative">
@@ -1241,7 +1241,7 @@ export default function VisitorLogbookPage() {
                               }
                             }}
                             required
-                            className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                            className="w-full h-12 px-3 pl-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
                           >
                             <option value="">-- SELECT PURPOSE OF VISIT --</option>
                             {unitCsmSettingsDoc.services.map((svc: string) => (
@@ -1253,7 +1253,7 @@ export default function VisitorLogbookPage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                        <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                           Purpose of Visit
                         </Label>
                         <div className="relative">
@@ -1265,7 +1265,7 @@ export default function VisitorLogbookPage() {
                             value={purpose}
                             onChange={(e) => setPurpose(e.target.value)}
                             required
-                            className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                            className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                           />
                         </div>
                       </div>
@@ -1273,7 +1273,7 @@ export default function VisitorLogbookPage() {
 
                     {selectedService === 'Others' && (
                       <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                        <Label htmlFor="customPurpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                        <Label htmlFor="customPurpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                           Please specify your purpose
                         </Label>
                         <div className="relative">
@@ -1285,7 +1285,7 @@ export default function VisitorLogbookPage() {
                             value={purpose}
                             onChange={(e) => setPurpose(e.target.value)}
                             required
-                            className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                            className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                           />
                         </div>
                       </div>
@@ -1294,7 +1294,7 @@ export default function VisitorLogbookPage() {
 
                   {/* Looking For */}
                   <div className="space-y-2">
-                    <Label htmlFor="lookingForSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    <Label htmlFor="lookingForSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Who are you looking for?
                     </Label>
                     <div className="relative">
@@ -1314,7 +1314,7 @@ export default function VisitorLogbookPage() {
                               }
                             }}
                             required
-                            className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                            className="w-full h-12 px-3 pl-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
                           >
                             <option value="">-- SELECT PERSONNEL --</option>
                             {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
@@ -1325,7 +1325,7 @@ export default function VisitorLogbookPage() {
 
                           {selectedLookingFor === 'Others' && (
                             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                              <Label htmlFor="customLookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                              <Label htmlFor="customLookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                                 Please specify the person you are looking for
                               </Label>
                               <div className="relative">
@@ -1337,7 +1337,7 @@ export default function VisitorLogbookPage() {
                                   value={lookingFor}
                                   onChange={(e) => setLookingFor(e.target.value)}
                                   required
-                                  className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all font-bold text-xs uppercase"
+                                  className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all font-bold text-xs uppercase"
                                 />
                               </div>
                             </div>
@@ -1351,7 +1351,7 @@ export default function VisitorLogbookPage() {
                           value={lookingFor}
                           onChange={(e) => setLookingFor(e.target.value)}
                           required
-                          className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                          className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                         />
                       )}
                     </div>
@@ -1372,10 +1372,10 @@ export default function VisitorLogbookPage() {
                     <CheckCircle2 className="h-10 w-10 text-emerald-600 animate-pulse" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-black uppercase text-slate-800">Thank You!</h3>
+                    <h3 className="text-xl font-black uppercase text-slate-800 dark:text-slate-200">Thank You!</h3>
                     <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Your visit has been logged.</p>
                   </div>
-                  <p className="text-sm font-medium text-slate-600 max-w-xs pt-2">
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 max-w-xs pt-2">
                     Please take a seat. Staff from <span className="font-bold text-emerald-600">{officeName}</span> will assist you shortly.
                   </p>
                 </div>
@@ -1387,13 +1387,13 @@ export default function VisitorLogbookPage() {
         {/* Right column: Active Visitors Card */}
         <div className="w-full xl:w-[36%] max-w-md flex flex-col h-full justify-stretch gap-4">
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden flex-1 min-h-0 flex flex-col">
-            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4 shrink-0">
+            <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 p-4 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                   <Users2 className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800">Active Visitors</CardTitle>
+                  <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Active Visitors</CardTitle>
                   <CardDescription className="text-slate-500 text-[10px] font-bold uppercase mt-0.5">Currently in the Office</CardDescription>
                 </div>
               </div>
@@ -1407,11 +1407,11 @@ export default function VisitorLogbookPage() {
                 </div>
               ) : displayedActiveVisitors.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-12 space-y-3">
-                  <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                  <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400">
                     <User className="h-6 w-6 opacity-40" />
                   </div>
                   <div>
-                    <p className="text-xs font-black uppercase text-slate-700">No visitors logged in</p>
+                    <p className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">No visitors logged in</p>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">The visitor queue is currently empty.</p>
                   </div>
                 </div>
@@ -1431,15 +1431,15 @@ export default function VisitorLogbookPage() {
                           "flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left",
                           isMobilePending
                             ? "bg-amber-50/70 border-amber-200 hover:border-amber-300"
-                            : "bg-slate-50 border-slate-100 hover:border-slate-200"
+                            : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-700"
                         )}
                       >
                         <div className="space-y-1">
-                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">{visitor.name}</h4>
+                          <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{visitor.name}</h4>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                            <span>Time-in: <span className="font-mono text-slate-700">{timeInStr}</span></span>
+                            <span>Time-in: <span className="font-mono text-slate-700 dark:text-slate-300">{timeInStr}</span></span>
                             <span>&bull;</span>
-                            <span className="truncate max-w-[130px]">To Meet: <span className="text-slate-700">{visitor.lookingFor}</span></span>
+                            <span className="truncate max-w-[130px]">To Meet: <span className="text-slate-700 dark:text-slate-300">{visitor.lookingFor}</span></span>
                           </div>
                         </div>
                         {isMobilePending ? (
@@ -1474,7 +1474,7 @@ export default function VisitorLogbookPage() {
                       <Clock className="h-4.5 w-4.5 animate-pulse" />
                     </div>
                     <div>
-                      <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-800">Checked Out</CardTitle>
+                      <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Checked Out</CardTitle>
                       <CardDescription className="text-amber-600 text-[9px] font-bold uppercase leading-none mt-0.5">Sync Pending (Offline)</CardDescription>
                     </div>
                   </div>
@@ -1494,11 +1494,11 @@ export default function VisitorLogbookPage() {
                       className="flex items-center justify-between p-3 rounded-2xl bg-white border border-amber-100/70"
                     >
                       <div className="space-y-0.5">
-                        <h4 className="text-xs font-black text-slate-700 uppercase tracking-tight">
+                        <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">
                           {logout.visitorName || 'Registered Visitor'}
                         </h4>
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          Checked out at: <span className="font-mono text-slate-600">{timeOutStr}</span>
+                          Checked out at: <span className="font-mono text-slate-600 dark:text-slate-400">{timeOutStr}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 text-amber-700 text-[8px] font-black uppercase tracking-widest">
@@ -1519,12 +1519,12 @@ export default function VisitorLogbookPage() {
           <div className="bg-white border border-[#D4AF37]/30 shadow-2xl rounded-3xl p-6 md:p-8 max-w-3xl w-full animate-in zoom-in-95 duration-300">
             
             {/* Header */}
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
               <div className="h-10 w-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border border-amber-200 shrink-0">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
                 {pendingMobileVisitor.source === 'mobile' ? 'Send CSM to Visitor\'s Mobile?' : 'Complete CSM Evaluation'}
               </h3>
                 <p className="text-sm font-semibold text-slate-500">
@@ -1573,7 +1573,7 @@ export default function VisitorLogbookPage() {
                     openCsmOverlay(pendingMobileVisitor);
                     setPendingMobileVisitor(null);
                   }}
-                  className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200"
+                  className="w-full h-12 font-black uppercase tracking-widest text-xs rounded-xl border-slate-200 dark:border-slate-700"
                 >
                   No, Show Survey Here
                 </Button>
@@ -1596,17 +1596,17 @@ export default function VisitorLogbookPage() {
                     setShowMobileCsmDialog(false);
                     setPendingMobileVisitor(null);
                   }}
-                  className="w-full h-12 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600"
+                  className="w-full h-12 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:text-slate-400"
                 >
                   Skip & Logout Only
                 </Button>
               </div>
 
               {/* Right column: QR Code + Link */}
-              <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+              <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
                 
-                <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
+                <div className="bg-white p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
                   {csmQrUrl ? (
                     <img
                       src={csmQrUrl}
@@ -1621,9 +1621,9 @@ export default function VisitorLogbookPage() {
                 </div>
 
                 {/* CSM Link Display */}
-                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 truncate">
+                <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 truncate">
                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
-                  <p className="text-[10px] font-mono text-slate-700 truncate">
+                  <p className="text-[10px] font-mono text-slate-700 dark:text-slate-300 truncate">
                     {typeof window !== 'undefined' && userProfile
                       ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
                       : 'Loading...'}
@@ -1682,7 +1682,7 @@ export default function VisitorLogbookPage() {
                         });
                       }
                     }}
-                    className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200"
+                    className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200 dark:border-slate-700"
                   >
                     Copy Online CSM Link
                   </Button>
@@ -1709,14 +1709,14 @@ export default function VisitorLogbookPage() {
                   {t[csmLanguage].helpUs.replace('{name}', activeSurveyVisitor.name)}
                 </p>
               </div>
-              <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0">
+              <div className="flex bg-slate-100 dark:bg-slate-700 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
                 <button
                   type="button"
                   onClick={() => setCsmLanguage('EN')}
                   className={`px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
                     csmLanguage === 'EN'
-                      ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   English
@@ -1726,8 +1726,8 @@ export default function VisitorLogbookPage() {
                   onClick={() => setCsmLanguage('FIL')}
                   className={`px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
                     csmLanguage === 'FIL'
-                      ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white text-[#1B6535] shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   Tagalog
@@ -1745,7 +1745,7 @@ export default function VisitorLogbookPage() {
                 <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                   getBlinkingField() === 'ageGroup' ? 'animate-blink-border' : 'border-transparent'
                 }`}>
-                  <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                  <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1">
                     {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -1757,7 +1757,7 @@ export default function VisitorLogbookPage() {
                         className={`px-4 py-2 rounded-xl border text-sm sm:text-base font-bold uppercase tracking-wide transition-all ${
                           csmAgeGroup === age
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-sm'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         {age === 'Below 20' ? t[csmLanguage].ageUnder : age === '65 and above' ? t[csmLanguage].ageOver : age}
@@ -1770,7 +1770,7 @@ export default function VisitorLogbookPage() {
                 <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                   getBlinkingField() === 'clientType' ? 'animate-blink-border' : 'border-transparent'
                 }`}>
-                  <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                  <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1">
                     {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -1782,7 +1782,7 @@ export default function VisitorLogbookPage() {
                         className={`px-4 py-2 rounded-xl border text-sm sm:text-base font-bold uppercase tracking-wide transition-all ${
                           csmClientType === type
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-sm'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         {type}
@@ -1803,7 +1803,7 @@ export default function VisitorLogbookPage() {
               <div className={`space-y-2 p-4 rounded-2xl border transition-all ${
                 getBlinkingField() === 'cc1' ? 'animate-blink-border' : 'border-transparent'
               }`}>
-                <p className="text-sm sm:text-base font-black text-slate-800">
+                <p className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-200">
                   {t[csmLanguage].cc1Q} <span className="text-rose-500">*</span>
                 </p>
                 <div className="grid grid-cols-1 gap-2">
@@ -1829,7 +1829,7 @@ export default function VisitorLogbookPage() {
                       className={`text-left p-3.5 rounded-xl border text-sm sm:text-base font-bold transition-all ${
                         csmCC1 === opt.val
                           ? 'bg-[#1B6535]/10 text-[#1B6535] border-[#1B6535] font-black'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       {opt.label}
@@ -1845,7 +1845,7 @@ export default function VisitorLogbookPage() {
                   <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                     getBlinkingField() === 'cc2' ? 'animate-blink-border' : 'border-transparent'
                   }`}>
-                    <p className="text-sm sm:text-base font-black text-slate-800">
+                    <p className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-200">
                       {t[csmLanguage].cc2Q} <span className="text-rose-500">*</span>
                     </p>
                     <div className="grid grid-cols-1 gap-1.5">
@@ -1862,7 +1862,7 @@ export default function VisitorLogbookPage() {
                           className={`text-left px-4 py-2.5 rounded-xl border text-sm sm:text-base font-bold transition-all ${
                             csmCC2 === opt.val
                               ? 'bg-[#1B6535]/15 text-[#1B6535] border-[#1B6535]'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {opt.label}
@@ -1875,7 +1875,7 @@ export default function VisitorLogbookPage() {
                   <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
                     getBlinkingField() === 'cc3' ? 'animate-blink-border' : 'border-transparent'
                   }`}>
-                    <p className="text-sm sm:text-base font-black text-slate-800">
+                    <p className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-200">
                       {t[csmLanguage].cc3Q} <span className="text-rose-500">*</span>
                     </p>
                     <div className="grid grid-cols-1 gap-1.5">
@@ -1891,7 +1891,7 @@ export default function VisitorLogbookPage() {
                           className={`text-left px-4 py-2.5 rounded-xl border text-sm sm:text-base font-bold transition-all ${
                             csmCC3 === opt.val
                               ? 'bg-[#1B6535]/15 text-[#1B6535] border-[#1B6535]'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {opt.label}
@@ -1929,9 +1929,9 @@ export default function VisitorLogbookPage() {
                   ];
 
                   return (
-                    <div key={sqd.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+                    <div key={sqd.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-3">
                       <div>
-                        <p className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-tight">{sqd.label}</p>
+                        <p className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{sqd.label}</p>
                         <p className="text-xs sm:text-sm font-bold text-slate-500 mt-0.5">{sqd.desc}</p>
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1945,7 +1945,7 @@ export default function VisitorLogbookPage() {
                               className={`flex flex-col items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl border transition-all active:scale-95 ${
                                 sqd.val === opt.rating
                                   ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md scale-105'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-30'
+                                  : 'bg-white text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30'
                               }`}
                               title={opt.label}
                             >
@@ -1962,7 +1962,7 @@ export default function VisitorLogbookPage() {
                             className={`px-4 h-16 sm:h-20 rounded-2xl border text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all ${
                               sqd.val === 0
                                 ? 'bg-amber-500 text-white border-amber-500 shadow-md'
-                                : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-100'
+                                : 'bg-white text-slate-650 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                           >
                             {t[csmLanguage].na}
@@ -1977,7 +1977,7 @@ export default function VisitorLogbookPage() {
 
             {/* Comments */}
             <div className="space-y-2">
-              <label htmlFor="csmComments" className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700">
+              <label htmlFor="csmComments" className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 {t[csmLanguage].comments}
               </label>
               <textarea
@@ -1986,7 +1986,7 @@ export default function VisitorLogbookPage() {
                 placeholder={t[csmLanguage].commentsPlaceholder}
                 value={csmComments}
                 onChange={(e) => setCsmComments(e.target.value)}
-                className="w-full p-3.5 bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm sm:text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
+                className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm sm:text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
               />
             </div>
 
@@ -1997,7 +1997,7 @@ export default function VisitorLogbookPage() {
                 variant="ghost"
                 disabled={isSubmittingCsm}
                 onClick={() => submitCsmCheckout(true)}
-                className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-500 hover:text-slate-750 hover:bg-slate-100 rounded-xl px-4 py-2"
+                className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-500 hover:text-slate-750 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl px-4 py-2"
               >
                 {t[csmLanguage].skip}
               </Button>
@@ -2096,7 +2096,7 @@ export default function VisitorLogbookPage() {
                   console.warn('Failed to resume fullscreen:', err);
                 }
               }}
-              className="w-full h-12 bg-gradient-to-r from-[#D4AF37] to-[#bfa032] hover:from-[#e5bd3c] hover:to-[#d4af37] text-slate-950 font-black uppercase tracking-widest shadow-lg shadow-[#D4AF37]/20 active:scale-95 transition-all duration-150 border-none rounded-xl"
+              className="w-full h-12 bg-gradient-to-r from-[#D4AF37] to-[#bfa032] hover:from-[#e5bd3c] hover:to-[#d4af37] text-slate-950 dark:text-white font-black uppercase tracking-widest shadow-lg shadow-[#D4AF37]/20 active:scale-95 transition-all duration-150 border-none rounded-xl"
             >
               Resume Kiosk Mode
             </Button>

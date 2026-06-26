@@ -267,7 +267,7 @@ export function AuditorScheduleList({
             <TableRow key={schedule.id} className="hover:bg-muted/10 transition-colors">
                 <TableCell className="pl-6 py-4">
                     <div className="flex flex-col">
-                        <span className="font-black text-xs text-slate-700">{format(parseDate(schedule.scheduledDate), 'MM/dd/yyyy')}</span>
+                        <span className="font-black text-xs text-slate-700 dark:text-slate-300">{format(parseDate(schedule.scheduledDate), 'MM/dd/yyyy')}</span>
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
                             <Clock className="h-2.5 w-2.5" />
                             {format(parseDate(schedule.scheduledDate), 'hh:mm a')}
@@ -277,7 +277,7 @@ export function AuditorScheduleList({
                 </TableCell>
                 <TableCell>
                     <div className="flex flex-col gap-1">
-                        <span className="text-xs font-bold text-slate-800 leading-tight">{getAuditeeName(schedule)}</span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{getAuditeeName(schedule)}</span>
                         {schedule.auditeeHeadName && (
                             <div className="flex items-center gap-1.5 opacity-60">
                                 <User className="h-2.5 w-2.5" />

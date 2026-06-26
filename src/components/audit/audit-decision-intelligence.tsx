@@ -513,7 +513,7 @@ export function IqaDecisionIntelligence({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Siren className="h-4 w-4 text-red-500" />
-              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700">Priority Action Items</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Priority Action Items</h4>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {recommendations.filter(r => r.priority === 'critical' || r.priority === 'high').map((rec, i) => (
@@ -529,7 +529,7 @@ export function IqaDecisionIntelligence({
                           rec.priority === 'critical' ? 'text-red-600 bg-red-100' : 'text-amber-600 bg-amber-100'
                         )}>{rec.icon}</span>
                         <div>
-                          <p className="text-[10px] font-black text-slate-800">{rec.title}</p>
+                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{rec.title}</p>
                           <Badge className={cn(
                             'text-[7px] font-black uppercase tracking-widest mt-0.5',
                             rec.priority === 'critical' ? 'bg-red-600' : 'bg-amber-500'
@@ -537,10 +537,10 @@ export function IqaDecisionIntelligence({
                         </div>
                       </div>
                     </div>
-                    <p className="text-[9px] text-slate-600 font-medium leading-relaxed mb-2">{rec.rationale}</p>
-                    <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50">
+                    <p className="text-[9px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-2">{rec.rationale}</p>
+                    <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                       <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Recommended Action</p>
-                      <p className="text-[9px] text-slate-700 font-bold leading-relaxed">{rec.action}</p>
+                      <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">{rec.action}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -646,7 +646,7 @@ export function IqaDecisionIntelligence({
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                    <button className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none">
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
@@ -661,7 +661,7 @@ export function IqaDecisionIntelligence({
               <div className="divide-y divide-slate-100">
                 {unitScores.slice(0, 10).map((unit, i) => (
                   <div key={unit.unitId} className={cn(
-                    'flex items-center gap-3 p-3 hover:bg-slate-50/50 transition-colors',
+                    'flex items-center gap-3 p-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors',
                     unit.grade === 'D' && 'bg-red-50/30',
                     unit.grade === 'C' && 'bg-amber-50/20',
                   )}>
@@ -674,7 +674,7 @@ export function IqaDecisionIntelligence({
                     )}>{unit.grade}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[10px] font-black text-slate-800 truncate">{unit.unitName}</p>
+                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">{unit.unitName}</p>
                         <span className="text-[7px] text-slate-400 font-bold">{unit.campusName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[8px] font-bold text-slate-500 mt-0.5">
@@ -698,7 +698,7 @@ export function IqaDecisionIntelligence({
                 ))}
               </div>
               {unitScores.length > 10 && (
-                <p className="text-center text-[8px] text-slate-400 font-bold py-2 border-t border-slate-100">
+                <p className="text-center text-[8px] text-slate-400 font-bold py-2 border-t border-slate-100 dark:border-slate-700">
                   + {unitScores.length - 10} more units
                 </p>
               )}
@@ -774,7 +774,7 @@ export function IqaDecisionIntelligence({
                         <TrendingUp className="h-3 w-3" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black text-slate-800 truncate">{item.unitName}</p>
+                        <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 truncate">{item.unitName}</p>
                         <p className="text-[8px] text-slate-500 font-bold">{item.clauseTitle}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 text-[8px] font-bold">
@@ -815,7 +815,7 @@ export function IqaDecisionIntelligence({
                         {issue.severity === 'critical' ? <AlertTriangle className="h-3 w-3" /> : <Flag className="h-3 w-3" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black text-slate-800 truncate">{issue.unitName}</p>
+                        <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 truncate">{issue.unitName}</p>
                         <p className="text-[8px] text-slate-500 font-bold">{issue.clauseTitle}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 text-[8px] font-bold">
@@ -850,7 +850,7 @@ export function IqaDecisionIntelligence({
                   <div key={i} className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <p className="text-[10px] font-black text-slate-800">{cat.name}</p>
+                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{cat.name}</p>
                         <span className="text-[8px] text-slate-400 font-bold">({cat.total} findings)</span>
                       </div>
                       <span className={cn(
@@ -904,7 +904,7 @@ export function IqaDecisionIntelligence({
                       <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-bold text-slate-700 leading-relaxed mb-1">
+                      <p className="text-[9px] font-bold text-slate-700 dark:text-slate-300 leading-relaxed mb-1">
                         {nc.description.length > 120 ? nc.description.slice(0, 120) + '...' : nc.description}
                       </p>
                       <div className="flex items-center gap-3 text-[7px] font-bold text-slate-500">
@@ -944,7 +944,7 @@ export function IqaDecisionIntelligence({
                   rec.priority === 'critical' ? 'border-red-200 bg-red-50/40' :
                   rec.priority === 'high' ? 'border-amber-200 bg-amber-50/30' :
                   rec.priority === 'medium' ? 'border-blue-200 bg-blue-50/30' :
-                  'border-slate-200 bg-slate-50/30'
+                  'border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30'
                 )}>
                   <div className="flex items-start gap-3">
                     <div className={cn(
@@ -956,7 +956,7 @@ export function IqaDecisionIntelligence({
                     )}>{rec.icon}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[10px] font-black text-slate-800">{rec.title}</p>
+                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{rec.title}</p>
                         <Badge className={cn(
                           'text-[7px] font-black uppercase tracking-widest',
                           rec.priority === 'critical' ? 'bg-red-600' :
@@ -966,9 +966,9 @@ export function IqaDecisionIntelligence({
                         )}>{rec.priority}</Badge>
                       </div>
                       <p className="text-[9px] text-slate-500 font-medium mb-2">{rec.rationale}</p>
-                      <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50">
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                         <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Recommended Action</p>
-                        <p className="text-[9px] text-slate-700 font-bold leading-relaxed">{rec.action}</p>
+                        <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">{rec.action}</p>
                       </div>
                     </div>
                   </div>

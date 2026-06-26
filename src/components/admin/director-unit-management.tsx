@@ -49,7 +49,7 @@ const newUnitSchema = z.object({
 
 const categoryColors: Record<string, string> = {
     'Academic': 'bg-blue-100 text-blue-700 border-blue-200',
-    'Administrative': 'bg-slate-100 text-slate-700 border-slate-200',
+    'Administrative': 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
     'Research': 'bg-purple-100 text-purple-700 border-purple-200',
     'Support': 'bg-amber-100 text-amber-700 border-amber-200',
 };
