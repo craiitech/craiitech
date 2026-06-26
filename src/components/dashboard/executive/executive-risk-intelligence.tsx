@@ -66,13 +66,6 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
   const [riskFilter, setRiskFilter] = useState<'all' | 'open' | 'ongoing' | 'closed'>('all');
 
   // ---- SECTION 1: Risk Statement Register ----
-  const filteredRegister = useMemo(() => {
-    if (riskFilter === 'open') return riskRegister.filter(r => r.status !== 'Closed');
-    if (riskFilter === 'ongoing') return riskRegister.filter(r => r.status === 'In Progress');
-    if (riskFilter === 'closed') return riskRegister.filter(r => r.status === 'Closed');
-    return riskRegister;
-  }, [riskRegister, riskFilter]);
-
   const riskRegister = useMemo(() => {
     return risksOnly.map(r => {
       const unitName = unitMap.get(r.unitId) || r.unitId;
@@ -108,6 +101,13 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
       };
     });
   }, [risksOnly, unitMap, campusMap]);
+
+  const filteredRegister = useMemo(() => {
+    if (riskFilter === 'open') return riskRegister.filter(r => r.status !== 'Closed');
+    if (riskFilter === 'ongoing') return riskRegister.filter(r => r.status === 'In Progress');
+    if (riskFilter === 'closed') return riskRegister.filter(r => r.status === 'Closed');
+    return riskRegister;
+  }, [riskRegister, riskFilter]);
 
   // ---- SECTION 2: Institutional Objective Risk Map ----
   const objectiveRiskMap = useMemo(() => {
