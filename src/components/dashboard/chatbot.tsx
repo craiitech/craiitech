@@ -159,7 +159,7 @@ export function Chatbot() {
       
       const welcomeContent = (
         <div className="space-y-3">
-          <p className="font-semibold">Hello! I am the RSU EOMS Support Agent. How can I help you today?</p>
+          <p className="font-semibold">Good day, {userProfile?.unitName || 'esteemed colleague'}, I am your EOMS Support Agent — your AI-powered quality management companion. How may I assist you today?</p>
           {pageHelp && (
             <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 mt-2 space-y-2 animate-in fade-in zoom-in duration-300">
               <p className="text-[10px] text-primary font-black uppercase tracking-wider flex items-center gap-1.5">
@@ -171,7 +171,7 @@ export function Chatbot() {
                 onClick={handleExplainPage} 
                 size="sm" 
                 variant="outline" 
-                className="h-8 w-full text-[9px] font-black uppercase tracking-wider border-primary/20 text-primary bg-white hover:bg-primary/5"
+                className="h-8 w-full text-[9px] font-black uppercase tracking-wider border-primary/20 text-primary bg-white dark:bg-slate-800 hover:bg-primary/5"
               >
                 Explain This Page
               </Button>
