@@ -105,7 +105,7 @@ export function UnitGroupingExplorer() {
                                                 <Badge 
                                                     key={unit.id} 
                                                     variant="outline" 
-                                                    className="bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] h-7 px-3 flex items-center gap-2 shadow-sm hover:border-primary/40 transition-colors"
+                                                    className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] h-7 px-3 flex items-center gap-2 shadow-sm hover:border-primary/40 transition-colors"
                                                 >
                                                     <Building className="h-3 w-3 opacity-40" />
                                                     {unit.name}

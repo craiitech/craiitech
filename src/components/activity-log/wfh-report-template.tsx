@@ -35,7 +35,7 @@ export function WfhReportTemplate({
   const isTeaching = type === 'Teaching';
 
   return (
-    <div className="p-0 text-black dark:text-white bg-white mx-auto font-sans leading-tight border-none" style={{ width: '7.5in', fontSize: '11pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white dark:bg-slate-900 mx-auto font-sans leading-tight border-none" style={{ width: '7.5in', fontSize: '11pt' }}>
       {/* Header */}
       <div className="text-center mb-4">
         <h1 className="font-black uppercase tracking-widest" style={{ fontSize: '13pt' }}>WORK FROM HOME MONITORING SHEET</h1>

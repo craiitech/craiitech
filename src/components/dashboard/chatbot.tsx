@@ -333,7 +333,7 @@ export function Chatbot() {
                           className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs shadow-sm break-words leading-relaxed ${
                             message.role === 'user'
                               ? 'bg-primary text-primary-foreground font-semibold rounded-tr-none'
-                              : 'bg-white border text-slate-700 dark:text-slate-300 rounded-tl-none font-medium'
+                              : 'bg-white dark:bg-slate-900 border text-slate-700 dark:text-slate-300 rounded-tl-none font-medium'
                           }`}
                         >
                             {message.content}
@@ -367,7 +367,7 @@ export function Chatbot() {
                                     key={i} 
                                     variant="outline" 
                                     size="sm" 
-                                    className="w-auto max-w-full text-left justify-start h-auto py-1.5 px-3 bg-white text-[10px] leading-tight font-bold italic border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all rounded-xl" 
+                                    className="w-auto max-w-full text-left justify-start h-auto py-1.5 px-3 bg-white dark:bg-slate-900 text-[10px] leading-tight font-bold italic border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all rounded-xl" 
                                     onClick={() => handleSend(q)}
                                   >
                                       "{q}"

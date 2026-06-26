@@ -452,7 +452,7 @@ export function ConsolidatedAuditReportTemplate({
   }, [byUnit, unitFilter, schedules, unitMap]);
 
   return (
-    <div className="p-0 text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white dark:bg-slate-900 max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       
       {/* OFFICIAL HEADER TABLE */}
       <table className="w-full border-collapse border-[1.5px] border-slate-400 mb-8">

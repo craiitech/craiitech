@@ -297,7 +297,7 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
             onClick={() => setMode('manual')}
             className={cn(
               "flex-1 text-[9px] font-black uppercase py-1.5 rounded-md transition-all cursor-pointer",
-              mode === 'manual' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800 dark:text-slate-200"
+              mode === 'manual' ? "bg-white dark:bg-slate-900 text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800 dark:text-slate-200"
             )}
           >
             Manual Link
@@ -310,7 +310,7 @@ function AddPlanDocumentButton({ plan, onUpdate }: { plan: AuditPlan; onUpdate: 
             }}
             className={cn(
               "flex-1 text-[9px] font-black uppercase py-1.5 rounded-md transition-all cursor-pointer",
-              mode === 'comm' ? "bg-white text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800 dark:text-slate-200"
+              mode === 'comm' ? "bg-white dark:bg-slate-900 text-primary shadow-xs" : "text-muted-foreground hover:text-slate-800 dark:text-slate-200"
             )}
           >
             Select from EOMS Comms

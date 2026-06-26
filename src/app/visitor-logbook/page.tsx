@@ -1945,7 +1945,7 @@ export default function VisitorLogbookPage() {
                               className={`flex flex-col items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl border transition-all active:scale-95 ${
                                 sqd.val === opt.rating
                                   ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md scale-105'
-                                  : 'bg-white text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30'
+                                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30'
                               }`}
                               title={opt.label}
                             >

@@ -461,7 +461,7 @@ export function ConsolidatedAuditReportTemplate({
       reportYear={plan.year}
       campusLocation="Main Campus, Odiongan, Romblon"
     >
-      <div className="p-0 text-black dark:text-white bg-white max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
+      <div className="p-0 text-black dark:text-white bg-white dark:bg-slate-900 max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
       
       {/* SECTION: AUDIT FINDINGS */}
       <div className="space-y-10">

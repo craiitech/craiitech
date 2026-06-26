@@ -1275,7 +1275,7 @@ export default function UnitActivityPage() {
           <select 
             value={selectedActivityId} 
             onChange={(e) => setSelectedActivityId(e.target.value)}
-            className="h-9 px-3 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md rounded-xl outline-none"
+            className="h-9 px-3 bg-white dark:bg-slate-900 font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md rounded-xl outline-none"
           >
             <option value="all">📁 All activities / logs</option>
             {sortedActivities?.map(act => (
@@ -1853,7 +1853,7 @@ export default function UnitActivityPage() {
                     <select
                       value={selectedSessionIdFilter}
                       onChange={(e) => setSelectedSessionIdFilter(e.target.value)}
-                      className="h-8 px-2 bg-white font-extrabold text-[11px] text-slate-800 dark:text-slate-200 border shadow-sm rounded-xl outline-none"
+                      className="h-8 px-2 bg-white dark:bg-slate-900 font-extrabold text-[11px] text-slate-800 dark:text-slate-200 border shadow-sm rounded-xl outline-none"
                     >
                       <option value="all">📁 All Sessions</option>
                       {activeActivity.sessions.map(s => (
@@ -2446,7 +2446,7 @@ export default function UnitActivityPage() {
 
       {/* EVALUATION STRATEGY WIZARD DIALOG */}
       <Dialog open={isEvalWizardOpen} onOpenChange={setIsEvalWizardOpen}>
-        <DialogContent className="max-w-md bg-white border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
             <DialogTitle className="text-base font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#D4AF37] animate-pulse" />
@@ -2527,7 +2527,7 @@ export default function UnitActivityPage() {
                         "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
                         evalFormMode === 'open' 
                           ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
-                          : "bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       )}
                     >
                       <span className="text-[10px] font-black uppercase">Open/Anonymous</span>
@@ -2540,7 +2540,7 @@ export default function UnitActivityPage() {
                         "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
                         evalFormMode === 'strict' 
                           ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
-                          : "bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       )}
                     >
                       <span className="text-[10px] font-black uppercase">Strict Verification</span>
@@ -2755,7 +2755,7 @@ export default function UnitActivityPage() {
           </DialogHeader>
 
           {/* Scrollable content */}
-          <div id="eval-summary-content" className="overflow-y-auto flex-1 p-6 space-y-8 bg-white text-slate-800 dark:text-slate-200">
+          <div id="eval-summary-content" className="overflow-y-auto flex-1 p-6 space-y-8 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
 
             {/* ---- Cover / Title Block ---- */}
             <div className="text-center space-y-2 pb-6 border-b-2 border-emerald-600">
@@ -3103,7 +3103,7 @@ export default function UnitActivityPage() {
       </Dialog>
 
       <Dialog open={!!selectedEvaluation} onOpenChange={(open) => { if (!open) setSelectedEvaluation(null); }}>
-        <DialogContent className="max-w-2xl bg-white border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
             <DialogTitle className="text-base font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#D4AF37]" />
@@ -3187,7 +3187,7 @@ export default function UnitActivityPage() {
                   <div key={idx} className="p-4 space-y-1.5 hover:bg-slate-100/30 dark:hover:bg-slate-700/30 transition-colors">
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.q}</p>
                     {item.val ? (
-                      <p className="text-xs text-slate-600 dark:text-slate-400 bg-white p-2.5 rounded-lg border shadow-sm whitespace-pre-line leading-relaxed font-medium">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2.5 rounded-lg border shadow-sm whitespace-pre-line leading-relaxed font-medium">
                         {item.val}
                       </p>
                     ) : (

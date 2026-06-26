@@ -641,7 +641,7 @@ export default function SubmissionsPage() {
                                                                                                     <span>{c.authorName} ({c.authorRole})</span>
                                                                                                     <span>{safeFormatDate(c.createdAt)}</span>
                                                                                                 </div>
-                                                                                                <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-relaxed bg-white p-2 rounded border border-slate-100 dark:border-slate-700 italic">"{c.text}"</p>
+                                                                                                <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-700 italic">"{c.text}"</p>
                                                                                             </div>
                                                                                         ))}
                                                                                     </div>

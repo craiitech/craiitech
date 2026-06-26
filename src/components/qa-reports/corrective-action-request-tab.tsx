@@ -1257,7 +1257,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 return d && !isNaN(d.getTime()) ? format(d, 'MMM dd, p') : '';
                                             })()}</span>
                                         </div>
-                                        <div className="bg-white p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700 dark:text-slate-300">
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700 dark:text-slate-300">
                                             "{comment.text}"
                                         </div>
                                         <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">{comment.authorRole}</p>

@@ -1915,7 +1915,7 @@ export function CsmReportDashboard({
           <div className="flex flex-col">
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Data Stream</span>
             <Select value={dataSource} onValueChange={(v: any) => setDataSource(v)}>
-              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
+              <SelectTrigger className="w-[180px] h-9 bg-white dark:bg-slate-900 font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1929,7 +1929,7 @@ export function CsmReportDashboard({
           <div className="flex flex-col">
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Campus Site</span>
             <Select value={localCampusId} onValueChange={(v) => { setLocalCampusId(v); setSelectedUnitId('all'); }} disabled={!hasAccessToAll}>
-              <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
+              <SelectTrigger className="w-[180px] h-9 bg-white dark:bg-slate-900 font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                 <SelectValue placeholder="University-Wide" />
               </SelectTrigger>
               <SelectContent>
@@ -1946,7 +1946,7 @@ export function CsmReportDashboard({
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Office / Unit</span>
             <div className="flex items-center gap-1.5">
               <Select value={selectedUnitId} onValueChange={setSelectedUnitId} disabled={!hasAccessToAll}>
-                <SelectTrigger className="w-[180px] h-9 bg-white font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
+                <SelectTrigger className="w-[180px] h-9 bg-white dark:bg-slate-900 font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                   <SelectValue placeholder="All Units/Offices" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1962,7 +1962,7 @@ export function CsmReportDashboard({
                     placeholder="Search office..."
                     value={unitSearchQuery}
                     onChange={(e) => setUnitSearchQuery(e.target.value)}
-                    className="w-[120px] h-9 bg-white text-[11px] font-extrabold text-slate-800 dark:text-slate-200 border-none shadow-md pl-7 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="w-[120px] h-9 bg-white dark:bg-slate-900 text-[11px] font-extrabold text-slate-800 dark:text-slate-200 border-none shadow-md pl-7 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
                 </div>

@@ -154,7 +154,7 @@ export default function HelpPage() {
                 className={`h-7 px-3.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all hover:scale-[1.02] ${
                   selectedRoleFilter === role.id 
                     ? 'shadow-md shadow-primary/20' 
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white hover:bg-primary/5'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 hover:bg-primary/5'
                 }`}
               >
                 {role.label}

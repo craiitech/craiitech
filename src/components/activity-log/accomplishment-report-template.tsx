@@ -19,7 +19,7 @@ export function AccomplishmentReportTemplate({ activities, userName, unitName, p
   const displayApprover = approverNames.length > 0 ? approverNames[0] : '';
 
   return (
-    <div className="p-0 text-black dark:text-white bg-white mx-auto font-serif leading-tight" style={{ width: '7.5in', fontSize: '12pt' }}>
+    <div className="p-0 text-black dark:text-white bg-white dark:bg-slate-900 mx-auto font-serif leading-tight" style={{ width: '7.5in', fontSize: '12pt' }}>
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-black pb-6">
         <h1 className="text-xl font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>Romblon State University</h1>

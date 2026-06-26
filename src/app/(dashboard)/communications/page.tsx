@@ -1244,7 +1244,7 @@ export default function CommunicationsPage() {
                 type="button"
                 disabled={!!editingCommId}
                 onClick={() => { setCommsMode('digital'); resetForm(); }}
-                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800 dark:text-slate-200", !!editingCommId && "opacity-60 cursor-not-allowed")}
+                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white dark:bg-slate-900 shadow text-slate-850" : "text-slate-500 hover:text-slate-800 dark:text-slate-200", !!editingCommId && "opacity-60 cursor-not-allowed")}
               >
                 Direct Digital Send
               </button>
@@ -1252,7 +1252,7 @@ export default function CommunicationsPage() {
                 type="button"
                 disabled={!!editingCommId}
                 onClick={() => { setCommsMode('manual'); resetForm(); }}
-                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white shadow text-slate-850" : "text-slate-500 hover:text-slate-800 dark:text-slate-200", !!editingCommId && "opacity-60 cursor-not-allowed")}
+                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white dark:bg-slate-900 shadow text-slate-850" : "text-slate-500 hover:text-slate-800 dark:text-slate-200", !!editingCommId && "opacity-60 cursor-not-allowed")}
               >
                 Manual Registry Log
               </button>
@@ -1501,7 +1501,7 @@ export default function CommunicationsPage() {
                           }
 
                           return (
-                            <Badge key={id} variant="outline" className="bg-white border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5">
+                            <Badge key={id} variant="outline" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5">
                               {labelText}
                               <button type="button" onClick={() => handleRemoveRecipient(id)} className="text-slate-400 hover:text-rose-600 focus:outline-none">
                                 <X className="h-3 w-3" />

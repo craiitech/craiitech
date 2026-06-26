@@ -890,7 +890,7 @@ function MobileVisitorLogbookContent() {
                                   className={`flex flex-col items-center justify-center py-2.5 flex-1 rounded-xl border transition-all ${
                                     sqd.val === opt.rating
                                       ? 'bg-[#1B6535] text-white border-[#1B6535]'
-                                      : 'bg-white text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 disabled:opacity-20'
+                                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 disabled:opacity-20'
                                   }`}
                                 >
                                   <span className="text-xl leading-none">{opt.emoji}</span>

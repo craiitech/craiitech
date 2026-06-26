@@ -669,7 +669,7 @@ function CsmEvaluateContent() {
                             className={`flex flex-col items-center justify-center h-14 w-14 sm:h-16 sm:w-16 rounded-2xl border transition-all active:scale-95 ${
                               sqd.val === opt.rating
                                 ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-md scale-105'
-                                : 'bg-white text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30'
+                                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30'
                             }`}
                             title={opt.label}
                           >
@@ -686,7 +686,7 @@ function CsmEvaluateContent() {
                           className={`px-3 h-14 sm:h-16 rounded-2xl border text-[10px] font-black uppercase tracking-wider transition-all ${
                             sqd.val === 0
                               ? 'bg-amber-500 text-white border-amber-500 shadow-md'
-                              : 'bg-white text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {t[csmLanguage].na}
