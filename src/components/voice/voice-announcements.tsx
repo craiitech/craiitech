@@ -27,6 +27,7 @@ export function VoiceAnnouncements() {
       const campusId = userProfile.campusId;
       const activeYear = now.getFullYear();
       const listItems: string[] = [];
+      const ord = (n: number) => ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"][n] || `${n + 1}th`;
 
       const roleLower = userRole?.toLowerCase() || '';
       const isPresident = roleLower.includes('president') && !roleLower.includes('vice');
@@ -283,7 +284,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (openCarsCount > 0) {
-          listItems.push(`First, you have ${openCarsCount} open corrective action request${openCarsCount > 1 ? 's' : ''}, which you can address by logging implementation plans and evidence in the Corrective Action module.`);
+          listItems.push(`${ord(listItems.length)}, you have ${openCarsCount} open corrective action request${openCarsCount > 1 ? 's' : ''}, which you can address by logging implementation plans and evidence in the Corrective Action module.`);
         }
 
         // 2. Overdue Risks
@@ -303,7 +304,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (overdueRisksCount > 0) {
-          listItems.push(`Second, you have ${overdueRisksCount} overdue risk treatment${overdueRisksCount > 1 ? 's' : ''}, which you can address by navigating to the Risk Register and updating their final assessments.`);
+          listItems.push(`${ord(listItems.length)}, you have ${overdueRisksCount} overdue risk treatment${overdueRisksCount > 1 ? 's' : ''}, which you can address by navigating to the Risk Register and updating their final assessments.`);
         }
 
         // 3. Actionable Decisions (Management Review Outputs)
@@ -319,7 +320,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (mrDecisionsCount > 0) {
-          listItems.push(`Third, you have ${mrDecisionsCount} pending management review decision${mrDecisionsCount > 1 ? 's' : ''}, which you can address by submitting implementation details and evidence in the Management Review outputs page.`);
+          listItems.push(`${ord(listItems.length)}, you have ${mrDecisionsCount} pending management review decision${mrDecisionsCount > 1 ? 's' : ''}, which you can address by submitting implementation details and evidence in the Management Review outputs page.`);
         }
 
         // 4. Accreditation Gaps & Open Recommendations
@@ -354,7 +355,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (accreditationGapsCount > 0 || openRecommendationsCount > 0) {
-          let text = `Fourth, we found `;
+          let text = `${ord(listItems.length)}, we found `;
           const gapsText: string[] = [];
           if (accreditationGapsCount > 0) {
             gapsText.push(`${accreditationGapsCount} active program authority or accreditation gap${accreditationGapsCount > 1 ? 's' : ''}`);
@@ -407,7 +408,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (missingReports.length > 0) {
-          listItems.push(`Fifth, you have not submitted all required reports for the active cycle, missing documents include: ${missingReports.join(', and ')}, please prepare and upload these in the submissions panel.`);
+          listItems.push(`${ord(listItems.length)}, you have not submitted all required reports for the active cycle, missing documents include: ${missingReports.join(', and ')}, please prepare and upload these in the submissions panel.`);
         }
 
         // 6. Returned Requests (Procedure manual revisions or Form registrations)
@@ -432,7 +433,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (returnedRequestsCount > 0) {
-          listItems.push(`Sixth, you have ${returnedRequestsCount} request${returnedRequestsCount > 1 ? 's' : ''} returned for correction by the Quality Assurance Office, you can address this by reviewing their feedback and resubmitting.`);
+          listItems.push(`${ord(listItems.length)}, you have ${returnedRequestsCount} request${returnedRequestsCount > 1 ? 's' : ''} returned for correction by the Quality Assurance Office, you can address this by reviewing their feedback and resubmitting.`);
         }
 
         // 7. Portal Software Evaluation
@@ -449,7 +450,7 @@ export function VoiceAnnouncements() {
           } catch { /* silent */ }
         }
         if (!hasCompletedSoftwareEvaluation) {
-          listItems.push(`Seventh, you have not completed the Portal Software Evaluation, please share your feedback to help us improve the system.`);
+          listItems.push(`${ord(listItems.length)}, you have not completed the Portal Software Evaluation, please share your feedback to help us improve the system.`);
         }
 
         // Admin / Supervisor specific announcements (Submissions pending review)
