@@ -270,6 +270,7 @@ const SidebarTrigger = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
+  const [blink, setBlink] = React.useState(false)
 
   return (
     <Button
@@ -277,11 +278,13 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-7 w-7", className)}
+      className={cn("h-7 w-7", blink && "animate-sidebar-blink", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
+        setBlink(true)
       }}
+      onAnimationEnd={() => setBlink(false)}
       {...props}
     >
       <PanelLeft />

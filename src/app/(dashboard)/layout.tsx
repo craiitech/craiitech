@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useCallback, useRef, useState, useEffect, Suspense } from 'react';
-import { useFirebase, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirebase, useCollection, useMemoFirebase, useUser, type WithId } from '@/firebase';
 import { useYear } from '@/lib/year-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -77,7 +77,7 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
   }, [resetTimer, enabled]);
 };
 
-function SidebarEomsPoints({ eomsSubmissions, cycles, userProfile, allUnits }: { eomsSubmissions: Submission[] | null; cycles: Cycle[] | null; userProfile: any; allUnits: Unit[] | undefined }) {
+function SidebarEomsPoints({ eomsSubmissions, cycles, userProfile, allUnits }: { eomsSubmissions: Submission[] | null; cycles: Cycle[] | null; userProfile: any; allUnits: WithId<Unit>[] | null }) {
   const { selectedYear } = useYear();
 
   const eomsPoints = useMemo(() => {

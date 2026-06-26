@@ -257,4 +257,18 @@
     .animate-emergency-flash {
       animation: emergency-flash 0.8s infinite ease-in-out;
     }
+
+    @keyframes sidebar-trigger-blink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      15% { opacity: 0.2; transform: scale(0.85); }
+      30% { opacity: 1; transform: scale(1.1); }
+      45% { opacity: 0.2; transform: scale(0.85); }
+      60% { opacity: 1; transform: scale(1.05); }
+      75% { opacity: 0.5; }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .animate-sidebar-blink {
+      animation: sidebar-trigger-blink 0.5s ease-in-out;
+    }
 }
