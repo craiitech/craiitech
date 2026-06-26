@@ -189,12 +189,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!rawCars) return [];
     const stats: Record<number, { year: number; NC: number; Open: number; 'On-Going': number; Closed: number }> = {};
     rawCars.forEach(car => {
-      const year = car.createdAt?.toDate ? car.createdAt.toDate().getFullYear() : new Date().getFullYear();
-      if (!stats[year]) stats[year] = { year, NC: 0, Open: 0, 'On-Going': 0, Closed: 0 };
-      stats[year].NC++;
-      if (car.status === 'Open') stats[year].Open++;
-      else if (car.status === 'Closed') stats[year].Closed++;
-      else stats[year]['On-Going']++;
+      const year = parseInt(car.carNumber?.substring(0, 4), 10);
+      const validYear = !isNaN(year) && year >= 2000 && year <= 2100 ? year : (car.createdAt?.toDate ? car.createdAt.toDate().getFullYear() : new Date().getFullYear());
+      if (!stats[validYear]) stats[validYear] = { year: validYear, NC: 0, Open: 0, 'On-Going': 0, Closed: 0 };
+      stats[validYear].NC++;
+      if (car.status === 'Open') stats[validYear].Open++;
+      else if (car.status === 'Closed') stats[validYear].Closed++;
+      else stats[validYear]['On-Going']++;
     });
     return Object.values(stats).sort((a, b) => a.year - b.year);
   }, [rawCars]);
