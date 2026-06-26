@@ -170,11 +170,11 @@ export function AccreditationPerformanceTab({
             placeholder="Search program name or abbreviation..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-xs bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-xl"
+            className="pl-9 h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-xl"
           />
         </div>
         <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 dark:border-slate-700 rounded-xl">
+          <SelectTrigger className="h-9 w-[160px] text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl">
             <SelectValue placeholder="All Levels" />
           </SelectTrigger>
           <SelectContent>
@@ -188,7 +188,7 @@ export function AccreditationPerformanceTab({
           </SelectContent>
         </Select>
         <Select value={campusFilter} onValueChange={setCampusFilter}>
-          <SelectTrigger className="h-9 w-[160px] text-xs bg-white border-slate-200 dark:border-slate-700 rounded-xl">
+          <SelectTrigger className="h-9 w-[160px] text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl">
             <SelectValue placeholder="All Campuses" />
           </SelectTrigger>
           <SelectContent>
@@ -202,7 +202,7 @@ export function AccreditationPerformanceTab({
       </div>
 
       {/* Table */}
-      <Card className="shadow-md border-slate-200/60 dark:border-slate-700/60 overflow-hidden bg-white rounded-2xl">
+      <Card className="shadow-md border-slate-200/60 dark:border-slate-700/60 overflow-hidden bg-white dark:bg-slate-900/80 rounded-2xl">
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-slate-50/70 dark:bg-slate-800/70 border-b">

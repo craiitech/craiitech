@@ -1103,7 +1103,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(stats).map(([k, s]: any) => (
-              <Card key={k} className="p-6 bg-white border-primary/10 shadow-md">
+              <Card key={k} className="p-6 bg-white dark:bg-slate-900/80 border-primary/10 shadow-md">
                 <div className="flex justify-between items-start mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.title}</p><div className="text-primary">{s.icon}</div></div>
                 <div className="text-3xl font-black tabular-nums text-slate-900 dark:text-slate-100">{s.value}</div>
               </Card>

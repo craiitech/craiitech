@@ -544,7 +544,7 @@ export function UnitAuditSchedule({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {hasTabs ? (
               <ScrollArea className="w-full">
-                  <TabsList className="bg-white/50 border border-primary/10 shadow-sm h-10 animate-tab-highlight rounded-md p-1 w-max min-w-max">
+                  <TabsList className="bg-white/50 dark:bg-slate-800/50 border border-primary/10 shadow-sm h-10 animate-tab-highlight rounded-md p-1 w-max min-w-max">
                       <TabsTrigger value="itinerary" className="text-[10px] font-black uppercase tracking-wider h-8">
                           IQA Itinerary
                       </TabsTrigger>
@@ -602,7 +602,7 @@ export function UnitAuditSchedule({
                           size="sm" 
                           onClick={handlePrintAuditReport} 
                           disabled={isPrintingReport || filteredSchedules.length === 0}
-                          className="h-8 bg-white border-primary/20 text-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
+                          className="h-8 bg-white dark:bg-slate-800 border-primary/20 text-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
                       >
                           {isPrintingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                           Print {isSupervisor ? 'Site' : 'Unit'} Report
@@ -612,7 +612,7 @@ export function UnitAuditSchedule({
                           size="sm" 
                           onClick={handlePrintPlan} 
                           disabled={isPrintingPlan || filteredSchedules.length === 0}
-                          className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
+                          className="h-8 bg-white dark:bg-slate-800 border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm"
                       >
                           {isPrintingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
                           Print {isSupervisor ? 'Site' : 'Unit'} Plan
@@ -624,7 +624,7 @@ export function UnitAuditSchedule({
                       size="sm" 
                       onClick={handlePrintAssignedRecos} 
                       disabled={isPrintingRecos || filteredRecos.length === 0}
-                      className="h-8 bg-white border-amber-200 text-amber-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm hover:bg-amber-50"
+                      className="h-8 bg-white dark:bg-slate-800 border-amber-200 text-amber-700 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm hover:bg-amber-50"
                   >
                       {isPrintingRecos ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
                       Print Gaps Log
@@ -689,13 +689,13 @@ export function UnitAuditSchedule({
 
         {/* Scroll area for IQA list */}
         <ScrollArea className="h-[450px]">
-            <div className="divide-y divide-primary/10 bg-white/50">
+            <div className="divide-y divide-primary/10 bg-white/50 dark:bg-slate-800/50">
                 {filteredSchedules.map(schedule => {
                     const date = parseDate(schedule.scheduledDate);
                     return (
                         <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white transition-colors gap-4 animate-in fade-in duration-300">
                             <div className="flex items-center gap-4">
-                                <div className="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-white border border-primary/10 text-primary shrink-0 shadow-sm">
+                                <div className="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-white dark:bg-slate-800 border border-primary/10 text-primary shrink-0 shadow-sm">
                                     <span className="text-[9px] font-black uppercase leading-none mb-0.5">{format(date, 'MMM')}</span>
                                     <span className="text-lg font-black leading-none">{format(date, 'dd')}</span>
                                 </div>
@@ -737,7 +737,7 @@ export function UnitAuditSchedule({
                                             variant="outline" 
                                             size="sm" 
                                             onClick={() => handlePrintIndividualTemplate(schedule, false)}
-                                            className="h-7 text-[8px] px-2 font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1"
+                                            className="h-7 text-[8px] px-2 font-black uppercase bg-white dark:bg-slate-800 border-primary/20 text-primary hover:bg-primary/5 gap-1"
                                             title="Print Template"
                                         >
                                             <Printer className="h-2.5 w-2.5" />
@@ -749,7 +749,7 @@ export function UnitAuditSchedule({
                                             variant="outline" 
                                             size="sm" 
                                             onClick={() => handlePrintIndividualTemplate(schedule, true)}
-                                            className="h-7 text-[8px] px-2 font-black uppercase bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 gap-1"
+                                            className="h-7 text-[8px] px-2 font-black uppercase bg-white dark:bg-slate-800 border-indigo-200 text-indigo-700 hover:bg-indigo-50 gap-1"
                                             title="Print Evidence Log"
                                         >
                                             <Printer className="h-2.5 w-2.5" />
@@ -760,7 +760,7 @@ export function UnitAuditSchedule({
                                         variant="outline" 
                                         size="sm" 
                                         onClick={() => handlePrintIndividualReport(schedule)}
-                                        className="h-7 text-[8px] px-2 font-black uppercase bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1"
+                                        className="h-7 text-[8px] px-2 font-black uppercase bg-white dark:bg-slate-800 border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1"
                                         title="Print Audit Report"
                                     >
                                         <FileText className="h-2.5 w-2.5" />
@@ -772,7 +772,7 @@ export function UnitAuditSchedule({
                     );
                 })}
                 {filteredSchedules.length === 0 && (
-                    <div className="py-20 text-center opacity-30 flex flex-col items-center gap-2 bg-white/50">
+                    <div className="py-20 text-center opacity-30 flex flex-col items-center gap-2 bg-white/50 dark:bg-slate-800/50">
                       <Calendar className="h-10 w-10 text-primary" />
                       <p className="text-xs font-black uppercase tracking-widest text-slate-500">No active quality audits match the filters</p>
                     </div>
@@ -786,7 +786,7 @@ export function UnitAuditSchedule({
   const renderAccreditationList = () => {
     if (!recommendations || recommendations.length === 0) {
       return (
-        <div className="py-20 text-center opacity-40 flex flex-col items-center gap-2 bg-white/50">
+        <div className="py-20 text-center opacity-40 flex flex-col items-center gap-2 bg-white/50 dark:bg-slate-800/50">
             <Award className="h-10 w-10 text-amber-600 animate-pulse" />
             <p className="text-xs font-black uppercase tracking-widest text-slate-500">No active accreditation gaps recorded</p>
         </div>
@@ -947,7 +947,7 @@ export function UnitAuditSchedule({
   };
 
   return (
-    <Card className="border-primary/20 bg-primary/5 shadow-md animate-in slide-in-from-top-4 duration-500 overflow-hidden">
+        <Card className="border-primary/20 bg-primary/5 dark:bg-slate-800/50 shadow-md animate-in slide-in-from-top-4 duration-500 overflow-hidden">
       {hasTabs ? (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {renderHeader()}
@@ -961,7 +961,7 @@ export function UnitAuditSchedule({
               </TabsContent>
             )}
             {showChed && (
-              <TabsContent value="ched" className="p-6 mt-0 bg-white/40">
+              <TabsContent value="ched" className="p-6 mt-0 bg-white/40 dark:bg-slate-800/40">
                 <ChedProgramsTab
                   academicPrograms={academicPrograms || []}
                   allCompliances={allCompliances || []}
@@ -971,7 +971,7 @@ export function UnitAuditSchedule({
               </TabsContent>
             )}
             {showRisk && (
-              <TabsContent value="risk" className="p-6 mt-0 bg-white/40">
+              <TabsContent value="risk" className="p-6 mt-0 bg-white/40 dark:bg-slate-800/40">
                 <RiskOpportunityTab
                   risks={risks || []}
                   allUnits={units || []}
@@ -981,7 +981,7 @@ export function UnitAuditSchedule({
               </TabsContent>
             )}
             {showCar && (
-              <TabsContent value="car" className="p-6 mt-0 bg-white/40">
+              <TabsContent value="car" className="p-6 mt-0 bg-white/40 dark:bg-slate-800/40">
                 <CorrectiveActionsTab
                   cars={cars || []}
                   allUnits={units || []}
@@ -991,7 +991,7 @@ export function UnitAuditSchedule({
               </TabsContent>
             )}
             {showDecision && (
-              <TabsContent value="decision" className="p-6 mt-0 bg-white/40">
+              <TabsContent value="decision" className="p-6 mt-0 bg-white/40 dark:bg-slate-800/40">
                 <ActionableDecisionsTab
                   risks={risks || []}
                   cars={cars || []}
