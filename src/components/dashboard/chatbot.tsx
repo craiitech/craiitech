@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, AlertCircle, HelpCircle } from 'lucide-react';
 import { useUser } from '@/firebase';
+import { useVoice } from '@/components/voice/voice-provider';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { AnimatePresence, motion } from 'framer-motion';
 import { faqs } from '@/lib/support-data';
@@ -104,6 +105,7 @@ export function Chatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  const { speak } = useVoice();
   const userFallback = userProfile?.firstName?.charAt(0) ?? 'U';
   const lastMessageIsFromBot = messages.length > 0 && messages[messages.length - 1].role === 'model';
 
@@ -186,8 +188,11 @@ export function Chatbot() {
           content: welcomeContent,
         },
       ]);
+
+      const unitName = userProfile?.unitName || 'esteemed colleague';
+      speak(`Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion.`);
     }
-  }, [isOpen, pathname, activeTab]);
+  }, [isOpen, pathname, activeTab, speak, userProfile?.unitName]);
 
   useEffect(() => {
     // Auto-scroll to the bottom of the dialogue on new messages
