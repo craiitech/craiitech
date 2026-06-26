@@ -65,6 +65,8 @@ import { AuditorNCManager } from '@/components/audit/auditor-nc-manager';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -174,6 +176,34 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const carsForAction = useMemo(() => {
     return filteredCars.filter(car => car.status !== 'Open' && car.status !== 'Closed');
   }, [filteredCars]);
+
+  const openOngoingCars = useMemo(() => {
+    return filteredCars.filter(car => car.status === 'Open' || car.status === 'In Progress');
+  }, [filteredCars]);
+
+  const closedCars = useMemo(() => {
+    return filteredCars.filter(car => car.status === 'Closed');
+  }, [filteredCars]);
+
+  const yearlyPerformance = useMemo(() => {
+    if (!rawCars) return [];
+    const stats: Record<number, { year: number; NC: number; Open: number; 'On-Going': number; Closed: number }> = {};
+    rawCars.forEach(car => {
+      const year = car.createdAt?.toDate ? car.createdAt.toDate().getFullYear() : new Date().getFullYear();
+      if (!stats[year]) stats[year] = { year, NC: 0, Open: 0, 'On-Going': 0, Closed: 0 };
+      stats[year].NC++;
+      if (car.status === 'Open') stats[year].Open++;
+      else if (car.status === 'Closed') stats[year].Closed++;
+      else stats[year]['On-Going']++;
+    });
+    return Object.values(stats).sort((a, b) => a.year - b.year);
+  }, [rawCars]);
+
+  const chartConfig = {
+    Open: { label: 'Open', color: 'hsl(var(--destructive))' },
+    'On-Going': { label: 'On-Going', color: 'hsl(48 96% 53%)' },
+    Closed: { label: 'Closed', color: 'hsl(142 71% 45%)' }
+  };
 
   const ncGapsCount = useMemo(() => {
     if (!findings || !schedules) return 0;
@@ -569,10 +599,42 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
   return (
     <div className="space-y-6">
+      <Card className="border-primary/10 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" /> Yearly NC &amp; CAR Performance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="h-[250px] w-full">
+            <ResponsiveContainer>
+              <BarChart data={yearlyPerformance} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.2)" vertical={false} />
+                <XAxis dataKey="year" tick={{ fontSize: 12, fontWeight: 700 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <RechartsTooltip content={<ChartTooltipContent />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                />
+                <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="On-Going" stackId="a" fill="hsl(48 96% 53%)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="registry" className="space-y-6">
           <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
               <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                  <ListChecks className="h-4 w-4" /> Full List ({filteredCars.length})
+                  <ClipboardList className="h-4 w-4" /> Complete List ({filteredCars.length})
+              </TabsTrigger>
+              <TabsTrigger value="open-ongoing" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <Activity className="h-4 w-4 text-amber-600" /> Open & On-going CAR ({openOngoingCars.length})
+              </TabsTrigger>
+              <TabsTrigger value="closed" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Closed NC ({closedCars.length})
               </TabsTrigger>
               <TabsTrigger value="for-action" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   <FileWarning className="h-4 w-4 text-rose-600" /> For Action
@@ -651,6 +713,115 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <div className="flex items-center justify-end gap-2">
                                             <Button variant="outline" size="sm" className="h-8 text-[9px] font-bold bg-white gap-1.5" onClick={(e) => { e.stopPropagation(); handlePrint(car); }}><Printer className="h-3 w-3" /> PRINT</Button>
                                             <Button size="sm" variant="ghost" className="h-8 font-black uppercase text-[10px]" onClick={() => handleEdit(car)}>Manage Record</Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="open-ongoing" className="space-y-6 animate-in fade-in duration-500">
+              <Card className="shadow-md border-amber-200/30 overflow-hidden">
+                <div className="p-4 bg-amber-50/50 border-b flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-amber-600" />
+                    <p className="text-xs font-black uppercase text-slate-800">Open & On-going Corrective Action Requests</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {openOngoingCars.map(car => (
+                                <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                                    <TableCell className="pl-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                                                <Building2 className="h-3.5 w-3.5 opacity-30" />
+                                                {unitMap.get(car.unitId) || 'Unknown Unit'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                                                <School className="h-2.5 w-2.5 ml-0.5" />
+                                                {campusMap.get(car.campusId) || 'Institutional'}
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
+                                    </TableCell>
+                                    <TableCell className="text-center"><Badge className="text-[9px] font-black uppercase bg-amber-50 text-amber-700 border-amber-200 px-2 h-5">{car.status}</Badge></TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <Button size="sm" className="h-8 font-black uppercase text-[10px] shadow-sm bg-amber-600" onClick={() => handleEdit(car)}>Manage</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="closed" className="space-y-6 animate-in fade-in duration-500">
+              <Card className="shadow-md border-emerald-200/30 overflow-hidden">
+                <div className="p-4 bg-emerald-50/50 border-b flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <p className="text-xs font-black uppercase text-slate-800">Closed Non-Conformance Records</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                                <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {closedCars.map(car => (
+                                <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                                    <TableCell className="pl-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[250px]">{car.procedureTitle}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                                                <Building2 className="h-3.5 w-3.5 opacity-30" />
+                                                {unitMap.get(car.unitId) || 'Unknown Unit'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                                                <School className="h-2.5 w-2.5 ml-0.5" />
+                                                {campusMap.get(car.campusId) || 'Institutional'}
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
+                                    </TableCell>
+                                    <TableCell className="text-center"><Badge className="text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border-emerald-200 px-2 h-5">{car.status}</Badge></TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button variant="outline" size="sm" className="h-8 text-[9px] font-bold bg-white gap-1.5" onClick={(e) => { e.stopPropagation(); handlePrint(car); }}><Printer className="h-3 w-3" /> PRINT</Button>
+                                            <Button size="sm" variant="ghost" className="h-8 font-black uppercase text-[10px]" onClick={() => handleEdit(car)}>View</Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
