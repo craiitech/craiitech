@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
     BarChart, 
     Bar, 
@@ -31,7 +32,8 @@ import {
     Activity,
     Target,
     Info,
-    Zap
+    Zap,
+    BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Timestamp } from '@/firebase/firestore-wrapper';
@@ -76,8 +78,9 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
     outputs.forEach(o => {
         const year = mrYearMap.get(o.mrId) || 'TBA';
         if (!yearlyStats[year]) {
-            yearlyStats[year] = { year, Open: 0, 'On-going': 0, 'Pending Verification': 0, Closed: 0 };
+            yearlyStats[year] = { year, Total: 0, Open: 0, 'On-going': 0, 'Pending Verification': 0, Closed: 0 };
         }
+        yearlyStats[year].Total++;
         if (o.status === 'Open') yearlyStats[year].Open++;
         else if (o.status === 'On-going') yearlyStats[year]['On-going']++;
         else if (o.status === 'Submit for Closure Verification') yearlyStats[year]['Pending Verification']++;
@@ -212,34 +215,64 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
             <CardDescription className="text-xs">Decision maturity comparison across review sessions by year.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 flex-1">
-            <ChartContainer config={{
-                'Open': { label: 'Open', color: 'hsl(var(--destructive))' },
-                'On-going': { label: 'On-going', color: 'hsl(48 96% 53%)' },
-                'Pending Verification': { label: 'Pending Verification', color: 'hsl(var(--chart-1))' },
-                'Closed': { label: 'Closed', color: 'hsl(142 71% 45%)' }
-            }} className="h-[350px] w-full">
-                <ResponsiveContainer>
-                    <BarChart data={analytics.trendData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
-                        <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
-                        <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" barSize={40}>
-                            <LabelList dataKey="Open" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
-                        </Bar>
-                        <Bar dataKey="On-going" stackId="a" fill="hsl(48 96% 53%)" barSize={40}>
-                            <LabelList dataKey="On-going" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--amber-950))' }} />
-                        </Bar>
-                        <Bar dataKey="Pending Verification" stackId="a" fill="hsl(var(--chart-1))" barSize={40}>
-                            <LabelList dataKey="Pending Verification" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
-                        </Bar>
-                        <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40}>
-                            <LabelList dataKey="Closed" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="text-[10px] font-black uppercase">Year</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase">Decisions</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase text-rose-600">Open</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase text-amber-600">On-Going</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase text-blue-600">Pending</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase text-emerald-600">Closed</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analytics.trendData.map((row: any) => (
+                      <TableRow key={row.year} className="hover:bg-muted/20">
+                        <TableCell className="font-black text-xs">{row.year}</TableCell>
+                        <TableCell className="text-right font-bold text-xs">{row.Total}</TableCell>
+                        <TableCell className="text-right font-bold text-xs text-rose-600">{row.Open}</TableCell>
+                        <TableCell className="text-right font-bold text-xs text-amber-600">{row['On-going']}</TableCell>
+                        <TableCell className="text-right font-bold text-xs text-blue-600">{row['Pending Verification']}</TableCell>
+                        <TableCell className="text-right font-bold text-xs text-emerald-600">{row.Closed}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div>
+                <ChartContainer config={{
+                    'Open': { label: 'Open', color: 'hsl(var(--destructive))' },
+                    'On-going': { label: 'On-going', color: 'hsl(48 96% 53%)' },
+                    'Pending Verification': { label: 'Pending Verification', color: 'hsl(var(--chart-1))' },
+                    'Closed': { label: 'Closed', color: 'hsl(142 71% 45%)' }
+                }} className="h-[300px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics.trendData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                            <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                            <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" barSize={40}>
+                                <LabelList dataKey="Open" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
+                            </Bar>
+                            <Bar dataKey="On-going" stackId="a" fill="hsl(48 96% 53%)" barSize={40}>
+                                <LabelList dataKey="On-going" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--amber-950))' }} />
+                            </Bar>
+                            <Bar dataKey="Pending Verification" stackId="a" fill="hsl(var(--chart-1))" barSize={40}>
+                                <LabelList dataKey="Pending Verification" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
+                            </Bar>
+                            <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40}>
+                                <LabelList dataKey="Closed" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            </div>
           </CardContent>
           <div className="p-4 bg-muted/5 border-t">
             <div className="flex items-start gap-3">
