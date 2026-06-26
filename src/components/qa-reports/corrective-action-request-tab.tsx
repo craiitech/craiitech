@@ -606,22 +606,50 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <ResponsiveContainer>
-              <BarChart data={yearlyPerformance} barCategoryGap="20%">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.2)" vertical={false} />
-                <XAxis dataKey="year" tick={{ fontSize: 12, fontWeight: 700 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <RechartsTooltip content={<ChartTooltipContent />} />
-                <Legend
-                  wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}
-                />
-                <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="On-Going" stackId="a" fill="hsl(48 96% 53%)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-black uppercase">Year</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase">NC</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-rose-600">Open</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-amber-600">On-Going</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-emerald-600">Closed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {yearlyPerformance.map(row => (
+                    <TableRow key={row.year} className="hover:bg-muted/20">
+                      <TableCell className="font-black text-xs">{row.year}</TableCell>
+                      <TableCell className="text-right font-bold text-xs">{row.NC}</TableCell>
+                      <TableCell className="text-right font-bold text-xs text-rose-600">{row.Open}</TableCell>
+                      <TableCell className="text-right font-bold text-xs text-amber-600">{row['On-Going']}</TableCell>
+                      <TableCell className="text-right font-bold text-xs text-emerald-600">{row.Closed}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <ResponsiveContainer>
+                  <BarChart data={yearlyPerformance} barCategoryGap="20%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.2)" vertical={false} />
+                    <XAxis dataKey="year" tick={{ fontSize: 12, fontWeight: 700 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <RechartsTooltip content={<ChartTooltipContent />} />
+                    <Legend
+                      wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                    />
+                    <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="On-Going" stackId="a" fill="hsl(48 96% 53%)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
