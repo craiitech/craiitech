@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Risk, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +63,16 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
   const untreatedHigh = useMemo(() => criticalRisks.filter(r => !r.postTreatment), [criticalRisks]);
   const withPostTreatment = useMemo(() => yearRisks.filter(r => r.postTreatment), [yearRisks]);
 
+  const [riskFilter, setRiskFilter] = useState<'all' | 'open' | 'ongoing' | 'closed'>('all');
+
   // ---- SECTION 1: Risk Statement Register ----
+  const filteredRegister = useMemo(() => {
+    if (riskFilter === 'open') return riskRegister.filter(r => r.status !== 'Closed');
+    if (riskFilter === 'ongoing') return riskRegister.filter(r => r.status === 'In Progress');
+    if (riskFilter === 'closed') return riskRegister.filter(r => r.status === 'Closed');
+    return riskRegister;
+  }, [riskRegister, riskFilter]);
+
   const riskRegister = useMemo(() => {
     return risksOnly.map(r => {
       const unitName = unitMap.get(r.unitId) || r.unitId;
@@ -572,12 +581,30 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                   Every risk with executive summary, treatment status, and recommended action
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="text-[9px] font-bold">{riskRegister.length} entries</Badge>
+              <div className="flex items-center gap-3">
+                <label className={cn('flex items-center gap-1 cursor-pointer text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors', riskFilter === 'all' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>
+                  <input type="radio" name="riskFilter" className="sr-only" checked={riskFilter === 'all'} onChange={() => setRiskFilter('all')} />
+                  All Risks
+                </label>
+                <label className={cn('flex items-center gap-1 cursor-pointer text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors', riskFilter === 'open' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>
+                  <input type="radio" name="riskFilter" className="sr-only" checked={riskFilter === 'open'} onChange={() => setRiskFilter('open')} />
+                  Open Risks
+                </label>
+                <label className={cn('flex items-center gap-1 cursor-pointer text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors', riskFilter === 'ongoing' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>
+                  <input type="radio" name="riskFilter" className="sr-only" checked={riskFilter === 'ongoing'} onChange={() => setRiskFilter('ongoing')} />
+                  On-going Risks
+                </label>
+                <label className={cn('flex items-center gap-1 cursor-pointer text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors', riskFilter === 'closed' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>
+                  <input type="radio" name="riskFilter" className="sr-only" checked={riskFilter === 'closed'} onChange={() => setRiskFilter('closed')} />
+                  Closed Risks
+                </label>
+                <Badge variant="outline" className="text-[9px] font-bold">{filteredRegister.length} entries</Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-4 p-0">
             <div className="divide-y divide-slate-100">
-              {riskRegister.slice(0, 20).map((entry, i) => (
+              {filteredRegister.slice(0, 20).map((entry, i) => (
                 <div key={entry.id} className={cn(
                   'p-4 transition-colors hover:bg-slate-50/50',
                   entry.needsTreatment && 'bg-red-50/30',
@@ -645,9 +672,9 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
                 </div>
               ))}
             </div>
-            {riskRegister.length > 20 && (
+            {filteredRegister.length > 20 && (
               <div className="p-4 text-center border-t border-slate-100">
-                <p className="text-[10px] text-slate-400 font-bold">+ {riskRegister.length - 20} more risks — refine filters for focused view</p>
+                <p className="text-[10px] text-slate-400 font-bold">+ {filteredRegister.length - 20} more risks — refine filters for focused view</p>
               </div>
             )}
           </CardContent>
