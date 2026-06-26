@@ -41,12 +41,12 @@ export function VoiceAnnouncements() {
 
       if (alreadySpokenToday) {
         setTimeout(() => {
-          const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
-          let shortMsg = `Hey, ${name}, I already informed you of your quality assurance and compliance summary. Please comply as soon as possible.`;
+          const unitName = userProfile?.unitName || 'esteemed colleague';
+          let shortMsg = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. I already informed you of your quality assurance and compliance summary today. Please comply as soon as possible.`;
           if (isPresident || isExecutive) {
-            shortMsg = `Hey, ${name}, I already informed you of your EOMS executive overview. Please monitor the dashboard.`;
+            shortMsg = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. I already informed you of your EOMS executive overview today. Please monitor the dashboard.`;
           } else if (isAuditor) {
-            shortMsg = `Hey, ${name}, I already informed you of your audit overview. Thank you for your commitment to quality.`;
+            shortMsg = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. I already informed you of your audit overview today. Thank you for your commitment to quality.`;
           }
           queueAnnouncement(shortMsg);
           try {
@@ -562,14 +562,14 @@ export function VoiceAnnouncements() {
       }
 
       setTimeout(() => {
-        const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+        const unitName = userProfile?.unitName || 'esteemed colleague';
         const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
         
-        let intro = `Hey, ${name}, here is your quality assurance and compliance summary. Please check the following items requiring your attention:`;
+        let intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your quality assurance and compliance summary. Please check the following items requiring your attention:`;
         if (isPresident || isExecutive) {
-          intro = `Hey, ${name}, here is your EOMS executive overview.`;
+          intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your EOMS executive overview.`;
         } else if (isAuditor) {
-          intro = `Hey, ${name}, here is your audit overview.`;
+          intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your audit overview.`;
         }
 
         const announcementPart = globalAnnouncementText ? ` ${globalAnnouncementText}.` : '';
@@ -578,7 +578,7 @@ export function VoiceAnnouncements() {
           const speechText = `${intro}${announcementPart} Here are your reminders: ${listItems.join(' ')} ${portalDescription}`;
           queueAnnouncement(speechText);
         } else {
-          queueAnnouncement(`Congratulations, ${name}! You have no pending items that require your attention.${announcementPart} ${portalDescription}`);
+          queueAnnouncement(`Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. You have no pending items that require your attention.${announcementPart} ${portalDescription}`);
         }
 
         try {
