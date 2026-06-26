@@ -19,12 +19,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 interface RiskStatusOverviewProps {
   risks: Risk[] | null;
@@ -119,16 +115,6 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
                     Need Help?
                 </Button>
             )}
-            <div className="w-[120px]">
-            <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                <SelectTrigger className="h-8 bg-white text-xs font-bold">
-                <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">

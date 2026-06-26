@@ -8,7 +8,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { useVoice } from '@/components/voice/voice-provider';
 import { Button } from '@/components/ui/button';
-import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock, Sun, Moon, Volume2, VolumeX } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock, Sun, Moon, Volume2, VolumeX, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/theme-provider';
+import { useYear } from '@/lib/year-provider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface HeaderProps {
     notificationCount: number;
@@ -27,6 +29,7 @@ interface HeaderProps {
     notificationsList?: any[];
     isGuidanceVisible: boolean;
     onToggleGuidance: () => void;
+    availableYears?: number[];
 }
 
 export function Header({ 
@@ -34,7 +37,8 @@ export function Header({
   totalNotificationsCount = 0, 
   notificationsList = [], 
   isGuidanceVisible, 
-  onToggleGuidance 
+  onToggleGuidance,
+  availableYears = []
 }: HeaderProps) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
@@ -42,6 +46,7 @@ export function Header({
   const { user, userProfile, userRole } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { selectedYear, setSelectedYear } = useYear();
 
   const isAuditor = userRole === 'Auditor';
   const { enabled: voiceEnabled, setEnabled: setVoiceEnabled } = useVoice();
@@ -82,6 +87,21 @@ export function Header({
             <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800">{getPageTitle(pathname)}</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
+            {pathname === '/dashboard' && availableYears.length > 0 && (
+                <div className="hidden sm:flex items-center gap-2 mr-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                        <SelectTrigger className="h-9 w-[120px] bg-white font-bold text-xs shadow-sm border-primary/20">
+                            <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent modal={false}>
+                            {availableYears.map(y => (
+                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
             {/* Global Offline Mode Indicator for Auditors */}
             {isAuditor && (
                 <Badge 

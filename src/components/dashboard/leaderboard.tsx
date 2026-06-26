@@ -6,7 +6,6 @@ import type { Unit, Submission, Campus, User as AppUser, Cycle } from '@/lib/typ
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Star, Building, TrendingUp, Info } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Progress } from '../ui/progress';
 import { cn, isCycleActive } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,13 +48,6 @@ export function Leaderboard({
   selectedYear,
   onYearChange
 }: LeaderboardProps) {
-
-  const years = useMemo(() => {
-    if (!allCycles) return [new Date().getFullYear()];
-    const uniqueYears = [...new Set(allCycles.map(c => Number(c.year)))];
-    if (uniqueYears.length === 0) return [new Date().getFullYear()];
-    return uniqueYears.sort((a, b) => b - a);
-  }, [allCycles]);
 
   const leaderboardData = useMemo(() => {
     if (!allUnits || !allSubmissions || !allCampuses) {
@@ -146,16 +138,6 @@ export function Leaderboard({
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Ranked by <strong>Approved</strong> documents for {selectedYear}.
             </CardDescription>
-        </div>
-        <div className="w-[100px]">
-             <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                <SelectTrigger className="h-8 text-xs bg-white">
-                <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                </SelectContent>
-            </Select>
         </div>
       </CardHeader>
       <CardContent className="pt-6">

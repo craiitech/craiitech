@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useCallback, useRef, useState, useEffect, Suspense } from 'react';
 import { useFirebase, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useYear } from '@/lib/year-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw, Loader2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
+import { YearProvider } from '@/lib/year-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
@@ -74,6 +76,67 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
     };
   }, [resetTimer, enabled]);
 };
+
+function SidebarEomsPoints({ eomsSubmissions, cycles, userProfile, allUnits }: { eomsSubmissions: Submission[] | null; cycles: Cycle[] | null; userProfile: any; allUnits: Unit[] | undefined }) {
+  const { selectedYear } = useYear();
+
+  const eomsPoints = useMemo(() => {
+    if (!eomsSubmissions || !userProfile) return null;
+    const yearSubs = eomsSubmissions.filter(s => s.year === selectedYear && s.isDraft !== true);
+
+    const submissionTypes = [
+      'SWOT Analysis',
+      'Needs and Expectation of Interested Parties',
+      'Operational Plan',
+      'Quality Objectives Monitoring',
+      'Risk and Opportunity Registry',
+      'Risk and Opportunity Action Plan'
+    ];
+
+    const calcCycle = (cycleId: 'first' | 'final') => {
+      const cycleDeadline = (cycles || []).find(c => c.name === cycleId && Number(c.year) === selectedYear);
+      const rorSub = yearSubs.find(s => s.cycleId === cycleId && s.reportType === 'Risk and Opportunity Registry');
+      const isActionPlanExempt = rorSub?.riskRating === 'low';
+
+      return submissionTypes.reduce((sum, type) => {
+        if (type === 'Risk and Opportunity Action Plan' && isActionPlanExempt) return sum + 1.0;
+        const sub = yearSubs.find(s => s.cycleId === cycleId && s.reportType === type);
+        if (!sub) return sum;
+        if (!cycleDeadline?.endDate) return sum + 1.0;
+        const getMs = (v: any) => v?.toDate ? v.toDate().getTime() : v instanceof Date ? v.getTime() : v?.seconds ? v.seconds * 1000 : new Date(v).getTime();
+        return sum + (getMs(sub.submissionDate) <= getMs(cycleDeadline.endDate) ? 1.0 : 0.5);
+      }, 0);
+    };
+
+    const total = calcCycle('first') + calcCycle('final');
+    let tier: string = 'Unranked';
+    if (total >= 11) tier = 'Gold';
+    else if (total >= 8) tier = 'Silver';
+    else if (total >= 1) tier = 'Bronze';
+
+    return { total, tier };
+  }, [eomsSubmissions, cycles, userProfile, selectedYear]);
+
+  if (!eomsPoints) return null;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-center gap-2">
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] font-black text-white/70 uppercase tracking-wider">AY {selectedYear}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className={cn(
+          "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm tracking-wider",
+          eomsPoints.tier === 'Gold' && 'bg-yellow-400 text-yellow-900',
+          eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800',
+          eomsPoints.tier === 'Bronze' && 'bg-amber-700 text-amber-100',
+          eomsPoints.tier === 'Unranked' && 'bg-white/10 text-white/50'
+        )}>{eomsPoints.tier}</span>
+        <span className="text-xs font-black text-white">{eomsPoints.total.toFixed(1)}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -266,8 +329,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const revisionRequestsNotifQuery = useMemoFirebase(() => getRevisionRequestsNotificationQuery(), [firestore, userProfile, isAdmin, allUnits]);
   const { data: revisionRequestsNotifications } = useCollection<ProcedureRevisionRequest>(revisionRequestsNotifQuery);
 
-  // EOMS Points — unit submissions for current year
-  const currentYear = new Date().getFullYear();
   const eomsSubsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId) return null;
     return query(
@@ -280,42 +341,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles } = useCollection<Cycle>(cyclesQuery);
 
-  const eomsPoints = useMemo(() => {
-    if (!eomsSubmissions || !userProfile) return null;
-    const yearSubs = eomsSubmissions.filter(s => s.year === currentYear && s.isDraft !== true);
-
-    const submissionTypes = [
-      'SWOT Analysis',
-      'Needs and Expectation of Interested Parties',
-      'Operational Plan',
-      'Quality Objectives Monitoring',
-      'Risk and Opportunity Registry',
-      'Risk and Opportunity Action Plan'
-    ];
-
-    const calcCycle = (cycleId: 'first' | 'final') => {
-      const cycleDeadline = (cycles || []).find(c => c.name === cycleId && Number(c.year) === currentYear);
-      const rorSub = yearSubs.find(s => s.cycleId === cycleId && s.reportType === 'Risk and Opportunity Registry');
-      const isActionPlanExempt = rorSub?.riskRating === 'low';
-
-      return submissionTypes.reduce((sum, type) => {
-        if (type === 'Risk and Opportunity Action Plan' && isActionPlanExempt) return sum + 1.0;
-        const sub = yearSubs.find(s => s.cycleId === cycleId && s.reportType === type);
-        if (!sub) return sum;
-        if (!cycleDeadline?.endDate) return sum + 1.0;
-        const getMs = (v: any) => v?.toDate ? v.toDate().getTime() : v instanceof Date ? v.getTime() : v?.seconds ? v.seconds * 1000 : new Date(v).getTime();
-        return sum + (getMs(sub.submissionDate) <= getMs(cycleDeadline.endDate) ? 1.0 : 0.5);
-      }, 0);
-    };
-
-    const total = calcCycle('first') + calcCycle('final');
-    let tier: string = 'Unranked';
-    if (total >= 11) tier = 'Gold';
-    else if (total >= 8) tier = 'Silver';
-    else if (total >= 1) tier = 'Bronze';
-
-    return { total, tier };
-  }, [eomsSubmissions, cycles, userProfile, currentYear]);
+  const availableYears = useMemo(() => {
+    if (!cycles) return [new Date().getFullYear()];
+    const cycleYears = [...new Set(cycles.map(c => Number(c.year)))].filter(y => !isNaN(y));
+    const min = Math.min(...cycleYears);
+    const max = Math.max(...cycleYears);
+    const result: number[] = [];
+    for (let y = min; y <= max + 1; y++) result.push(y);
+    return result.sort((a, b) => b - a);
+  }, [cycles]);
 
   const subNotificationsCount = useMemo(() => {
     if (!subNotifications) return 0;
@@ -703,6 +737,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ActivityLogProvider>
+    <YearProvider>
       <div className={cn("flex min-h-screen w-full", accessibilityClasses)}>
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
@@ -736,23 +771,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                     )}
                   </div>
-                  {eomsPoints && (
-                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] font-black text-white/70 uppercase tracking-wider">AY {currentYear}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={cn(
-                          "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm tracking-wider",
-                          eomsPoints.tier === 'Gold' && 'bg-yellow-400 text-yellow-900',
-                          eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800',
-                          eomsPoints.tier === 'Bronze' && 'bg-amber-700 text-amber-100',
-                          eomsPoints.tier === 'Unranked' && 'bg-white/10 text-white/50'
-                        )}>{eomsPoints.tier}</span>
-                        <span className="text-xs font-black text-white">{eomsPoints.total.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  )}
+                  <SidebarEomsPoints eomsSubmissions={eomsSubmissions} cycles={cycles} userProfile={userProfile} allUnits={allUnits} />
                 </div>
               </div>
             </SidebarHeader>
@@ -773,6 +792,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   notificationsList={notificationsList}
                   isGuidanceVisible={isGuidanceVisible}
                   onToggleGuidance={handleToggleGuidance}
+                  availableYears={availableYears}
               />
               <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-0 overflow-hidden">
                   <div className="flex-1 min-w-0 overflow-auto h-full pr-2">
@@ -800,6 +820,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onDismiss={() => setIsEvalSkipped(true)} 
         />
       )}
+    </YearProvider>
     </ActivityLogProvider>
   );
 }

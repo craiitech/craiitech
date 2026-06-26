@@ -55,6 +55,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
+import { useYear } from '@/lib/year-provider';
 import {
   collection,
   query,
@@ -579,7 +580,7 @@ export default function HomePage() {
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncement2Visible, setIsGlobalAnnouncement2Visible] = useState(true);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const { selectedYear, setSelectedYear } = useYear();
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
 
@@ -884,14 +885,6 @@ export default function HomePage() {
 
   // Admin-level CARs are loaded dynamically in the unified carsQuery above
 
-  const years = useMemo(() => {
-    const current = new Date().getFullYear();
-    const yrSet = new Set<number>();
-    for (let i = -2; i < 6; i++) yrSet.add(current - i);
-    allCycles?.forEach(c => yrSet.add(Number(c.year)));
-    return Array.from(yrSet).sort((a, b) => b - a);
-  }, [allCycles]);
-
   const campusSettingsRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.campusId) return null;
     return doc(firestore, 'campusSettings', userProfile.campusId);
@@ -1042,10 +1035,6 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
               <HeaderRatings universityRating={activeUniversityRating} scopedRating={unitRating} scopedRatingType="Unit" />
-              <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-                <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-              </Select>
             </div>
           </div>
           <ScrollArea className="w-full">
@@ -1175,10 +1164,6 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <HeaderRatings universityRating={activeUniversityRating} scopedRating={null} />
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-            </Select>
           </div>
         </div>
         <ScrollArea className="w-full">
@@ -1364,10 +1349,6 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <HeaderRatings universityRating={activeUniversityRating} scopedRating={supervisorRating} scopedRatingType="Site" />
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-[150px] h-9 bg-white font-bold shadow-sm"><SelectValue placeholder="Year" /></SelectTrigger>
-              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-            </Select>
           </div>
         </div>
         <ScrollArea className="w-full">
