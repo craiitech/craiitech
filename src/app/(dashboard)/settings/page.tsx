@@ -27,6 +27,7 @@ import { DataBackupManagement } from '@/components/admin/data-backup-management'
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 import { CsmSettingsManagement } from '@/components/admin/csm-settings-management';
 import { LogoManagement } from '@/components/admin/logo-management';
+import { KpiDefinitionsManager } from '@/components/admin/kpi-definitions-manager';
 import { PermissionMatrix } from '@/components/admin/permission-matrix';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -91,6 +92,7 @@ export default function SettingsPage() {
                     <TabsTrigger value="campus-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Campus Settings</TabsTrigger>
                     <TabsTrigger value="backups" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Data & Backups</TabsTrigger>
                     <TabsTrigger value="error-reports" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Error Reports</TabsTrigger>
+                    <TabsTrigger value="kpi-definitions" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">KPI Definitions</TabsTrigger>
                   </TabsList>
               </ScrollArea>
           </div>
@@ -145,6 +147,9 @@ export default function SettingsPage() {
           </TabsContent>
            <TabsContent value="error-reports" className="space-y-4 animate-in fade-in duration-500">
             <ErrorReportManagement />
+          </TabsContent>
+          <TabsContent value="kpi-definitions" className="space-y-4 animate-in fade-in duration-500">
+            <KpiDefinitionsManager />
           </TabsContent>
         </Tabs>
       </div>

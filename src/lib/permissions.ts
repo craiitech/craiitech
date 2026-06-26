@@ -162,6 +162,25 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
       'strategic.view': 'View Dashboard',
     },
   },
+  kpi: {
+    label: 'KPI Management',
+    permissions: {
+      'kpi.view': 'View KPI Dashboard',
+      'kpi.manage': 'Manage KPI Definitions',
+      'kpi.export': 'Export KPI Data',
+    },
+  },
+  okr: {
+    label: 'OKR Management',
+    permissions: {
+      'okr.view': 'View OKRs',
+      'okr.create': 'Create OKRs',
+      'okr.edit': 'Edit OKRs',
+      'okr.delete': 'Delete OKRs',
+      'okr.view_all': 'View All OKRs',
+      'okr.check_in': 'Perform Check-ins',
+    },
+  },
 }
 
 export const ALL_PERMISSION_IDS: string[] = Object.values(PERMISSION_GROUPS).flatMap(
@@ -198,6 +217,9 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     'manuals.view_all': true,
     'visitor_log.view_all': true,
     'activity_log.view_all': true,
+    'kpi.view': true,
+    'okr.view': true,
+    'okr.check_in': true,
   }
 
   if (isSupervisor) {
@@ -220,6 +242,11 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     perms['gad.view_all'] = true
     perms['strategic.view'] = true
     perms['eval.view_results'] = true
+    perms['kpi.manage'] = true
+    perms['kpi.export'] = true
+    perms['okr.create'] = true
+    perms['okr.edit'] = true
+    perms['okr.view_all'] = true
     perms['users.view'] = true
     perms['units.view'] = true
     perms['campuses.view'] = true

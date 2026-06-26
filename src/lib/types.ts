@@ -1290,3 +1290,118 @@ export type ActivityEvaluation = {
 
   submittedAt: any; // Timestamp
 };
+
+// ============================================================
+// KPI & OKR Types
+// ============================================================
+
+export type KpiCategory =
+  | 'eoms_compliance'
+  | 'risk_management'
+  | 'audit_car'
+  | 'academic_programs'
+  | 'gad'
+  | 'csm_service_quality'
+  | 'system_operations'
+  | 'faculty_evaluation';
+
+export type KpiThreshold = {
+  good: number;
+  satisfactory: number;
+  poor: number;
+  direction: 'higher_is_better' | 'lower_is_better';
+};
+
+export type KpiDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  category: KpiCategory;
+  formula: string;
+  dataSource: string;
+  unit: string;
+  thresholds: KpiThreshold;
+  defaultTarget: number;
+  weight: number;
+  isActive: boolean;
+  createdAt: any;
+  updatedAt: any;
+};
+
+export type KpiSnapshot = {
+  id: string;
+  kpiId: string;
+  kpiName: string;
+  entityType: 'institution' | 'campus' | 'unit';
+  entityId: string;
+  entityName: string;
+  period: string;
+  value: number;
+  target: number;
+  status: 'good' | 'satisfactory' | 'poor';
+  previousValue?: number;
+  trend?: 'up' | 'down' | 'stable';
+  timestamp: any;
+};
+
+export type KpiAlert = {
+  id: string;
+  kpiId: string;
+  kpiName: string;
+  entityType: string;
+  entityId: string;
+  value: number;
+  threshold: number;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  acknowledged: boolean;
+  acknowledgedBy?: string;
+  acknowledgedAt?: any;
+  createdAt: any;
+};
+
+export type OkrObjective = {
+  id: string;
+  title: string;
+  description: string;
+  entityType: 'institution' | 'campus' | 'unit' | 'individual';
+  entityId: string;
+  year: number;
+  quarter: number;
+  ownerId: string;
+  ownerName: string;
+  status: 'draft' | 'active' | 'completed' | 'archived';
+  parentObjectiveId?: string;
+  confidenceScore?: number;
+  progressPercentage?: number;
+  createdAt: any;
+  updatedAt: any;
+};
+
+export type OkrKeyResult = {
+  id: string;
+  objectiveId: string;
+  title: string;
+  type: 'metric' | 'binary' | 'milestone';
+  startingValue: number;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  weight: number;
+  ownerId: string;
+  ownerName: string;
+  lastUpdated?: any;
+  createdAt: any;
+};
+
+export type OkrCheckIn = {
+  id: string;
+  krId: string;
+  objectiveId: string;
+  value: number;
+  confidence: number;
+  comment: string;
+  updatedBy: string;
+  updatedByName: string;
+  updatedAt: any;
+};
