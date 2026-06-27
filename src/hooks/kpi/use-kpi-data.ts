@@ -90,14 +90,11 @@ export function useOkrCheckIns(krId?: string) {
 
 export function useUserOkrObjectives(userId: string) {
   const firestore = useFirestore();
-  const { selectedYear } = useYear();
   const q = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !userId) return null;
     return query(
       collection(firestore, 'okrObjectives'),
-      where('ownerId', '==', userId),
-      where('status', '==', 'active'),
-      orderBy('year', 'desc')
+      where('ownerId', '==', userId)
     );
   }, [firestore, userId]);
   return useCollection<OkrObjective>(q);

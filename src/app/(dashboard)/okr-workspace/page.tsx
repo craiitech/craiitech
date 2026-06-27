@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from '@/firebase/firestore-wrapper';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import { Loader2, Plus, Target, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OkrObjectiveCard } from '@/components/okr/okr-objective-card';
 import { OkrCheckInDialog } from '@/components/okr/okr-checkin-dialog';
 import { OkrCreateDialog } from '@/components/okr/okr-create-dialog';
-import { useOkrKeyResults, useOkrCheckIns, useUserOkrObjectives } from '@/hooks/kpi/use-kpi-data';
+import { useUserOkrObjectives } from '@/hooks/kpi/use-kpi-data';
 import { useYear } from '@/lib/year-provider';
 import { Badge } from '@/components/ui/badge';
 import type { OkrObjective, OkrKeyResult } from '@/lib/types';
@@ -30,12 +30,8 @@ export default function OkrWorkspacePage() {
 
   const objectivesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    const base = collection(firestore, 'okrObjectives');
-    const filters: any[] = [where('year', '==', selectedYear)];
-    if (statusFilter !== 'all') filters.push(where('status', '==', statusFilter));
-    filters.push(orderBy('year', 'desc'));
-    return query(base, ...filters);
-  }, [firestore, selectedYear, statusFilter]);
+    return query(collection(firestore, 'okrObjectives'), where('year', '==', selectedYear));
+  }, [firestore, selectedYear]);
 
   const { data: allObjectives, isLoading } = useCollection<OkrObjective>(objectivesQuery);
 
@@ -50,8 +46,11 @@ export default function OkrWorkspacePage() {
     if (activeTab === 'my-okrs' && entityFilter !== 'all') {
       filtered = filtered.filter(o => o.entityType === entityFilter);
     }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(o => o.status === statusFilter);
+    }
     return filtered;
-  }, [allObjectives, activeTab, userProfile?.id, entityFilter]);
+  }, [allObjectives, activeTab, userProfile?.id, entityFilter, statusFilter]);
 
   const objectiveKeyResultsMap = useMemo(() => {
     const map = new Map<string, OkrKeyResult[]>();
@@ -85,9 +84,12 @@ export default function OkrWorkspacePage() {
     );
   }
 
-  const displayObjectives = activeTab === 'my-okrs' && filteredObjectives.length === 0
-    ? (userObjectives || [])
-    : filteredObjectives;
+  const displayObjectives = useMemo(() => {
+    const source = activeTab === 'my-okrs' && filteredObjectives.length === 0
+      ? (userObjectives || [])
+      : filteredObjectives;
+    return [...source].sort((a, b) => (b.year || 0) - (a.year || 0));
+  }, [filteredObjectives, userObjectives, activeTab]);
 
   return (
     <div className="space-y-6">
