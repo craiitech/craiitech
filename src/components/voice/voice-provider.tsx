@@ -93,32 +93,43 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   }, [speak]);
 
-  // Speak welcome immediately on first user click (satisfies browser autoplay policy)
+  // Keep latest userProfile in a ref so one-time effects can read it
+  const userProfileRef = useRef(userProfile);
+  const isUserLoadingRef = useRef(isUserLoading);
+  userProfileRef.current = userProfile;
+  isUserLoadingRef.current = isUserLoading;
+
+  // Speak welcome on first user interaction (satisfies browser autoplay policy).
+  // Set up once on mount and re-used across re-renders via refs.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') return;
 
     const onInteraction = () => {
       if (welcomed.current || !enabledRef.current) return;
-      if (!userProfile || isUserLoading || userProfile.verified === false) return;
+      const profile = userProfileRef.current;
+      if (!profile || isUserLoadingRef.current || profile.verified === false) return;
       welcomed.current = true;
-      const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+      const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.email?.split('@')[0] || 'User';
+      window.removeEventListener('pointerdown', onInteraction);
+      window.removeEventListener('keydown', onInteraction);
       playWelcome(name);
     };
-    window.addEventListener('pointerdown', onInteraction, { once: true });
-    window.addEventListener('keydown', onInteraction, { once: true });
+    window.addEventListener('pointerdown', onInteraction);
+    window.addEventListener('keydown', onInteraction);
     return () => {
       window.removeEventListener('pointerdown', onInteraction);
       window.removeEventListener('keydown', onInteraction);
     };
-  }, [userProfile, isUserLoading, playWelcome]);
+  }, []);
 
-  // Fallback: if profile loads after the click, speak welcome once ready
+  // Fallback: if profile loads and no click has happened yet, speak welcome once
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') return;
+    if (welcomed.current) return;
 
-    if (!isUserLoading && userProfile && userProfile.verified !== false && !welcomed.current && enabledRef.current) {
+    if (!isUserLoading && userProfile && userProfile.verified !== false && enabledRef.current) {
       welcomed.current = true;
       const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
       const timer = setTimeout(() => {

@@ -52,19 +52,9 @@ export function VoiceAnnouncements() {
       const alreadySpokenToday = lastAnnouncementDate === todayStr;
 
       if (alreadySpokenToday) {
-        setTimeout(() => {
-          const unitName = userProfile?.unitName || 'esteemed colleague';
-          let shortMsg = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. I already informed you of your quality assurance and compliance summary today. Please comply as soon as possible.`;
-          if (isPresident || isExecutive) {
-            shortMsg = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. I already informed you of your EOMS executive overview today. Please monitor the dashboard.`;
-          } else if (isAuditor) {
-            shortMsg = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. I already informed you of your audit overview today. Thank you for your commitment to quality.`;
-          }
-          queueAnnouncement(shortMsg);
-          try {
-            sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
-          } catch {}
-        }, 1000);
+        try {
+          sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
+        } catch {}
         return;
       }
 

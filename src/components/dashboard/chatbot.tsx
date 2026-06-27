@@ -192,7 +192,7 @@ export function Chatbot() {
       const unitName = userProfile?.unitName || 'esteemed colleague';
       speak(`Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion.`);
     }
-  }, [isOpen, pathname, activeTab, speak, userProfile?.unitName]);
+  }, [isOpen, speak, userProfile?.unitName]);
 
   useEffect(() => {
     // Auto-scroll to the bottom of the dialogue on new messages
