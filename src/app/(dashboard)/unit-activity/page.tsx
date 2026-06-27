@@ -2449,7 +2449,7 @@ export default function UnitActivityPage() {
 
       {/* EVALUATION STRATEGY WIZARD DIALOG */}
       <Dialog open={isEvalWizardOpen} onOpenChange={setIsEvalWizardOpen}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-y-auto max-h-[90dvh]">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
             <DialogTitle className="text-base font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#D4AF37] animate-pulse" />
