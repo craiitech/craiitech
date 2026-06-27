@@ -48,10 +48,26 @@ export function VoiceAnnouncements() {
       // Daily Frequency Cap check
       const todayStr = new Date().toISOString().split('T')[0];
       const storageKey = `rsu_eoms_last_announcement_date_${userProfile.id}`;
+      const countKey = `rsu_eoms_announcement_count_${userProfile.id}`;
       const lastAnnouncementDate = localStorage.getItem(storageKey);
       const alreadySpokenToday = lastAnnouncementDate === todayStr;
 
       if (alreadySpokenToday) {
+        const rawCount = localStorage.getItem(countKey);
+        const todayCount = rawCount ? parseInt(rawCount, 10) : 0;
+
+        if (todayCount < 2) {
+          const shortName = unitName || 'esteemed colleague';
+          let shortMsg = `Good day, ${shortName}. This is your EOMS daily briefing. Please check the dashboard for your quality assurance and compliance summary.`;
+          if (isPresident || isExecutive) {
+            shortMsg = `Good day, ${shortName}. This is your EOMS executive briefing. Please monitor the dashboard for updates.`;
+          } else if (isAuditor) {
+            shortMsg = `Good day, ${shortName}. This is your audit briefing. Thank you for your commitment to quality.`;
+          }
+          localStorage.setItem(countKey, String(todayCount + 1));
+          queueAnnouncement(shortMsg);
+        }
+
         try {
           sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
         } catch {}
@@ -584,6 +600,7 @@ export function VoiceAnnouncements() {
 
         try {
           localStorage.setItem(storageKey, todayStr);
+          localStorage.setItem(countKey, '0');
           sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
         } catch {}
       }, 1000);
