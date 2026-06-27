@@ -9,7 +9,7 @@ import {
   useDoc,
   useMemoFirebase,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon, QrCode, ExternalLink, Download, Target, Gauge } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon, QrCode, ExternalLink, Download } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -421,20 +421,6 @@ export function SidebarNav({
       active: pathname === '/visitor-logbook',
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <BookOpen />,
-    },
-    {
-      href: '/kpi-dashboard',
-      label: 'KPI Dashboard',
-      active: pathname.startsWith('/kpi-dashboard'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO', 'Vice President'],
-      icon: <Gauge />,
-    },
-    {
-      href: '/okr-workspace',
-      label: 'OKR Workspace',
-      active: pathname.startsWith('/okr-workspace'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO', 'Vice President'],
-      icon: <Target />,
     },
      {
       href: '/reports',

@@ -46,7 +46,8 @@ import {
   TriangleAlert,
   Plus,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Gauge
 } from 'lucide-react';
 import {
   useUser,
@@ -118,6 +119,8 @@ import { CorrectiveActionsTab } from '@/components/dashboard/executive/correctiv
 import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
 import { ScheduleTab } from '@/components/dashboard/executive/schedule-tab';
 import { AccreditationPerformanceTab } from '@/components/dashboard/executive/accreditation-performance-tab';
+import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
+import { OkrWorkspaceTab } from '@/components/dashboard/okr-workspace-tab';
 import type {
   Submission,
   User as AppUser,
@@ -1042,6 +1045,8 @@ export default function HomePage() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="actions">Maturity Checklist</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="kpi">KPI Dashboard</TabsTrigger>
+              <TabsTrigger value="okr">OKR Workspace</TabsTrigger>
             </TabsList>
           </ScrollArea>
         </div>
@@ -1150,6 +1155,20 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="kpi" className="space-y-6">
+          <KpiDashboardTab
+            submissions={submissions}
+            risks={risks}
+            allUnits={allUnits}
+            allCycles={allCycles}
+            allCars={allCars}
+            allAuditPlans={allAuditPlans}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
+        <TabsContent value="okr" className="space-y-6">
+          <OkrWorkspaceTab selectedYear={selectedYear} />
+        </TabsContent>
       </Tabs>
     );
   };
@@ -1171,7 +1190,9 @@ export default function HomePage() {
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="schedule"><Calendar className="mr-2 h-4 w-4" />Schedule Today | Upcoming</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="kpi"><Gauge className="mr-2 h-4 w-4" />KPI Dashboard</TabsTrigger>
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            <TabsTrigger value="okr"><Target className="mr-2 h-4 w-4" />OKR Workspace</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
             <TabsTrigger value="accreditation-performance"><Award className="mr-2 h-4 w-4" />Accreditation Performance</TabsTrigger>
             <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
@@ -1271,6 +1292,20 @@ export default function HomePage() {
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoadingRisks} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={true} />
         <ComplianceHeatmap units={nonIqaUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
       </TabsContent>
+      <TabsContent value="kpi" className="space-y-6">
+        <KpiDashboardTab
+          submissions={submissions}
+          risks={risks}
+          allUnits={allUnits}
+          allCycles={allCycles}
+          allCars={allCars}
+          allAuditPlans={allAuditPlans}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+      <TabsContent value="okr" className="space-y-6">
+        <OkrWorkspaceTab selectedYear={selectedYear} />
+      </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={nonIqaUnits} />
@@ -1356,7 +1391,9 @@ export default function HomePage() {
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="schedule"><Calendar className="mr-2 h-4 w-4" />Schedule Today | Upcoming</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="kpi"><Gauge className="mr-2 h-4 w-4" />KPI Dashboard</TabsTrigger>
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            <TabsTrigger value="okr"><Target className="mr-2 h-4 w-4" />OKR Workspace</TabsTrigger>
             <TabsTrigger value="ched-programs"><GraduationCap className="mr-2 h-4 w-4" />CHED Programs</TabsTrigger>
             <TabsTrigger value="accreditation-performance"><Award className="mr-2 h-4 w-4" />Accreditation Performance</TabsTrigger>
             <TabsTrigger value="risk-opportunity"><TriangleAlert className="mr-2 h-4 w-4" />Risk & Opportunity</TabsTrigger>
@@ -1463,6 +1500,22 @@ export default function HomePage() {
         <ComplianceHeatmap units={nonIqaUnits?.filter(u => u.campusIds?.includes(userProfile?.campusId || '')) || []} submissions={submissions || []} selectedYear={selectedYear} />
       </TabsContent>
 
+      <TabsContent value="kpi" className="space-y-6">
+        <KpiDashboardTab
+          submissions={submissions}
+          risks={risks}
+          allUnits={allUnits}
+          allCycles={allCycles}
+          allCars={allCars}
+          allAuditPlans={allAuditPlans}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="okr" className="space-y-6">
+        <OkrWorkspaceTab selectedYear={selectedYear} />
+      </TabsContent>
+
       <TabsContent value="strategic" className="space-y-6">
         <MaturityRadar campuses={campuses?.filter(c => c.id === userProfile?.campusId) || []} submissions={submissions || []} risks={risks || []} mrOutputs={campusMrOutputs || []} selectedYear={selectedYear} />
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={nonIqaUnits} />
@@ -1560,8 +1613,10 @@ export default function HomePage() {
           <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
             <TabsTrigger value="audit"><ClipboardCheck className="mr-2 h-4 w-4" />Audit Focus</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />IQA Analytics</TabsTrigger>
+            <TabsTrigger value="kpi"><Gauge className="mr-2 h-4 w-4" />KPI Dashboard</TabsTrigger>
             <TabsTrigger value="results"><ListChecks className="mr-2 h-4 w-4" />Audit Results & Findings</TabsTrigger>
             <TabsTrigger value="portfolio"><Briefcase className="mr-2 h-4 w-4" />Portfolio & Performance</TabsTrigger>
+            <TabsTrigger value="okr"><Target className="mr-2 h-4 w-4" />OKR Workspace</TabsTrigger>
             <TabsTrigger value="unit-compliance"><HomeIcon className="mr-2 h-4 w-4" />Unit Self-Compliance</TabsTrigger>
             <TabsTrigger value="quality-score"><Award className="mr-2 h-4 w-4" />University EOMS Quality Score</TabsTrigger>
           </TabsList>
@@ -1753,6 +1808,10 @@ export default function HomePage() {
         </div>
       </TabsContent>
 
+      <TabsContent value="okr" className="space-y-6 animate-in fade-in duration-500">
+        <OkrWorkspaceTab selectedYear={selectedYear} />
+      </TabsContent>
+
       <TabsContent value="analytics" className="space-y-6 animate-in fade-in duration-500">
         <AuditAnalytics 
           plans={allAuditPlans || []}
@@ -1763,6 +1822,18 @@ export default function HomePage() {
           campuses={campuses || []}
           users={allUsersData || []}
           isLoading={isLoadingSchedules}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      <TabsContent value="kpi" className="space-y-6 animate-in fade-in duration-500">
+        <KpiDashboardTab
+          submissions={submissions}
+          risks={risks}
+          allUnits={allUnits}
+          allCycles={allCycles}
+          allCars={allCars}
+          allAuditPlans={allAuditPlans}
           selectedYear={selectedYear}
         />
       </TabsContent>
