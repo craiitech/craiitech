@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from '@/firebase/firestore-wrapper';
+import { collection, query, where, orderBy } from '@/firebase/firestore-wrapper';
 import { Loader2, Plus, Target, Filter, Sparkles, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,6 +56,13 @@ export function OkrWorkspaceTab({
 
   const { data: userObjectives } = useUserOkrObjectives(userProfile?.id || '');
 
+  const keyResultsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'okrKeyResults'));
+  }, [firestore]);
+
+  const { data: allKeyResults } = useCollection<OkrKeyResult>(keyResultsQuery);
+
   const filteredObjectives = useMemo(() => {
     if (!allObjectives) return [];
     let filtered = allObjectives;
@@ -81,9 +88,14 @@ export function OkrWorkspaceTab({
 
   const objectiveKeyResultsMap = useMemo(() => {
     const map = new Map<string, OkrKeyResult[]>();
-    if (!allObjectives) return map;
+    if (!allKeyResults) return map;
+    for (const kr of allKeyResults) {
+      const existing = map.get(kr.objectiveId);
+      if (existing) existing.push(kr);
+      else map.set(kr.objectiveId, [kr]);
+    }
     return map;
-  }, [allObjectives]);
+  }, [allKeyResults]);
 
   const selectedObjective = useMemo(() => {
     return allObjectives?.find(o => o.id === selectedObjectiveId) || null;
@@ -169,7 +181,7 @@ export function OkrWorkspaceTab({
                 <OkrObjectiveCard
                   key={obj.id}
                   objective={obj}
-                  keyResults={[]}
+                  keyResults={objectiveKeyResultsMap.get(obj.id) || []}
                   onCheckIn={handleCheckIn}
                   onClick={handleClick}
                 />
@@ -185,7 +197,7 @@ export function OkrWorkspaceTab({
                 <OkrObjectiveCard
                   key={obj.id}
                   objective={obj}
-                  keyResults={[]}
+                  keyResults={objectiveKeyResultsMap.get(obj.id) || []}
                   onCheckIn={handleCheckIn}
                   onClick={handleClick}
                 />
@@ -229,7 +241,7 @@ export function OkrWorkspaceTab({
         activityLogs={activityLogs}
         evaluations={evaluations}
         okrObjectives={allObjectives}
-        okrKeyResults={null}
+        okrKeyResults={allKeyResults}
         selectedYear={selectedYear}
       />
     </div>

@@ -75,14 +75,14 @@ export function OkrWizardDialog({
 
   const handleGenerate = useCallback(() => {
     setIsGenerating(true);
+    const generated = generateOkrSuggestions(dataInventory);
     setTimeout(() => {
       setIsGenerating(false);
       setHasGenerated(true);
-      const allIds = suggestions.map(s => s.id);
-      setSelectedIds(new Set(allIds));
+      setSelectedIds(new Set(generated.map(s => s.id)));
       setStep(1);
     }, 600);
-  }, [suggestions]);
+  }, [dataInventory]);
 
   const handleCreate = useCallback(async () => {
     if (!firestore || !userProfile) return;
