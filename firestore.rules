@@ -306,18 +306,40 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    // Device bindings are immutable once created — prevents unbinding another user's device.
+    // Required fields enforced to prevent garbage data.
     match /attendanceDeviceBindings/{id} {
-      allow read, write: if true; // Public access to allow mobile device binding
+      allow create: if true
+        && request.resource.data.keys().hasAll(['userId', 'deviceFingerprint', 'userName', 'boundAt'])
+        && request.resource.data.userId is string
+        && request.resource.data.deviceFingerprint is string;
+      allow read: if true;
+      allow update, delete: if false;
     }
 
+    // Attendance logs are immutable records. Once written, they cannot be modified or deleted.
+    // Field validation ensures data integrity. Status must be one of the valid states.
     match /unitActivityAttendanceLogs/{id} {
       allow read: if true;
-      allow write: if true; // Scanner kiosk writes attendance without auth session
+      allow create: if true
+        && request.resource.data.keys().hasAll(['activityId', 'userId', 'status', 'scannedAt', 'deviceFingerprint'])
+        && request.resource.data.activityId is string
+        && request.resource.data.userId is string
+        && request.resource.data.deviceFingerprint is string
+        && request.resource.data.status in ['ON_TIME', 'LATE', 'OUTSIDE_WINDOW', 'REJECTED']
+        && request.resource.data.scannedAt is number;
+      allow update, delete: if false;
     }
 
+    // Evaluations are submitted once — no editing after submission prevents tampering.
+    // Field validation ensures all required data is present.
     match /unitActivityEvaluations/{id} {
-      allow create: if true; // Public: participants submit evaluations via QR code (unauthenticated)
-      allow read, update, delete: if isSignedIn();
+      allow create: if true
+        && request.resource.data.keys().hasAny(['ratingOverall', 'activityId', 'submittedAt'])
+        && request.resource.data.activityId is string
+        && request.resource.data.submittedAt is number;
+      allow read: if isSignedIn();
+      allow update, delete: if false;
     }
 
     // --------------------------------------------------------------------------

@@ -1,8 +1,33 @@
-const APP_SECRET_SALT = 'rsu_attendance_secure_salt_2026';
-const OTP_KEY_SALT = 'rsu-otp-key-2026';
+// HMAC salts — stored in public env vars so they're not in source code.
+// NEXT_PUBLIC is used because these need to be available in the browser bundle.
+// Rotation scheme: set NEXT_PUBLIC_ATTENDANCE_SALT_{YEAR} before each year.
+// The fallback maintains compatibility if no env var is set.
+function getSalt(year: number): string {
+  const envKey = `NEXT_PUBLIC_ATTENDANCE_SALT_${year}` as string;
+  const envSalt = typeof process !== 'undefined' ? (process.env[envKey] || process.env.NEXT_PUBLIC_ATTENDANCE_SALT) : undefined;
+  return envSalt || `rsu_attendance_secure_salt_${year}`;
+}
+
+function getOtpSalt(year: number): string {
+  const envKey = `NEXT_PUBLIC_ATTENDANCE_OTP_SALT_${year}` as string;
+  const envSalt = typeof process !== 'undefined' ? (process.env[envKey] || process.env.NEXT_PUBLIC_ATTENDANCE_OTP_SALT) : undefined;
+  return envSalt || `rsu-otp-key-${year}`;
+}
+
+function getOfflineSalt(year: number): string {
+  const envKey = `NEXT_PUBLIC_ATTENDANCE_OFFLINE_SALT_${year}` as string;
+  const envSalt = typeof process !== 'undefined' ? (process.env[envKey] || process.env.NEXT_PUBLIC_ATTENDANCE_OFFLINE_SALT) : undefined;
+  return envSalt || `rsu-offline-log-key-${year}`;
+}
+
+const currentYear = new Date().getFullYear();
 
 let hmacKey: CryptoKey | null = null;
+let hmacKeyPrev: CryptoKey | null = null;
 let otpKey: CryptoKey | null = null;
+let otpKeyPrev: CryptoKey | null = null;
+let offlineKey: CryptoKey | null = null;
+let offlineKeyPrev: CryptoKey | null = null;
 
 async function getKey(salt: string, usage: KeyUsage[]): Promise<CryptoKey> {
   const encoder = new TextEncoder();
@@ -11,7 +36,7 @@ async function getKey(salt: string, usage: KeyUsage[]): Promise<CryptoKey> {
 }
 
 export async function generatePayloadSignature(userId: string, timestamp: number, fp: string): Promise<string> {
-  if (!hmacKey) hmacKey = await getKey(APP_SECRET_SALT, ['sign', 'verify']);
+  if (!hmacKey) hmacKey = await getKey(getSalt(currentYear), ['sign', 'verify']);
   const encoder = new TextEncoder();
   const data = encoder.encode(`${userId}-${timestamp}-${fp}`);
   const signature = await crypto.subtle.sign('HMAC', hmacKey, data);
@@ -19,8 +44,40 @@ export async function generatePayloadSignature(userId: string, timestamp: number
   return `SIG-${hex.substring(0, 16)}`;
 }
 
+export async function verifyPayloadSignature(userId: string, timestamp: number, fp: string, expectedSig: string): Promise<boolean> {
+  const expectedPrefix = 'SIG-';
+  if (!expectedSig.startsWith(expectedPrefix)) return false;
+  const sigHex = expectedSig.slice(expectedPrefix.length);
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${userId}-${timestamp}-${fp}`);
+
+  // Try current year key first, then previous year
+  for (const key of [await getCurrentHmacKey(), await getPrevHmacKey()].filter(Boolean)) {
+    if (!key) continue;
+    const computed = await crypto.subtle.sign('HMAC', key, data);
+    const hex = Array.from(new Uint8Array(computed)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+    if (hex === sigHex) return true;
+  }
+  return false;
+}
+
+async function getCurrentHmacKey(): Promise<CryptoKey | null> {
+  try {
+    if (!hmacKey) hmacKey = await getKey(getSalt(currentYear), ['verify']);
+    return hmacKey;
+  } catch { return null; }
+}
+
+async function getPrevHmacKey(): Promise<CryptoKey | null> {
+  try {
+    if (!hmacKeyPrev) hmacKeyPrev = await getKey(getSalt(currentYear - 1), ['verify']);
+    return hmacKeyPrev;
+  } catch { return null; }
+}
+
 export async function generateActivityCode(activityId: string, timestamp: number): Promise<string> {
-  if (!otpKey) otpKey = await getKey(OTP_KEY_SALT, ['sign', 'verify']);
+  if (!otpKey) otpKey = await getKey(getOtpSalt(currentYear), ['sign', 'verify']);
   const windowId = Math.floor(timestamp / 60000);
   const encoder = new TextEncoder();
   const data = encoder.encode(`${activityId}-${windowId}`);
@@ -29,10 +86,8 @@ export async function generateActivityCode(activityId: string, timestamp: number
   return ((Math.abs(hash) % 900) + 100).toString();
 }
 
-let offlineKey: CryptoKey | null = null;
-
 export async function signOfflineLog(data: Record<string, any>): Promise<string> {
-  if (!offlineKey) offlineKey = await getKey('rsu-offline-log-key', ['sign', 'verify']);
+  if (!offlineKey) offlineKey = await getKey(getOfflineSalt(currentYear), ['sign', 'verify']);
   const encoder = new TextEncoder();
   const serialized = Object.keys(data).sort().map(k => `${k}:${data[k] ?? ''}`).join('|');
   const sig = await crypto.subtle.sign('HMAC', offlineKey, encoder.encode(serialized));
@@ -42,7 +97,14 @@ export async function signOfflineLog(data: Record<string, any>): Promise<string>
 
 export async function verifyOfflineLog(data: Record<string, any>, expectedSig: string): Promise<boolean> {
   const computed = await signOfflineLog(data);
-  return computed === expectedSig;
+  if (computed === expectedSig) return true;
+  // Try previous year salt
+  if (!offlineKeyPrev) offlineKeyPrev = await getKey(getOfflineSalt(currentYear - 1), ['sign', 'verify']);
+  const encoder = new TextEncoder();
+  const serialized = Object.keys(data).sort().map(k => `${k}:${data[k] ?? ''}`).join('|');
+  const sig = await crypto.subtle.sign('HMAC', offlineKeyPrev, encoder.encode(serialized));
+  const hex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return hex.substring(0, 16) === expectedSig;
 }
 
 export function parseSessionTime(dateStr: string, timeStr: string): number {

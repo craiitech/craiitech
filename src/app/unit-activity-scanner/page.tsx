@@ -14,7 +14,7 @@ import {
   limit
 } from '@/firebase/firestore-wrapper';
 import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
-import { generatePayloadSignature, generateActivityCode, signOfflineLog, verifyOfflineLog, parseSessionTime } from '@/lib/unit-activity-crypto';
+import { verifyPayloadSignature, generateActivityCode, signOfflineLog, verifyOfflineLog, parseSessionTime } from '@/lib/unit-activity-crypto';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -523,8 +523,8 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      const computedSignature = await generatePayloadSignature(userId, timestamp, deviceFingerprint);
-      if (signature !== computedSignature) {
+      const valid = await verifyPayloadSignature(userId, timestamp, deviceFingerprint, signature);
+      if (!valid) {
         showScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
         return;
       }

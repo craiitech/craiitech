@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc } from '@/firebase/firestore-wrapper';
@@ -36,6 +36,24 @@ function KioskContent() {
   const [activity, setActivity] = useState<AttendanceActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrError, setQrError] = useState(false);
+
+  useEffect(() => {
+    if (!activityId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const QRCode = (await import('qrcode')).default;
+        const url = `${window.location.origin}/unit-activity/evaluate?activityId=${activityId}`;
+        const dataUrl = await QRCode.toDataURL(url, { width: 500, margin: 2, color: { dark: '#1e293b' } });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch {
+        if (!cancelled) setQrError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activityId]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -112,13 +130,6 @@ function KioskContent() {
       </div>
     );
   }
-
-  const evalUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/unit-activity/evaluate?activityId=${activity.id}`
-    : '';
-  const qrCodeUrl = evalUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=500x500&ecc=H&data=${encodeURIComponent(evalUrl)}`
-    : '';
 
   const strategy = activity.evaluationStrategy;
   const isPinRequired = strategy?.requirePin === true;
@@ -320,9 +331,9 @@ function KioskContent() {
                 />
               )}
 
-              {qrCodeUrl ? (
+              {qrDataUrl ? (
                 <img
-                  src={qrCodeUrl}
+                  src={qrDataUrl}
                   alt="Evaluation QR Code"
                   className={`w-full h-full object-contain transition-all duration-500 ${
                     !isFullscreen
@@ -330,6 +341,11 @@ function KioskContent() {
                       : 'opacity-100 scale-100'
                   }`}
                 />
+              ) : qrError ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="text-rose-400 text-sm font-bold">Failed to generate QR</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Please try again</span>
+                </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="h-10 w-10 text-[#D4AF37] animate-spin" />

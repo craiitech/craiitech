@@ -16,7 +16,8 @@ import {
   serverTimestamp 
 } from '@/firebase/firestore-wrapper';
 import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog, ActivitySession, ActivityEvaluation } from '@/lib/types';
-import { generatePayloadSignature, resolveActiveSession, parseSessionTime } from '@/lib/unit-activity-crypto';
+import { verifyPayloadSignature, resolveActiveSession, parseSessionTime } from '@/lib/unit-activity-crypto';
+import { useActivityAutoTransition } from '@/hooks/use-activity-auto-transition';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -100,6 +101,8 @@ export default function UnitActivityPage() {
       return timeB - timeA;
     });
   }, [activities]);
+
+  useActivityAutoTransition(firestore, activities);
 
   // Device bindings query - Sort in memory
   const bindingsQuery = useMemoFirebase(() => {
@@ -755,8 +758,8 @@ export default function UnitActivityPage() {
         return;
       }
 
-      const computedSignature = await generatePayloadSignature(userId, timestamp, deviceFingerprint);
-      if (signature !== computedSignature) {
+      const valid = await verifyPayloadSignature(userId, timestamp, deviceFingerprint, signature);
+      if (!valid) {
         setScanResult({ status: 'error', message: 'Security Rejection: Invalid QR signature (tamper detected).' });
         return;
       }
