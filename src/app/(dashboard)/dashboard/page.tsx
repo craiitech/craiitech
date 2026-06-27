@@ -1167,7 +1167,15 @@ export default function HomePage() {
           />
         </TabsContent>
         <TabsContent value="okr" className="space-y-6">
-          <OkrWorkspaceTab selectedYear={selectedYear} />
+          <OkrWorkspaceTab
+            selectedYear={selectedYear}
+            submissions={submissions}
+            risks={risks}
+            cars={allCars}
+            units={allUnits}
+            cycles={allCycles}
+            auditPlans={allAuditPlans}
+          />
         </TabsContent>
       </Tabs>
     );
@@ -1304,31 +1312,39 @@ export default function HomePage() {
         />
       </TabsContent>
       <TabsContent value="okr" className="space-y-6">
-        <OkrWorkspaceTab selectedYear={selectedYear} />
-      </TabsContent>
-      <TabsContent value="strategic" className="space-y-6">
-        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={nonIqaUnits} />
-        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
-        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
-      </TabsContent>
+          <OkrWorkspaceTab
+            selectedYear={selectedYear}
+            submissions={submissions}
+            risks={risks}
+            cars={allCars}
+            units={allUnits}
+            cycles={allCycles}
+            auditPlans={allAuditPlans}
+          />
+        </TabsContent>
+        <TabsContent value="strategic" className="space-y-6">
+          <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={[]} selectedYear={selectedYear} />
+          <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={nonIqaUnits} />
+          <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+          <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        </TabsContent>
 
-      <TabsContent value="ched-programs" className="space-y-6">
-        <ChedProgramsTab
-          academicPrograms={academicPrograms || []}
-          allCompliances={allCompliances || []}
-          campuses={campuses || []}
-          selectedYear={selectedYear}
-        />
-      </TabsContent>
+        <TabsContent value="ched-programs" className="space-y-6">
+          <ChedProgramsTab
+            academicPrograms={academicPrograms || []}
+            allCompliances={allCompliances || []}
+            campuses={campuses || []}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
 
-      <TabsContent value="accreditation-performance" className="space-y-6">
-        <AccreditationPerformanceTab
-          academicPrograms={academicPrograms || []}
-          allCompliances={allCompliances || []}
-          campuses={campuses || []}
-          selectedYear={selectedYear}
-        />
+        <TabsContent value="accreditation-performance" className="space-y-6">
+          <AccreditationPerformanceTab
+            academicPrograms={academicPrograms || []}
+            allCompliances={allCompliances || []}
+            campuses={campuses || []}
+            selectedYear={selectedYear}
+          />
       </TabsContent>
 
       <TabsContent value="risk-opportunity" className="space-y-6">
@@ -1513,7 +1529,15 @@ export default function HomePage() {
       </TabsContent>
 
       <TabsContent value="okr" className="space-y-6">
-        <OkrWorkspaceTab selectedYear={selectedYear} />
+        <OkrWorkspaceTab
+          selectedYear={selectedYear}
+          submissions={submissions}
+          risks={risks}
+          cars={allCars}
+          units={allUnits}
+          cycles={allCycles}
+          auditPlans={allAuditPlans}
+        />
       </TabsContent>
 
       <TabsContent value="strategic" className="space-y-6">
@@ -1809,7 +1833,15 @@ export default function HomePage() {
       </TabsContent>
 
       <TabsContent value="okr" className="space-y-6 animate-in fade-in duration-500">
-        <OkrWorkspaceTab selectedYear={selectedYear} />
+        <OkrWorkspaceTab
+          selectedYear={selectedYear}
+          submissions={submissions}
+          risks={risks}
+          cars={allCars}
+          units={allUnits}
+          cycles={allCycles}
+          auditPlans={allAuditPlans}
+        />
       </TabsContent>
 
       <TabsContent value="analytics" className="space-y-6 animate-in fade-in duration-500">

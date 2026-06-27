@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from '@/firebase/firestore-wrapper';
-import { Loader2, Plus, Target, Filter } from 'lucide-react';
+import { Loader2, Plus, Target, Filter, Sparkles, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,19 +12,36 @@ import { OkrCheckInDialog } from '@/components/okr/okr-checkin-dialog';
 import { OkrCreateDialog } from '@/components/okr/okr-create-dialog';
 import { useUserOkrObjectives } from '@/hooks/kpi/use-kpi-data';
 import { Badge } from '@/components/ui/badge';
-import type { OkrObjective, OkrKeyResult } from '@/lib/types';
+import { OkrWizardDialog } from '@/components/okr/okr-wizard-dialog';
+import type { OkrObjective, OkrKeyResult, Submission, Risk, CorrectiveActionRequest, Unit, Cycle, AuditPlan, CsmResponse, AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation } from '@/lib/types';
 
 interface OkrWorkspaceTabProps {
   selectedYear: number;
+  submissions?: Submission[] | null;
+  risks?: Risk[] | null;
+  cars?: CorrectiveActionRequest[] | null;
+  units?: Unit[] | null;
+  cycles?: Cycle[] | null;
+  auditPlans?: AuditPlan[] | null;
+  csmResponses?: CsmResponse[] | null;
+  activities?: AttendanceActivity[] | null;
+  activityLogs?: ActivityAttendanceLog[] | null;
+  evaluations?: ActivityEvaluation[] | null;
 }
 
-export function OkrWorkspaceTab({ selectedYear }: OkrWorkspaceTabProps) {
+export function OkrWorkspaceTab({
+  selectedYear,
+  submissions = null, risks = null, cars = null, units = null,
+  cycles = null, auditPlans = null, csmResponses = null,
+  activities = null, activityLogs = null, evaluations = null,
+}: OkrWorkspaceTabProps) {
   const { isAdmin, isSupervisor, userProfile } = useUser();
   const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('my-okrs');
   const [statusFilter, setStatusFilter] = useState('active');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
   const [entityFilter, setEntityFilter] = useState('all');
 
@@ -115,9 +132,14 @@ export function OkrWorkspaceTab({ selectedYear }: OkrWorkspaceTabProps) {
           </Badge>
         </div>
         {canCreate && (
-          <Button onClick={() => setIsCreateOpen(true)} className="h-8 text-xs font-bold">
-            <Plus className="h-4 w-4 mr-1.5" /> New OKR
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="h-8 text-xs font-bold">
+              <BrainCircuit className="h-3.5 w-3.5 mr-1.5" /> Wizard
+            </Button>
+            <Button onClick={() => setIsCreateOpen(true)} className="h-8 text-xs font-bold">
+              <Plus className="h-4 w-4 mr-1.5" /> New OKR
+            </Button>
+          </div>
         )}
       </div>
 
@@ -192,6 +214,24 @@ export function OkrWorkspaceTab({ selectedYear }: OkrWorkspaceTabProps) {
           keyResults={selectedKeyResults}
         />
       )}
+
+      <OkrWizardDialog
+        open={isWizardOpen}
+        onOpenChange={setIsWizardOpen}
+        submissions={submissions}
+        risks={risks}
+        cars={cars}
+        units={units}
+        cycles={cycles}
+        auditPlans={auditPlans}
+        csmResponses={csmResponses}
+        activities={activities}
+        activityLogs={activityLogs}
+        evaluations={evaluations}
+        okrObjectives={allObjectives}
+        okrKeyResults={null}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }

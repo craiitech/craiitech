@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, doc, updateDoc, Timestamp } from '@/firebase/firestore-wrapper';
-import { Loader2, BarChart, TrendingUp, AlertTriangle, Download, CalendarSearch } from 'lucide-react';
+import { Loader2, BarChart, TrendingUp, AlertTriangle, Download, CalendarSearch, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KpiScorecard, KpiScorecardGrid } from '@/components/kpi/kpi-scorecard';
@@ -15,7 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { useYear } from '@/lib/year-provider';
 import { computeKpis } from '@/lib/kpi-engine';
 import { KPI_CATEGORIES } from '@/lib/constants';
-import type { KpiDefinition, KpiSnapshot, KpiAlert, Submission, Risk, Cycle, Unit, CorrectiveActionRequest, AuditPlan, CsmResponse } from '@/lib/types';
+import { KpiAutoGeneratorDialog } from '@/components/kpi/kpi-auto-generator-dialog';
+import type { KpiDefinition, KpiSnapshot, KpiAlert, Submission, Risk, Cycle, Unit, CorrectiveActionRequest, AuditPlan, CsmResponse, GADPlan, GADActivity } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 interface KpiDashboardTabProps {
@@ -35,6 +36,7 @@ export function KpiDashboardTab({
   const firestore = useFirestore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
   const canManage = isAdmin;
 
@@ -168,7 +170,13 @@ export function KpiDashboardTab({
       )}
 
       <div className="flex items-center justify-between">
-        <div />
+        <div>
+          {canManage && (
+            <Button variant="outline" size="sm" onClick={() => setIsGeneratorOpen(true)} className="h-8 text-xs font-bold">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {canManage && (
             <>
@@ -248,6 +256,21 @@ export function KpiDashboardTab({
           )}
         </TabsContent>
       </Tabs>
+
+      <KpiAutoGeneratorDialog
+        open={isGeneratorOpen}
+        onOpenChange={setIsGeneratorOpen}
+        submissions={submissions as Submission[] | null}
+        risks={risks as Risk[] | null}
+        cars={allCars as CorrectiveActionRequest[] | null}
+        units={allUnits as Unit[] | null}
+        cycles={null}
+        auditPlans={allAuditPlans as AuditPlan[] | null}
+        csmResponses={null}
+        gadPlans={null}
+        gadActivities={null}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }
