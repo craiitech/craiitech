@@ -52,6 +52,14 @@ export default function OkrWorkspacePage() {
     return filtered;
   }, [allObjectives, activeTab, userProfile?.id, entityFilter, statusFilter]);
 
+  const displayObjectives = useMemo(() => {
+    if (!allObjectives && !userObjectives) return [];
+    const source = activeTab === 'my-okrs' && filteredObjectives.length === 0
+      ? (userObjectives || [])
+      : filteredObjectives;
+    return [...source].sort((a, b) => (b.year || 0) - (a.year || 0));
+  }, [allObjectives, filteredObjectives, userObjectives, activeTab]);
+
   const objectiveKeyResultsMap = useMemo(() => {
     const map = new Map<string, OkrKeyResult[]>();
     if (!allObjectives) return map;
@@ -83,13 +91,6 @@ export default function OkrWorkspacePage() {
       </div>
     );
   }
-
-  const displayObjectives = useMemo(() => {
-    const source = activeTab === 'my-okrs' && filteredObjectives.length === 0
-      ? (userObjectives || [])
-      : filteredObjectives;
-    return [...source].sort((a, b) => (b.year || 0) - (a.year || 0));
-  }, [filteredObjectives, userObjectives, activeTab]);
 
   return (
     <div className="space-y-6">
