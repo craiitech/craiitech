@@ -354,6 +354,107 @@ const TEMPLATES: SuggestionTemplate[] = [
     generateDescription: (d) =>
       `Percentage of allocated GAD budget that has been utilized for AY ${d.selectedYear}.`,
   },
+  {
+    dataSource: 'activity_participation_rate',
+    defaultName: 'Activity Participation Rate',
+    defaultCategory: 'faculty_evaluation',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['activities', 'activityLogs'],
+    confidenceCheck: (d) => hasData(d, 'activities') && hasData(d, 'activityLogs') ? 'high' : 'medium',
+    estimateTarget: (d) => {
+      const acts = d.activities || [];
+      const logs = d.activityLogs || [];
+      if (acts.length === 0) return { target: 80, current: 0, reason: 'No activities planned.', hasData: false };
+      const withAttendance = new Set(logs.map(l => l.activityId)).size;
+      const rate = Math.round((withAttendance / acts.length) * 100);
+      return {
+        target: Math.max(rate + 10, 90),
+        current: rate,
+        reason: `${withAttendance} of ${acts.length} activities have attendance records.`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of planned unit activities that have documented attendance for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'activity_on_time_punctuality',
+    defaultName: 'Activity Attendance Punctuality',
+    defaultCategory: 'faculty_evaluation',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['activityLogs'],
+    confidenceCheck: (d) => hasData(d, 'activityLogs') ? 'high' : 'medium',
+    estimateTarget: (d) => {
+      const logs = d.activityLogs || [];
+      if (logs.length === 0) return { target: 85, current: 0, reason: 'No attendance logs recorded.', hasData: false };
+      const onTime = logs.filter(l => l.status === 'ON_TIME').length;
+      const rate = Math.round((onTime / logs.length) * 100);
+      return {
+        target: Math.max(rate + 5, 90),
+        current: rate,
+        reason: `${onTime} of ${logs.length} attendees were on time (${rate}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of activity attendees who arrived on time for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'activity_evaluation_score',
+    defaultName: 'Activity Evaluation Score',
+    defaultCategory: 'faculty_evaluation',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['evaluations'],
+    confidenceCheck: (d) => hasData(d, 'evaluations') ? 'high' : 'medium',
+    estimateTarget: (d) => {
+      const evals = d.evaluations || [];
+      if (evals.length === 0) return { target: 85, current: 0, reason: 'No evaluations submitted.', hasData: false };
+      const ratings = evals.map(e => e.ratingOverall || 0).filter(r => r > 0);
+      if (ratings.length === 0) return { target: 85, current: 0, reason: 'Evaluations found but no overall ratings.', hasData: false };
+      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+      const pct = Math.round((avg / 5) * 100);
+      return {
+        target: Math.max(pct + 3, 85),
+        current: pct,
+        reason: `Average overall rating: ${avg.toFixed(1)}/5 (${pct}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Average participant evaluation score across all unit activities for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'activity_completion_rate',
+    defaultName: 'Activity Completion Rate',
+    defaultCategory: 'faculty_evaluation',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['activities'],
+    confidenceCheck: (d) => hasData(d, 'activities') ? 'high' : 'medium',
+    estimateTarget: (d) => {
+      const acts = d.activities || [];
+      if (acts.length === 0) return { target: 85, current: 0, reason: 'No activities planned.', hasData: false };
+      const now = new Date();
+      const completed = acts.filter(a => {
+        if (a.status === 'COMPLETED' || a.status === 'CANCELLED') return true;
+        if (!a.endDateTime) return false;
+        const end = a.endDateTime.toDate ? a.endDateTime.toDate() : new Date(a.endDateTime);
+        return end < now;
+      }).length;
+      const rate = Math.round((completed / acts.length) * 100);
+      return {
+        target: Math.max(rate + 5, 90),
+        current: rate,
+        reason: `${completed} of ${acts.length} activities completed.`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of planned unit activities that have been completed for AY ${d.selectedYear}.`,
+  },
 ];
 
 export function scanForKpiSuggestions(data: DataInventory): KpiSuggestion[] {
@@ -494,6 +595,47 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
           { title: 'Send pre-activity reminders 24hrs before each session', type: 'binary', startingValue: 0, targetValue: 1, unit: '' },
         ],
       });
+    }
+    const withAttendance = new Set(logs.map(l => l.activityId)).size;
+    const participationRate = Math.round((withAttendance / activities.length) * 100);
+    if (participationRate < 80) {
+      suggestions.push({
+        id: 'okr_suggest_participation',
+        title: `Increase Activity Participation Rate to 95%`,
+        description: `Currently ${participationRate}% of activities have attendance. Encourage broader engagement.`,
+        entityType: 'unit',
+        quarter: currentQuarter,
+        confidence: 'medium',
+        reason: `${withAttendance} of ${activities.length} activities have documented attendance.`,
+        keyResults: [
+          { title: `Increase participation from ${participationRate}% to 95%`, type: 'metric', startingValue: participationRate, targetValue: 95, unit: '%' },
+          { title: 'Promote activities through official communication channels', type: 'binary', startingValue: 0, targetValue: 1, unit: '' },
+        ],
+      });
+    }
+  }
+
+  const evalsData = data.evaluations || [];
+  if (evalsData.length > 0) {
+    const ratings = evalsData.map(e => e.ratingOverall || 0).filter(r => r > 0);
+    if (ratings.length > 0) {
+      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+      const evalScore = Math.round((avg / 5) * 100);
+      if (evalScore < 80) {
+        suggestions.push({
+          id: 'okr_suggest_evaluation',
+          title: `Improve Activity Evaluation Score to 90%`,
+          description: `Current average evaluation rating is ${avg.toFixed(1)}/5 (${evalScore}%). Enhance activity quality and delivery.`,
+          entityType: 'unit',
+          quarter: currentQuarter,
+          confidence: 'medium',
+          reason: `Average overall rating across ${ratings.length} evaluations is ${avg.toFixed(1)}/5.`,
+          keyResults: [
+            { title: `Increase evaluation score from ${evalScore}% to 90%`, type: 'metric', startingValue: evalScore, targetValue: 90, unit: '%' },
+            { title: 'Implement post-activity feedback review process', type: 'milestone', startingValue: 0, targetValue: 1, unit: '' },
+          ],
+        });
+      }
     }
   }
 

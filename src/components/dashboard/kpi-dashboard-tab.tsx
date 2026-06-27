@@ -16,7 +16,7 @@ import { useYear } from '@/lib/year-provider';
 import { computeKpis } from '@/lib/kpi-engine';
 import { KPI_CATEGORIES } from '@/lib/constants';
 import { KpiAutoGeneratorDialog } from '@/components/kpi/kpi-auto-generator-dialog';
-import type { KpiDefinition, KpiSnapshot, KpiAlert, Submission, Risk, Cycle, Unit, CorrectiveActionRequest, AuditPlan, CsmResponse, GADPlan, GADActivity } from '@/lib/types';
+import type { KpiDefinition, KpiSnapshot, KpiAlert, Submission, Risk, Cycle, Unit, CorrectiveActionRequest, AuditPlan, CsmResponse, GADPlan, GADActivity, AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 interface KpiDashboardTabProps {
@@ -52,6 +52,13 @@ export function KpiDashboardTab({
   const csmQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'csmResponses') : null), [firestore]);
   const { data: csmResponses } = useCollection<CsmResponse>(csmQuery);
 
+  const actQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivities') : null), [firestore]);
+  const { data: activities } = useCollection<AttendanceActivity>(actQuery);
+  const logQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivityAttendanceLogs') : null), [firestore]);
+  const { data: activityLogs } = useCollection<ActivityAttendanceLog>(logQuery);
+  const evalQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivityEvaluations') : null), [firestore]);
+  const { data: evaluations } = useCollection<ActivityEvaluation>(evalQuery);
+
   const entityType = useMemo(() => {
     if (isAdmin) return 'institution';
     if (userProfile?.campusId) return 'campus';
@@ -75,6 +82,9 @@ export function KpiDashboardTab({
       cars: (allCars || []) as any,
       auditPlans: (allAuditPlans || []) as any,
       csmResponses: (csmResponses || []) as any,
+      activities: (activities || []) as any,
+      activityLogs: (activityLogs || []) as any,
+      evaluations: (evaluations || []) as any,
       selectedYear, entityType, entityId,
     });
   }, [definitions, submissions, risks, allCycles, allUnits, allCars, allAuditPlans, csmResponses, selectedYear, entityType, entityId]);

@@ -1,6 +1,7 @@
 import type {
   Submission, Risk, Cycle, Unit, CorrectiveActionRequest,
   AuditPlan, CsmResponse, GADPlan, GADActivity,
+  AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation,
   KpiDefinition, KpiSnapshot, KpiThreshold
 } from './types';
 
@@ -20,6 +21,9 @@ type KpiComputationInput = {
   csmResponses?: CsmResponse[];
   gadPlans?: GADPlan[];
   gadActivities?: GADActivity[];
+  activities?: AttendanceActivity[];
+  activityLogs?: ActivityAttendanceLog[];
+  evaluations?: ActivityEvaluation[];
   selectedYear: number;
   entityType: 'institution' | 'campus' | 'unit';
   entityId: string;
@@ -48,7 +52,8 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
     definitions, submissions, risks, cycles, units,
     cars, auditPlans, csmResponses, selectedYear,
     entityType, entityId,
-    gadPlans, gadActivities
+    gadPlans, gadActivities,
+    activities, activityLogs, evaluations,
   } = input;
 
   const yearSubmissions = submissions?.filter(s => s.year === selectedYear) || [];
@@ -161,6 +166,42 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         const totalBudget = entityGadPlans.reduce((s, p) => s + (p.budget || 0), 0);
         const usedBudget = entityGadActivities.reduce((s, a) => s + (a.actualBudgetUsed || 0), 0);
         result = { value: totalBudget > 0 ? Math.round((usedBudget / totalBudget) * 100) : 0 };
+        break;
+      }
+      case 'activity_participation_rate': {
+        const entityActivities = activities ? filterByEntity(activities) : [];
+        const entityLogs = activityLogs ? filterByEntity(activityLogs) : [];
+        const totalActs = entityActivities.length || 1;
+        const actsWithAttendance = new Set(entityLogs.map(l => l.activityId)).size;
+        result = { value: Math.round((actsWithAttendance / totalActs) * 100) };
+        break;
+      }
+      case 'activity_on_time_punctuality': {
+        const entityLogs2 = activityLogs ? filterByEntity(activityLogs) : [];
+        const total = entityLogs2.length || 1;
+        const onTime = entityLogs2.filter(l => l.status === 'ON_TIME').length;
+        result = { value: Math.round((onTime / total) * 100) };
+        break;
+      }
+      case 'activity_evaluation_score': {
+        const entityActivities = activities ? filterByEntity(activities) : [];
+        const entityActivityIds = new Set(entityActivities.map(a => a.id));
+        const entityEvals = (evaluations || []).filter(e => entityActivityIds.has(e.activityId));
+        const ratings = entityEvals.map(e => e.ratingOverall || 0).filter(r => r > 0);
+        const avg = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+        result = { value: Math.round((avg / 5) * 100) };
+        break;
+      }
+      case 'activity_completion_rate': {
+        const entityActivities2 = activities ? filterByEntity(activities) : [];
+        const total2 = entityActivities2.length || 1;
+        const completed = entityActivities2.filter(a => {
+          if (a.status === 'COMPLETED' || a.status === 'CANCELLED') return true;
+          if (!a.endDateTime) return false;
+          const end = a.endDateTime.toDate ? a.endDateTime.toDate() : new Date(a.endDateTime);
+          return end < now;
+        }).length;
+        result = { value: Math.round((completed / total2) * 100) };
         break;
       }
       default: {
