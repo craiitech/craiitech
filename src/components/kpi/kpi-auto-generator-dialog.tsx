@@ -85,8 +85,8 @@ export function KpiAutoGeneratorDialog({
     return scanForKpiSuggestions(dataInventory);
   }, [dataInventory, hasScanned]);
 
-  const getSuggestion = useCallback((id: string): KpiSuggestion => {
-    return editedSuggestions.get(id) || suggestions.find(s => s.id === id)!;
+  const getSuggestion = useCallback((id: string): KpiSuggestion | undefined => {
+    return editedSuggestions.get(id) || suggestions.find(s => s.id === id);
   }, [editedSuggestions, suggestions]);
 
   const toggleSelected = useCallback((id: string) => {
@@ -108,14 +108,14 @@ export function KpiAutoGeneratorDialog({
 
   const handleScan = useCallback(() => {
     setIsScanning(true);
+    const scanned = scanForKpiSuggestions(dataInventory);
     setTimeout(() => {
       setIsScanning(false);
       setHasScanned(true);
-      const allIds = suggestions.map(s => s.id);
-      setSelectedIds(new Set(allIds));
+      setSelectedIds(new Set(scanned.map(s => s.id)));
       setStep(1);
     }, 800);
-  }, [suggestions]);
+  }, [dataInventory]);
 
   const handleCreate = useCallback(async () => {
     if (!firestore) return;
@@ -228,6 +228,7 @@ export function KpiAutoGeneratorDialog({
             ) : (
               suggestions.map(sug => {
                 const s = getSuggestion(sug.id);
+                if (!s) return null;
                 const isSelected = selectedIds.has(sug.id);
                 return (
                   <div key={sug.id} className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
@@ -275,6 +276,7 @@ export function KpiAutoGeneratorDialog({
           <div className="py-4 space-y-4">
             {Array.from(selectedIds).map(id => {
               const s = getSuggestion(id);
+              if (!s) return null;
               return (
                 <div key={id} className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
