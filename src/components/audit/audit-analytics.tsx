@@ -111,6 +111,72 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     return new Map(units.map(u => [u.id, u.name]));
   }, [units]);
 
+  const yearlyIqaPerformance = useMemo(() => {
+    if (!plans.length) return [];
+    const yearMap = new Map<number, {
+      plans: number;
+      scheduled: number;
+      completed: number;
+      findings: number;
+      nc: number;
+      ofi: number;
+      compliance: number;
+      na: number;
+      auditors: Set<string>;
+    }>();
+
+    plans.forEach(p => {
+      const yr = p.year;
+      if (!yearMap.has(yr)) {
+        yearMap.set(yr, { plans: 0, scheduled: 0, completed: 0, findings: 0, nc: 0, ofi: 0, compliance: 0, na: 0, auditors: new Set() });
+      }
+      const entry = yearMap.get(yr)!;
+      entry.plans++;
+    });
+
+    schedules.forEach(s => {
+      const plan = plans.find(p => p.id === s.auditPlanId);
+      if (!plan) return;
+      const yr = plan.year;
+      if (!yearMap.has(yr)) return;
+      const entry = yearMap.get(yr)!;
+      entry.scheduled++;
+      if (s.status === 'Completed') entry.completed++;
+      if (s.auditorId) entry.auditors.add(s.auditorId);
+    });
+
+    findings.forEach(f => {
+      const schedule = schedules.find(s => s.id === f.auditScheduleId);
+      if (!schedule) return;
+      const plan = plans.find(p => p.id === schedule.auditPlanId);
+      if (!plan) return;
+      const yr = plan.year;
+      if (!yearMap.has(yr)) return;
+      const entry = yearMap.get(yr)!;
+      entry.findings++;
+      if (f.type === 'Non-Conformance') entry.nc++;
+      else if (f.type === 'Observation for Improvement') entry.ofi++;
+      else if (f.type === 'Compliance') entry.compliance++;
+      else if (f.type === 'Not Applicable') entry.na++;
+    });
+
+    return Array.from(yearMap.entries())
+      .map(([year, data]) => ({
+        year,
+        plans: data.plans,
+        scheduled: data.scheduled,
+        completed: data.completed,
+        completionRate: data.scheduled > 0 ? Math.round((data.completed / data.scheduled) * 100) : 0,
+        findings: data.findings,
+        nc: data.nc,
+        ofi: data.ofi,
+        compliance: data.compliance,
+        na: data.na,
+        auditors: data.auditors.size,
+      }))
+      .sort((a, b) => b.year - a.year);
+  }, [plans, schedules, findings]);
+
   const analytics = useMemo(() => {
     if (!schedules.length) return null;
 
@@ -503,6 +569,103 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Yearly IQA Performance Table */}
+      {yearlyIqaPerformance.length > 0 && (
+      <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b py-4 px-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-white shadow-sm border border-primary/10">
+              <BarChart3 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                IQA Performance by Academic Year
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Year-over-year internal quality audit execution, findings, and completion metrics
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50 dark:bg-slate-800/20">
+                  <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[100px]">Academic Year</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Plans</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Scheduled Sessions</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-emerald-700 tracking-wider text-center">Completed</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Completion Rate</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider text-center">Total Findings</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-rose-700 tracking-wider text-center">NC</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-amber-700 tracking-wider text-center">OFI</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-emerald-700 tracking-wider text-center">Compliance</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">N/A</TableHead>
+                  <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">Auditors</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {yearlyIqaPerformance.map((row) => {
+                  const prevYear = yearlyIqaPerformance.find(y => y.year === row.year - 1);
+                  const rateChange = prevYear ? row.completionRate - prevYear.completionRate : null;
+                  return (
+                    <TableRow key={row.year} className="hover:bg-slate-50/80 transition-all border-b group text-center">
+                      <TableCell className="pl-6 py-4">
+                        <span className="font-black text-sm text-slate-900 dark:text-slate-100">AY {row.year}</span>
+                      </TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-slate-700 dark:text-slate-300">{row.plans}</TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-slate-700 dark:text-slate-300">{row.scheduled}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <span className="font-black text-emerald-600 text-sm">{row.completed}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={cn(
+                            "text-sm font-black tabular-nums",
+                            row.completionRate >= 80 ? "text-emerald-600" : row.completionRate >= 50 ? "text-amber-600" : "text-red-600"
+                          )}>
+                            {row.completionRate}%
+                          </span>
+                          {rateChange !== null && (
+                            <span className={cn(
+                              "text-[8px] font-bold",
+                              rateChange > 0 ? "text-emerald-500" : rateChange < 0 ? "text-red-500" : "text-slate-400"
+                            )}>
+                              {rateChange > 0 ? '+' : ''}{rateChange}pp
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-indigo-600">{row.findings}</TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          "font-black text-sm tabular-nums",
+                          row.nc > 0 ? "text-rose-600" : "text-slate-400"
+                        )}>
+                          {row.nc}
+                        </span>
+                      </TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-amber-600">{row.ofi}</TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-emerald-600">{row.compliance}</TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-slate-400">{row.na}</TableCell>
+                      <TableCell className="text-right pr-6 tabular-nums font-black text-sm text-slate-700 dark:text-slate-300">{row.auditors}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-2.5 px-6">
+          <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+            <Info className="h-3 w-3 text-primary/40" />
+            Metrics aggregated across all audit plans, schedules, and findings. Year-over-year change shown as percentage point (pp) difference.
+          </div>
+        </CardFooter>
+      </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Itinerary Density */}
         <Card className="bg-primary/5 border-primary/10 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
