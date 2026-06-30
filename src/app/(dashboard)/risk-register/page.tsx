@@ -211,9 +211,12 @@ export default function RiskRegisterPage() {
             const high = yearRisks.filter(r => r.preTreatment.rating === 'High');
             const medium = yearRisks.filter(r => r.preTreatment.rating === 'Medium');
             const low = yearRisks.filter(r => r.preTreatment.rating === 'Low');
+            const totalClosed = yearRisks.filter(r => r.status === 'Closed').length;
             return {
                 year: y,
                 total: yearRisks.length,
+                totalClosed,
+                completionRate: yearRisks.length > 0 ? Math.round((totalClosed / yearRisks.length) * 100) : 0,
                 high: {
                     open: high.filter(r => r.status === 'Open').length,
                     inProgress: high.filter(r => r.status === 'In Progress').length,
@@ -491,8 +494,9 @@ export default function RiskRegisterPage() {
                         <Table className="w-full">
                             <TableHeader>
                                 <TableRow className="bg-slate-50/50 dark:bg-slate-800/20">
-                                    <TableHead className="w-[120px] text-[10px] font-black uppercase text-center">Year</TableHead>
+                                    <TableHead className="w-[100px] text-[10px] font-black uppercase text-center">Year</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase text-center">Total Risks & Opportunities</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-center bg-blue-50/30 dark:bg-blue-950/10">Completion Rate <span className="text-[8px] font-medium text-blue-600 block">% Closed of Total</span></TableHead>
                                     <TableHead className="text-[10px] font-black uppercase text-center bg-rose-50/30 dark:bg-rose-950/10">High <span className="text-[8px] font-medium text-rose-600 block">(Open | In Progress | Closed)</span></TableHead>
                                     <TableHead className="text-[10px] font-black uppercase text-center bg-amber-50/30 dark:bg-amber-950/10">Medium <span className="text-[8px] font-medium text-amber-600 block">(Open | In Progress | Closed)</span></TableHead>
                                     <TableHead className="text-[10px] font-black uppercase text-center bg-emerald-50/30 dark:bg-emerald-950/10">Low <span className="text-[8px] font-medium text-emerald-600 block">(Open | In Progress | Closed)</span></TableHead>
@@ -503,6 +507,30 @@ export default function RiskRegisterPage() {
                                     <TableRow key={summary.year} className="hover:bg-muted/10 transition-colors text-center font-bold text-xs">
                                         <TableCell className="font-black text-slate-800 dark:text-slate-200">AY {summary.year}</TableCell>
                                         <TableCell className="tabular-nums font-black text-sm text-slate-700 dark:text-slate-300">{summary.total}</TableCell>
+                                        <TableCell className="bg-blue-50/10 dark:bg-blue-950/5">
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <span className={cn(
+                                                    "text-sm font-black tabular-nums",
+                                                    summary.completionRate >= 80 ? "text-emerald-600" :
+                                                    summary.completionRate >= 50 ? "text-amber-600" : "text-red-600"
+                                                )}>
+                                                    {summary.completionRate}%
+                                                </span>
+                                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={cn(
+                                                            "h-full rounded-full transition-all",
+                                                            summary.completionRate >= 80 ? "bg-emerald-500" :
+                                                            summary.completionRate >= 50 ? "bg-amber-500" : "bg-red-500"
+                                                        )}
+                                                        style={{ width: `${summary.completionRate}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-[8px] font-bold text-slate-400 tabular-nums">
+                                                    {summary.totalClosed}/{summary.total}
+                                                </span>
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="bg-rose-50/10 dark:bg-rose-950/5 text-[11px] tabular-nums">
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <span className="text-rose-600" title="Open">{summary.high.open}</span>
@@ -534,7 +562,7 @@ export default function RiskRegisterPage() {
                                 ))}
                                 {yearlySummaries.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground italic">
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground italic">
                                             No historical records available for this unit/campus.
                                         </TableCell>
                                     </TableRow>
