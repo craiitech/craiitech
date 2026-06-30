@@ -42,6 +42,7 @@ export function ChedProgramMonitoringTable({
   const yearlySummary = useMemo(() => {
     const yearMap = new Map<number, {
       total: number;
+      newProgram: number;
       withCopc: number;
       inProgress: number;
       noCopc: number;
@@ -60,11 +61,12 @@ export function ChedProgramMonitoringTable({
       programCompliances.forEach(c => {
         const yr = c.academicYear;
         if (!yearMap.has(yr)) {
-          yearMap.set(yr, { total: 0, withCopc: 0, inProgress: 0, noCopc: 0, accredited: 0, nonAccredited: 0, levelIV: 0, levelIII: 0, levelII: 0, levelI: 0, candidate: 0, totalWithRecord: 0 });
+          yearMap.set(yr, { total: 0, newProgram: 0, withCopc: 0, inProgress: 0, noCopc: 0, accredited: 0, nonAccredited: 0, levelIV: 0, levelIII: 0, levelII: 0, levelI: 0, candidate: 0, totalWithRecord: 0 });
         }
         const entry = yearMap.get(yr)!;
         entry.total++;
         entry.totalWithRecord++;
+        if (p.isNewProgram) entry.newProgram++;
 
         const copc = c.ched?.copcStatus || 'No COPC';
         if (copc === 'With COPC') entry.withCopc++;
@@ -82,20 +84,24 @@ export function ChedProgramMonitoringTable({
           else if (level.includes('Level II')) entry.levelII++;
           else if (level.includes('Level I')) entry.levelI++;
           else if (level.toLowerCase().includes('candidate') || level.includes('PSV')) entry.candidate++;
-        } else {
+        } else if (!p.isNewProgram) {
           entry.nonAccredited++;
         }
       });
     });
 
     return Array.from(yearMap.entries())
-      .map(([year, data]) => ({
-        year,
-        ...data,
-        copcRate: data.total > 0 ? Math.round((data.withCopc / data.total) * 100) : 0,
-        accreditationRate: data.total > 0 ? Math.round((data.accredited / data.total) * 100) : 0,
-        withoutRecord: data.total - data.totalWithRecord,
-      }))
+      .map(([year, data]) => {
+        const accreditable = data.total - data.newProgram;
+        return {
+          year,
+          ...data,
+          accreditable,
+          copcRate: data.total > 0 ? Math.round((data.withCopc / data.total) * 100) : 0,
+          accreditationRate: accreditable > 0 ? Math.round((data.accredited / accreditable) * 100) : 0,
+          withoutRecord: data.total - data.totalWithRecord,
+        };
+      })
       .sort((a, b) => b.year - a.year);
   }, [activePrograms, compliances]);
 
@@ -250,7 +256,7 @@ export function ChedProgramMonitoringTable({
                     <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider text-center" colSpan={2}>
                       <div className="flex items-center justify-center gap-1"><Award className="h-3 w-3" /> Accreditation</div>
                     </TableHead>
-                    <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Accred. Rate</TableHead>
+                    <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Accred. Rate <span className="text-[7px] font-medium text-slate-400 block">excl. new programs</span></TableHead>
                     <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">Level Distribution</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -266,7 +272,12 @@ export function ChedProgramMonitoringTable({
                           <span className="font-black text-sm text-slate-900 dark:text-slate-100">AY {row.year}</span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="font-black text-sm text-slate-800">{row.total}</span>
+                          <div className="flex flex-col items-center">
+                            <span className="font-black text-sm text-slate-800">{row.total}</span>
+                            {row.newProgram > 0 && (
+                              <span className="text-[7px] font-bold text-purple-500 uppercase tracking-wider">{row.newProgram} NEW</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex flex-col items-center">
@@ -313,7 +324,7 @@ export function ChedProgramMonitoringTable({
                         <TableCell className="text-center">
                           <div className="flex flex-col items-center">
                             <span className="font-black text-slate-500 text-sm">{row.nonAccredited}</span>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">NON</span>
+                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">NON-ACCRED</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -323,6 +334,9 @@ export function ChedProgramMonitoringTable({
                               row.accreditationRate >= 80 ? "text-emerald-600" : row.accreditationRate >= 50 ? "text-amber-600" : "text-red-600"
                             )}>
                               {row.accreditationRate}%
+                            </span>
+                            <span className="text-[7px] font-bold text-slate-400 tabular-nums">
+                              {row.accredited}/{row.accreditable}
                             </span>
                             {accredChange !== null && (
                               <span className={cn(
@@ -359,6 +373,11 @@ export function ChedProgramMonitoringTable({
                             {row.candidate > 0 && (
                               <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[7px] font-black px-1.5 py-0">
                                 C:{row.candidate}
+                              </Badge>
+                            )}
+                            {row.newProgram > 0 && (
+                              <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[7px] font-black px-1.5 py-0">
+                                NEW:{row.newProgram}
                               </Badge>
                             )}
                             {row.nonAccredited > 0 && (
