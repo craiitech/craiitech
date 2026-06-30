@@ -168,7 +168,7 @@ export default function NewSubmissionPage() {
   const missingPrevYearSubmissions = useMemo(() => {
     if (!prevYearSubmissions || !selectedYear || !hasPrevYearConfig) return [];
 
-    const missing: string[] = [];
+    const missing: { docName: string; isRequired: boolean; isROAP: boolean; isExempt: boolean }[] = [];
     const normalizedPrevSubmissions = prevYearSubmissions.map(s => {
       let rType = String(s.reportType || '').trim();
       const lowerType = rType.toLowerCase();
@@ -200,13 +200,17 @@ export default function NewSubmissionPage() {
 
     submissionTypes.forEach(reportType => {
       ['first', 'final'].forEach(cycleId => {
-        if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanExempt) {
-          return;
-        }
+        const isROAP = reportType === 'Risk and Opportunity Action Plan';
+        const isExempt = isROAP && isActionPlanExempt;
         
         const key = `${reportType}_${cycleId}`;
         if (!submittedSet.has(key)) {
-          missing.push(`${reportType} (${cycleId === 'first' ? 'First' : 'Final'} Cycle)`);
+          missing.push({
+            docName: `${reportType} (${cycleId === 'first' ? 'First' : 'Final'} Cycle)`,
+            isRequired: !isExempt,
+            isROAP,
+            isExempt
+          });
         }
       });
     });
@@ -220,7 +224,8 @@ export default function NewSubmissionPage() {
   }, [prevYearRisks, selectedYear, hasPrevYearConfig]);
 
   const isBlocked = useMemo(() => {
-    return !!(selectedYear && hasPrevYearConfig && (missingPrevYearSubmissions.length > 0 || openPrevYearRisks.length > 0));
+    const hasRequiredMissingPrevYearSubmissions = missingPrevYearSubmissions.some(s => s.isRequired);
+    return !!(selectedYear && hasPrevYearConfig && (hasRequiredMissingPrevYearSubmissions || openPrevYearRisks.length > 0));
   }, [selectedYear, hasPrevYearConfig, missingPrevYearSubmissions, openPrevYearRisks]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
@@ -436,7 +441,7 @@ export default function NewSubmissionPage() {
       )}
 
       {/* Previous Year Compliance Warnings */}
-      {selectedYear && hasPrevYearConfig && (missingPrevYearSubmissions.length > 0 || openPrevYearRisks.length > 0) && (
+      {selectedYear && hasPrevYearConfig && (missingPrevYearSubmissions.some(s => s.isRequired) || openPrevYearRisks.length > 0) && (
         <Alert variant="destructive" className="bg-destructive/5 border-destructive/30 border-2">
           <ShieldAlert className="h-5 w-5 text-destructive" />
           <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-destructive">
@@ -450,8 +455,10 @@ export default function NewSubmissionPage() {
               <div className="space-y-1 pl-4">
                 <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Unsubmitted EOMS Documents ({missingPrevYearSubmissions.length}):</p>
                 <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
-                  {missingPrevYearSubmissions.map((docName, idx) => (
-                    <li key={idx} className="text-slate-700 dark:text-slate-300">{docName}</li>
+                  {missingPrevYearSubmissions.map((item, idx) => (
+                    <li key={idx} className={item.isRequired ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 italic font-medium"}>
+                      {item.docName} {!item.isRequired && " (Not Required)"}
+                    </li>
                   ))}
                 </ul>
               </div>
