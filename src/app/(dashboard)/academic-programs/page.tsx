@@ -26,6 +26,7 @@ import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { BatchDataHub } from '@/components/programs/batch-data-hub';
 import { ChedAnnouncements } from '@/components/programs/ched-announcements';
+import { ChedProgramMonitoringTable } from '@/components/programs/ched-program-monitoring-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -140,14 +141,14 @@ export default function AcademicProgramsPage() {
   const { data: rawPrograms, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
   /**
-   * SCOPED COMPLIANCE QUERY
-   * Fetches data for the selected academic year.
+   * COMPLIANCE QUERY
+   * Fetches all compliance records across all years for multi-year decision support tables.
    */
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
-    return query(baseRef, where('academicYear', '==', selectedYear));
-  }, [firestore, isUserLoading, userProfile, selectedYear]);
+    return query(baseRef);
+  }, [firestore, isUserLoading, userProfile]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -334,7 +335,14 @@ export default function AcademicProgramsPage() {
         </Card>
         )}
 
-        <TabsContent value="analytics" className="animate-in fade-in duration-500">
+        <TabsContent value="analytics" className="animate-in fade-in duration-500 space-y-6">
+            <ChedProgramMonitoringTable 
+                programs={filteredPrograms}
+                compliances={rawCompliances || []}
+                campuses={campuses || []}
+                units={units || []}
+                selectedYear={selectedYear}
+            />
             <ProgramAnalytics 
                 programs={filteredPrograms}
                 compliances={rawCompliances || []}
