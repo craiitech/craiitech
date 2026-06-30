@@ -205,15 +205,15 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       </div>
                       
                       {evidenceRegistry.length > 0 && (
-                          <div className="flex flex-col items-start gap-1 mt-2 animate-in fade-in duration-300">
-                              <span className="text-[7.5px] font-black uppercase tracking-wider text-muted-foreground/50">Evidence:</span>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2 animate-in fade-in duration-300">
+                              <span className="text-[7.5px] font-black uppercase tracking-wider text-muted-foreground/50 mr-0.5">Evidence:</span>
                               {evidenceRegistry.map((evidence, idx) => (
                                   <a
                                       key={idx}
                                       href={evidence.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-300 cursor-pointer shadow-sm w-fit"
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-300 cursor-pointer shadow-sm"
                                       title={evidence.title}
                                   >
                                       <ExternalLink className="h-2 w-2" />
