@@ -479,10 +479,7 @@ export default function RiskRegisterPage() {
             selectedYear={selectedYear} 
         />}
 
-        <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
-            <RiskDashboard risks={filteredRisks} isLoading={isLoading} selectedYear={selectedYear} />
-        </TabsContent>
-        <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
+        <TabsContent value="visual-insights" className="animate-in fade-in duration-500 space-y-6">
             {/* Year-by-Year Summary Card */}
             <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
                 <CardHeader className="bg-primary/5 border-b py-3 px-6">
@@ -548,6 +545,9 @@ export default function RiskRegisterPage() {
                 </CardContent>
             </Card>
 
+            <RiskDashboard risks={filteredRisks} isLoading={isLoading} selectedYear={selectedYear} />
+        </TabsContent>
+        <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
             <Card className="shadow-md border-primary/10 overflow-hidden">
                 <Tabs value={detailedTab} onValueChange={(val) => setDetailedTab(val as any)} className="w-full">
                     <div className="flex items-center justify-between border-b bg-slate-50/50 dark:bg-slate-800/50 px-6 py-2">
