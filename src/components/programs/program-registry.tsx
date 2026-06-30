@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Clock, Users, Check, X, Hash, GraduationCap, Calculator } from 'lucide-react';
+import { Edit, School, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Clock, Users, Check, X, Hash, GraduationCap, Calculator, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -79,6 +79,52 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               
               const copcStatus = record?.ched?.copcStatus;
               const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
+
+              const specMap = new Map((program.specializations || []).map(s => [s.id, s.name]));
+              const evidenceRegistry: { title: string, url: string, category: string }[] = [];
+              if (record) {
+                if (record.ched?.copcLink) evidenceRegistry.push({ title: 'COPC Cert', url: record.ched.copcLink, category: 'Regulatory' });
+                if (record.ched?.programCmoLink) evidenceRegistry.push({ title: 'CHED CMO', url: record.ched.programCmoLink, category: 'Regulatory' });
+                if (record.ched?.boardApprovalLink) evidenceRegistry.push({ title: 'BOR Res', url: record.ched.boardApprovalLink, category: 'Governance' });
+                
+                if (record.ched?.majorBoardApprovals) {
+                    record.ched.majorBoardApprovals.forEach(mba => {
+                        if (mba.link) {
+                            const majorName = specMap.get(mba.majorId) || mba.majorId;
+                            evidenceRegistry.push({
+                                title: `BOR Res - ${majorName}`,
+                                url: mba.link,
+                                category: 'Governance'
+                            });
+                        }
+                    });
+                }
+
+                const curriculumRecords = record.curriculumRecords || [];
+                curriculumRecords.forEach(cr => {
+                    if (cr.notationProofLink) {
+                        const majorName = cr.majorId === 'General' || cr.majorId === 'general'
+                            ? 'General'
+                            : (specMap.get(cr.majorId) || cr.majorId);
+                        evidenceRegistry.push({
+                            title: `Curriculum - ${majorName} (R${cr.revisionNumber})`,
+                            url: cr.notationProofLink,
+                            category: 'Regulatory'
+                        });
+                    }
+                });
+
+                const milestones = record.accreditationRecords || [];
+                milestones.forEach(m => {
+                    if (m.certificateLink) {
+                        evidenceRegistry.push({
+                            title: `${m.level} Cert`,
+                            url: m.certificateLink,
+                            category: 'Quality'
+                        });
+                    }
+                });
+              }
 
               const enrollmentTotal = (() => {
                   if (!record) return 0;
@@ -157,6 +203,25 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                           {(copcStatus === 'With COPC' || copcStatus === 'No COPC') && <span className="text-[9px] text-muted-foreground opacity-30">|</span>}
                           <span className={cn("text-[9px] font-black uppercase", program.isNewProgram ? "text-amber-600" : "text-primary")}>{accLabel}</span>
                       </div>
+                      
+                      {evidenceRegistry.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2 animate-in fade-in duration-300">
+                              <span className="text-[7.5px] font-black uppercase tracking-wider text-muted-foreground/50 mr-0.5">Evidence:</span>
+                              {evidenceRegistry.map((evidence, idx) => (
+                                  <a
+                                      key={idx}
+                                      href={evidence.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-300 cursor-pointer shadow-sm"
+                                      title={evidence.title}
+                                  >
+                                      <ExternalLink className="h-2 w-2" />
+                                      {evidence.title}
+                                  </a>
+                              ))}
+                          </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="py-4">
