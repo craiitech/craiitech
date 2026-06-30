@@ -76,6 +76,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function RiskRegisterPage() {
     const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor, userRole } = useUser();
@@ -135,8 +136,8 @@ export default function RiskRegisterPage() {
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
         const baseRef = collection(firestore, 'risks');
-        return query(baseRef, where('year', '==', selectedYear));
-    }, [firestore, userProfile, selectedYear]);
+        return query(baseRef);
+    }, [firestore, userProfile]);
 
     const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
@@ -170,6 +171,7 @@ export default function RiskRegisterPage() {
     const filteredRisks = useMemo(() => {
         if (!allRisks) return [];
         return allRisks.filter(risk => {
+            if (risk.year !== selectedYear) return false;
             if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
             if ((isSupervisor && !isUnitOdimo) && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
             if (searchTerm) {
@@ -185,10 +187,51 @@ export default function RiskRegisterPage() {
             if (ratingFilter !== 'all' && risk.preTreatment.rating !== ratingFilter) return false;
             return true;
         });
-    }, [allRisks, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
+    }, [allRisks, selectedYear, campusFilter, unitFilter, typeFilter, ratingFilter, searchTerm, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
 
     const risksOnly = useMemo(() => filteredRisks.filter(r => r.type === 'Risk'), [filteredRisks]);
     const opportunitiesOnly = useMemo(() => filteredRisks.filter(r => r.type === 'Opportunity'), [filteredRisks]);
+    
+    const scopeRisks = useMemo(() => {
+        if (!allRisks) return [];
+        return allRisks.filter(risk => {
+            if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
+            if ((isSupervisor && !isUnitOdimo) && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
+            if (campusFilter !== 'all' && risk.campusId !== campusFilter) return false;
+            if (unitFilter !== 'all' && risk.unitId !== unitFilter) return false;
+            return true;
+        });
+    }, [allRisks, campusFilter, unitFilter, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
+
+    const yearlySummaries = useMemo(() => {
+        if (!scopeRisks || scopeRisks.length === 0) return [];
+        const years = Array.from(new Set(scopeRisks.map(r => r.year))).sort((a, b) => b - a);
+        return years.map(y => {
+            const yearRisks = scopeRisks.filter(r => r.year === y);
+            const high = yearRisks.filter(r => r.preTreatment.rating === 'High');
+            const medium = yearRisks.filter(r => r.preTreatment.rating === 'Medium');
+            const low = yearRisks.filter(r => r.preTreatment.rating === 'Low');
+            return {
+                year: y,
+                total: yearRisks.length,
+                high: {
+                    open: high.filter(r => r.status === 'Open').length,
+                    inProgress: high.filter(r => r.status === 'In Progress').length,
+                    closed: high.filter(r => r.status === 'Closed').length
+                },
+                medium: {
+                    open: medium.filter(r => r.status === 'Open').length,
+                    inProgress: medium.filter(r => r.status === 'In Progress').length,
+                    closed: medium.filter(r => r.status === 'Closed').length
+                },
+                low: {
+                    open: low.filter(r => r.status === 'Open').length,
+                    inProgress: low.filter(r => r.status === 'In Progress').length,
+                    closed: low.filter(r => r.status === 'Closed').length
+                }
+            };
+        });
+    }, [scopeRisks]);
     
     /**
      * DUPLICATE AUDIT LOGIC
@@ -440,6 +483,71 @@ export default function RiskRegisterPage() {
             <RiskDashboard risks={filteredRisks} isLoading={isLoading} selectedYear={selectedYear} />
         </TabsContent>
         <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
+            {/* Year-by-Year Summary Card */}
+            <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
+                <CardHeader className="bg-primary/5 border-b py-3 px-6">
+                    <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Yearly Risk & Opportunity Summary Profile</CardTitle>
+                    <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground">Historical aggregate distributions by year and magnitude status.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <Table className="w-full">
+                            <TableHeader>
+                                <TableRow className="bg-slate-50/50 dark:bg-slate-800/20">
+                                    <TableHead className="w-[120px] text-[10px] font-black uppercase text-center">Year</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-center">Total Risks & Opportunities</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-center bg-rose-50/30 dark:bg-rose-950/10">High <span className="text-[8px] font-medium text-rose-600 block">(Open | In Progress | Closed)</span></TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-center bg-amber-50/30 dark:bg-amber-950/10">Medium <span className="text-[8px] font-medium text-amber-600 block">(Open | In Progress | Closed)</span></TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-center bg-emerald-50/30 dark:bg-emerald-950/10">Low <span className="text-[8px] font-medium text-emerald-600 block">(Open | In Progress | Closed)</span></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {yearlySummaries.map((summary) => (
+                                    <TableRow key={summary.year} className="hover:bg-muted/10 transition-colors text-center font-bold text-xs">
+                                        <TableCell className="font-black text-slate-800 dark:text-slate-200">AY {summary.year}</TableCell>
+                                        <TableCell className="tabular-nums font-black text-sm text-slate-700 dark:text-slate-300">{summary.total}</TableCell>
+                                        <TableCell className="bg-rose-50/10 dark:bg-rose-950/5 text-[11px] tabular-nums">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className="text-rose-600" title="Open">{summary.high.open}</span>
+                                                <span className="text-slate-400">/</span>
+                                                <span className="text-amber-500 font-bold" title="In Progress">{summary.high.inProgress}</span>
+                                                <span className="text-slate-400">/</span>
+                                                <span className="text-emerald-600" title="Closed">{summary.high.closed}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="bg-amber-50/10 dark:bg-amber-950/5 text-[11px] tabular-nums">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className="text-rose-600" title="Open">{summary.medium.open}</span>
+                                                <span className="text-slate-400">/</span>
+                                                <span className="text-amber-500 font-bold" title="In Progress">{summary.medium.inProgress}</span>
+                                                <span className="text-slate-400">/</span>
+                                                <span className="text-emerald-600" title="Closed">{summary.medium.closed}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="bg-emerald-50/10 dark:bg-emerald-950/5 text-[11px] tabular-nums">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className="text-rose-600" title="Open">{summary.low.open}</span>
+                                                <span className="text-slate-400">/</span>
+                                                <span className="text-amber-500 font-bold" title="In Progress">{summary.low.inProgress}</span>
+                                                <span className="text-slate-400">/</span>
+                                                <span className="text-emerald-600" title="Closed">{summary.low.closed}</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {yearlySummaries.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground italic">
+                                            No historical records available for this unit/campus.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card className="shadow-md border-primary/10 overflow-hidden">
                 <Tabs value={detailedTab} onValueChange={(val) => setDetailedTab(val as any)} className="w-full">
                     <div className="flex items-center justify-between border-b bg-slate-50/50 dark:bg-slate-800/50 px-6 py-2">
