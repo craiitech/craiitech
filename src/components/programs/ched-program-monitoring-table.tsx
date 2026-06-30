@@ -219,19 +219,22 @@ export function ChedProgramMonitoringTable({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Tabs defaultValue="yearly-summary">
-          <div className="bg-slate-50/50 border-b px-6">
-            <TabsList className="bg-transparent h-10 gap-1">
-              <TabsTrigger value="yearly-summary" className="text-[9px] font-black uppercase tracking-widest px-4 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                Yearly Trend Summary
+        <Tabs defaultValue="yearly-summary" className="flex flex-col lg:flex-row">
+          <div className="bg-slate-50/50 border-b lg:border-b-0 lg:border-r px-3 py-4 lg:py-0 flex items-center justify-center">
+            <TabsList className="bg-transparent h-auto flex-row lg:flex-col gap-1 w-full">
+              <TabsTrigger value="yearly-summary" className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center">
+                <CalendarDays className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
+                <span className="hidden lg:inline">Yearly Trend</span>
+                <span className="lg:hidden">Yearly Trend Summary</span>
               </TabsTrigger>
-              <TabsTrigger value="program-detail" className="text-[9px] font-black uppercase tracking-widest px-4 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                <LayoutList className="h-3.5 w-3.5 mr-1.5" />
-                Program Detail (AY {selectedYear})
+              <TabsTrigger value="program-detail" className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center">
+                <LayoutList className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
+                <span className="hidden lg:inline">Program Detail</span>
+                <span className="lg:hidden">Program Detail (AY {selectedYear})</span>
               </TabsTrigger>
             </TabsList>
           </div>
+          <div className="flex-1 min-w-0">
 
           <TabsContent value="yearly-summary" className="m-0">
             <ScrollArea className="max-h-[500px]">
@@ -517,6 +520,7 @@ export function ChedProgramMonitoringTable({
               </Table>
             </ScrollArea>
           </TabsContent>
+          </div>
         </Tabs>
       </CardContent>
     </Card>
