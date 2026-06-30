@@ -334,10 +334,9 @@ export function RiskFormDialog({
     return query(
         collection(firestore, 'risks'), 
         where('unitId', '==', targetUnitId),
-        where('campusId', '==', targetCampusId),
-        where('year', '==', watchYear)
+        where('campusId', '==', targetCampusId)
     );
-  }, [firestore, selectedAdminUnitId, selectedAdminCampusId, userProfile, watchYear, isOpen, isAdmin]);
+  }, [firestore, selectedAdminUnitId, selectedAdminCampusId, userProfile, isOpen, isAdmin]);
 
   const { data: unitRisks } = useCollection<Risk>(unitRisksQuery);
 
@@ -348,13 +347,53 @@ export function RiskFormDialog({
     if (!descriptionValue || !unitRisks) return null;
     const normalizedNew = descriptionValue.trim().toLowerCase();
     
-    return unitRisks.find(r => {
+    // Find any risk with the same description
+    const matchingRisks = unitRisks.filter(r => {
         // Skip comparing against the current risk record if editing
         if (activeRisk && r.id === activeRisk.id) return false;
         
         return r.description.trim().toLowerCase() === normalizedNew;
     });
-  }, [descriptionValue, unitRisks, activeRisk]);
+
+    if (matchingRisks.length === 0) return null;
+
+    // 1. Check for duplicates in the SAME year
+    const sameYearConflict = matchingRisks.find(r => r.year === watchYear);
+    if (sameYearConflict) {
+        return {
+            type: 'same-year',
+            risk: sameYearConflict,
+            message: `A duplicate entry already exists in the AY ${watchYear} registry for this unit. Duplicates in the same year are not allowed.`
+        };
+    }
+
+    // 2. Check for duplicates in PREVIOUS years
+    const previousYearRisks = matchingRisks.filter(r => r.year < watchYear);
+    if (previousYearRisks.length > 0) {
+        // It is allowed ONLY if the previous risk was assessed to be "Carried Forward"
+        const hasCarriedForward = previousYearRisks.some(r => r.verification?.status === 'Carried Forward');
+        if (!hasCarriedForward) {
+            const latestPrevRisk = previousYearRisks.reduce((prev, current) => (prev.year > current.year) ? prev : current);
+            return {
+                type: 'previous-year-not-carried',
+                risk: latestPrevRisk,
+                message: `An identical entry exists in the AY ${latestPrevRisk.year} registry, but it was not assessed as "Carried Forward" by the admin. Re-creating this entry is not allowed unless it is explicitly carried forward by the admin.`
+            };
+        }
+    }
+
+    // 3. Check for duplicates in FUTURE years
+    const futureYearConflict = matchingRisks.find(r => r.year > watchYear);
+    if (futureYearConflict) {
+        return {
+            type: 'future-year',
+            risk: futureYearConflict,
+            message: `A duplicate entry already exists in the future AY ${futureYearConflict.year} registry.`
+        };
+    }
+
+    return null;
+  }, [descriptionValue, unitRisks, activeRisk, watchYear]);
 
   const likelihoodValue = form.watch('likelihood');
   const consequenceValue = form.watch('consequence');
@@ -403,9 +442,9 @@ export function RiskFormDialog({
           return;
       }
       if (duplicateConflict) {
-          toast({ title: "Conflict Detected", description: "A record with this identical description already exists in the registry.", variant: "destructive" });
+          toast({ title: "Conflict Detected", description: duplicateConflict.message, variant: "destructive" });
       } else {
-          toast({ title: "Uniqueness Verified", description: "No duplicate descriptions found for this unit and year." });
+          toast({ title: "Uniqueness Verified", description: "No duplicate descriptions found for this unit." });
       }
   };
 
@@ -566,12 +605,12 @@ export function RiskFormDialog({
                                 </div>
                             )}
 
-                            {duplicateConflict && (
+                             {duplicateConflict && (
                                 <Alert variant="destructive" className="animate-in slide-in-from-top-2 duration-500 shadow-md">
                                     <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle className="font-black uppercase tracking-tight text-xs">Potential Duplication Conflict</AlertTitle>
+                                    <AlertTitle className="font-black uppercase tracking-tight text-xs">Duplication Conflict</AlertTitle>
                                     <AlertDescription className="text-[11px] font-medium leading-relaxed">
-                                        This description exactly matches an existing <strong>{duplicateConflict.type}</strong> entry in the AY {watchYear} Registry for your unit. To ensure data integrity, duplicate entries are flagged. Please refine the description if this is a distinct factor.
+                                        {duplicateConflict.message}
                                     </AlertDescription>
                                 </Alert>
                             )}
