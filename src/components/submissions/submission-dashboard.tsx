@@ -46,6 +46,7 @@ import { Timestamp } from '@/firebase/firestore-wrapper';
 import { isBefore, isAfter } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { submissionTypes } from '@/lib/constants';
 
@@ -203,6 +204,79 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
     };
   }, [submissions, cycles, allUnits]);
 
+  const yearlyPerformance = useMemo(() => {
+    if (!submissions.length || !allUnits.length) return [];
+
+    const yearMap = new Map<number, {
+      firstCycle: Record<string, { submitted: number; approved: number; total: number }>;
+      finalCycle: Record<string, { submitted: number; approved: number; total: number }>;
+      totalUnits: number;
+    }>();
+
+    submissionTypes.forEach(type => {
+      submissions.forEach(sub => {
+        const yr = sub.year;
+        if (!yearMap.has(yr)) {
+          yearMap.set(yr, {
+            firstCycle: Object.fromEntries(submissionTypes.map(t => [t, { submitted: 0, approved: 0, total: 0 }])),
+            finalCycle: Object.fromEntries(submissionTypes.map(t => [t, { submitted: 0, approved: 0, total: 0 }])),
+            totalUnits: allUnits.length,
+          });
+        }
+        const entry = yearMap.get(yr)!;
+        const cycleKey = sub.cycleId === 'first' ? 'firstCycle' : 'finalCycle';
+        const docEntry = entry[cycleKey][sub.reportType];
+        if (docEntry) {
+          docEntry.submitted++;
+          if (sub.statusId === 'approved') docEntry.approved++;
+        }
+      });
+    });
+
+    return Array.from(yearMap.entries())
+      .map(([year, data]) => {
+        const rows: any[] = [];
+        const processCycle = (cycleKey: 'firstCycle' | 'finalCycle', cycleLabel: string) => {
+          submissionTypes.forEach(type => {
+            const d = data[cycleKey][type];
+            const missingUnits = data.totalUnits - d.submitted;
+            const completionRate = data.totalUnits > 0 ? Math.round((d.submitted / data.totalUnits) * 100) : 0;
+            const approvalRate = d.submitted > 0 ? Math.round((d.approved / d.submitted) * 100) : 0;
+            rows.push({
+              year, cycle: cycleLabel, type,
+              submitted: d.submitted, approved: d.approved,
+              missing: missingUnits, total: data.totalUnits,
+              completionRate, approvalRate,
+            });
+          });
+        };
+        processCycle('firstCycle', 'First');
+        processCycle('finalCycle', 'Final');
+
+        const firstTotal = submissionTypes.reduce((s, t) => s + data.firstCycle[t].submitted, 0);
+        const finalTotal = submissionTypes.reduce((s, t) => s + data.finalCycle[t].submitted, 0);
+        const firstTotalPossible = data.totalUnits * 6;
+        const finalTotalPossible = data.totalUnits * 6;
+
+        rows.push({
+          year, cycle: 'Total',
+          type: 'Overall Completion',
+          submitted: firstTotal + finalTotal,
+          approved: 0,
+          missing: (firstTotalPossible + finalTotalPossible) - (firstTotal + finalTotal),
+          total: firstTotalPossible + finalTotalPossible,
+          completionRate: firstTotalPossible + finalTotalPossible > 0
+            ? Math.round(((firstTotal + finalTotal) / (firstTotalPossible + finalTotalPossible)) * 100) : 0,
+          approvalRate: 0,
+          isTotal: true,
+        });
+
+        return rows;
+      })
+      .flat()
+      .sort((a, b) => b.year - a.year || (a.cycle === 'Total' ? 1 : b.cycle === 'Total' ? -1 : a.cycle.localeCompare(b.cycle)));
+  }, [submissions, allUnits]);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -255,6 +329,137 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
 
   return (
     <div className="space-y-6">
+      {/* Yearly Submission Performance Table */}
+      {yearlyPerformance.length > 0 && (
+      <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b py-4 px-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-white shadow-sm border border-primary/10">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                Submission Performance by Academic Year
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Year-over-year document submission completion by cycle — missing rates highlight areas needing improvement
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50 dark:bg-slate-800/20">
+                  <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[100px]">Academic Year</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider w-[70px]">Cycle</TableHead>
+                  <TableHead className="text-[9pxpx] font-black uppercase text-slate-500 tracking-wider min-w-[180px]">Document Type</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Submitted</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-emerald-700 tracking-wider text-center">Approved</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-rose-700 tracking-wider text-center">Missing</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">Completion %</TableHead>
+                  <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">Approval Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {yearlyPerformance.map((row, idx) => {
+                  const isTotal = row.isTotal;
+                  return (
+                    <TableRow key={idx} className={cn(
+                      "hover:bg-slate-50/80 transition-all border-b text-center",
+                      isTotal && "bg-primary/5 font-bold"
+                    )}>
+                      <TableCell className="pl-6 py-3 text-left">
+                        <span className={cn(
+                          "font-black",
+                          isTotal ? "text-sm text-primary" : "text-xs text-slate-900"
+                        )}>AY {row.year}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.cycle === 'First' ? 'outline' : row.cycle === 'Final' ? 'secondary' : 'default'} className={cn(
+                          "text-[8px] font-black px-1.5 py-0 h-4",
+                          row.cycle === 'Total' && "bg-primary text-white border-none"
+                        )}>
+                          {row.cycle}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <span className={cn(
+                          "text-[10px]",
+                          isTotal ? "font-black text-primary uppercase" : "font-bold text-slate-700"
+                        )}>{row.type}</span>
+                      </TableCell>
+                      <TableCell className="tabular-nums font-black text-sm text-slate-700">{row.submitted}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <span className={cn(
+                          "font-black text-sm",
+                          row.approved === row.submitted && row.approved > 0 ? "text-emerald-600" : "text-slate-500"
+                        )}>{row.approved}</span>
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        <span className={cn(
+                          "font-black text-sm",
+                          row.missing > 0 ? "text-rose-600" : "text-emerald-600"
+                        )}>{row.missing}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={cn(
+                            "text-sm font-black tabular-nums",
+                            row.completionRate >= 90 ? "text-emerald-600" :
+                            row.completionRate >= 70 ? "text-amber-600" : "text-rose-600"
+                          )}>
+                            {row.completionRate}%
+                          </span>
+                          <div className="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all",
+                                row.completionRate >= 90 ? "bg-emerald-500" :
+                                row.completionRate >= 70 ? "bg-amber-500" : "bg-rose-500"
+                              )}
+                              style={{ width: `${row.completionRate}%` }}
+                            />
+                          </div>
+                          {row.missing > 0 && (
+                            <span className="text-[7px] font-bold text-rose-500 uppercase tracking-wider">
+                              {Math.round((row.missing / row.total) * 100)}% gap
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        {row.approvalRate > 0 ? (
+                          <span className={cn(
+                            "font-black text-sm tabular-nums",
+                            row.approvalRate >= 80 ? "text-emerald-600" :
+                            row.approvalRate >= 50 ? "text-amber-600" : "text-rose-600"
+                          )}>
+                            {row.approvalRate}%
+                          </span>
+                        ) : isTotal ? (
+                          <span className="text-sm font-black text-slate-700">{row.completionRate}%</span>
+                        ) : (
+                          <span className="text-[10px] text-slate-300 font-black">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-2.5 px-6">
+          <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+            <Info className="h-3 w-3 text-primary/40" />
+            Missing = units without a submission for that document type. Completion % = submitted / total units. Gap % = missing / total units.
+          </div>
+        </CardFooter>
+      </Card>
+      )}
+
       <Card className="shadow-lg border-primary/10 overflow-hidden bg-primary/5">
         <CardHeader className="bg-primary/10 border-b py-4">
             <div className="flex items-center gap-2">
