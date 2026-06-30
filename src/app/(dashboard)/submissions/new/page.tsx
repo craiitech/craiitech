@@ -195,13 +195,13 @@ export default function NewSubmissionPage() {
         .map(s => `${s.reportType}_${s.cycleId}`)
     );
 
-    const prevRegistry = normalizedPrevSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
-    const isActionPlanExempt = prevRegistry?.riskRating === 'low';
-
     submissionTypes.forEach(reportType => {
       ['first', 'final'].forEach(cycleId => {
         const isROAP = reportType === 'Risk and Opportunity Action Plan';
-        const isExempt = isROAP && isActionPlanExempt;
+        const cycleRegistry = normalizedPrevSubmissions.find(
+          s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === cycleId
+        );
+        const isExempt = isROAP && cycleRegistry?.riskRating === 'low';
         
         const key = `${reportType}_${cycleId}`;
         if (!submittedSet.has(key)) {
