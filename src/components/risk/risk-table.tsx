@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building, FileSearch, Edit, Trash2, MessageSquare } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { cn } from '@/lib/utils';
@@ -291,6 +291,15 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
                     )}
                 </div>
                 <p className="text-[9px] text-muted-foreground truncate font-medium mt-0.5" title={risk.objective}>Obj: {risk.objective}</p>
+                {risk.auditorRemarks && (
+                    <div className="mt-1.5 p-1.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 text-[9.5px] leading-tight text-amber-800 dark:text-amber-300 font-semibold flex items-start gap-1.5 max-w-[280px]">
+                        <MessageSquare className="h-3 w-3 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                        <div className="flex flex-col">
+                            <span className="text-[7.5px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">Feedback:</span>
+                            <span className="font-medium italic">"{risk.auditorRemarks}"</span>
+                        </div>
+                    </div>
+                )}
             </TableCell>
             <TableCell>
                 <Badge className={cn("text-[9px] font-black h-5 uppercase px-2 shadow-sm", getRatingBadgeStyle(risk.type, risk.preTreatment.rating))}>
@@ -298,10 +307,22 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
                 </Badge>
             </TableCell>
             <TableCell>
-                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm">
-                    {getStatusIcon(risk.status)}
-                    {risk.status}
-                </Badge>
+                <div className="space-y-1.5">
+                    <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm">
+                        {getStatusIcon(risk.status)}
+                        {risk.status}
+                    </Badge>
+                    {risk.verification?.status && (
+                        <Badge className={cn(
+                            "flex items-center w-fit text-[8px] font-black uppercase h-4 px-1.5 border-none shadow-sm",
+                            risk.verification.status === 'Correct' || risk.verification.status === 'Updated' || risk.verification.status === 'Implemented'
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                : "bg-rose-100 text-rose-800 dark:bg-rose-950/30 dark:text-rose-400 animate-pulse"
+                        )}>
+                            {risk.verification.status}
+                        </Badge>
+                    )}
+                </div>
             </TableCell>
             <TableCell>
                 {getTargetDateBadge(risk)}

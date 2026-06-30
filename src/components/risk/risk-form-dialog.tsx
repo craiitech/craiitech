@@ -35,7 +35,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, whe
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2, AlertTriangle, Search } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2, AlertTriangle, Search, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -535,6 +535,37 @@ export function RiskFormDialog({
                     <Form {...form}>
                         <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-8">
                             
+                            {activeRisk && (activeRisk.auditorRemarks || activeRisk.verification?.status) && (
+                                <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 space-y-2 animate-in slide-in-from-top-2 duration-500 shadow-sm">
+                                    <div className="flex items-center justify-between flex-wrap gap-2">
+                                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-black text-xs uppercase tracking-wider">
+                                            <MessageSquare className="h-4 w-4" />
+                                            Admin / Auditor Evaluation
+                                        </div>
+                                        {activeRisk.verification?.status && (
+                                            <Badge className={cn(
+                                                "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm",
+                                                activeRisk.verification.status === 'Correct' || activeRisk.verification.status === 'Updated' || activeRisk.verification.status === 'Implemented'
+                                                    ? 'bg-emerald-600 text-white'
+                                                    : 'bg-rose-600 text-white'
+                                            )}>
+                                                Decision: {activeRisk.verification.status}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {activeRisk.auditorRemarks && (
+                                        <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed italic font-medium font-serif">
+                                            "{activeRisk.auditorRemarks}"
+                                        </p>
+                                    )}
+                                    {(activeRisk.auditorRemarksBy || activeRisk.verification?.verifiedBy) && (
+                                        <p className="text-[8px] font-bold text-amber-700/60 dark:text-amber-400/40 uppercase">
+                                            Issued by: {activeRisk.auditorRemarksBy || activeRisk.verification?.verifiedBy || 'QA Auditor'}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             {duplicateConflict && (
                                 <Alert variant="destructive" className="animate-in slide-in-from-top-2 duration-500 shadow-md">
                                     <AlertTriangle className="h-4 w-4" />
