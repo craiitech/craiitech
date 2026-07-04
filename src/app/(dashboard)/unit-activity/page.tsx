@@ -727,6 +727,48 @@ export default function UnitActivityPage() {
     }
   }, [activeTab]);
 
+  // Support for physical USB/HID QR/Barcode scanners (keyboard emulation)
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore modifier keys
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
+        return;
+      }
+
+      const currentTime = Date.now();
+      // If the time between keypresses is too long (> 150ms), reset the buffer (likely human typing)
+      if (currentTime - lastKeyTime > 150) {
+        buffer = '';
+      }
+      lastKeyTime = currentTime;
+
+      if (e.key === 'Enter') {
+        if (buffer.length > 0) {
+          const trimmed = buffer.trim();
+          // Check if buffer looks like a valid JSON QR code payload
+          if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleScanSuccess(trimmed);
+          }
+          buffer = '';
+        }
+      } else {
+        if (e.key.length === 1) {
+          buffer += e.key;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
+    };
+  }, [activeActivity]);
+
   const handleScanError = (err: any) => {
     // Silent errors: standard polling camera logs can be ignored
   };
