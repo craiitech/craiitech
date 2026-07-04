@@ -18,7 +18,7 @@ export async function logUserActivity(
   userName: string,
   userRole: string,
   action: string,
-  details: Record<string, any> = {}
+  details: Record<string, unknown> = {}
 ) {
   if (!userId || !action || !userName || !userRole) {
     console.error('logUserActivity: userId, userName, userRole, and action are required.');

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Query,
+  getDocs,
   onSnapshot,
   DocumentData,
   FirestoreError,
@@ -12,22 +13,14 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-/** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
 
-/**
- * Interface for the return value of the useCollection hook.
- * @template T Type of the document data.
- */
 export interface UseCollectionResult<T> {
-  data: WithId<T>[] | null; // Document data with ID, or null.
-  isLoading: boolean;       // True if loading.
-  error: FirestoreError | Error | null; // Error object, or null.
+  data: WithId<T>[] | null;
+  isLoading: boolean;
+  error: FirestoreError | Error | null;
 }
 
-/* Internal implementation of Query:
-  https://github.com/firebase/firebase-js-sdk/blob/c5f08a9bc5da0d2b0207802c972d53724ccef055/packages/firestore/src/lite-api/reference.ts#L143
-*/
 export interface InternalQuery extends Query<DocumentData> {
   _query: {
     path: {
@@ -37,20 +30,15 @@ export interface InternalQuery extends Query<DocumentData> {
   }
 }
 
-/**
- * React hook to subscribe to a Firestore collection or query in real-time.
- * Handles nullable references/queries.
- * 
- * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery.
- * 
- * @template T Optional type for document data. Defaults to any.
- * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
- * The Firestore CollectionReference or Query. Waits if null/undefined.
- * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
- */
+interface UseCollectionOptions {
+  live?: boolean;
+}
+
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    options?: UseCollectionOptions,
 ): UseCollectionResult<T> {
+  const { live = true } = options ?? {};
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
 
@@ -58,7 +46,6 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(!!memoizedTargetRefOrQuery);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  // Track the previous target to detect changes during render and prevent hydration gaps
   const [prevTarget, setPrevTarget] = useState<any>(memoizedTargetRefOrQuery);
 
   if (memoizedTargetRefOrQuery !== prevTarget) {
@@ -80,58 +67,66 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    const unsubscribe = onSnapshot(
-      memoizedTargetRefOrQuery,
-      (snapshot: QuerySnapshot<DocumentData>) => {
-        const results: ResultItemType[] = [];
-        for (const doc of snapshot.docs) {
-          results.push({ ...(doc.data() as T), id: doc.id });
-        }
+    const handleSnapshot = (snapshot: QuerySnapshot<DocumentData>) => {
+      const results: ResultItemType[] = [];
+      for (const doc of snapshot.docs) {
+        results.push({ ...(doc.data() as T), id: doc.id });
+      }
 
-        // Auto-sort campuses alphabetically by name
-        try {
-          const path: string =
-            memoizedTargetRefOrQuery.type === 'collection'
-              ? (memoizedTargetRefOrQuery as CollectionReference).path
-              : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
-          if (path === 'campuses' || path.split('/').includes('campuses')) {
-            results.sort((a: any, b: any) => {
-              const nameA = String(a.name || '').trim();
-              const nameB = String(b.name || '').trim();
-              return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
-            });
-          }
-        } catch (e) {
-          console.error("Error sorting campuses in useCollection:", e);
-        }
-
-        setData(results);
-        setError(null);
-        setIsLoading(false);
-      },
-      (error: FirestoreError) => {
+      try {
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
-
-        console.error("Firestore error in useCollection:", error);
-
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-          originalError: error,
-        })
-
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-        errorEmitter.emit('permission-error', contextualError);
+            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+        if (path === 'campuses' || path.split('/').includes('campuses')) {
+          results.sort((a: any, b: any) => {
+            const nameA = String(a.name || '').trim();
+            const nameB = String(b.name || '').trim();
+            return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+          });
+        }
+      } catch (e) {
+        console.error("Error sorting campuses in useCollection:", e);
       }
-    );
 
-    return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]);
+      setData(results);
+      setError(null);
+      setIsLoading(false);
+    };
+
+    const handleError = (error: FirestoreError) => {
+      const path: string =
+        memoizedTargetRefOrQuery.type === 'collection'
+          ? (memoizedTargetRefOrQuery as CollectionReference).path
+          : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+
+      console.error("Firestore error in useCollection:", error);
+
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path,
+        originalError: error,
+      })
+
+      setError(contextualError)
+      setData(null)
+      setIsLoading(false)
+      errorEmitter.emit('permission-error', contextualError);
+    };
+
+    if (live) {
+      const unsubscribe = onSnapshot(
+        memoizedTargetRefOrQuery,
+        handleSnapshot,
+        handleError
+      );
+      return () => unsubscribe();
+    } else {
+      getDocs(memoizedTargetRefOrQuery)
+        .then(handleSnapshot)
+        .catch(handleError);
+    }
+  }, [memoizedTargetRefOrQuery, live]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');

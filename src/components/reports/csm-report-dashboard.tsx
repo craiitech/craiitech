@@ -1599,7 +1599,7 @@ export function CsmReportDashboard({
       ageRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
     });
 
-    let ccRows = `
+    const ccRows = `
       <tr><td><strong>CC1 (Awareness)</strong></td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 1']}%</td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 2']}%</td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 3']}%</td><td style="text-align:center;">${displayStats.ccStackedData[0]['Option 4']}%</td><td style="text-align:center;">—</td></tr>
       <tr><td><strong>CC2 (Visibility)</strong></td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 1']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 2']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 3']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 4']}%</td><td style="text-align:center;">${displayStats.ccStackedData[1]['Option 5']}%</td></tr>
       <tr><td><strong>CC3 (Helpfulness)</strong></td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 1']}%</td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 2']}%</td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 3']}%</td><td style="text-align:center;">${displayStats.ccStackedData[2]['Option 4']}%</td><td style="text-align:center;">—</td></tr>

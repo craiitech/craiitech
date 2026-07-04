@@ -141,7 +141,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
         return submissionTypes.map(type => {
             const submittedUnitIds = new Set(cycleSubs.filter(s => s.reportType === type).map(s => s.unitId));
             
-            let exemptUnitIds = new Set<string>();
+            const exemptUnitIds = new Set<string>();
             if (type === 'Risk and Opportunity Action Plan') {
                 cycleSubs.filter(s => s.reportType === 'Risk and Opportunity Registry' && s.riskRating === 'low').forEach(s => {
                     exemptUnitIds.add(s.unitId);

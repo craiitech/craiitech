@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
 import type { BackupSettings, SoftwareEvaluation } from '@/lib/types';
 import { Iso25010Form } from '@/components/evaluation/iso-25010-form';
@@ -121,7 +121,7 @@ export default function LogoutPage() {
       if (typeof window !== 'undefined') {
         try {
           sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
-        } catch {}
+        } catch { /* ignore session storage errors on logout */ } 
       }
       router.push('/');
     } catch (error) {

@@ -14,11 +14,12 @@ import { Badge } from '@/components/ui/badge';
 import { BookUser, Search, X, HelpCircle, Bot, Accessibility, ShieldAlert, Sparkles, HelpCircle as HelpIcon } from 'lucide-react';
 import Link from 'next/link';
 import { faqs } from '@/lib/support-data';
+import { SafeHtml } from '@/components/ui/safe-html';
 
 // Helper to highlight searched terms inside react elements safely
 const highlightText = (text: string, search: string) => {
   if (!search.trim()) return text;
-  const cleanSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const cleanSearch = search.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
   const regex = new RegExp(`(${cleanSearch})`, 'gi');
   const parts = text.split(regex);
   return (
@@ -198,17 +199,17 @@ export default function HelpPage() {
                       {faq.answerBlocks && (
                         <ul className="list-disc pl-5 space-y-1.5 text-slate-600 dark:text-slate-400">
                           {faq.answerBlocks.map((block: any, i: number) => (
-                            <li 
-                              key={i} 
-                              dangerouslySetInnerHTML={{ 
-                                __html: searchQuery.trim() 
+                            <li key={i}>
+                              <SafeHtml 
+                                html={searchQuery.trim() 
                                   ? block.content.replace(
-                                      new RegExp(`(${searchQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'), 
+                                      new RegExp(`(${searchQuery.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'), 
                                       '<mark class="bg-yellow-100 text-slate-900 dark:text-slate-100 rounded font-black px-0.5 select-none">$1</mark>'
                                     ) 
-                                  : block.content 
-                              }} 
-                            />
+                                  : block.content
+                                } 
+                              />
+                            </li>
                           ))}
                         </ul>
                       )}

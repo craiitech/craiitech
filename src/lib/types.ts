@@ -1,4 +1,3 @@
-
 export type Role = {
   id: string;
   name: string;
@@ -295,7 +294,7 @@ export type ActivityLog = {
     userName: string;
     userRole: string;
     action: string;
-    details: Record<string, any>;
+    details?: Record<string, any>;
     timestamp: any; // serverTimestamp()
 }
     

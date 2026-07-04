@@ -36,7 +36,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { requireClaims } from '@/lib/require-claims';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
@@ -109,8 +108,6 @@ export function DirectorUnitManagement() {
     setIsSubmitting(true);
 
     try {
-      await requireClaims({ role: ['Campus Director'], campusId: true });
-      
       const unitRef = doc(firestore, 'units', unit.id);
       const updateData = { campusIds: arrayUnion(userProfile.campusId) };
       
@@ -139,8 +136,6 @@ export function DirectorUnitManagement() {
     setIsSubmitting(true);
 
     try {
-      await requireClaims({ role: ['Campus Director'], campusId: true });
-
       const unitRef = doc(firestore, 'units', unit.id);
       const updateData = { campusIds: arrayRemove(userProfile.campusId) }; 
 
@@ -176,8 +171,6 @@ export function DirectorUnitManagement() {
     setIsSubmitting(true);
     
     try {
-      await requireClaims({ role: ['Campus Director'], campusId: true });
-      
       const newUnitData = {
           name: values.name,
           category: values.category,
@@ -210,7 +203,6 @@ export function DirectorUnitManagement() {
     if (!firestore || !unit) return;
     setIsSubmitting(true);
     try {
-        await requireClaims({ role: ['Campus Director'], campusId: true });
         await deleteDoc(doc(firestore, 'units', unit.id));
         toast({ title: 'Success', description: 'Unit deleted successfully.' });
         setConfirmDeleteId(null);

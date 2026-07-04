@@ -524,8 +524,6 @@ export default function VisitorLogbookPage() {
 
     if (localLogs.length === 0 && localCsms.length === 0 && localLogouts.length === 0) return;
 
-    console.log(`Syncing offline data: ${localLogs.length} logs, ${localCsms.length} CSMs, ${localLogouts.length} logouts`);
-
     const idMap: Record<string, string> = {};
     const updatedLogs = [...localLogs];
 

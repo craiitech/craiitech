@@ -4,8 +4,8 @@ import { getAuth, type User } from 'firebase/auth';
 export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
-  requestResourceData?: any;
-  originalError?: any;
+  requestResourceData?: Record<string, unknown>;
+  originalError?: unknown;
 };
 
 interface FirebaseAuthToken {
@@ -31,7 +31,7 @@ interface SecurityRuleRequest {
   method: string;
   path: string;
   resource?: {
-    data: any;
+    data: Record<string, unknown>;
   };
 }
 
@@ -103,11 +103,12 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
  * @param originalError The original Firestore error.
  * @returns A string containing the error message and the JSON payload.
  */
-function buildErrorMessage(requestObject: SecurityRuleRequest, originalError?: any): string {
-  if (originalError && originalError.code && originalError.code !== 'permission-denied') {
+function buildErrorMessage(requestObject: SecurityRuleRequest, originalError?: unknown): string {
+  const err = originalError as { code?: string; message?: string } | undefined;
+  if (err?.code && err.code !== 'permission-denied') {
     return `Firestore Operation Failed: The operation encountered a Firebase error.
-Error Code: ${originalError.code}
-Error Message: ${originalError.message}
+Error Code: ${err.code}
+Error Message: ${err.message}
 
 Simulated Context Details:
 ${JSON.stringify(requestObject, null, 2)}`;
@@ -123,7 +124,7 @@ ${JSON.stringify(requestObject, null, 2)}`;
  */
 export class FirestorePermissionError extends Error {
   public readonly request: SecurityRuleRequest;
-  public readonly originalError?: any;
+  public readonly originalError?: unknown;
 
   constructor(context: SecurityRuleContext) {
     const requestObject = buildRequestObject(context);

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Database, FileSpreadsheet, Loader2, ShieldCheck, ShieldAlert, History, Info, Link as LinkIcon, Save, RefreshCw, AlertTriangle, FileText, LayoutList, ClipboardCheck, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
 import type { BackupSettings } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';

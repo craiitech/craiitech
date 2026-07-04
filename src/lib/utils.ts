@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { Cycle } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -130,19 +131,27 @@ export function generateControlNumber(
 /**
  * Safely parses various Firestore timestamp representations and date-like formats into a JavaScript Date object.
  */
-export function parseDate(d: any): Date {
+interface FirestoreTimestamp {
+  toDate(): Date;
+  toMillis(): number;
+  seconds: number;
+  nanoseconds: number;
+}
+
+export function parseDate(d: unknown): Date {
   if (!d) return new Date();
   if (d instanceof Date) return d;
-  if (typeof d.toDate === 'function') return d.toDate();
-  if (typeof d.toMillis === 'function') return new Date(d.toMillis());
-  if (typeof d.seconds === 'number') {
-    return new Date(d.seconds * 1000 + Math.floor((d.nanoseconds || 0) / 1000000));
+  const ts = d as FirestoreTimestamp;
+  if (typeof ts.toDate === 'function') return ts.toDate();
+  if (typeof ts.toMillis === 'function') return new Date(ts.toMillis());
+  if (typeof ts.seconds === 'number') {
+    return new Date(ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1000000));
   }
   if (typeof d === 'string' || typeof d === 'number') {
     const parsed = new Date(d);
     if (!isNaN(parsed.getTime())) return parsed;
   }
-  return new Date(d);
+  return new Date();
 }
 
 /**
@@ -152,7 +161,7 @@ export function parseDate(d: any): Date {
 export function isCycleActive(
   cycleName: 'first' | 'final',
   year: number | string,
-  allCycles: any[] | null | undefined
+  allCycles: Cycle[] | null | undefined
 ): boolean {
   if (!allCycles) return true;
   const cycle = allCycles.find(

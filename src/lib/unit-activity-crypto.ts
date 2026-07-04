@@ -1,3 +1,5 @@
+import { parseDate } from './utils';
+
 // HMAC salts — stored in public env vars so they're not in source code.
 // NEXT_PUBLIC is used because these need to be available in the browser bundle.
 // Rotation scheme: set NEXT_PUBLIC_ATTENDANCE_SALT_{YEAR} before each year.
@@ -25,7 +27,7 @@ const currentYear = new Date().getFullYear();
 let hmacKey: CryptoKey | null = null;
 let hmacKeyPrev: CryptoKey | null = null;
 let otpKey: CryptoKey | null = null;
-let otpKeyPrev: CryptoKey | null = null;
+const otpKeyPrev: CryptoKey | null = null;
 let offlineKey: CryptoKey | null = null;
 let offlineKeyPrev: CryptoKey | null = null;
 
@@ -86,7 +88,7 @@ export async function generateActivityCode(activityId: string, timestamp: number
   return ((Math.abs(hash) % 900) + 100).toString();
 }
 
-export async function signOfflineLog(data: Record<string, any>): Promise<string> {
+export async function signOfflineLog(data: Record<string, unknown>): Promise<string> {
   if (!offlineKey) offlineKey = await getKey(getOfflineSalt(currentYear), ['sign', 'verify']);
   const encoder = new TextEncoder();
   const serialized = Object.keys(data).sort().map(k => `${k}:${data[k] ?? ''}`).join('|');
@@ -95,7 +97,7 @@ export async function signOfflineLog(data: Record<string, any>): Promise<string>
   return hex.substring(0, 16);
 }
 
-export async function verifyOfflineLog(data: Record<string, any>, expectedSig: string): Promise<boolean> {
+export async function verifyOfflineLog(data: Record<string, unknown>, expectedSig: string): Promise<boolean> {
   const computed = await signOfflineLog(data);
   if (computed === expectedSig) return true;
   // Try previous year salt
@@ -119,8 +121,8 @@ export function parseSessionTime(dateStr: string, timeStr: string): number {
 export function resolveActiveSession(activity: {
   sessions?: { id: string; date: string; startTime: string; endTime: string; requiresLogout: boolean; label: string; sessionType: string }[];
   activeSessionId?: string;
-  startDateTime?: any;
-  endDateTime?: any;
+  startDateTime?: unknown;
+  endDateTime?: unknown;
   requiresLogout?: boolean;
 }) {
   const sessions = activity.sessions;
@@ -128,13 +130,13 @@ export function resolveActiveSession(activity: {
     const active = sessions.find(s => s.id === (activity.activeSessionId || sessions[0].id));
     return active || sessions[0];
   }
-  const d = activity.startDateTime?.toDate ? activity.startDateTime.toDate() : activity.startDateTime ? new Date(activity.startDateTime) : new Date();
+  const d = activity.startDateTime ? parseDate(activity.startDateTime) : new Date();
   const yd = d.getFullYear();
   const md = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   const date = `${yd}-${md}-${dd}`;
   const startTime = activity.startDateTime ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '08:00';
-  const ed = activity.endDateTime?.toDate ? activity.endDateTime.toDate() : activity.endDateTime ? new Date(activity.endDateTime) : new Date();
+  const ed = activity.endDateTime ? parseDate(activity.endDateTime) : new Date();
   const endTime = activity.endDateTime ? `${String(ed.getHours()).padStart(2, '0')}:${String(ed.getMinutes()).padStart(2, '0')}` : '17:00';
   return {
     id: 'default', date, label: 'Default Session', sessionType: 'WHOLE_DAY' as const,

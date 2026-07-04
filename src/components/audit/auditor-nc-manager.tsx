@@ -59,7 +59,7 @@ export function AuditorNCManager({
 
   const ncData = useMemo(() => {
     // 1. Filter for Non-Conformance findings only
-    let filteredFindings = findings.filter(f => f.type === 'Non-Conformance');
+    const filteredFindings = findings.filter(f => f.type === 'Non-Conformance');
 
     // 2. Map findings with their parent schedules and existing CARs
     return filteredFindings.map(finding => {

@@ -290,7 +290,7 @@ const TEMPLATES: SuggestionTemplate[] = [
       if (plans.length === 0) return { target: 85, current: 0, reason: 'No audit plans found.', hasData: false };
       const now = new Date();
       const completed = plans.filter(a => {
-        const endDate = a.closingMeetingDate?.toDate ? a.closingMeetingDate.toDate() : new Date(a.closingMeetingDate);
+        const endDate = a.closingMeetingDate && 'toDate' in a.closingMeetingDate ? a.closingMeetingDate.toDate() : a.closingMeetingDate ? new Date(a.closingMeetingDate) : now;
         return endDate < now;
       }).length;
       const rate = Math.round((completed / plans.length) * 100);
@@ -441,7 +441,7 @@ const TEMPLATES: SuggestionTemplate[] = [
       const completed = acts.filter(a => {
         if (a.status === 'COMPLETED' || a.status === 'CANCELLED') return true;
         if (!a.endDateTime) return false;
-        const end = a.endDateTime.toDate ? a.endDateTime.toDate() : new Date(a.endDateTime);
+        const end = 'toDate' in a.endDateTime ? a.endDateTime.toDate() : new Date(a.endDateTime);
         return end < now;
       }).length;
       const rate = Math.round((completed / acts.length) * 100);

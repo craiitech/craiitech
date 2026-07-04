@@ -346,7 +346,7 @@ export function ScheduleTab({
     allCompliances.forEach(comp => {
       comp.accreditationRecords?.forEach((ar, idx) => {
         let targetDate: Date | null = null;
-        let dateLabel = ar.nextSchedule || ar.dateOfSurvey || 'TBA';
+        const dateLabel = ar.nextSchedule || ar.dateOfSurvey || 'TBA';
 
         if (ar.nextScheduleYear) {
           targetDate = new Date(ar.nextScheduleYear, ar.nextScheduleMonth ? ar.nextScheduleMonth - 1 : 0, 1);

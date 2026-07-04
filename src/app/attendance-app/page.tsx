@@ -198,7 +198,6 @@ export default function RsuAttendanceApp() {
               await setDoc(bindingRef, bindingToUpload);
               parsed.synced = true;
               localStorage.setItem('rsu_attendance_local_binding', JSON.stringify(parsed));
-              console.log("Device binding synced online successfully.");
             }
           } catch (err: any) {
             console.warn("Failed to sync local device binding:", err.message);
@@ -208,7 +207,7 @@ export default function RsuAttendanceApp() {
 
       // 2. Sync offline logs if any
       if (offlineLogs.length > 0) {
-        let logsToSync = [...offlineLogs];
+        const logsToSync = [...offlineLogs];
         let hasChanged = false;
 
         for (let i = 0; i < logsToSync.length; i++) {

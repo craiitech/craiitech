@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { SafeHtml } from '@/components/ui/safe-html';
 
 const manualSections = [
   {
@@ -245,9 +246,9 @@ export default function UserManualPage() {
                             <span className="group-hover:text-primary transition-colors">{section.title}</span>
                         </AccordionTrigger>
                         <AccordionContent className="pb-6">
-                            <div 
-                                className="prose prose-sm max-w-none text-muted-foreground space-y-4 pt-2 leading-relaxed font-medium" 
-                                dangerouslySetInnerHTML={{ __html: section.content }} 
+                            <SafeHtml 
+                                className="prose prose-sm max-w-none text-muted-foreground space-y-4 pt-2 leading-relaxed font-medium"
+                                html={section.content}
                             />
                         </AccordionContent>
                     </AccordionItem>

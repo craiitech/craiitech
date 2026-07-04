@@ -14,7 +14,7 @@ interface SessionLog {
 // Type for the context state and methods
 interface ActivityLogContextType {
   sessionLogs: SessionLog[];
-  logSessionActivity: (message: string, details?: Record<string, any>) => void;
+  logSessionActivity: (message: string, details?: Record<string, unknown>) => void;
   clearSessionLogs: () => void;
 }
 
@@ -27,14 +27,14 @@ export const ActivityLogProvider = ({ children }: { children: ReactNode }) => {
   const { user, userProfile, userRole } = useUser();
 
   const logSessionActivity = useCallback(
-    (message: string, details: Record<string, any> = {}) => {
+    (message: string, details: Record<string, unknown> = {}) => {
       // 1. Add to the client-side session log for immediate UI feedback
       const newLog: SessionLog = { message, timestamp: Date.now() };
       setSessionLogs(prevLogs => [...prevLogs, newLog]);
 
       // 2. Persist to the permanent server-side log
       if (user?.uid && userProfile && userRole) {
-        const action = details.action || 'user_action'; 
+        const action = typeof details.action === 'string' ? details.action : 'user_action'; 
         const userName = `${userProfile.firstName} ${userProfile.lastName}`;
 
         logToServer(user.uid, userName, userRole, action, details).catch(error => {

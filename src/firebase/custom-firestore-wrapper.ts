@@ -61,7 +61,7 @@ function queueOfflineWrite(write: Omit<OfflineWrite, 'id' | 'timestamp'>) {
   };
   queue.push(newWrite);
   saveQueue(queue);
-  console.log(`[RSU Offline Queue] Queued [${write.type}] for path: ${write.path}`);
+  console.warn(`[RSU Offline Queue] Queued [${write.type}] for path: ${write.path}`);
 }
 
 // Custom recursive serializer to handle Dates, Timestamps, and serverTimestamp FieldValues in JSON
@@ -191,7 +191,7 @@ export function startGlobalOfflineSync() {
     if (queue.length === 0) return;
 
     isSyncing = true;
-    console.log(`[RSU Offline Sync] Attempting to process ${queue.length} queued writes...`);
+    console.warn(`[RSU Offline Sync] Attempting to process ${queue.length} queued writes...`);
 
     let firestore;
     try {
@@ -220,7 +220,7 @@ export function startGlobalOfflineSync() {
         }
 
         syncedCount++;
-        console.log(`[RSU Offline Sync] Successfully synced [${write.type}] for path: ${write.path}`);
+        console.warn(`[RSU Offline Sync] Successfully synced [${write.type}] for path: ${write.path}`);
       } catch (err: any) {
         console.warn(`[RSU Offline Sync] Failed to sync write ${write.id} for path ${write.path}:`, err.message);
 

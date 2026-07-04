@@ -152,8 +152,8 @@ export function useQrScanner(readerElementId: string = 'qr-reader') {
         },
         () => { /* ignore non-qr frames */ },
       );
-    } catch (err: any) {
-      onError(`Camera error: ${err.message}`);
+    } catch (err: unknown) {
+      onError(`Camera error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, [readerElementId]);
 

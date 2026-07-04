@@ -7,7 +7,7 @@ import type {
 
 export type KpiComputationResult = {
   value: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 };
 
 type KpiComputationInput = {
@@ -198,7 +198,7 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         const completed = entityActivities2.filter(a => {
           if (a.status === 'COMPLETED' || a.status === 'CANCELLED') return true;
           if (!a.endDateTime) return false;
-          const end = a.endDateTime.toDate ? a.endDateTime.toDate() : new Date(a.endDateTime);
+          const end = 'toDate' in a.endDateTime ? a.endDateTime.toDate() : new Date(a.endDateTime);
           return end < now;
         }).length;
         result = { value: Math.round((completed / total2) * 100) };

@@ -41,7 +41,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -71,6 +71,7 @@ export default function MonitoringPage() {
   useEffect(() => {
     if (userProfile && !isUserLoading) {
         if (isGlobalAdmin) {
+          // Admin sees all, no filter needed
         } else if (isCampusOfficial || isUnitOfficial) {
             setCampusFilter(userProfile.campusId);
             if (isUnitOfficial) setUnitFilter(userProfile.unitId);

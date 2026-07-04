@@ -52,7 +52,7 @@ export async function logError(payload: ErrorReportPayload) {
  * with 'GOOGLE_DRIVE_API' enabled and appropriate permissions.
  */
 export async function uploadBackupToDrive(base64Data: string, fileName: string, targetLink: string) {
-    console.log(`[BACKUP-SYNC] Received sync request for ${fileName}`);
+    console.error(`[BACKUP-SYNC] Received sync request for ${fileName}`);
     
     // Extract Folder ID from common GDrive link formats
     const folderIdMatch = targetLink.match(/folders\/([a-zA-Z0-9_-]+)/);
@@ -129,8 +129,8 @@ export async function getPublicSubmissionMatrixData(selectedYear: number) {
       .get();
     const cyclesSnap = await firestore.collection('cycles').get();
 
-    const campuses = campusesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
-    const units = unitsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    const campuses = campusesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as { id: string; name: string; location?: string }[];
+    const units = unitsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as admin.firestore.DocumentData[];
     const submissions = submissionsSnap.docs.map(d => d.data());
 
     const availableYears = Array.from(
@@ -140,7 +140,7 @@ export async function getPublicSubmissionMatrixData(selectedYear: number) {
       ])
     ).sort((a, b) => b - a);
 
-    const submissionMap = new Map<string, any>();
+    const submissionMap = new Map<string, admin.firestore.DocumentData>();
     submissions.forEach(s => {
       const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
       submissionMap.set(key, s);
@@ -148,12 +148,12 @@ export async function getPublicSubmissionMatrixData(selectedYear: number) {
 
     const matrix = campuses.map(campus => {
       const cId = String(campus.id).trim();
-      const campusUnits = units.filter((unit: any) => 
+      const campusUnits = units.filter((unit: admin.firestore.DocumentData) => 
         unit.campusIds?.some((id: string) => String(id).trim() === cId)
       );
       if (campusUnits.length === 0) return null;
 
-      const unitStatuses = campusUnits.map((unit: any) => {
+      const unitStatuses = campusUnits.map((unit: admin.firestore.DocumentData) => {
         const uId = String(unit.id).trim();
         const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
         const cycles = ['first', 'final'] as const;
@@ -188,7 +188,7 @@ export async function getPublicSubmissionMatrixData(selectedYear: number) {
       }).sort((a, b) => a.unitName.localeCompare(b.unitName));
 
       return { campusId: cId, campusName: campus.name, units: unitStatuses };
-    }).filter(Boolean).sort((a: any, b: any) => a.campusName.localeCompare(b.campusName));
+    }).filter((x): x is NonNullable<typeof x> => Boolean(x)).sort((a, b) => a.campusName.localeCompare(b.campusName));
 
     return { matrix, availableYears };
   } catch (error) {

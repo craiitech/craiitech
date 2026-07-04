@@ -96,7 +96,7 @@ export function RiskTable({ risks, usersMap, onEdit, onDelete, onViewForm, isAdm
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
 
   const sortedRisks = useMemo(() => {
-    let sortableItems = [...risks];
+    const sortableItems = [...risks];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         let aValue: any, bValue: any;

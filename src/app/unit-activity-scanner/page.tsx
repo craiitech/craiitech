@@ -91,7 +91,7 @@ function UnitActivityScannerTerminal() {
     if (!firestore || offlineLogs.length === 0) return;
 
     const interval = setInterval(async () => {
-      let logsToSync = [...offlineLogs];
+      const logsToSync = [...offlineLogs];
       let hasChanged = false;
 
       for (let i = 0; i < logsToSync.length; i++) {

@@ -10,6 +10,7 @@ import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, AlertCircle, Help
 import { useUser } from '@/firebase';
 import { useVoice } from '@/components/voice/voice-provider';
 import { Avatar, AvatarFallback } from '../ui/avatar';
+import { SafeHtml } from '@/components/ui/safe-html';
 import { AnimatePresence, motion } from 'framer-motion';
 import { faqs } from '@/lib/support-data';
 import { getHelpForPath } from '@/lib/contextual-help-data';
@@ -33,7 +34,7 @@ const defaultSuggestedQuestions = [
 
 // Tokenized query match algorithm ranking FAQs by match weight
 const findAnswer = (query: string): { answer: string | React.ReactNode, question: string } | null => {
-  const cleanQuery = query.toLowerCase().replace(/[?.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
+  const cleanQuery = query.toLowerCase().replace(/[?.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
   if (!cleanQuery) return null;
   
   const queryTokens = cleanQuery.split(/\s+/).filter(t => t.length > 2);
@@ -79,7 +80,7 @@ const findAnswer = (query: string): { answer: string | React.ReactNode, question
         <p className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wide">Detailed Guide:</p>
         <ul className="list-disc space-y-1.5 pl-4 text-slate-600 dark:text-slate-400">
             {bestMatch.answerBlocks.map((block, i) => (
-                <li key={i} dangerouslySetInnerHTML={{ __html: block.content }} />
+                <li key={i}><SafeHtml html={block.content} /></li>
             ))}
         </ul>
       </div>

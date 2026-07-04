@@ -46,7 +46,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
   let designationLine = "THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR";
   let unitLine = unitName.toUpperCase();
-  let campusLine = campusName.toUpperCase();
+  const campusLine = campusName.toUpperCase();
   let thruLine: string | null = null;
 
   if (isPresident) {

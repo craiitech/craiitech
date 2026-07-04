@@ -47,9 +47,9 @@ firestore-debug.log
 # capacitor (web assets placeholder, native platform is committed by convention)
 /capacitor/www
 
-# generated APK — committed intentionally so it ships with the app
-# Rebuild via: cd android && ./gradlew assembleDebug && cp *.apk ../public/downloads/rsu-eoms-portal.apk
-# /public/downloads/*.apk
+# APK binaries — excluded; use Git LFS if needed for distribution
+/public/downloads/*.apk
+/android/app/build/outputs/apk/**/*.apk
 
 # Android local SDK path (machine-specific)
 /android/local.properties

@@ -54,7 +54,7 @@ export interface FirebaseContextState {
 }
 
 // Return type for useFirebase()
-export interface FirebaseServicesAndUser {
+export interface UseFirebaseResult {
   areServicesAvailable: true;
   firebaseApp: FirebaseApp;
   firestore: Firestore;
@@ -78,7 +78,7 @@ export interface FirebaseServicesAndUser {
 }
 
 // Return type for useUser() - specific to user auth state
-export interface UserHookResult { 
+export interface UseUserResult {
   user: User | null;
   userProfile: WithId<AppUser> | null;
   isUserLoading: boolean; // Combines auth and profile loading
@@ -294,7 +294,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
  * Hook to access core Firebase services and user authentication state.
  * Throws error if used outside provider. Returns a guarded object if services are not ready.
  */
-export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable: false } => {
+export const useFirebase = (): UseFirebaseResult | { areServicesAvailable: false } => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
@@ -359,9 +359,9 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 /**
  * Hook specifically for accessing the authenticated user's state.
  * This provides the User object, loading status, and any auth errors.
- * @returns {UserHookResult} Object with user, isUserLoading, userError.
+ * @returns {UseUserResult} Object with user, isUserLoading, userError.
  */
-export const useUser = (): UserHookResult => { 
+export const useUser = (): UseUserResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
       return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, isDoi: false, systemSettings: null, firestore: null, can: () => false };
