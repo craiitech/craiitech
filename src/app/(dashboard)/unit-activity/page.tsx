@@ -677,7 +677,10 @@ export default function UnitActivityPage() {
           { facingMode: "environment" },
           {
             fps: 24,
-            qrbox: { width: 220, height: 220 },
+            qrbox: (width: number, height: number) => {
+              const size = Math.min(width, height) * 0.75;
+              return { width: size, height: size };
+            },
             aspectRatio: 1.0
           },
           (decodedText: string) => {

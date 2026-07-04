@@ -38,7 +38,7 @@ function parsePayload(data: string): ParsedPayload | null {
       signature: parsed.signature || parsed.s || '',
       userName: parsed.userName || parsed.n || undefined,
       unitId: parsed.unitId || parsed.i || undefined,
-      unitName: parsed.unitName || parsed.m || undefined,
+      unitName: parsed.unitName || parsed.o || parsed.m || undefined,
       sessionId: parsed.sessionId || undefined,
       contactNumber: parsed.contactNumber || parsed.c || undefined,
       sex: parsed.sex || undefined,
@@ -135,7 +135,13 @@ export function useQrScanner(readerElementId: string = 'qr-reader') {
     try {
       await scannerRef.current.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        {
+          fps: 10,
+          qrbox: (width: number, height: number) => {
+            const size = Math.min(width, height) * 0.75;
+            return { width: size, height: size };
+          }
+        },
         (decodedText) => {
           const payload = parsePayload(decodedText);
           if (payload) {

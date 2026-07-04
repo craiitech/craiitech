@@ -411,7 +411,10 @@ function UnitActivityScannerTerminal() {
           { facingMode: activeMode },
           {
             fps: 30,
-            qrbox: { width: 180, height: 180 },
+            qrbox: (width: number, height: number) => {
+              const size = Math.min(width, height) * 0.75;
+              return { width: size, height: size };
+            },
             aspectRatio: 1.0,
             experimentalFeatures: {
               useBarCodeDetectorIfSupported: true,

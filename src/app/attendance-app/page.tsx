@@ -434,11 +434,11 @@ export default function RsuAttendanceApp() {
     const payloadString = JSON.stringify(payloadObj);
     setQrPayload(payloadString);
     try {
-      const qrDataUrl = await QRCode.toDataURL(payloadString, { margin: 1, width: 400 });
+      const qrDataUrl = await QRCode.toDataURL(payloadString, { margin: 3, width: 400, errorCorrectionLevel: 'M' });
       setQrCodeUrl(qrDataUrl);
     } catch (err) {
       console.error('Failed to generate local QR code, falling back to API:', err);
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=L&data=${encodeURIComponent(payloadString)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&data=${encodeURIComponent(payloadString)}`;
       setQrCodeUrl(qrUrl);
     }
     setTimeLeft(60);
