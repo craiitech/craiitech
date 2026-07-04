@@ -210,9 +210,17 @@ export default function Home() {
                     
                     <div className="space-y-4">
                         <div className="flex flex-col items-center justify-center gap-4">
-                            <h1 className="text-6xl font-black tracking-tighter sm:text-7xl xl:text-8xl/none uppercase drop-shadow-2xl">
-                                RSU EOMS
-                            </h1>
+                            <div className="relative pb-6 sm:pb-8">
+                                <h1 className="text-6xl font-black tracking-tighter sm:text-7xl xl:text-8xl/none uppercase drop-shadow-2xl flex items-baseline justify-center gap-x-3 sm:gap-x-4">
+                                    <span>RSU</span>
+                                    <span className="relative">
+                                        <span>EOMS</span>
+                                        <span className="absolute left-1/2 -translate-x-1/2 top-[95%] text-[10px] sm:text-xs md:text-sm font-black tracking-[0.25em] text-primary uppercase whitespace-nowrap">
+                                            AN IDIMAS PROJECT
+                                        </span>
+                                    </span>
+                                </h1>
+                            </div>
                         </div>
                         <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium drop-shadow-md">
                             Educational Organizations Management System Submission and Monitoring Portal. A state-of-the-art digital solution for the Romblon State University - Quality Assurance Office.
@@ -337,7 +345,7 @@ export default function Home() {
                                         This project is a collaboration between the Quality Assurance Office and the Center for Research in Artificial Intelligence and Information Technologies (CRAIITech).
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <div className="text-sm space-y-4 py-4">
+                                <div className="text-sm space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1">
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/5">
                                         <p className="font-bold text-primary mb-1 text-[10px] uppercase tracking-widest">Project Lead</p>
                                         <p className="text-lg">Dr. Marvin Rick G. Forcado</p>
@@ -350,6 +358,24 @@ export default function Home() {
                                             <li>Ms. Aimelyn D. Rufon</li>
                                             <li>Ms. Bea Trixia F. Veneracion</li>
                                         </ul>
+                                    </div>
+                                    <div className="border-t border-white/10 pt-4 space-y-3">
+                                        <p className="font-bold text-primary px-1 text-xs uppercase tracking-widest">About the IDIMAS Project Researcher</p>
+                                        <div className="p-4 rounded-lg bg-white/5 border border-white/5 space-y-3">
+                                            <div>
+                                                <p className="font-bold text-white/40 text-[9px] uppercase tracking-widest mb-0.5">Lead</p>
+                                                <p className="text-sm font-semibold">Dr. Marvin Rick G. Forcado</p>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-white/40 text-[9px] uppercase tracking-widest mb-1">Members</p>
+                                                <ul className="grid grid-cols-2 gap-2 text-white/60 text-[10px]">
+                                                    <li>Engr. Julie F. Fallaria</li>
+                                                    <li>Ms. Sarah Jane F. Fallaria</li>
+                                                    <li>Ms. Wennie D. Fajutnao</li>
+                                                    <li>Mr. Turner Evon F. De Torres</li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <AlertDialogFooter className="border-t border-white/5 pt-4">
