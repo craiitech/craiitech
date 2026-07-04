@@ -384,4 +384,49 @@
   .animate-glow-pulse {
     animation: glow-pulse 4s infinite ease-in-out;
   }
+
+  @keyframes text-float {
+    0%,
+    100% {
+      transform: translateY(0px) translateZ(0);
+    }
+    50% {
+      transform: translateY(-6px) translateZ(12px);
+    }
+  }
+
+  .animate-text-float {
+    animation: text-float 5s infinite ease-in-out;
+  }
+
+  @keyframes avatar-float {
+    0%,
+    100% {
+      transform: translateY(0px) translateZ(4px);
+    }
+    50% {
+      transform: translateY(-3px) translateZ(8px);
+    }
+  }
+
+  .animate-avatar-float {
+    animation: avatar-float 6s infinite ease-in-out;
+  }
+
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 800px;
+  }
+
+  .text-shadow-3d {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .text-shadow-3d-sm {
+    text-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 }

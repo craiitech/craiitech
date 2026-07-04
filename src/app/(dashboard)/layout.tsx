@@ -896,7 +896,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarProvider>
             <Sidebar variant="sidebar" collapsible="icon">
               <SidebarHeader className="p-4">
-                <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
+                <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden card-3d">
                   <div className="absolute inset-0 rounded-2xl animate-gold-green-bg group-data-[collapsible=icon]:hidden" />
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent via-white/5 to-white/10 group-data-[collapsible=icon]:hidden" />
                   <div className="absolute top-0 -left-6 w-24 h-24 bg-white/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
@@ -911,22 +911,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   />
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-400/10 rounded-full blur-[70px] animate-glow-pulse group-data-[collapsible=icon]:hidden -z-10" />
 
-                  {displayAvatar ? (
-                    <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-white/20">
-                      <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
-                      <AvatarFallback>{fallbackAvatar}</AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
-                  )}
-                  <div className="mt-3 text-center group-data-[collapsible=icon]:hidden">
-                    <p className="font-black text-sm leading-tight text-white">{displayName}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mt-1">
+                  <div className="relative z-10 animate-avatar-float" style={{ transformStyle: 'preserve-3d' }}>
+                    {displayAvatar ? (
+                      <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-white/20 shadow-lg">
+                        <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
+                        <AvatarFallback>{fallbackAvatar}</AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
+                    )}
+                  </div>
+                  <div
+                    className="mt-3 text-center group-data-[collapsible=icon]:hidden relative z-10 animate-text-float"
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    <p className="font-black text-sm leading-tight text-white text-shadow-3d">{displayName}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mt-1 text-shadow-3d-sm">
                       {displayRole}
                     </p>
                     <div className="mt-2 space-y-1">
                       {userProfile?.unitId && (
-                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight">
+                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight text-shadow-3d-sm">
                           <Building2 className="h-3 w-3 text-slate-900/40 dark:text-slate-100/40 shrink-0" />
                           <span className="truncate max-w-[150px]">
                             {allUnits?.find((u) => u.id === userProfile.unitId)?.name || 'Loading Unit...'}
@@ -934,7 +939,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                       )}
                       {userProfile?.campusId && (
-                        <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 dark:text-slate-100/60 italic font-bold">
+                        <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 dark:text-slate-100/60 italic font-bold text-shadow-3d-sm">
                           <School className="h-3 w-3 shrink-0 opacity-40" />
                           <span className="truncate max-w-[150px]">
                             {allCampuses?.find((c) => c.id === userProfile.campusId)?.name || 'Loading Site...'}
