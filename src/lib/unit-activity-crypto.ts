@@ -64,14 +64,14 @@ export async function verifyPayloadSignature(userId: string, timestamp: number, 
 
 async function getCurrentHmacKey(): Promise<CryptoKey | null> {
   try {
-    if (!hmacKey) hmacKey = await getKey(getSalt(currentYear), ['verify']);
+    if (!hmacKey) hmacKey = await getKey(getSalt(currentYear), ['sign', 'verify']);
     return hmacKey;
   } catch { return null; }
 }
 
 async function getPrevHmacKey(): Promise<CryptoKey | null> {
   try {
-    if (!hmacKeyPrev) hmacKeyPrev = await getKey(getSalt(currentYear - 1), ['verify']);
+    if (!hmacKeyPrev) hmacKeyPrev = await getKey(getSalt(currentYear - 1), ['sign', 'verify']);
     return hmacKeyPrev;
   } catch { return null; }
 }
