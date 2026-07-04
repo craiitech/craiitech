@@ -26,10 +26,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const welcomed = useRef(false);
   const enabledRef = useRef(false);
   const pendingAnnouncement = useRef<string | null>(null);
+  const bestVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const loadVoices = () => {
+      const voices = window.speechSynthesis?.getVoices();
+      if (!voices?.length || bestVoiceRef.current) return;
+
+      const preferredPrefixes = ['Google US English', 'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Alex'];
+      for (const prefix of preferredPrefixes) {
+        const found = voices.find((v) => v.name === prefix || v.name.startsWith(prefix));
+        if (found) {
+          bestVoiceRef.current = found;
+          return;
+        }
+      }
+
+      const englishVoice = voices.find((v) => v.lang?.startsWith('en'));
+      bestVoiceRef.current = englishVoice || voices[0];
+    };
+
+    loadVoices();
+    window.speechSynthesis?.addEventListener('voiceschanged', loadVoices);
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem('rsu_eoms_voice_enabled');
-    const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReduced =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const initial = stored !== null ? stored === 'true' : !prefersReduced;
     setEnabledState(initial);
     enabledRef.current = initial;
@@ -49,6 +76,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     window.speechSynthesis?.cancel();
     const msg = new SpeechSynthesisUtterance(text);
     msg.rate = 0.85;
+    msg.pitch = 1.05;
+    if (bestVoiceRef.current) msg.voice = bestVoiceRef.current;
     window.speechSynthesis?.speak(msg);
   }, []);
 
@@ -58,40 +87,50 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const playWelcome = useCallback((name: string) => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.speechSynthesis?.cancel();
-      const msg = new SpeechSynthesisUtterance(`Welcome to RSU EOMS Portal, ${name}`);
-      msg.rate = 0.85;
-      msg.onend = () => {
-        if (pendingAnnouncement.current) {
-          const textToSpeak = pendingAnnouncement.current;
-          pendingAnnouncement.current = null;
-          setTimeout(() => {
-            speak(textToSpeak);
-          }, 1500);
-        }
-      };
-      window.speechSynthesis?.speak(msg);
-    } catch {}
-  }, [speak]);
-
-  const queueAnnouncement = useCallback((text: string) => {
-    if (!enabledRef.current || typeof window === 'undefined') return;
-
-    if (welcomed.current) {
-      if (window.speechSynthesis?.speaking) {
-        pendingAnnouncement.current = text;
-      } else {
-        setTimeout(() => {
-          speak(text);
-        }, 1000);
+  const playWelcome = useCallback(
+    (name: string) => {
+      if (typeof window === 'undefined') return;
+      try {
+        window.speechSynthesis?.cancel();
+        const msg = new SpeechSynthesisUtterance(`Welcome to RSU EOMS Portal, ${name}`);
+        msg.rate = 0.85;
+        msg.pitch = 1.05;
+        if (bestVoiceRef.current) msg.voice = bestVoiceRef.current;
+        msg.onend = () => {
+          if (pendingAnnouncement.current) {
+            const textToSpeak = pendingAnnouncement.current;
+            pendingAnnouncement.current = null;
+            setTimeout(() => {
+              speak(textToSpeak);
+            }, 1500);
+          }
+        };
+        window.speechSynthesis?.speak(msg);
+      } catch {
+        void 0;
       }
-    } else {
-      pendingAnnouncement.current = text;
-    }
-  }, [speak]);
+    },
+    [speak],
+  );
+
+  const queueAnnouncement = useCallback(
+    (text: string) => {
+      if (!enabledRef.current || typeof window === 'undefined') return;
+
+      if (welcomed.current) {
+        if (window.speechSynthesis?.speaking) {
+          pendingAnnouncement.current = text;
+        } else {
+          setTimeout(() => {
+            speak(text);
+          }, 1000);
+        }
+      } else {
+        pendingAnnouncement.current = text;
+      }
+    },
+    [speak],
+  );
 
   // Keep latest userProfile in a ref so one-time effects can read it
   const userProfileRef = useRef(userProfile);
@@ -110,7 +149,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       const profile = userProfileRef.current;
       if (!profile || isUserLoadingRef.current || profile.verified === false) return;
       welcomed.current = true;
-      const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.email?.split('@')[0] || 'User';
+      const name =
+        [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.email?.split('@')[0] || 'User';
       window.removeEventListener('pointerdown', onInteraction);
       window.removeEventListener('keydown', onInteraction);
       playWelcome(name);
@@ -131,7 +171,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
     if (!isUserLoading && userProfile && userProfile.verified !== false && enabledRef.current) {
       welcomed.current = true;
-      const name = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.email?.split('@')[0] || 'User';
+      const name =
+        [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') ||
+        userProfile.email?.split('@')[0] ||
+        'User';
       const timer = setTimeout(() => {
         playWelcome(name);
       }, 1500);
@@ -148,7 +191,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         window.speechSynthesis?.cancel();
         try {
           sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
-        } catch {}
+        } catch {
+          void 0;
+        }
       }
     }
   }, [isUserLoading, user]);
