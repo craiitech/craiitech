@@ -7,23 +7,23 @@ import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { 
-    CheckCircle, 
-    Circle, 
-    Download, 
-    FileCheck, 
-    Scan, 
-    Link as LinkIcon, 
-    AlertCircle, 
-    XCircle, 
-    ChevronRight, 
-    Loader2, 
-    ArrowLeft, 
-    ShieldAlert, 
-    Info, 
-    Image as ImageIcon,
-    LayoutList,
-    FileText
+import {
+  CheckCircle,
+  Circle,
+  Download,
+  FileCheck,
+  Scan,
+  Link as LinkIcon,
+  AlertCircle,
+  XCircle,
+  ChevronRight,
+  Loader2,
+  ArrowLeft,
+  ShieldAlert,
+  Info,
+  Image as ImageIcon,
+  LayoutList,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -54,13 +54,13 @@ import { Progress } from '@/components/ui/progress';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    approved: 'default',
-    pending: 'secondary',
-    rejected: 'destructive',
-    submitted: 'outline',
-    'awaiting approval': 'outline',
-    'n/a': 'secondary',
-}
+  approved: 'default',
+  pending: 'secondary',
+  rejected: 'destructive',
+  submitted: 'outline',
+  'awaiting approval': 'outline',
+  'n/a': 'secondary',
+};
 
 export default function NewSubmissionPage() {
   const { user, userProfile, userRole } = useUser();
@@ -71,45 +71,42 @@ export default function NewSubmissionPage() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<'first' | 'final' | null>(null);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
-  
+
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
-  
+
   const [showUpdateDialog, setShowUpdateDialog] = useState<string | null>(null);
   const [isCarryingOver, setIsCarryingOver] = useState(false);
   const [showFormForUpdate, setShowFormForUpdate] = useState(false);
-  
+
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
   const years = useMemo(() => {
     if (!allCycles) return [];
-    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a, b) => b - a);
+    const uniqueYears = [...new Set(allCycles.map((c) => c.year))].sort((a, b) => b - a);
     return uniqueYears;
   }, [allCycles]);
 
   const availableCyclesForYear = useMemo(() => {
     if (!allCycles || !selectedYear) return [];
-    return allCycles
-        .filter(c => c.year === selectedYear)
-        .sort((a, b) => a.name.localeCompare(b.name));
+    return allCycles.filter((c) => c.year === selectedYear).sort((a, b) => a.name.localeCompare(b.name));
   }, [allCycles, selectedYear]);
 
   useEffect(() => {
     if (selectedYear) {
-        if (selectedCycle) {
-            const exists = availableCyclesForYear.some(c => c.name === selectedCycle);
-            if (!exists) {
-                setSelectedCycle(null);
-                setSelectedReport(null);
-            }
+      if (selectedCycle) {
+        const exists = availableCyclesForYear.some((c) => c.name === selectedCycle);
+        if (!exists) {
+          setSelectedCycle(null);
+          setSelectedReport(null);
         }
+      }
     } else {
-        setSelectedCycle(null);
-        setSelectedReport(null);
+      setSelectedCycle(null);
+      setSelectedReport(null);
     }
   }, [selectedYear, availableCyclesForYear, selectedCycle]);
-
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
@@ -117,22 +114,22 @@ export default function NewSubmissionPage() {
       collection(firestore, 'submissions'),
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId),
-      where('year', '==', selectedYear)
+      where('year', '==', selectedYear),
     );
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
-  
+
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const digitalRisksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
     return query(
-        collection(firestore, 'risks'),
-        where('unitId', '==', userProfile.unitId),
-        where('campusId', '==', userProfile.campusId),
-        where('year', '==', selectedYear)
+      collection(firestore, 'risks'),
+      where('unitId', '==', userProfile.unitId),
+      where('campusId', '==', userProfile.campusId),
+      where('year', '==', selectedYear),
     );
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
   const { data: digitalRisks } = useCollection<Risk>(digitalRisksQuery);
@@ -144,7 +141,7 @@ export default function NewSubmissionPage() {
       collection(firestore, 'submissions'),
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId),
-      where('year', '==', selectedYear - 1)
+      where('year', '==', selectedYear - 1),
     );
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
   const { data: prevYearSubmissions } = useCollection<Submission>(prevYearSubmissionsQuery);
@@ -155,7 +152,7 @@ export default function NewSubmissionPage() {
       collection(firestore, 'risks'),
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId),
-      where('year', '==', selectedYear - 1)
+      where('year', '==', selectedYear - 1),
     );
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
   const { data: prevYearRisks } = useCollection<Risk>(prevYearRisksQuery);
@@ -169,47 +166,47 @@ export default function NewSubmissionPage() {
     if (!prevYearSubmissions || !selectedYear || !hasPrevYearConfig) return [];
 
     const missing: { docName: string; isRequired: boolean; isROAP: boolean; isExempt: boolean }[] = [];
-    const normalizedPrevSubmissions = prevYearSubmissions.map(s => {
+    const normalizedPrevSubmissions = prevYearSubmissions.map((s) => {
       let rType = String(s.reportType || '').trim();
       const lowerType = rType.toLowerCase();
-      
+
       if (lowerType.includes('risk and opportunity registry')) {
-          rType = 'Risk and Opportunity Registry';
+        rType = 'Risk and Opportunity Registry';
       } else if (lowerType.includes('operational plan')) {
-          rType = 'Operational Plan';
+        rType = 'Operational Plan';
       } else if (lowerType.includes('objectives monitoring')) {
-          rType = 'Quality Objectives Monitoring';
+        rType = 'Quality Objectives Monitoring';
       } else if (lowerType.includes('needs and expectation')) {
-          rType = 'Needs and Expectation of Interested Parties';
+        rType = 'Needs and Expectation of Interested Parties';
       } else if (lowerType.includes('swot')) {
-          rType = 'SWOT Analysis';
+        rType = 'SWOT Analysis';
       } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
-          rType = 'Risk and Opportunity Action Plan';
+        rType = 'Risk and Opportunity Action Plan';
       }
       return { ...s, reportType: rType };
     });
 
     const submittedSet = new Set(
       normalizedPrevSubmissions
-        .filter(s => (s.statusId === 'approved' || s.statusId === 'submitted') && s.isDraft !== true)
-        .map(s => `${s.reportType}_${s.cycleId}`)
+        .filter((s) => s.statusId === 'approved' || (s.statusId === 'submitted' && s.isDraft !== true))
+        .map((s) => `${s.reportType}_${s.cycleId}`),
     );
 
-    submissionTypes.forEach(reportType => {
-      ['first', 'final'].forEach(cycleId => {
+    submissionTypes.forEach((reportType) => {
+      ['first', 'final'].forEach((cycleId) => {
         const isROAP = reportType === 'Risk and Opportunity Action Plan';
         const cycleRegistry = normalizedPrevSubmissions.find(
-          s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === cycleId
+          (s) => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === cycleId,
         );
         const isExempt = isROAP && cycleRegistry?.riskRating === 'low';
-        
+
         const key = `${reportType}_${cycleId}`;
         if (!submittedSet.has(key)) {
           missing.push({
             docName: `${reportType} (${cycleId === 'first' ? 'First' : 'Final'} Cycle)`,
             isRequired: !isExempt,
             isROAP,
-            isExempt
+            isExempt,
           });
         }
       });
@@ -220,12 +217,16 @@ export default function NewSubmissionPage() {
 
   const openPrevYearRisks = useMemo(() => {
     if (!prevYearRisks || !selectedYear || !hasPrevYearConfig) return [];
-    return prevYearRisks.filter(r => r.status !== 'Closed');
+    return prevYearRisks.filter((r) => r.status !== 'Closed');
   }, [prevYearRisks, selectedYear, hasPrevYearConfig]);
 
   const isBlocked = useMemo(() => {
-    const hasRequiredMissingPrevYearSubmissions = missingPrevYearSubmissions.some(s => s.isRequired);
-    return !!(selectedYear && hasPrevYearConfig && (hasRequiredMissingPrevYearSubmissions || openPrevYearRisks.length > 0));
+    const hasRequiredMissingPrevYearSubmissions = missingPrevYearSubmissions.some((s) => s.isRequired);
+    return !!(
+      selectedYear &&
+      hasPrevYearConfig &&
+      (hasRequiredMissingPrevYearSubmissions || openPrevYearRisks.length > 0)
+    );
   }, [selectedYear, hasPrevYearConfig, missingPrevYearSubmissions, openPrevYearRisks]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
@@ -233,48 +234,42 @@ export default function NewSubmissionPage() {
       return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
     }
 
-    const normalizedSubmissions = rawSubmissions.map(s => {
-        let rType = String(s.reportType || '').trim();
-        const lowerType = rType.toLowerCase();
-        
-        if (lowerType.includes('risk and opportunity registry')) {
-            rType = 'Risk and Opportunity Registry';
-        } else if (lowerType.includes('operational plan')) {
-            rType = 'Operational Plan';
-        } else if (lowerType.includes('objectives monitoring')) {
-            rType = 'Quality Objectives Monitoring';
-        } else if (lowerType.includes('needs and expectation')) {
-            rType = 'Needs and Expectation of Interested Parties';
-        } else if (lowerType.includes('swot')) {
-            rType = 'SWOT Analysis';
-        } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
-            rType = 'Risk and Opportunity Action Plan';
-        }
-        return { ...s, reportType: rType };
+    const normalizedSubmissions = rawSubmissions.map((s) => {
+      let rType = String(s.reportType || '').trim();
+      const lowerType = rType.toLowerCase();
+
+      if (lowerType.includes('risk and opportunity registry')) {
+        rType = 'Risk and Opportunity Registry';
+      } else if (lowerType.includes('operational plan')) {
+        rType = 'Operational Plan';
+      } else if (lowerType.includes('objectives monitoring')) {
+        rType = 'Quality Objectives Monitoring';
+      } else if (lowerType.includes('needs and expectation')) {
+        rType = 'Needs and Expectation of Interested Parties';
+      } else if (lowerType.includes('swot')) {
+        rType = 'SWOT Analysis';
+      } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+        rType = 'Risk and Opportunity Action Plan';
+      }
+      return { ...s, reportType: rType };
     });
 
-    const firstMap = new Map(
-      normalizedSubmissions
-        .filter(s => s.cycleId === 'first')
-        .map((s) => [s.reportType, s])
-    );
-     const finalMap = new Map(
-      normalizedSubmissions
-        .filter(s => s.cycleId === 'final' && s.isDraft !== true)
-        .map((s) => [s.reportType, s])
+    const firstMap = new Map(normalizedSubmissions.filter((s) => s.cycleId === 'first').map((s) => [s.reportType, s]));
+    const finalMap = new Map(
+      normalizedSubmissions.filter((s) => s.cycleId === 'final' && s.isDraft !== true).map((s) => [s.reportType, s]),
     );
 
     return { firstCycleStatusMap: firstMap, finalCycleStatusMap: finalMap };
   }, [rawSubmissions]);
 
   const submissionStatusMap = selectedCycle === 'first' ? firstCycleStatusMap : finalCycleStatusMap;
-  
+
   const specialUpdateReports = ['SWOT Analysis', 'Needs and Expectation of Interested Parties'];
 
   const isFirstCycleRorComplete = useMemo(() => {
     const docSubmitted = firstCycleStatusMap.has('Risk and Opportunity Registry');
-    const hasR = digitalRisks?.some(r => r.type === 'Risk');
-    const hasO = digitalRisks?.some(r => r.type === 'Opportunity');
+    const hasR = digitalRisks?.some((r) => r.type === 'Risk');
+    const hasO = digitalRisks?.some((r) => r.type === 'Opportunity');
     return docSubmitted && hasR && hasO;
   }, [firstCycleStatusMap, digitalRisks]);
 
@@ -284,17 +279,13 @@ export default function NewSubmissionPage() {
     const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
     const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
     const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
-    
+
     if (isActionPlanNA) return;
 
     setSelectedReport(reportType);
-    setShowFormForUpdate(false); 
-    
-    if (
-      selectedCycle === 'final' &&
-      specialUpdateReports.includes(reportType) &&
-      firstCycleStatusMap.has(reportType)
-    ) {
+    setShowFormForUpdate(false);
+
+    if (selectedCycle === 'final' && specialUpdateReports.includes(reportType) && firstCycleStatusMap.has(reportType)) {
       if (finalCycleStatusMap.has(reportType)) {
         setShowUpdateDialog(null);
       } else {
@@ -303,30 +294,30 @@ export default function NewSubmissionPage() {
     } else {
       setShowUpdateDialog(null);
     }
-  }
-  
+  };
+
   const handleCarryOverSubmission = async () => {
     if (!firestore || !userProfile || !user || !selectedReport || !units) {
-        toast({ title: "Error", description: "User data is not fully loaded.", variant: "destructive" });
-        return;
-    };
-    
-    const originalSubmission = firstCycleStatusMap.get(selectedReport);
-    if (!originalSubmission) {
-      toast({ title: "Error", description: "Original submission not found.", variant: "destructive" });
+      toast({ title: 'Error', description: 'User data is not fully loaded.', variant: 'destructive' });
       return;
     }
-    
+
+    const originalSubmission = firstCycleStatusMap.get(selectedReport);
+    if (!originalSubmission) {
+      toast({ title: 'Error', description: 'Original submission not found.', variant: 'destructive' });
+      return;
+    }
+
     setIsCarryingOver(true);
 
     const carryOverComment: Comment = {
-        text: 'No updates from First Cycle submission. Carried over for final approval.',
-        authorId: user.uid,
-        authorName: `${userProfile.firstName} ${userProfile.lastName}`,
-        authorRole: userRole || 'User',
-        createdAt: new Date(),
+      text: 'No updates from First Cycle submission. Carried over for final approval.',
+      authorId: user.uid,
+      authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+      authorRole: userRole || 'User',
+      createdAt: new Date(),
     };
-    
+
     const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
 
     const newSubmissionData = {
@@ -348,26 +339,28 @@ export default function NewSubmissionPage() {
     try {
       const submissionsCollectionRef = collection(firestore, 'submissions');
       await addDoc(submissionsCollectionRef, newSubmissionData);
-      toast({ title: "Success", description: "Submission has been carried over and sent for final approval." });
+      toast({ title: 'Success', description: 'Submission has been carried over and sent for final approval.' });
     } catch (error) {
-      console.error("Error carrying over submission:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
+      console.error('Error carrying over submission:', error);
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
           path: 'submissions',
           operation: 'create',
-          requestResourceData: newSubmissionData
-      }));
+          requestResourceData: newSubmissionData,
+        }),
+      );
     } finally {
       setIsCarryingOver(false);
       setShowUpdateDialog(null);
     }
-  }
-
+  };
 
   const handleFormSuccess = () => {
     setShowFormForUpdate(false);
     router.push('/submissions');
   };
-  
+
   const getIconForStatus = (status?: string) => {
     switch (status) {
       case 'approved':
@@ -382,28 +375,31 @@ export default function NewSubmissionPage() {
         return <XCircle className="h-5 w-5 text-muted-foreground" />;
     }
   };
-  
+
   const getStatusText = (sub: Submission) => {
     if (sub.statusId === 'submitted') return 'Awaiting Approval';
     if (sub.statusId === 'approved' && sub.isDraft) return 'Draft Cleared';
     return sub.statusId;
-  }
+  };
 
   const isCycleSelected = selectedYear !== null && selectedCycle !== null;
 
   const currentTemplate = useMemo(() => {
-    if (!selectedReport) return PlaceHolderImages.find(p => p.id === 'general-template');
-    
+    if (!selectedReport) return PlaceHolderImages.find((p) => p.id === 'general-template');
+
     const mapping: Record<string, string> = {
-        'SWOT Analysis': 'swot-template',
-        'Needs and Expectation of Interested Parties': 'nep-template',
-        'Operational Plan': 'ope-template',
-        'Quality Objectives Monitoring': 'qom-template',
-        'Risk and Opportunity Registry': 'ror-template',
-        'Risk and Opportunity Action Plan': 'roa-template'
+      'SWOT Analysis': 'swot-template',
+      'Needs and Expectation of Interested Parties': 'nep-template',
+      'Operational Plan': 'ope-template',
+      'Quality Objectives Monitoring': 'qom-template',
+      'Risk and Opportunity Registry': 'ror-template',
+      'Risk and Opportunity Action Plan': 'roa-template',
     };
 
-    return PlaceHolderImages.find(p => p.id === mapping[selectedReport]) || PlaceHolderImages.find(p => p.id === 'general-template');
+    return (
+      PlaceHolderImages.find((p) => p.id === mapping[selectedReport]) ||
+      PlaceHolderImages.find((p) => p.id === 'general-template')
+    );
   }, [selectedReport]);
 
   return (
@@ -414,397 +410,547 @@ export default function NewSubmissionPage() {
           <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
         </div>
         <div className="flex items-center gap-2">
-            <Button 
-                variant="outline"
-                className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
-                asChild
+          <Button
+            variant="outline"
+            className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+            asChild
+          >
+            <a
+              href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-                <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">
-                    <Download className="mr-2 h-4 w-4" /> Download Templates
-                </a>
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/submissions')} className="h-9 font-bold uppercase text-[10px] tracking-widest">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-            </Button>
+              <Download className="mr-2 h-4 w-4" /> Download Templates
+            </a>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/submissions')}
+            className="h-9 font-bold uppercase text-[10px] tracking-widest"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
         </div>
       </div>
-      
-       {selectedCycle === 'final' && selectedReport && specialUpdateReports.includes(selectedReport) && !finalCycleStatusMap.has(selectedReport) && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Final Cycle Submission</AlertTitle>
-          <AlertDescription>
-            For {selectedReport}, if there are no changes from your First Cycle submission, you can choose to carry it over instead of re-uploading.
-          </AlertDescription>
-        </Alert>
-      )}
+
+      {selectedCycle === 'final' &&
+        selectedReport &&
+        specialUpdateReports.includes(selectedReport) &&
+        !finalCycleStatusMap.has(selectedReport) && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Final Cycle Submission</AlertTitle>
+            <AlertDescription>
+              For {selectedReport}, if there are no changes from your First Cycle submission, you can choose to carry it
+              over instead of re-uploading.
+            </AlertDescription>
+          </Alert>
+        )}
 
       {/* Previous Year Compliance Warnings */}
-      {selectedYear && hasPrevYearConfig && (missingPrevYearSubmissions.some(s => s.isRequired) || openPrevYearRisks.length > 0) && (
-        <Alert variant="destructive" className="bg-destructive/5 border-destructive/30 border-2">
-          <ShieldAlert className="h-5 w-5 text-destructive" />
-          <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-destructive">
-            Previous Year ({selectedYear - 1}) Compliance Warning
-          </AlertTitle>
-          <AlertDescription className="mt-2 text-xs space-y-2 text-slate-800 dark:text-slate-200">
-            <p className="font-bold">
-              Our records show that your unit has pending requirements for the academic/calendar year {selectedYear - 1}. Please resolve these to ensure continuous quality compliance:
-            </p>
-            {missingPrevYearSubmissions.length > 0 && (
-              <div className="space-y-1 pl-4">
-                <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Unsubmitted EOMS Documents ({missingPrevYearSubmissions.length}):</p>
-                <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
-                  {missingPrevYearSubmissions.map((item, idx) => (
-                    <li key={idx} className={item.isRequired ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 italic font-medium"}>
-                      {item.docName} {!item.isRequired && " (Not Required)"}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {openPrevYearRisks.length > 0 && (
-              <div className="space-y-1 pl-4 pt-1">
-                <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">Open Risks / Opportunities in Digital ROR ({openPrevYearRisks.length}):</p>
-                <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
-                  {openPrevYearRisks.map((risk, idx) => (
-                    <li key={idx} className="text-slate-700 dark:text-slate-300">
-                      <span className="font-bold">[{risk.type}]</span> {risk.description.substring(0, 80)}... ({risk.status})
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-[10px] font-bold text-rose-600 mt-1 italic pl-1">
-                  All risks and opportunities must be closed (post-treatment rating and implementation details finalized) before initiating new submissions.
-                </p>
-              </div>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-
-       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1 space-y-4">
-            <Card>
-                <CardHeader>
-                <CardTitle>Submission Status</CardTitle>
-                <CardDescription>Select the year and cycle to view submission status.</CardDescription>
-                <div className="flex flex-col items-stretch gap-2 pt-2 md:flex-row md:items-center">
-                    <Select value={selectedYear ? String(selectedYear) : undefined} onValueChange={(value) => setSelectedYear(Number(value))}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map((year) => (
-                        <SelectItem key={year} value={String(year)}>
-                            {year}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                    <Select value={selectedCycle ?? undefined} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)} disabled={!selectedYear}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select Cycle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availableCyclesForYear.map(cycle => (
-                            <SelectItem key={cycle.id} value={cycle.name as 'first' | 'final'}>
-                                {cycle.name === 'first' ? 'First Submission' : 'Final Submission'}
-                            </SelectItem>
-                        ))}
-                        {selectedYear && availableCyclesForYear.length === 0 && (
-                            <div className="p-4 text-sm text-muted-foreground">No cycles defined for this year.</div>
-                        )}
-                    </SelectContent>
-                    </Select>
-                </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                {isLoading ? (
-                    <div className="space-y-4">
-                    {[...Array(6)].map((_, i) => (
-                        <Skeleton key={i} className="h-14 w-full" />
+      {selectedYear &&
+        hasPrevYearConfig &&
+        (missingPrevYearSubmissions.some((s) => s.isRequired) || openPrevYearRisks.length > 0) && (
+          <Alert variant="destructive" className="bg-destructive/5 border-destructive/30 border-2">
+            <ShieldAlert className="h-5 w-5 text-destructive" />
+            <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-destructive">
+              Previous Year ({selectedYear - 1}) Compliance Warning
+            </AlertTitle>
+            <AlertDescription className="mt-2 text-xs space-y-2 text-slate-800 dark:text-slate-200">
+              <p className="font-bold">
+                Our records show that your unit has pending requirements for the academic/calendar year{' '}
+                {selectedYear - 1}. Please resolve these to ensure continuous quality compliance:
+              </p>
+              {missingPrevYearSubmissions.length > 0 && (
+                <div className="space-y-1 pl-4">
+                  <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">
+                    Unsubmitted EOMS Documents ({missingPrevYearSubmissions.length}):
+                  </p>
+                  <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
+                    {missingPrevYearSubmissions.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className={
+                          item.isRequired
+                            ? 'text-slate-700 dark:text-slate-300'
+                            : 'text-slate-400 dark:text-slate-500 italic font-medium'
+                        }
+                      >
+                        {item.docName} {!item.isRequired && ' (Not Required)'}
+                      </li>
                     ))}
+                  </ul>
+                </div>
+              )}
+              {openPrevYearRisks.length > 0 && (
+                <div className="space-y-1 pl-4 pt-1">
+                  <p className="font-black text-[10px] uppercase text-rose-700 tracking-wider">
+                    Open Risks / Opportunities in Digital ROR ({openPrevYearRisks.length}):
+                  </p>
+                  <ul className="list-disc pl-5 font-semibold space-y-0.5 max-h-32 overflow-y-auto">
+                    {openPrevYearRisks.map((risk, idx) => (
+                      <li key={idx} className="text-slate-700 dark:text-slate-300">
+                        <span className="font-bold">[{risk.type}]</span> {risk.description.substring(0, 80)}... (
+                        {risk.status})
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] font-bold text-rose-600 mt-1 italic pl-1">
+                    All risks and opportunities must be closed (post-treatment rating and implementation details
+                    finalized) before initiating new submissions.
+                  </p>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-1 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Submission Status</CardTitle>
+              <CardDescription>Select the year and cycle to view submission status.</CardDescription>
+              <div className="flex flex-col items-stretch gap-2 pt-2 md:flex-row md:items-center">
+                <Select
+                  value={selectedYear ? String(selectedYear) : undefined}
+                  onValueChange={(value) => setSelectedYear(Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={selectedCycle ?? undefined}
+                  onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}
+                  disabled={!selectedYear}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCyclesForYear.map((cycle) => (
+                      <SelectItem key={cycle.id} value={cycle.name as 'first' | 'final'}>
+                        {cycle.name === 'first' ? 'First Submission' : 'Final Submission'}
+                      </SelectItem>
+                    ))}
+                    {selectedYear && availableCyclesForYear.length === 0 && (
+                      <div className="p-4 text-sm text-muted-foreground">No cycles defined for this year.</div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-14 w-full" />
+                  ))}
+                </div>
+              ) : isCycleSelected ? (
+                <ScrollArea className="h-[400px] pr-2">
+                  <div className="space-y-2">
+                    <Tabs value={selectedReport || ''} onValueChange={handleSelectReport}>
+                      <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 animate-tab-highlight rounded-xl p-1">
+                        {submissionTypes.map((reportType) => {
+                          const submission = submissionStatusMap.get(reportType);
+                          const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
+                          const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
+                          const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
+                          const isSelected = selectedReport === reportType;
+                          return (
+                            <TabsTrigger
+                              key={reportType}
+                              value={reportType}
+                              disabled={isActionPlanNA}
+                              className={cn(
+                                'flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors',
+                                isSelected
+                                  ? 'bg-muted ring-2 ring-primary data-[state=active]:bg-muted data-[state=active]:text-foreground'
+                                  : 'hover:bg-muted/50 bg-white',
+                                isActionPlanNA ? 'cursor-not-allowed opacity-50 bg-muted/30' : 'cursor-pointer',
+                              )}
+                            >
+                              <div className="flex flex-1 items-center gap-3">
+                                {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
+                                <span className="font-medium text-xs flex-1">{reportType}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {isActionPlanNA ? (
+                                  <Badge variant="secondary" className="text-[9px] h-4 py-0">
+                                    N/A
+                                  </Badge>
+                                ) : (
+                                  submission && (
+                                    <Badge
+                                      variant={statusVariant[submission.statusId]}
+                                      className="capitalize text-[9px]"
+                                    >
+                                      {getStatusText(submission)}
+                                    </Badge>
+                                  )
+                                )}
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            </TabsTrigger>
+                          );
+                        })}
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="text-center text-muted-foreground py-10">
+                  {selectedYear && availableCyclesForYear.length > 0
+                    ? 'Please select a cycle to begin.'
+                    : 'Please select a year with defined cycles.'}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>General Instructions</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-6">
+              <div className="flex items-start gap-3">
+                <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <span className="font-semibold">1. Download Templates:</span> All report templates are available in
+                  the official EOMS Google Drive folder.
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <Button variant="link" asChild className="p-0 h-auto font-bold">
+                      <a
+                        href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Access templates
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <FileCheck className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <span className="font-semibold">2. Complete Staff Work (CSW):</span> Ensure your report is finalized
+                  and adheres to the Complete Staff Work format before submission.
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Scan className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <span className="font-semibold">3. Upload and Share:</span> Scan the signed, final document as make
+                  sure to save as PDF before uploading it to your unit's Google Drive. Set the sharing permission to
+                  "Anyone with the link can view".
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <LinkIcon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google
+                  Drive and paste it into the submission form.
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <LayoutList className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <span className="font-semibold">5. Select Submission Type:</span> Please select the appropriate
+                  submission type for your document:
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-black uppercase"
+                    >
+                      DRAFT (CONTENT CHECKING)
+                    </Badge>
+                    <span className="text-muted-foreground text-[10px] font-bold">OR</span>
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-50 text-green-700 border-green-200 text-[10px] font-black uppercase"
+                    >
+                      FINAL (OFFICIAL FILING)
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* DYNAMIC TEMPLATE VISUAL GUIDE */}
+              <div className="pt-4 border-t space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <ImageIcon className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Template Visual Guide</span>
+                </div>
+                {selectedReport ? (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold text-muted-foreground leading-tight italic">
+                      Expected format for: {selectedReport}
+                    </p>
+                    <div className="relative rounded-lg overflow-hidden shadow-md border bg-muted aspect-[1/1.4] w-full group transition-all hover:shadow-lg">
+                      {currentTemplate && (
+                        <Image
+                          src={currentTemplate.imageUrl}
+                          alt={currentTemplate.description}
+                          fill
+                          className="object-contain p-1"
+                          data-ai-hint={currentTemplate.imageHint}
+                        />
+                      )}
                     </div>
-                ) : isCycleSelected ? (
-                    <ScrollArea className="h-[400px] pr-2">
-                        <div className="space-y-2">
-                            <Tabs value={selectedReport || ""} onValueChange={handleSelectReport}>
-                                <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 animate-tab-highlight rounded-xl p-1">
-                                    {submissionTypes.map((reportType) => {
-                                    const submission = submissionStatusMap.get(reportType);
-                                    const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
-                                    const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
-                                    const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
-                                    const isSelected = selectedReport === reportType;
-                                    return (
-                                        <TabsTrigger
-                                            key={reportType}
-                                            value={reportType}
-                                            disabled={isActionPlanNA}
-                                            className={cn(
-                                                "flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors",
-                                                isSelected ? "bg-muted ring-2 ring-primary data-[state=active]:bg-muted data-[state=active]:text-foreground" : "hover:bg-muted/50 bg-white",
-                                                isActionPlanNA ? "cursor-not-allowed opacity-50 bg-muted/30" : "cursor-pointer"
-                                            )}
-                                        >
-                                            <div className="flex flex-1 items-center gap-3">
-                                                {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
-                                                <span className="font-medium text-xs flex-1">{reportType}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {isActionPlanNA ? (
-                                                    <Badge variant="secondary" className="text-[9px] h-4 py-0">N/A</Badge>
-                                                ) : submission && (
-                                                    <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
-                                                        {getStatusText(submission)}
-                                                    </Badge>
-                                                )}
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                            </div>
-                                        </TabsTrigger>
-                                    );
-                                    })}
-                                </TabsList>
-                            </Tabs>
-                        </div>
-                    </ScrollArea>
+                  </div>
                 ) : (
-                    <div className="text-center text-muted-foreground py-10">
-                        {selectedYear && availableCyclesForYear.length > 0 ? "Please select a cycle to begin." : "Please select a year with defined cycles."}
-                    </div>
+                  <div className="p-8 rounded-lg border border-dashed bg-muted/10 text-center space-y-2">
+                    <ImageIcon className="h-8 w-8 mx-auto opacity-10" />
+                    <p className="text-[10px] font-medium text-muted-foreground">
+                      Select a report type to see the official format sample.
+                    </p>
+                  </div>
                 )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>General Instructions</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-6">
-                     <div className="flex items-start gap-3">
-                        <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
-                        <div>
-                            <span className="font-semibold">1. Download Templates:</span> All report templates are available in the official EOMS Google Drive folder. 
-                            <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <Button variant="link" asChild className="p-0 h-auto font-bold">
-                                    <a href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank" rel="noopener noreferrer">Access templates</a>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-3">
-                        <FileCheck className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
-                        <div>
-                            <span className="font-semibold">2. Complete Staff Work (CSW):</span> Ensure your report is finalized and adheres to the Complete Staff Work format before submission.
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-3">
-                        <Scan className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
-                        <div>
-                            <span className="font-semibold">3. Upload and Share:</span> Scan the signed, final document as make sure to save as PDF before uploading it to your unit's Google Drive. Set the sharing permission to "Anyone with the link can view".
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-3">
-                        <LinkIcon className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
-                        <div>
-                            <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form.
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <LayoutList className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
-                        <div>
-                            <span className="font-semibold">5. Select Submission Type:</span> Please select the appropriate submission type for your document: 
-                            <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-black uppercase">DRAFT (CONTENT CHECKING)</Badge>
-                                <span className="text-muted-foreground text-[10px] font-bold">OR</span>
-                                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-[10px] font-black uppercase">FINAL (OFFICIAL FILING)</Badge>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* DYNAMIC TEMPLATE VISUAL GUIDE */}
-                    <div className="pt-4 border-t space-y-4">
-                        <div className="flex items-center gap-2 text-primary">
-                            <ImageIcon className="h-4 w-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Template Visual Guide</span>
-                        </div>
-                        {selectedReport ? (
-                            <div className="space-y-3">
-                                <p className="text-[10px] font-bold text-muted-foreground leading-tight italic">Expected format for: {selectedReport}</p>
-                                <div className="relative rounded-lg overflow-hidden shadow-md border bg-muted aspect-[1/1.4] w-full group transition-all hover:shadow-lg">
-                                    {currentTemplate && (
-                                        <Image 
-                                            src={currentTemplate.imageUrl} 
-                                            alt={currentTemplate.description} 
-                                            fill
-                                            className="object-contain p-1"
-                                            data-ai-hint={currentTemplate.imageHint}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="p-8 rounded-lg border border-dashed bg-muted/10 text-center space-y-2">
-                                <ImageIcon className="h-8 w-8 mx-auto opacity-10" />
-                                <p className="text-[10px] font-medium text-muted-foreground">Select a report type to see the official format sample.</p>
-                            </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="lg:col-span-2">
-            {isCycleSelected && selectedReport ? (
-                selectedReport === 'Risk and Opportunity Action Plan' && !submissionStatusMap.has('Risk and Opportunity Registry') ? (
-                    <Card className="lg:sticky top-20 border-destructive/50">
-                        <CardHeader className="bg-destructive/5">
-                            <CardTitle className="flex items-center gap-2 text-destructive">
-                                <AlertCircle className="h-5 w-5" />
-                                Registry Required First
-                            </CardTitle>
-                            <CardDescription>
-                                You cannot submit an Action Plan until the <strong>Risk and Opportunity Registry</strong> has been submitted.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Validation Blocked</AlertTitle>
-                                <AlertDescription>
-                                    The system needs your Registry submission first to determine if this Action Plan is mandatory or if your unit is exempt (Low Risk).
-                                </AlertDescription>
-                            </Alert>
-                            <Button className="mt-6 w-full md:w-auto" onClick={() => setSelectedReport('Risk and Opportunity Registry')}>
-                                Go to Registry Submission
-                            </Button>
-                        </CardContent>
-                    </Card>
-                ) : (selectedReport === 'Risk and Opportunity Registry' && selectedCycle === 'final' && !isFirstCycleRorComplete) ? (
-                    <Card className="lg:sticky top-20 border-destructive/50">
-                        <CardHeader className="bg-destructive/5">
-                            <CardTitle className="flex items-center gap-2 text-destructive">
-                                <ShieldAlert className="h-5 w-5 text-destructive" />
-                                First Cycle Requirement Block
-                            </CardTitle>
-                            <CardDescription>
-                                The <strong>Final Submission</strong> for the Risk Registry requires a verified <strong>First Cycle</strong> baseline.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-6">
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Prerequisite Not Met</AlertTitle>
-                                <AlertDescription className="space-y-2">
-                                    <p>To continue with the Final Cycle, your unit must have:</p>
-                                    <ul className="list-decimal pl-5 font-bold">
-                                        <li className={cn(firstCycleStatusMap.has('Risk and Opportunity Registry') ? "text-green-600 line-through" : "")}>Submitted the First Cycle ROR Document</li>
-                                        <li className={cn(digitalRisks?.some(r => r.type === 'Risk') ? "text-green-600 line-through" : "")}>Encoded individual **Risks** in the Digital Register</li>
-                                        <li className={cn(digitalRisks?.some(r => r.type === 'Opportunity') ? "text-green-600 line-through" : "")}>Encoded individual **Opportunities** in the Digital Register</li>
-                                    </ul>
-                                </AlertDescription>
-                            </Alert>
-                            <div className="flex gap-3">
-                                <Button className="flex-1" variant="outline" onClick={() => setSelectedCycle('first')}>
-                                    Go to First Cycle Submission
-                                </Button>
-                                <Button className="flex-1" variant="default" asChild>
-                                    <Link href="/risk-register">Open Digital Register</Link>
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <div className="space-y-6">
-                        {/* Informative alert for Final Cycle ROR even if not blocked */}
-                        {selectedReport === 'Risk and Opportunity Registry' && selectedCycle === 'final' && isFirstCycleRorComplete && (
-                            <Alert className="bg-primary/5 border-primary/20 animate-in slide-in-from-top-2 duration-500">
-                                <Info className="h-5 w-5 text-primary" />
-                                <AlertTitle className="font-black uppercase text-primary tracking-tight">Post-Treatment Update Required</AlertTitle>
-                                <AlertDescription className="space-y-4 pt-1">
-                                    <p className="text-xs font-bold leading-relaxed text-primary">
-                                        Before uploading your formal registry document, please ensure each individual entry in the Digital Risk Register has been updated with its **Final Assessment (Post-Treatment Analysis)**.
-                                    </p>
-                                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-                                        <Link href="/risk-register?highlightSection=4">
-                                            Update Digital Register Now
-                                        </Link>
-                                    </Button>
-                                </AlertDescription>
-                            </Alert>
-                        )}
-
-                        <Card className="lg:sticky top-20">
-                            <CardHeader>
-                                <CardTitle>Submit: {selectedReport}</CardTitle>
-                                <CardDescription>
-                                    {submissionStatusMap.get(selectedReport)
-                                        ? `A report has already been submitted for your unit. You can update it by submitting again.`
-                                        : `Fill out the form below to submit this report for your unit.`}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {isBlocked ? (
-                                    <div className="space-y-4">
-                                        <Alert variant="destructive">
-                                            <XCircle className="h-4 w-4" />
-                                            <AlertTitle className="font-extrabold uppercase text-[10px] text-destructive tracking-wider">Submission Locked</AlertTitle>
-                                            <AlertDescription className="text-xs font-semibold leading-relaxed mt-1 text-slate-800 dark:text-slate-200">
-                                                You cannot submit or update documents for {selectedYear} because your unit has pending requirements or open risks for the previous year ({selectedYear - 1}). Please refer to the warning banner above for the complete list of outstanding items.
-                                            </AlertDescription>
-                                        </Alert>
-                                        <Button className="w-full h-10 font-black uppercase text-[10px] tracking-wider bg-slate-200 text-slate-400 border-none cursor-not-allowed hover:bg-slate-200" disabled>
-                                            Submission Locked
-                                        </Button>
-                                    </div>
-                                ) : showUpdateDialog === selectedReport && !showFormForUpdate ? (
-                                    <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
-                                                    {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                    No, No Updates
-                                                </AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
-                                                    Yes, I Have Updates
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                ) : (
-                                    <SubmissionForm
-                                        reportType={selectedReport}
-                                        year={selectedYear}
-                                        cycleId={selectedCycle}
-                                        onSuccess={handleFormSuccess}
-                                        key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
-                                    />
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )
+          {isCycleSelected && selectedReport ? (
+            selectedReport === 'Risk and Opportunity Action Plan' &&
+            !submissionStatusMap.has('Risk and Opportunity Registry') ? (
+              <Card className="lg:sticky top-20 border-destructive/50">
+                <CardHeader className="bg-destructive/5">
+                  <CardTitle className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="h-5 w-5" />
+                    Registry Required First
+                  </CardTitle>
+                  <CardDescription>
+                    You cannot submit an Action Plan until the <strong>Risk and Opportunity Registry</strong> has been
+                    submitted.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Validation Blocked</AlertTitle>
+                    <AlertDescription>
+                      The system needs your Registry submission first to determine if this Action Plan is mandatory or
+                      if your unit is exempt (Low Risk).
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    className="mt-6 w-full md:w-auto"
+                    onClick={() => setSelectedReport('Risk and Opportunity Registry')}
+                  >
+                    Go to Registry Submission
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : selectedReport === 'Risk and Opportunity Registry' &&
+              selectedCycle === 'final' &&
+              !isFirstCycleRorComplete ? (
+              <Card className="lg:sticky top-20 border-destructive/50">
+                <CardHeader className="bg-destructive/5">
+                  <CardTitle className="flex items-center gap-2 text-destructive">
+                    <ShieldAlert className="h-5 w-5 text-destructive" />
+                    First Cycle Requirement Block
+                  </CardTitle>
+                  <CardDescription>
+                    The <strong>Final Submission</strong> for the Risk Registry requires a verified{' '}
+                    <strong>First Cycle</strong> baseline.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Prerequisite Not Met</AlertTitle>
+                    <AlertDescription className="space-y-2">
+                      <p>To continue with the Final Cycle, your unit must have:</p>
+                      <ul className="list-decimal pl-5 font-bold">
+                        <li
+                          className={cn(
+                            firstCycleStatusMap.has('Risk and Opportunity Registry')
+                              ? 'text-green-600 line-through'
+                              : '',
+                          )}
+                        >
+                          Submitted the First Cycle ROR Document
+                        </li>
+                        <li
+                          className={cn(
+                            digitalRisks?.some((r) => r.type === 'Risk') ? 'text-green-600 line-through' : '',
+                          )}
+                        >
+                          Encoded individual **Risks** in the Digital Register
+                        </li>
+                        <li
+                          className={cn(
+                            digitalRisks?.some((r) => r.type === 'Opportunity') ? 'text-green-600 line-through' : '',
+                          )}
+                        >
+                          Encoded individual **Opportunities** in the Digital Register
+                        </li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                  <div className="flex gap-3">
+                    <Button className="flex-1" variant="outline" onClick={() => setSelectedCycle('first')}>
+                      Go to First Cycle Submission
+                    </Button>
+                    <Button className="flex-1" variant="default" asChild>
+                      <Link href="/risk-register">Open Digital Register</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ) : (
-                 <Card className="lg:sticky top-20 flex items-center justify-center h-96">
-                    <div className="text-center text-muted-foreground">
-                        <p>Please select a report from the list on the left to start a submission.</p>
-                    </div>
+              <div className="space-y-6">
+                {/* Informative alert for Final Cycle ROR even if not blocked */}
+                {selectedReport === 'Risk and Opportunity Registry' &&
+                  selectedCycle === 'final' &&
+                  isFirstCycleRorComplete && (
+                    <Alert className="bg-primary/5 border-primary/20 animate-in slide-in-from-top-2 duration-500">
+                      <Info className="h-5 w-5 text-primary" />
+                      <AlertTitle className="font-black uppercase text-primary tracking-tight">
+                        Post-Treatment Update Required
+                      </AlertTitle>
+                      <AlertDescription className="space-y-4 pt-1">
+                        <p className="text-xs font-bold leading-relaxed text-primary">
+                          Before uploading your formal registry document, please ensure each individual entry in the
+                          Digital Risk Register has been updated with its **Final Assessment (Post-Treatment
+                          Analysis)**.
+                        </p>
+                        <Button
+                          size="sm"
+                          asChild
+                          className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+                        >
+                          <Link href="/risk-register?highlightSection=4">Update Digital Register Now</Link>
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                <Card className="lg:sticky top-20">
+                  <CardHeader>
+                    <CardTitle>Submit: {selectedReport}</CardTitle>
+                    <CardDescription>
+                      {submissionStatusMap.get(selectedReport)
+                        ? `A report has already been submitted for your unit. You can update it by submitting again.`
+                        : `Fill out the form below to submit this report for your unit.`}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isBlocked ? (
+                      <div className="space-y-4">
+                        <Alert variant="destructive" className="border-destructive/30">
+                          <XCircle className="h-4 w-4" />
+                          <AlertTitle className="font-extrabold uppercase text-[10px] text-destructive tracking-wider">
+                            Submission Locked
+                          </AlertTitle>
+                          <AlertDescription className="text-xs font-semibold leading-relaxed mt-1 text-slate-800 dark:text-slate-200 space-y-3">
+                            <p>
+                              You cannot submit or update documents for {selectedYear} because your unit has pending
+                              requirements or open risks for the previous year ({selectedYear - 1}).
+                            </p>
+
+                            {missingPrevYearSubmissions.filter((s) => s.isRequired).length > 0 && (
+                              <div className="space-y-1.5 pt-2 border-t border-destructive/20">
+                                <p className="font-black text-[10px] uppercase text-rose-700 dark:text-rose-400 tracking-wider">
+                                  Missing Required Documents for {selectedYear - 1}:
+                                </p>
+                                <ul className="list-disc pl-5 font-bold space-y-0.5 max-h-32 overflow-y-auto">
+                                  {missingPrevYearSubmissions
+                                    .filter((s) => s.isRequired)
+                                    .map((item, idx) => (
+                                      <li key={idx} className="text-slate-700 dark:text-slate-300">
+                                        {item.docName}
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {openPrevYearRisks.length > 0 && (
+                              <div className="space-y-1.5 pt-2 border-t border-destructive/20">
+                                <p className="font-black text-[10px] uppercase text-rose-700 dark:text-rose-400 tracking-wider">
+                                  Open Risks / Opportunities ({openPrevYearRisks.length}):
+                                </p>
+                                <ul className="list-disc pl-5 font-bold space-y-0.5 max-h-32 overflow-y-auto">
+                                  {openPrevYearRisks.map((risk, idx) => (
+                                    <li key={idx} className="text-slate-700 dark:text-slate-300">
+                                      <span className="font-extrabold">[{risk.type}]</span>{' '}
+                                      {risk.description.length > 60
+                                        ? `${risk.description.substring(0, 60)}...`
+                                        : risk.description}{' '}
+                                      ({risk.status})
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                        <Button
+                          className="w-full h-10 font-black uppercase text-[10px] tracking-wider bg-slate-200 text-slate-400 border-none cursor-not-allowed hover:bg-slate-200"
+                          disabled
+                        >
+                          Submission Locked
+                        </Button>
+                      </div>
+                    ) : showUpdateDialog === selectedReport && !showFormForUpdate ? (
+                      <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              A submission for this report was made in the First Cycle. Are there any updates for the
+                              Final Cycle?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
+                              {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              No, No Updates
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
+                              Yes, I Have Updates
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <SubmissionForm
+                        reportType={selectedReport}
+                        year={selectedYear}
+                        cycleId={selectedCycle}
+                        onSuccess={handleFormSuccess}
+                        key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                      />
+                    )}
+                  </CardContent>
                 </Card>
-            )}
+              </div>
+            )
+          ) : (
+            <Card className="lg:sticky top-20 flex items-center justify-center h-96">
+              <div className="text-center text-muted-foreground">
+                <p>Please select a report from the list on the left to start a submission.</p>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 
-      <FeedbackDialog 
-        isOpen={isFeedbackDialogOpen}
-        onOpenChange={setIsFeedbackDialogOpen}
-        feedback={feedbackToShow}
-      />
+      <FeedbackDialog isOpen={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} feedback={feedbackToShow} />
     </div>
   );
 }
