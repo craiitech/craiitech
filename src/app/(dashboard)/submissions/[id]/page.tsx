@@ -1,59 +1,62 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where, getDoc, deleteDoc } from '@/firebase/firestore-wrapper';
+import {
+  doc,
+  Timestamp,
+  updateDoc,
+  arrayUnion,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDoc,
+  deleteDoc,
+} from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { 
-    Loader2, 
-    ArrowLeft, 
-    Check, 
-    X, 
-    Send, 
-    History, 
-    ShieldCheck, 
-    FileText, 
-    Monitor, 
-    Smartphone, 
-    RotateCw, 
-    ClipboardCheck, 
-    AlertTriangle, 
-    PlusCircle, 
-    ListChecks, 
-    Shield, 
-    TrendingUp, 
-    Clock, 
-    CheckCircle, 
-    AlertCircle, 
-    Activity,
-    Info,
-    ShieldAlert,
-    LayoutList,
-    ExternalLink,
-    CheckCircle2,
-    ThumbsUp,
-    ThumbsDown,
-    RefreshCcw,
-    Edit,
-    ArrowRight,
-    XCircle,
-    Undo2,
-    PanelRightClose,
-    PanelRightOpen,
-    Trash2,
-    MessageSquare
+import {
+  Loader2,
+  ArrowLeft,
+  Check,
+  X,
+  Send,
+  History,
+  ShieldCheck,
+  FileText,
+  Monitor,
+  Smartphone,
+  RotateCw,
+  ClipboardCheck,
+  AlertTriangle,
+  PlusCircle,
+  ListChecks,
+  Shield,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Activity,
+  Info,
+  ShieldAlert,
+  LayoutList,
+  ExternalLink,
+  CheckCircle2,
+  ThumbsUp,
+  ThumbsDown,
+  RefreshCcw,
+  Edit,
+  ArrowRight,
+  XCircle,
+  Undo2,
+  PanelRightClose,
+  PanelRightOpen,
+  Trash2,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -84,11 +87,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
-
-const statusVariant: Record<
-  string,
-  'default' | 'secondary' | 'destructive' | 'outline'
-> = {
+const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   approved: 'default',
   pending: 'secondary',
   rejected: 'destructive',
@@ -97,12 +96,36 @@ const statusVariant: Record<
 };
 
 const approverChecklistItems = [
-    { id: 'viewable', label: 'Is the document viewable and accessible?', rejectionReason: 'Document link is not viewable or accessible. Please check sharing settings.' },
-    { id: 'correctDocument', label: 'Is this the correct document for the specified report type?', rejectionReason: 'The submitted document is not the correct one for this report type.' },
-    { id: 'correctYear', label: 'Is the year specified in the document correct?', rejectionReason: 'The year in the document is incorrect.' },
-    { id: 'correctCycle', label: 'Is the submission cycle (First/Final) correct in the document?', rejectionReason: 'The submission cycle in the document is incorrect.' },
-    { id: 'correctContents', label: 'Are the contents of the document complete, accurate, and aligned with objectives?', rejectionReason: 'The document contents are incomplete, inaccurate, or not aligned with cycle objectives.' },
-    { id: 'signaturesPresent', label: 'Are all required signatures present and valid?', rejectionReason: 'Required signatures are missing or invalid.' },
+  {
+    id: 'viewable',
+    label: 'Is the document viewable and accessible?',
+    rejectionReason: 'Document link is not viewable or accessible. Please check sharing settings.',
+  },
+  {
+    id: 'correctDocument',
+    label: 'Is this the correct document for the specified report type?',
+    rejectionReason: 'The submitted document is not the correct one for this report type.',
+  },
+  {
+    id: 'correctYear',
+    label: 'Is the year specified in the document correct?',
+    rejectionReason: 'The year in the document is incorrect.',
+  },
+  {
+    id: 'correctCycle',
+    label: 'Is the submission cycle (First/Final) correct in the document?',
+    rejectionReason: 'The submission cycle in the document is incorrect.',
+  },
+  {
+    id: 'correctContents',
+    label: 'Are the contents of the document complete, accurate, and aligned with objectives?',
+    rejectionReason: 'The document contents are incomplete, inaccurate, or not aligned with cycle objectives.',
+  },
+  {
+    id: 'signaturesPresent',
+    label: 'Are all required signatures present and valid?',
+    rejectionReason: 'Required signatures are missing or invalid.',
+  },
 ];
 
 const getFormattedDate = (date: any) => {
@@ -115,7 +138,6 @@ const getFormattedDate = (date: any) => {
     return 'Invalid Date';
   }
 };
-
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -177,33 +199,33 @@ export default function SubmissionDetailPage() {
    */
   useEffect(() => {
     if (!isUserLoading && !hasSetInitialVisibility) {
-        setIsHistoryVisible(!isAdmin);
-        setHasSetInitialVisibility(true);
+      setIsHistoryVisible(!isAdmin);
+      setHasSetInitialVisibility(true);
     }
   }, [isAdmin, isUserLoading, hasSetInitialVisibility]);
 
   const [newLink, setNewLink] = useState('');
   const [newComment, setNewComment] = useState('');
-  
+
   const [approverChecklist, setApproverChecklist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const initialState: Record<string, boolean> = {};
-    approverChecklistItems.forEach(item => {
-        initialState[item.id] = false;
+    approverChecklistItems.forEach((item) => {
+      initialState[item.id] = false;
     });
     setApproverChecklist(initialState);
   }, []);
 
   const handleChecklistChange = (id: string) => {
-    setApproverChecklist(prev => ({ ...prev, [id]: !prev[id] }));
+    setApproverChecklist((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-  
+
   const submissionId = Array.isArray(id) ? id[0] : id;
 
   const submissionDocRef = useMemoFirebase(
     () => (firestore && submissionId ? doc(firestore, 'submissions', submissionId) : null),
-    [firestore, submissionId]
+    [firestore, submissionId],
   );
   const { data: submission, isLoading: isLoadingSubmission } = useDoc<Submission>(submissionDocRef);
 
@@ -211,7 +233,7 @@ export default function SubmissionDetailPage() {
     if (!submission) return false;
     if (submission.isDraft) return true;
     if (Object.keys(approverChecklist).length === 0) return false;
-    return approverChecklistItems.every(item => approverChecklist[item.id] === true);
+    return approverChecklistItems.every((item) => approverChecklist[item.id] === true);
   }, [approverChecklist, submission]);
 
   const canReject = useMemo(() => {
@@ -220,53 +242,57 @@ export default function SubmissionDetailPage() {
     return (needsChecklist && !isChecklistComplete) || feedback.trim() !== '';
   }, [isChecklistComplete, feedback, submission]);
 
-
   const submitterDocRef = useMemoFirebase(
     () => (firestore && submission ? doc(firestore, 'users', submission.userId) : null),
-    [firestore, submission]
+    [firestore, submission],
   );
   const { data: submitter } = useDoc<AppUser>(submitterDocRef);
 
   const campusDocRef = useMemoFirebase(
     () => (firestore && submission?.campusId ? doc(firestore, 'campuses', submission.campusId) : null),
-    [firestore, submission?.campusId]
+    [firestore, submission?.campusId],
   );
   const { data: campus } = useDoc<Campus>(campusDocRef);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? collection(firestore, 'units') : null),
-    [firestore, isAdmin]
+    [firestore, isAdmin],
   );
   const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
 
   const allCampusesQuery = useMemoFirebase(
     () => (firestore && isAdmin ? collection(firestore, 'campuses') : null),
-    [firestore, isAdmin]
+    [firestore, isAdmin],
   );
   const { data: allCampuses } = useCollection<Campus>(allCampusesQuery);
 
   const unitUsersQuery = useMemoFirebase(
-    () => (firestore && isAdmin && submission?.unitId ? query(collection(firestore, 'users'), where('unitId', '==', submission.unitId)) : null),
-    [firestore, isAdmin, submission?.unitId]
+    () =>
+      firestore && isAdmin && submission?.unitId
+        ? query(collection(firestore, 'users'), where('unitId', '==', submission.unitId))
+        : null,
+    [firestore, isAdmin, submission?.unitId],
   );
   const { data: unitUsers } = useCollection<AppUser>(unitUsersQuery);
 
   const existingRisksQuery = useMemoFirebase(() => {
     if (!firestore || !submission) return null;
     return query(
-        collection(firestore, 'risks'),
-        where('unitId', '==', submission.unitId),
-        where('campusId', '==', submission.campusId),
-        where('year', '==', submission.year)
+      collection(firestore, 'risks'),
+      where('unitId', '==', submission.unitId),
+      where('campusId', '==', submission.campusId),
+      where('year', '==', submission.year),
     );
   }, [firestore, submission]);
   const { data: existingRisks, isLoading: isLoadingRisks } = useCollection<Risk>(existingRisksQuery);
 
   const isLoading = isUserLoading || isLoadingSubmission;
-  
-  const previewUrl = newLink || (submission?.googleDriveLink
-    ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
-    : '');
+
+  const previewUrl =
+    newLink ||
+    (submission?.googleDriveLink
+      ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
+      : '');
 
   const isApprover = useMemo(() => {
     if (!submission || !userProfile) return false;
@@ -276,7 +302,7 @@ export default function SubmissionDetailPage() {
     const roleIsApprover = approverRoles.includes(userRole) || userRole.toLowerCase().includes('vice president');
     return roleIsApprover;
   }, [submission, userProfile, userRole, isAdmin]);
-  
+
   const isSubmitter = user && submission && user.uid === submission.userId;
 
   const handleApprove = async () => {
@@ -284,151 +310,171 @@ export default function SubmissionDetailPage() {
     setIsSubmitting(true);
 
     const updateData: any = { statusId: 'approved' };
-    
+
     if (feedback) {
-        const newComment: Comment = {
-            text: `(${submission?.isDraft ? 'Draft Clearance' : 'Approval'} Comment) ${feedback}`,
-            authorId: user.uid,
-            authorName: userProfile.firstName + ' ' + userProfile.lastName,
-            createdAt: new Date(),
-            authorRole: userRole || 'User'
-        }
-        updateData.comments = arrayUnion(newComment);
+      const newComment: Comment = {
+        text: `(${submission?.isDraft ? 'Draft Clearance' : 'Approval'} Comment) ${feedback}`,
+        authorId: user.uid,
+        authorName: userProfile.firstName + ' ' + userProfile.lastName,
+        createdAt: new Date(),
+        authorRole: userRole || 'User',
+      };
+      updateData.comments = arrayUnion(newComment);
     }
-    
+
     updateDoc(submissionDocRef, updateData)
-        .then(() => {
-            toast({ 
-                title: submission?.isDraft ? 'Draft Cleared' : 'Submission Approved', 
-                description: submission?.isDraft ? 'Draft has been cleared for final PDF submission.' : 'Submission has been institutionally verified! Your unit has successfully received star points for this compliance record.' 
-            });
-            router.back();
-        })
-        .catch(error => {
-            console.error('Error approving submission', error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: submissionDocRef.path,
-                operation: 'update',
-                requestResourceData: updateData
-            }));
-        })
-        .finally(() => {
-            setIsSubmitting(false);
+      .then(() => {
+        toast({
+          title: submission?.isDraft ? 'Draft Cleared' : 'Submission Approved',
+          description: submission?.isDraft
+            ? 'Draft has been cleared for final PDF submission.'
+            : 'Submission has been institutionally verified! Your unit has successfully received star points for this compliance record.',
         });
-  }
+        router.back();
+      })
+      .catch((error) => {
+        console.error('Error approving submission', error);
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: submissionDocRef.path,
+            operation: 'update',
+            requestResourceData: updateData,
+          }),
+        );
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  };
 
   const handleReject = async () => {
-      if (!submissionDocRef || !user || !userProfile) return;
-      
-      const reasons = submission?.isDraft ? [] : approverChecklistItems
-        .filter(item => !approverChecklist[item.id])
-        .map(item => `* ${item.rejectionReason}`);
+    if (!submissionDocRef || !user || !userProfile) return;
 
-      const isRor = normalizeReportType(submission?.reportType || '') === 'Risk and Opportunity Registry';
-      if (isRor && existingRisks) {
-          const incorrectEntries = existingRisks.filter(r => 
-            (submission?.cycleId === 'first' && r.verification?.status === 'Incorrect') ||
-            (submission?.cycleId === 'final' && r.verification?.status === 'Not Updated')
-          );
+    const reasons = submission?.isDraft
+      ? []
+      : approverChecklistItems.filter((item) => !approverChecklist[item.id]).map((item) => `* ${item.rejectionReason}`);
 
-          if (incorrectEntries.length > 0) {
-              const statusLabel = submission?.cycleId === 'first' ? 'Incorrect' : 'Not Updated';
-              reasons.push(`* Digital Register Discrepancy: ${incorrectEntries.length} entries in the digital risk register are marked as "${statusLabel}". The digital database must exactly match the submitted document.`);
-          }
-      }
+    const isRor = normalizeReportType(submission?.reportType || '') === 'Risk and Opportunity Registry';
+    if (isRor && existingRisks) {
+      const incorrectEntries = existingRisks.filter(
+        (r) =>
+          (submission?.cycleId === 'first' && r.verification?.status === 'Incorrect') ||
+          (submission?.cycleId === 'final' && r.verification?.status === 'Not Updated'),
+      );
 
-      if (reasons.length === 0 && !feedback.trim()) {
-        toast({ title: 'Error', description: 'To reject, please uncheck an item, identify a digital discrepancy, or provide manual feedback.', variant: 'destructive'});
-        return;
-      };
+      if (incorrectEntries.length > 0) {
+        const statusLabel = submission?.cycleId === 'first' ? 'Incorrect' : 'Not Updated';
+        reasons.push(
+          `* Digital Register Discrepancy: ${incorrectEntries.length} entries in the digital risk register are marked as "${statusLabel}". The digital database must exactly match the submitted document.`,
+        );
+      }
+    }
 
-      setIsSubmitting(true);
-      let rejectionComment = '';
-      if (reasons.length > 0) {
-        rejectionComment += `**Rejection based on:**\n${reasons.join('\n')}`;
-      }
-      if (feedback.trim()) {
-        if (rejectionComment) rejectionComment += `\n\n**Additional Comments:**\n${feedback.trim()}`;
-        else rejectionComment = feedback.trim();
-      }
-      
-      const newComment: Comment = {
-          text: rejectionComment,
-          authorId: user.uid,
-          authorName: userProfile.firstName + ' ' + userProfile.lastName,
-          createdAt: new Date(),
-          authorRole: userRole || 'User'
-      }
-      const updateData = { statusId: 'rejected', comments: arrayUnion(newComment) };
-      updateDoc(submissionDocRef, updateData)
-        .then(() => {
-          toast({ title: 'Success', description: 'Submission has been rejected.' });
-          setFeedback('');
-          router.back();
-        })
-        .catch(error => {
-           console.error('Error rejecting submission', error);
-           errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: submissionDocRef.path,
-                operation: 'update',
-                requestResourceData: updateData
-            }));
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
-  }
-  
+    if (reasons.length === 0 && !feedback.trim()) {
+      toast({
+        title: 'Error',
+        description: 'To reject, please uncheck an item, identify a digital discrepancy, or provide manual feedback.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    let rejectionComment = '';
+    if (reasons.length > 0) {
+      rejectionComment += `**Rejection based on:**\n${reasons.join('\n')}`;
+    }
+    if (feedback.trim()) {
+      if (rejectionComment) rejectionComment += `\n\n**Additional Comments:**\n${feedback.trim()}`;
+      else rejectionComment = feedback.trim();
+    }
+
+    const newComment: Comment = {
+      text: rejectionComment,
+      authorId: user.uid,
+      authorName: userProfile.firstName + ' ' + userProfile.lastName,
+      createdAt: new Date(),
+      authorRole: userRole || 'User',
+    };
+    const updateData = { statusId: 'rejected', comments: arrayUnion(newComment) };
+    updateDoc(submissionDocRef, updateData)
+      .then(() => {
+        toast({ title: 'Success', description: 'Submission has been rejected.' });
+        setFeedback('');
+        router.back();
+      })
+      .catch((error) => {
+        console.error('Error rejecting submission', error);
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: submissionDocRef.path,
+            operation: 'update',
+            requestResourceData: updateData,
+          }),
+        );
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  };
+
   const handleResubmit = async (targetIsDraft?: boolean) => {
     if (!submissionDocRef || !submission || !newLink || !user || !userProfile) {
-        toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
-        return;
+      toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
+      return;
     }
     const isRor = normalizeReportType(submission.reportType) === 'Risk and Opportunity Registry';
     if (isRor) {
-        const hasR = existingRisks?.some(r => r.type === 'Risk');
-        const hasO = existingRisks?.some(r => r.type === 'Opportunity');
-        if (!hasR || !hasO) {
-            toast({ title: 'Digital Registry Incomplete', description: 'Both individual Risks AND Opportunities must be recorded in the digital register before document resubmission.', variant: 'destructive' });
-            return;
-        }
+      const hasR = existingRisks?.some((r) => r.type === 'Risk');
+      const hasO = existingRisks?.some((r) => r.type === 'Opportunity');
+      if (!hasR || !hasO) {
+        toast({
+          title: 'Digital Registry Incomplete',
+          description:
+            'Both individual Risks AND Opportunities must be recorded in the digital register before document resubmission.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
     setIsSubmitting(true);
     try {
-        const officialTime = await getOfficialServerTime();
-        const phDate = new Date(officialTime.iso);
-        const nextRevision = (submission.revision || 0) + 1;
-        const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, phDate);
-        
-        const finalDraftStatus = targetIsDraft !== undefined ? targetIsDraft : submission.isDraft;
+      const officialTime = await getOfficialServerTime();
+      const phDate = new Date(officialTime.iso);
+      const nextRevision = (submission.revision || 0) + 1;
+      const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, phDate);
 
-         const updateData: any = {
-            googleDriveLink: newLink,
-            statusId: 'submitted',
-            submissionDate: serverTimestamp(),
-            userId: user.uid,
-            revision: nextRevision,
-            controlNumber: nextControlNumber,
-            isDraft: finalDraftStatus
+      const finalDraftStatus = targetIsDraft !== undefined ? targetIsDraft : (submission.isDraft ?? false);
+
+      const updateData: any = {
+        googleDriveLink: newLink,
+        statusId: 'submitted',
+        submissionDate: serverTimestamp(),
+        userId: user.uid,
+        revision: nextRevision,
+        controlNumber: nextControlNumber,
+        isDraft: finalDraftStatus,
+      };
+      if (newComment) {
+        const comment: Comment = {
+          text: newComment,
+          authorId: user.uid,
+          authorName: userProfile.firstName + ' ' + userProfile.lastName,
+          createdAt: new Date(),
+          authorRole: userRole || 'User',
         };
-        if (newComment) {
-            const comment: Comment = {
-                text: newComment,
-                authorId: user.uid,
-                authorName: userProfile.firstName + ' ' + userProfile.lastName,
-                createdAt: new Date(),
-                authorRole: userRole || 'User'
-            };
-            updateData.comments = arrayUnion(comment);
-        }
-        await updateDoc(submissionDocRef, updateData);
-        toast({ title: 'Success', description: `Resubmitted as Revision ${String(nextRevision).padStart(2, '0')}.` });
-        router.push('/submissions');
+        updateData.comments = arrayUnion(comment);
+      }
+      await updateDoc(submissionDocRef, updateData);
+      toast({ title: 'Success', description: `Resubmitted as Revision ${String(nextRevision).padStart(2, '0')}.` });
+      router.push('/submissions');
     } catch (error) {
-        console.error('Error resubmitting:', error);
-        toast({ title: 'Error', description: 'Could not resubmit.', variant: 'destructive'});
+      console.error('Error resubmitting:', error);
+      toast({ title: 'Error', description: 'Could not resubmit.', variant: 'destructive' });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -436,34 +482,34 @@ export default function SubmissionDetailPage() {
     if (!firestore || !userProfile) return;
     setVerifyingRiskId(riskId);
     try {
-        const riskRef = doc(firestore, 'risks', riskId);
-        await updateDoc(riskRef, {
-            verification: {
-                status,
-                verifiedBy: `${userProfile.firstName} ${userProfile.lastName}`,
-                verifiedAt: serverTimestamp()
-            }
-        });
-        toast({ title: 'Verification Recorded', description: `Digital entry marked as ${status}.` });
+      const riskRef = doc(firestore, 'risks', riskId);
+      await updateDoc(riskRef, {
+        verification: {
+          status,
+          verifiedBy: `${userProfile.firstName} ${userProfile.lastName}`,
+          verifiedAt: serverTimestamp(),
+        },
+      });
+      toast({ title: 'Verification Recorded', description: `Digital entry marked as ${status}.` });
     } catch (e) {
-        toast({ title: 'Error', variant: 'destructive' });
+      toast({ title: 'Error', variant: 'destructive' });
     } finally {
-        setVerifyingRiskId(null);
+      setVerifyingRiskId(null);
     }
   };
 
   const handleUpdateRiskRemarks = async (riskId: string, remarks: string) => {
     if (!firestore || !userProfile || !isAdmin) return;
     try {
-        const riskRef = doc(firestore, 'risks', riskId);
-        await updateDoc(riskRef, {
-            auditorRemarks: remarks,
-            auditorRemarksBy: `${userProfile.firstName} ${userProfile.lastName}`,
-            auditorRemarksAt: serverTimestamp()
-        });
-        toast({ title: 'Remarks Saved', description: 'Auditor feedback recorded for this entry.' });
+      const riskRef = doc(firestore, 'risks', riskId);
+      await updateDoc(riskRef, {
+        auditorRemarks: remarks,
+        auditorRemarksBy: `${userProfile.firstName} ${userProfile.lastName}`,
+        auditorRemarksAt: serverTimestamp(),
+      });
+      toast({ title: 'Remarks Saved', description: 'Auditor feedback recorded for this entry.' });
     } catch (e) {
-        toast({ title: 'Update Failed', variant: 'destructive' });
+      toast({ title: 'Update Failed', variant: 'destructive' });
     }
   };
 
@@ -476,23 +522,25 @@ export default function SubmissionDetailPage() {
     if (!firestore || !riskToDelete) return;
     setIsDeletingRisk(true);
     try {
-        await deleteDoc(doc(firestore, 'risks', riskToDelete.id));
-        toast({ title: 'Entry Deleted', description: 'Record removed from the digital register.' });
-        setRiskToDelete(null);
+      await deleteDoc(doc(firestore, 'risks', riskToDelete.id));
+      toast({ title: 'Entry Deleted', description: 'Record removed from the digital register.' });
+      setRiskToDelete(null);
     } catch (e) {
-        toast({ title: 'Delete Failed', variant: 'destructive' });
+      toast({ title: 'Delete Failed', variant: 'destructive' });
     } finally {
-        setIsDeletingRisk(false);
+      setIsDeletingRisk(false);
     }
   };
-  
+
   const getStatusText = (sub: Submission) => {
     if (sub.statusId === 'submitted') return 'AWAITING APPROVAL';
     if (sub.statusId === 'approved' && sub.isDraft) return 'DRAFT CLEARED';
     return sub.statusId?.toUpperCase() || 'UNKNOWN';
-  }
+  };
 
-  const handleRotate = () => { setRotation(prev => (prev + 90) % 360); };
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
 
   const showApprovalUI = useMemo(() => {
     if (!submission) return false;
@@ -504,8 +552,8 @@ export default function SubmissionDetailPage() {
   const handleOpenRiskBridge = () => {
     if (existingRisks && existingRisks.length > 0) setShowBridgeChoices(true);
     else {
-        setEditingRisk(null);
-        setIsRiskSyncOpen(true);
+      setEditingRisk(null);
+      setIsRiskSyncOpen(true);
     }
   };
 
@@ -516,492 +564,908 @@ export default function SubmissionDetailPage() {
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold">Submission Not Found</h2>
         <p className="text-muted-foreground mt-2">The submission record may have been deleted or moved.</p>
-        <Button asChild className="mt-4"><Link href="/submissions"><ArrowLeft className="mr-2 h-4 w-4" />Back to Submissions</Link></Button>
+        <Button asChild className="mt-4">
+          <Link href="/submissions">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Submissions
+          </Link>
+        </Button>
       </div>
     );
   }
 
   const isRiskRegistry = normalizeReportType(submission.reportType) === 'Risk and Opportunity Registry';
-  const hasDigitalRisks = existingRisks?.some(r => r.type === 'Risk') && existingRisks?.some(r => r.type === 'Opportunity');
+  const hasDigitalRisks =
+    existingRisks?.some((r) => r.type === 'Risk') && existingRisks?.some((r) => r.type === 'Opportunity');
 
   return (
     <div className="space-y-4">
-       {/* Sticky Header Enforced */}
-       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
-              <p className="text-muted-foreground text-sm">Reviewing: {submission.reportType}</p>
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsHistoryVisible(!isHistoryVisible)} 
-            className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5"
-          >
-            {isHistoryVisible ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelRightOpen className="mr-2 h-4 w-4" />}
-            {isHistoryVisible ? 'Hide History' : 'Show History'}
+      {/* Sticky Header Enforced */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-       </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
+            <p className="text-muted-foreground text-sm">Reviewing: {submission.reportType}</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+          className="h-9 px-4 font-black uppercase text-[10px] tracking-widest text-primary hover:bg-primary/5"
+        >
+          {isHistoryVisible ? (
+            <PanelRightClose className="mr-2 h-4 w-4" />
+          ) : (
+            <PanelRightOpen className="mr-2 h-4 w-4" />
+          )}
+          {isHistoryVisible ? 'Hide History' : 'Show History'}
+        </Button>
+      </div>
 
-      <div className={cn("grid grid-cols-1 gap-8 transition-all duration-500", isHistoryVisible ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
-        <div className={cn("space-y-6", isHistoryVisible ? "lg:col-span-2" : "lg:col-span-1")}>
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-8 transition-all duration-500',
+          isHistoryVisible ? 'lg:grid-cols-3' : 'lg:grid-cols-1',
+        )}
+      >
+        <div className={cn('space-y-6', isHistoryVisible ? 'lg:col-span-2' : 'lg:col-span-1')}>
           {submission.isDraft && (
-              <Alert className="bg-blue-50 border-blue-200 animate-in slide-in-from-top-2 duration-500 shadow-md">
-                  <LayoutList className="h-5 w-5 text-blue-600" />
-                  <AlertTitle className="font-black uppercase tracking-tight text-blue-800">Draft Document for Review</AlertTitle>
-                  <AlertDescription className="text-blue-700 text-xs font-medium leading-relaxed">This is a <strong>working draft</strong> submitted for content checking. Official signatures are not required at this stage.</AlertDescription>
-              </Alert>
+            <Alert className="bg-blue-50 border-blue-200 animate-in slide-in-from-top-2 duration-500 shadow-md">
+              <LayoutList className="h-5 w-5 text-blue-600" />
+              <AlertTitle className="font-black uppercase tracking-tight text-blue-800">
+                Draft Document for Review
+              </AlertTitle>
+              <AlertDescription className="text-blue-700 text-xs font-medium leading-relaxed">
+                This is a <strong>working draft</strong> submitted for content checking. Official signatures are not
+                required at this stage.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* DOCUMENT INFORMATION CARD - Sticky Sub-header */}
           <div className="sticky top-[5rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Control Number</p>
-                    <p className="font-mono text-[10px] font-bold text-primary truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                  Control Number
+                </p>
+                <p className="font-mono text-[10px] font-bold text-primary truncate" title={submission.controlNumber}>
+                  {submission.controlNumber}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                  Status
+                </p>
+                <div className="flex items-center gap-2">
+                  <p
+                    className={cn(
+                      'text-xs font-black uppercase tracking-tight',
+                      submission.statusId === 'submitted'
+                        ? 'text-amber-600 animate-pulse'
+                        : submission.statusId === 'approved'
+                          ? 'text-emerald-600'
+                          : 'text-destructive',
+                    )}
+                  >
+                    {getStatusText(submission)}
+                  </p>
+                  {submission.isDraft && (
+                    <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">
+                      DRAFT
+                    </Badge>
+                  )}
                 </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Status</p>
-                    <div className="flex items-center gap-2">
-                        <p className={cn("text-xs font-black uppercase tracking-tight", submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive")}>{getStatusText(submission)}</p>
-                        {submission.isDraft && <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">DRAFT</Badge>}
-                    </div>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Revision</p>
-                    <Badge variant="outline" className="font-mono font-bold bg-background h-5 text-[10px]">Rev {String(submission.revision || 0).padStart(2, '0')}</Badge>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Submitter</p>
-                    <p className="text-xs font-bold text-foreground truncate">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Campus</p>
-                    <p className="text-xs font-bold text-foreground truncate">{campus ? campus.name : '...'}</p>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">Unit</p>
-                    <p className="text-xs font-bold text-foreground truncate">{submission.unitName}</p>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase text-foreground/60 leading-none">Year</p>
-                    <p className="text-xs font-bold text-foreground">{submission.year}</p>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-black uppercase text-foreground/60 leading-none">Cycle</p>
-                    <p className="text-xs font-bold text-foreground capitalize">{submission.cycleId} Cycle</p>
-                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                  Revision
+                </p>
+                <Badge variant="outline" className="font-mono font-bold bg-background h-5 text-[10px]">
+                  Rev {String(submission.revision || 0).padStart(2, '0')}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                  Submitter
+                </p>
+                <p className="text-xs font-bold text-foreground truncate">
+                  {submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                  Campus
+                </p>
+                <p className="text-xs font-bold text-foreground truncate">{campus ? campus.name : '...'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                  Unit
+                </p>
+                <p className="text-xs font-bold text-foreground truncate">{submission.unitName}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase text-foreground/60 leading-none">
+                  Year
+                </p>
+                <p className="text-xs font-bold text-foreground">{submission.year}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase text-foreground/60 leading-none">
+                  Cycle
+                </p>
+                <p className="text-xs font-bold text-foreground capitalize">{submission.cycleId} Cycle</p>
+              </div>
             </div>
           </div>
 
           <Card>
             <CardHeader className="py-4 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <CardTitle className="text-lg flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />{submission.reportType}</CardTitle>
-                    <CardDescription className="text-xs">Last updated: {getFormattedDate(submission.submissionDate)}</CardDescription>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 bg-muted p-1 rounded-lg border">
-                    <Button variant="ghost" size="sm" className="h-7 px-3 text-[10px] font-black uppercase text-primary" onClick={handleRotate}><RotateCw className="h-3 w-3 mr-1.5" /> Rotate</Button>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button variant={previewOrientation === 'landscape' ? 'default' : 'ghost'} size="sm" className="h-7 px-3 text-[10px] font-black uppercase" onClick={() => setPreviewOrientation('landscape')}><Monitor className="h-3 w-3 mr-1.5" /> Wide</Button>
-                    <Button variant={previewOrientation === 'portrait' ? 'default' : 'ghost'} size="sm" className="h-7 px-3 text-[10px] font-black uppercase" onClick={() => setPreviewOrientation('portrait')}><Smartphone className="h-3 w-3 mr-1.5" /> Tall</Button>
-                </div>
+              <div className="space-y-1">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  {submission.reportType}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Last updated: {getFormattedDate(submission.submissionDate)}
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 bg-muted p-1 rounded-lg border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-[10px] font-black uppercase text-primary"
+                  onClick={handleRotate}
+                >
+                  <RotateCw className="h-3 w-3 mr-1.5" /> Rotate
+                </Button>
+                <Separator orientation="vertical" className="h-4 mx-1" />
+                <Button
+                  variant={previewOrientation === 'landscape' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-3 text-[10px] font-black uppercase"
+                  onClick={() => setPreviewOrientation('landscape')}
+                >
+                  <Monitor className="h-3 w-3 mr-1.5" /> Wide
+                </Button>
+                <Button
+                  variant={previewOrientation === 'portrait' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-3 text-[10px] font-black uppercase"
+                  onClick={() => setPreviewOrientation('portrait')}
+                >
+                  <Smartphone className="h-3 w-3 mr-1.5" /> Tall
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-6">
-                {previewUrl ? (
-                    <div className={cn("w-full rounded-lg border bg-muted shadow-inner transition-all duration-500 overflow-hidden relative", previewOrientation === 'landscape' ? "aspect-video" : "aspect-[1/1.4]")}>
-                        <iframe src={previewUrl} className="absolute inset-0 h-full w-full transition-transform duration-300" style={{ transform: `rotate(${rotation}deg)` }} allow="autoplay" title="Submission File Preview"></iframe>
-                    </div>
-                ) : <div className="aspect-video w-full rounded-lg border bg-muted flex items-center justify-center text-muted-foreground">No preview available.</div>}
+              {previewUrl ? (
+                <div
+                  className={cn(
+                    'w-full rounded-lg border bg-muted shadow-inner transition-all duration-500 overflow-hidden relative',
+                    previewOrientation === 'landscape' ? 'aspect-video' : 'aspect-[1/1.4]',
+                  )}
+                >
+                  <iframe
+                    src={previewUrl}
+                    className="absolute inset-0 h-full w-full transition-transform duration-300"
+                    style={{ transform: `rotate(${rotation}deg)` }}
+                    allow="autoplay"
+                    title="Submission File Preview"
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="aspect-video w-full rounded-lg border bg-muted flex items-center justify-center text-muted-foreground">
+                  No preview available.
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {isRiskRegistry && (
-              <Card className="shadow-lg border-primary/20 overflow-hidden">
-                  <CardHeader className="bg-muted/10 border-b py-4">
-                      <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                              <ShieldCheck className="h-5 w-5 text-primary" />
-                              <CardTitle className="text-sm font-black uppercase tracking-tight">Digital Register Synchronization Preview</CardTitle>
-                          </div>
-                          {isLoadingRisks ? <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20" /> : <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/5 text-primary">{existingRisks?.length || 0} ENTRIES LOGGED</Badge>}
-                      </div>
-                      <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Cross-referencing digitally encoded entries for AY {submission.year}.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                      <ScrollArea className="h-[550px]">
-                          {existingRisks && existingRisks.length > 0 ? (
-                              <div className="divide-y">
-                                  {existingRisks.map((risk) => {
-                                      const isPass = risk.verification?.status.includes('Correct') || risk.verification?.status.includes('Updated');
-                                      const canEditRisk = isAdmin || (user?.uid === submission.userId);
+            <Card className="shadow-lg border-primary/20 overflow-hidden">
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">
+                      Digital Register Synchronization Preview
+                    </CardTitle>
+                  </div>
+                  {isLoadingRisks ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20" />
+                  ) : (
+                    <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/5 text-primary">
+                      {existingRisks?.length || 0} ENTRIES LOGGED
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                  Cross-referencing digitally encoded entries for AY {submission.year}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[550px]">
+                  {existingRisks && existingRisks.length > 0 ? (
+                    <div className="divide-y">
+                      {existingRisks.map((risk) => {
+                        const isPass =
+                          risk.verification?.status.includes('Correct') ||
+                          risk.verification?.status.includes('Updated');
+                        const canEditRisk = isAdmin || user?.uid === submission.userId;
 
-                                      return (
-                                      <div key={risk.id} className="p-6 hover:bg-muted/20 transition-colors group">
-                                          <div className="flex flex-col gap-6">
-                                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                  <div className="space-y-1 min-w-0 flex-1">
-                                                      <div className="flex items-center gap-2 mb-1">
-                                                          {risk.type === 'Risk' ? <Shield className="h-3.5 w-3.5 text-rose-600" /> : <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />}
-                                                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type} ({risk.year})</span>
-                                                          <Badge className={cn("text-[8px] font-black h-4 py-0 px-1.5 border-none", risk.type === 'Risk' ? (risk.preTreatment.rating === 'High' ? "bg-rose-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-emerald-600") : (risk.preTreatment.rating === 'High' ? "bg-emerald-600" : risk.preTreatment.rating === 'Medium' ? "bg-amber-50" : "bg-rose-600"))}>{risk.preTreatment.rating} ({risk.preTreatment.magnitude})</Badge>
-                                                      </div>
-                                                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight truncate">{risk.description}</p>
-                                                      
-                                                      {risk.verification && (
-                                                          <div className="flex items-center gap-2 pt-1">
-                                                              <Badge variant="outline" className={cn("h-4 text-[7px] font-black uppercase flex items-center gap-1", isPass ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-rose-600 border-rose-200 bg-rose-50")}>
-                                                                  {isPass ? <CheckCircle2 className="h-2.5 w-2.5" /> : <XCircle className="h-2.5 w-2.5" />}
-                                                                  {risk.verification.status}
-                                                              </Badge>
-                                                              <span className="text-[8px] text-muted-foreground italic">by {risk.verification.verifiedBy}</span>
-                                                          </div>
-                                                      )}
-                                                  </div>
-                                                  <div className="flex items-center gap-4 shrink-0">
-                                                      <div className="text-right">
-                                                          <Badge variant="outline" className="text-[9px] font-black uppercase h-5 px-2 bg-muted">{risk.status}</Badge>
-                                                          <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">LATEST STATUS</p>
-                                                      </div>
-                                                      {canEditRisk && (
-                                                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                                              <Button 
-                                                                variant="outline" 
-                                                                size="sm" 
-                                                                className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
-                                                                onClick={() => handleEditRisk(risk)}
-                                                              >
-                                                                  EDIT
-                                                              </Button>
-                                                              <Button 
-                                                                variant="outline" 
-                                                                size="sm" 
-                                                                className="h-8 text-[10px] font-black uppercase tracking-widest border-rose-200 text-rose-600 hover:bg-rose-50 bg-white"
-                                                                onClick={() => setRiskToDelete(risk)}
-                                                              >
-                                                                  DELETE
-                                                              </Button>
-                                                          </div>
-                                                      )}
-                                                  </div>
-                                              </div>
+                        return (
+                          <div key={risk.id} className="p-6 hover:bg-muted/20 transition-colors group">
+                            <div className="flex flex-col gap-6">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="space-y-1 min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {risk.type === 'Risk' ? (
+                                      <Shield className="h-3.5 w-3.5 text-rose-600" />
+                                    ) : (
+                                      <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                                    )}
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                      {risk.type} ({risk.year})
+                                    </span>
+                                    <Badge
+                                      className={cn(
+                                        'text-[8px] font-black h-4 py-0 px-1.5 border-none',
+                                        risk.type === 'Risk'
+                                          ? risk.preTreatment.rating === 'High'
+                                            ? 'bg-rose-600'
+                                            : risk.preTreatment.rating === 'Medium'
+                                              ? 'bg-amber-50'
+                                              : 'bg-emerald-600'
+                                          : risk.preTreatment.rating === 'High'
+                                            ? 'bg-emerald-600'
+                                            : risk.preTreatment.rating === 'Medium'
+                                              ? 'bg-amber-50'
+                                              : 'bg-rose-600',
+                                      )}
+                                    >
+                                      {risk.preTreatment.rating} ({risk.preTreatment.magnitude})
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                                    {risk.description}
+                                  </p>
 
-                                              {/* RISK-LEVEL REMARKS / COMMENTS */}
-                                              <div className="pt-4 border-t border-dashed">
-                                                {isAdmin ? (
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
-                                                            <MessageSquare className="h-3 w-3" />
-                                                            Auditor Findings / Suggestions for this Entry
-                                                        </Label>
-                                                        <Textarea 
-                                                            placeholder="Add a specific comment for the unit coordinator regarding this risk..." 
-                                                            className="text-xs italic bg-slate-50 dark:bg-slate-800/50 border-primary/10 shadow-inner min-h-[80px]"
-                                                            defaultValue={risk.auditorRemarks || ''}
-                                                            onBlur={(e) => handleUpdateRiskRemarks(risk.id, e.target.value)}
-                                                        />
-                                                        <p className="text-[8px] text-muted-foreground italic">Note: Comments are saved automatically when you click away from the textbox.</p>
-                                                    </div>
-                                                ) : risk.auditorRemarks && (
-                                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex gap-4 items-start animate-in slide-in-from-top-1 duration-500">
-                                                        <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-amber-600 shadow-sm shrink-0">
-                                                            <Info className="h-4 w-4" />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-[10px] font-black uppercase text-amber-700 tracking-widest">Auditor Feedback / Guidance:</p>
-                                                            <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed italic font-medium">"{risk.auditorRemarks}"</p>
-                                                            <p className="text-[8px] font-bold text-amber-600/60 uppercase pt-1">Issued by: {risk.auditorRemarksBy || 'QA Auditor'}</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                              </div>
-
-                                              {isAdmin && (
-                                                  <div className="flex items-center gap-2 pt-2 border-t border-dashed">
-                                                      <span className="text-[9px] font-black uppercase text-slate-400 mr-2">Institutional Verification:</span>
-                                                      {submission.cycleId === 'first' ? (
-                                                          <>
-                                                              <Button 
-                                                                  size="sm" 
-                                                                  variant="ghost" 
-                                                                  className={cn("h-7 text-[9px] font-black uppercase gap-1.5", risk.verification?.status === 'Correct' ? "bg-emerald-600 text-white" : "text-emerald-600 hover:bg-emerald-50")}
-                                                                  onClick={() => handleVerifyRisk(risk.id, 'Correct')}
-                                                                  disabled={verifyingRiskId === risk.id}
-                                                              >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                                                                  Correct
-                                                              </Button>
-                                                              <Button 
-                                                                  size="sm" 
-                                                                  variant="ghost" 
-                                                                  className={cn("h-7 text-[9px] font-black uppercase gap-1.5", risk.verification?.status === 'Incorrect' ? "bg-rose-600 text-white" : "text-rose-600 hover:bg-rose-50")}
-                                                                  onClick={() => handleVerifyRisk(risk.id, 'Incorrect')}
-                                                                  disabled={verifyingRiskId === risk.id}
-                                                              >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
-                                                                  Incorrect
-                                                              </Button>
-                                                          </>
-                                                      ) : (
-                                                          <>
-                                                              <Button 
-                                                                  size="sm" 
-                                                                  variant="ghost" 
-                                                                  className={cn("h-7 text-[9px] font-black uppercase gap-1.5", risk.verification?.status === 'Updated' ? "bg-emerald-600 text-white" : "text-emerald-600 hover:bg-emerald-50")}
-                                                                  onClick={() => handleVerifyRisk(risk.id, 'Updated')}
-                                                                  disabled={verifyingRiskId === risk.id}
-                                                              >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                                                                  Updated
-                                                              </Button>
-                                                              <Button 
-                                                                  size="sm" 
-                                                                  variant="ghost" 
-                                                                  className={cn("h-7 text-[9px] font-black uppercase gap-1.5", risk.verification?.status === 'Not Updated' ? "bg-rose-600 text-white" : "text-rose-600 hover:bg-rose-50")}
-                                                                  onClick={() => handleVerifyRisk(risk.id, 'Not Updated')}
-                                                                  disabled={verifyingRiskId === risk.id}
-                                                              >
-                                                                  {verifyingRiskId === risk.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
-                                                                  Not Updated
-                                                              </Button>
-                                                          </>
-                                                      )}
-                                                  </div>
-                                              )}
-                                          </div>
-                                      </div>
-                                  )})}
+                                  {risk.verification && (
+                                    <div className="flex items-center gap-2 pt-1">
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          'h-4 text-[7px] font-black uppercase flex items-center gap-1',
+                                          isPass
+                                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                                            : 'text-rose-600 border-rose-200 bg-rose-50',
+                                        )}
+                                      >
+                                        {isPass ? (
+                                          <CheckCircle2 className="h-2.5 w-2.5" />
+                                        ) : (
+                                          <XCircle className="h-2.5 w-2.5" />
+                                        )}
+                                        {risk.verification.status}
+                                      </Badge>
+                                      <span className="text-[8px] text-muted-foreground italic">
+                                        by {risk.verification.verifiedBy}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-4 shrink-0">
+                                  <div className="text-right">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[9px] font-black uppercase h-5 px-2 bg-muted"
+                                    >
+                                      {risk.status}
+                                    </Badge>
+                                    <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">LATEST STATUS</p>
+                                  </div>
+                                  {canEditRisk && (
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
+                                        onClick={() => handleEditRisk(risk)}
+                                      >
+                                        EDIT
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-[10px] font-black uppercase tracking-widest border-rose-200 text-rose-600 hover:bg-rose-50 bg-white"
+                                        onClick={() => setRiskToDelete(risk)}
+                                      >
+                                        DELETE
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                          ) : <div className="py-16 text-center opacity-20"><Activity className="h-10 w-10 mx-auto" /><p className="text-[10px] font-black uppercase">No digital entries found</p></div>}
-                      </ScrollArea>
-                  </CardContent>
-                  <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center">
-                    <p className="text-[9px] text-muted-foreground font-medium italic">Integrated QMS Data synchronization Layer</p>
-                    {isAdmin && (
-                      <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black uppercase gap-1 text-primary" onClick={handleOpenRiskBridge}>
-                        <PlusCircle className="h-3 w-3" /> Manage Digital Records
-                      </Button>
-                    )}
-                  </CardFooter>
-              </Card>
-          )}
-          
-          {isAdmin && (
-              <div className="space-y-4">
-                  {isRiskRegistry && (
-                      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
-                          <CardContent className="p-6">
-                            {showBridgeChoices ? (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                                    <div className="flex items-center justify-between border-b pb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                                <ListChecks className="h-5 w-5" />
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-black uppercase text-primary">Registry Bridge Protocol</p>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{existingRisks?.length || 0} Entries Detected for {submission.unitName}</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowBridgeChoices(false)}>
-                                            <Undo2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <Button 
-                                            onClick={() => { setEditingRisk(null); setIsRiskSyncOpen(true); setShowBridgeChoices(false); }}
-                                            className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest shadow-lg bg-indigo-600 hover:bg-indigo-700"
-                                        >
-                                            <PlusCircle className="h-5 w-5" />
-                                            Record New Entry
-                                        </Button>
-                                        <Button 
-                                            variant="outline"
-                                            asChild
-                                            className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
-                                        >
-                                            <Link href={`/risk-register?unitId=${submission.unitId}&year=${submission.year}`}>
-                                                <ShieldCheck className="h-5 w-5" />
-                                                Manage Existing / Add More
-                                            </Link>
-                                        </Button>
+                              {/* RISK-LEVEL REMARKS / COMMENTS */}
+                              <div className="pt-4 border-t border-dashed">
+                                {isAdmin ? (
+                                  <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                      <MessageSquare className="h-3 w-3" />
+                                      Auditor Findings / Suggestions for this Entry
+                                    </Label>
+                                    <Textarea
+                                      placeholder="Add a specific comment for the unit coordinator regarding this risk..."
+                                      className="text-xs italic bg-slate-50 dark:bg-slate-800/50 border-primary/10 shadow-inner min-h-[80px]"
+                                      defaultValue={risk.auditorRemarks || ''}
+                                      onBlur={(e) => handleUpdateRiskRemarks(risk.id, e.target.value)}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                      Note: Comments are saved automatically when you click away from the textbox.
+                                    </p>
+                                  </div>
+                                ) : (
+                                  risk.auditorRemarks && (
+                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex gap-4 items-start animate-in slide-in-from-top-1 duration-500">
+                                      <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-amber-600 shadow-sm shrink-0">
+                                        <Info className="h-4 w-4" />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase text-amber-700 tracking-widest">
+                                          Auditor Feedback / Guidance:
+                                        </p>
+                                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed italic font-medium">
+                                          "{risk.auditorRemarks}"
+                                        </p>
+                                        <p className="text-[8px] font-bold text-amber-600/60 uppercase pt-1">
+                                          Issued by: {risk.auditorRemarksBy || 'QA Auditor'}
+                                        </p>
+                                      </div>
                                     </div>
-                                    
-                                    <p className="text-[10px] text-muted-foreground italic text-center font-medium">Select "Record New Entry" to use the rapid entry wizard for a specific item from this document.</p>
+                                  )
+                                )}
+                              </div>
+
+                              {isAdmin && (
+                                <div className="flex items-center gap-2 pt-2 border-t border-dashed">
+                                  <span className="text-[9px] font-black uppercase text-slate-400 mr-2">
+                                    Institutional Verification:
+                                  </span>
+                                  {submission.cycleId === 'first' ? (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className={cn(
+                                          'h-7 text-[9px] font-black uppercase gap-1.5',
+                                          risk.verification?.status === 'Correct'
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'text-emerald-600 hover:bg-emerald-50',
+                                        )}
+                                        onClick={() => handleVerifyRisk(risk.id, 'Correct')}
+                                        disabled={verifyingRiskId === risk.id}
+                                      >
+                                        {verifyingRiskId === risk.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <CheckCircle2 className="h-3 w-3" />
+                                        )}
+                                        Correct
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className={cn(
+                                          'h-7 text-[9px] font-black uppercase gap-1.5',
+                                          risk.verification?.status === 'Incorrect'
+                                            ? 'bg-rose-600 text-white'
+                                            : 'text-rose-600 hover:bg-rose-50',
+                                        )}
+                                        onClick={() => handleVerifyRisk(risk.id, 'Incorrect')}
+                                        disabled={verifyingRiskId === risk.id}
+                                      >
+                                        {verifyingRiskId === risk.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <XCircle className="h-3 w-3" />
+                                        )}
+                                        Incorrect
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className={cn(
+                                          'h-7 text-[9px] font-black uppercase gap-1.5',
+                                          risk.verification?.status === 'Updated'
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'text-emerald-600 hover:bg-emerald-50',
+                                        )}
+                                        onClick={() => handleVerifyRisk(risk.id, 'Updated')}
+                                        disabled={verifyingRiskId === risk.id}
+                                      >
+                                        {verifyingRiskId === risk.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <CheckCircle2 className="h-3 w-3" />
+                                        )}
+                                        Updated
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className={cn(
+                                          'h-7 text-[9px] font-black uppercase gap-1.5',
+                                          risk.verification?.status === 'Not Updated'
+                                            ? 'bg-rose-600 text-white'
+                                            : 'text-rose-600 hover:bg-rose-50',
+                                        )}
+                                        onClick={() => handleVerifyRisk(risk.id, 'Not Updated')}
+                                        disabled={verifyingRiskId === risk.id}
+                                      >
+                                        {verifyingRiskId === risk.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <XCircle className="h-3 w-3" />
+                                        )}
+                                        Not Updated
+                                      </Button>
+                                    </>
+                                  )}
                                 </div>
-                            ) : (
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <div className="flex items-start gap-3">
-                                        <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Admin: Risk Registry Bridge</p>
-                                            <p className="text-xs text-muted-foreground">Directly log the entries from this document into the system risk registry.</p>
-                                        </div>
-                                    </div>
-                                    <Button onClick={handleOpenRiskBridge} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
-                                        <PlusCircle className="h-4 w-4" />
-                                        Record in Risk Registry
-                                    </Button>
-                                </div>
-                            )}
-                          </CardContent>
-                      </Card>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center opacity-20">
+                      <Activity className="h-10 w-10 mx-auto" />
+                      <p className="text-[10px] font-black uppercase">No digital entries found</p>
+                    </div>
                   )}
-                  {submission.statusId === 'rejected' && !isAdminReviewOverride && (
-                      <Card className="border-primary/20 bg-primary/5 shadow-sm"><CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6"><div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" /><div className="space-y-1"><p className="text-sm font-bold text-slate-900 dark:text-slate-100">Administrative Override Available</p><p className="text-xs text-muted-foreground">Re-review this rejected document without waiting for a resubmission.</p></div></div><Button onClick={() => setIsAdminReviewOverride(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"><ClipboardCheck className="h-4 w-4" />Review Rejected Document</Button></CardContent></Card>
-                  )}
-              </div>
+                </ScrollArea>
+              </CardContent>
+              <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center">
+                <p className="text-[9px] text-muted-foreground font-medium italic">
+                  Integrated QMS Data synchronization Layer
+                </p>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[9px] font-black uppercase gap-1 text-primary"
+                    onClick={handleOpenRiskBridge}
+                  >
+                    <PlusCircle className="h-3 w-3" /> Manage Digital Records
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          )}
+
+          {isAdmin && (
+            <div className="space-y-4">
+              {isRiskRegistry && (
+                <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+                  <CardContent className="p-6">
+                    {showBridgeChoices ? (
+                      <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="flex items-center justify-between border-b pb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                              <ListChecks className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="text-sm font-black uppercase text-primary">Registry Bridge Protocol</p>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                                {existingRisks?.length || 0} Entries Detected for {submission.unitName}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setShowBridgeChoices(false)}
+                          >
+                            <Undo2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Button
+                            onClick={() => {
+                              setEditingRisk(null);
+                              setIsRiskSyncOpen(true);
+                              setShowBridgeChoices(false);
+                            }}
+                            className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest shadow-lg bg-indigo-600 hover:bg-indigo-700"
+                          >
+                            <PlusCircle className="h-5 w-5" />
+                            Record New Entry
+                          </Button>
+                          <Button
+                            variant="outline"
+                            asChild
+                            className="h-16 flex flex-col items-center justify-center gap-1 font-black uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
+                          >
+                            <Link href={`/risk-register?unitId=${submission.unitId}&year=${submission.year}`}>
+                              <ShieldCheck className="h-5 w-5" />
+                              Manage Existing / Add More
+                            </Link>
+                          </Button>
+                        </div>
+
+                        <p className="text-[10px] text-muted-foreground italic text-center font-medium">
+                          Select "Record New Entry" to use the rapid entry wizard for a specific item from this
+                          document.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                              Admin: Risk Registry Bridge
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Directly log the entries from this document into the system risk registry.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handleOpenRiskBridge}
+                          className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          Record in Risk Registry
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {submission.statusId === 'rejected' && !isAdminReviewOverride && (
+                <Card className="border-primary/20 bg-primary/5 shadow-sm">
+                  <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                          Administrative Override Available
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Re-review this rejected document without waiting for a resubmission.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setIsAdminReviewOverride(true)}
+                      className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
+                    >
+                      <ClipboardCheck className="h-4 w-4" />
+                      Review Rejected Document
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
 
           {showApprovalUI && (
-             <>
-                {!submission.isDraft && (
-                    <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
-                        <CardHeader className="bg-primary/5 border-b"><CardTitle className="flex items-center gap-2"><ShieldCheck className="text-primary" />Approver's Compliance Checklist</CardTitle><CardDescription>Please verify and confirm the following criteria before taking action.</CardDescription></CardHeader>
-                        <CardContent className="space-y-3 pt-6">{approverChecklistItems.map(item => (
-                    <div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
-                        <Checkbox id={`approver-${item.id}`} checked={approverChecklist[item.id] || false} onCheckedChange={() => handleChecklistChange(item.id)} disabled={isSubmitting} className="mt-1" />
-                        <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-relaxed cursor-pointer">{item.label}</Label>
-                    </div>
-                ))}</CardContent>
-                    </Card>
-                )}
+            <>
+              {!submission.isDraft && (
                 <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
-                    <CardHeader className="bg-primary/5 border-b"><CardTitle>{submission.isDraft ? 'Review Determination' : 'Final Determination'}</CardTitle><CardDescription>Provide context or constructive feedback for the unit coordinator.</CardDescription></CardHeader>
-                    <CardContent className="space-y-4 pt-6"><div><Label htmlFor="feedback">Official Comments</Label><Textarea id="feedback" placeholder={submission.isDraft ? "Suggest corrections..." : "Enter approval notes or rejection findings..."} value={feedback} onChange={(e) => setFeedback(e.target.value)} disabled={isSubmitting} className="min-h-[120px]" /></div></CardContent>
-                    <CardFooter className="flex justify-end gap-3 pt-2 bg-muted/5 border-t py-4"><Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}{submission.isDraft ? 'Request Draft Changes' : 'Reject Submission'}</Button><Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className={cn("shadow-lg font-black", submission.isDraft ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200" : "shadow-primary/20")}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}{submission.isDraft ? 'Clear Draft for Finalization' : 'Approve Record'}</Button></CardFooter>
+                  <CardHeader className="bg-primary/5 border-b">
+                    <CardTitle className="flex items-center gap-2">
+                      <ShieldCheck className="text-primary" />
+                      Approver's Compliance Checklist
+                    </CardTitle>
+                    <CardDescription>
+                      Please verify and confirm the following criteria before taking action.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-6">
+                    {approverChecklistItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors"
+                      >
+                        <Checkbox
+                          id={`approver-${item.id}`}
+                          checked={approverChecklist[item.id] || false}
+                          onCheckedChange={() => handleChecklistChange(item.id)}
+                          disabled={isSubmitting}
+                          className="mt-1"
+                        />
+                        <Label
+                          htmlFor={`approver-${item.id}`}
+                          className="text-sm font-normal leading-relaxed cursor-pointer"
+                        >
+                          {item.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </CardContent>
                 </Card>
+              )}
+              <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
+                <CardHeader className="bg-primary/5 border-b">
+                  <CardTitle>{submission.isDraft ? 'Review Determination' : 'Final Determination'}</CardTitle>
+                  <CardDescription>Provide context or constructive feedback for the unit coordinator.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6">
+                  <div>
+                    <Label htmlFor="feedback">Official Comments</Label>
+                    <Textarea
+                      id="feedback"
+                      placeholder={
+                        submission.isDraft ? 'Suggest corrections...' : 'Enter approval notes or rejection findings...'
+                      }
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      disabled={isSubmitting}
+                      className="min-h-[120px]"
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-3 pt-2 bg-muted/5 border-t py-4">
+                  <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                    {submission.isDraft ? 'Request Draft Changes' : 'Reject Submission'}
+                  </Button>
+                  <Button
+                    onClick={handleApprove}
+                    disabled={isSubmitting || !isChecklistComplete}
+                    className={cn(
+                      'shadow-lg font-black',
+                      submission.isDraft ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'shadow-primary/20',
+                    )}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="mr-2 h-4 w-4" />
+                    )}
+                    {submission.isDraft ? 'Clear Draft for Finalization' : 'Approve Record'}
+                  </Button>
+                </CardFooter>
+              </Card>
             </>
           )}
 
           {isSubmitter && submission.statusId === 'approved' && submission.isDraft && (
             <Card className="border-emerald-200 bg-emerald-50/10 shadow-xl animate-in zoom-in duration-500">
-                <CardHeader className="bg-emerald-100/50 border-b">
-                    <CardTitle className="flex items-center gap-2 text-emerald-800">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                        Step 2: Submit Final Official Document
-                    </CardTitle>
-                    <CardDescription className="text-emerald-700/80 font-medium">
-                        Your draft has been <strong>Cleared for Finalization</strong>. Please provide the link to the signed and scanned PDF official document.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="final-link" className="text-[10px] font-black uppercase text-emerald-700">Official GDrive Link (Signed PDF)</Label>
-                        <Input id="final-link" placeholder="https://drive.google.com/..." value={newLink} onChange={(e) => setNewLink(e.target.value)} disabled={isSubmitting} className="focus:ring-emerald-500 border-emerald-200 h-11 font-bold shadow-sm" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="final-comment" className="text-[10px] font-black uppercase text-emerald-700">Optional Notes</Label>
-                        <Textarea id="final-comment" placeholder="Any final notes for the archive..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isSubmitting} className="bg-white" />
-                    </div>
-                    <div className="p-4 rounded-xl border border-dashed border-emerald-200 bg-white flex items-start gap-3">
-                        <Info className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-emerald-800 leading-relaxed italic">
-                            By submitting as <strong>Final</strong>, the revision will increment to Rev {String((submission.revision || 0) + 1).padStart(2, '0')} and require a full compliance checklist verification by the Quality Assurance Office.
-                        </p>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end gap-2 border-t border-emerald-100 pt-4 pb-6 px-8 bg-white/50">
-                    <Button onClick={() => handleResubmit(false)} disabled={isSubmitting || !newLink.startsWith('https://drive.google.com/')} className="min-w-[240px] bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 font-black uppercase text-[10px] tracking-widest h-11">
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
-                        Submit Official Final Filing
-                    </Button>
-                </CardFooter>
+              <CardHeader className="bg-emerald-100/50 border-b">
+                <CardTitle className="flex items-center gap-2 text-emerald-800">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                  Step 2: Submit Final Official Document
+                </CardTitle>
+                <CardDescription className="text-emerald-700/80 font-medium">
+                  Your draft has been <strong>Cleared for Finalization</strong>. Please provide the link to the signed
+                  and scanned PDF official document.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="final-link" className="text-[10px] font-black uppercase text-emerald-700">
+                    Official GDrive Link (Signed PDF)
+                  </Label>
+                  <Input
+                    id="final-link"
+                    placeholder="https://drive.google.com/..."
+                    value={newLink}
+                    onChange={(e) => setNewLink(e.target.value)}
+                    disabled={isSubmitting}
+                    className="focus:ring-emerald-500 border-emerald-200 h-11 font-bold shadow-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="final-comment" className="text-[10px] font-black uppercase text-emerald-700">
+                    Optional Notes
+                  </Label>
+                  <Textarea
+                    id="final-comment"
+                    placeholder="Any final notes for the archive..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    disabled={isSubmitting}
+                    className="bg-white"
+                  />
+                </div>
+                <div className="p-4 rounded-xl border border-dashed border-emerald-200 bg-white flex items-start gap-3">
+                  <Info className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-emerald-800 leading-relaxed italic">
+                    By submitting as <strong>Final</strong>, the revision will increment to Rev{' '}
+                    {String((submission.revision || 0) + 1).padStart(2, '0')} and require a full compliance checklist
+                    verification by the Quality Assurance Office.
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2 border-t border-emerald-100 pt-4 pb-6 px-8 bg-white/50">
+                <Button
+                  onClick={() => handleResubmit(false)}
+                  disabled={isSubmitting || !newLink.startsWith('https://drive.google.com/')}
+                  className="min-w-[240px] bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 font-black uppercase text-[10px] tracking-widest h-11"
+                >
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  Submit Official Final Filing
+                </Button>
+              </CardFooter>
             </Card>
           )}
 
           {isSubmitter && submission.statusId === 'rejected' && (
-             <Card className="border-destructive/50 shadow-lg">
-                <CardHeader className="bg-destructive/5 border-b"><CardTitle className="flex items-center gap-2"><History className="text-destructive" />Resubmit {submission.isDraft ? 'Draft' : 'Report'}</CardTitle><CardDescription>Resubmission automatically increments to <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription></CardHeader>
-                 <CardContent className="space-y-4 pt-6">
-                    {isRiskRegistry && !isLoadingRisks && !hasDigitalRisks && (
-                        <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 mb-6">
-                            <ShieldAlert className="h-5 w-5 text-destructive" />
-                            <AlertTitle className="font-black uppercase tracking-tight text-destructive">Resubmission Blocked</AlertTitle>
-                            <AlertDescription className="space-y-4 pt-1">
-                                <p className="text-xs font-bold leading-relaxed">Both individual **Risks AND Opportunities** must be recorded in the digital register before you can submit a corrected revision.</p>
-                                <Button size="sm" variant="destructive" asChild className="h-8 text-[10px] font-black uppercase tracking-widest">
-                                    <Link href="/risk-register">Go to Risk Register Registry</Link>
-                                </Button>
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    <div>
-                        <Label htmlFor="new-link">Corrected Google Drive Link</Label>
-                        <Input id="new-link" placeholder="https://drive.google.com/..." value={newLink} onChange={(e) => setNewLink(e.target.value)} disabled={isSubmitting} className="focus:ring-primary" />
-                    </div>
-                    <div>
-                        <Label htmlFor="new-comment">Summary of Corrections</Label>
-                        <Textarea id="new-comment" placeholder="Briefly describe the corrective actions taken..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isSubmitting} />
-                    </div>
-                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                    <Button onClick={() => handleResubmit()} disabled={isSubmitting || !newLink} className="min-w-[200px]">
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
-                        Submit Corrected Revision
-                    </Button>
-                </CardFooter>
-             </Card>
+            <Card className="border-destructive/50 shadow-lg">
+              <CardHeader className="bg-destructive/5 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <History className="text-destructive" />
+                  Resubmit {submission.isDraft ? 'Draft' : 'Report'}
+                </CardTitle>
+                <CardDescription>
+                  Resubmission automatically increments to{' '}
+                  <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                {isRiskRegistry && !isLoadingRisks && !hasDigitalRisks && (
+                  <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 mb-6">
+                    <ShieldAlert className="h-5 w-5 text-destructive" />
+                    <AlertTitle className="font-black uppercase tracking-tight text-destructive">
+                      Resubmission Blocked
+                    </AlertTitle>
+                    <AlertDescription className="space-y-4 pt-1">
+                      <p className="text-xs font-bold leading-relaxed">
+                        Both individual **Risks AND Opportunities** must be recorded in the digital register before you
+                        can submit a corrected revision.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        asChild
+                        className="h-8 text-[10px] font-black uppercase tracking-widest"
+                      >
+                        <Link href="/risk-register">Go to Risk Register Registry</Link>
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div>
+                  <Label htmlFor="new-link">Corrected Google Drive Link</Label>
+                  <Input
+                    id="new-link"
+                    placeholder="https://drive.google.com/..."
+                    value={newLink}
+                    onChange={(e) => setNewLink(e.target.value)}
+                    disabled={isSubmitting}
+                    className="focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-comment">Summary of Corrections</Label>
+                  <Textarea
+                    id="new-comment"
+                    placeholder="Briefly describe the corrective actions taken..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                <Button onClick={() => handleResubmit()} disabled={isSubmitting || !newLink} className="min-w-[200px]">
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  Submit Corrected Revision
+                </Button>
+              </CardFooter>
+            </Card>
           )}
         </div>
 
         {isHistoryVisible && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-                <Card className="shadow-md">
-                    <CardHeader className="border-b"><CardTitle className="text-md">Conversation History</CardTitle><CardDescription className="text-[10px] uppercase font-bold tracking-widest">Official audit trail</CardDescription></CardHeader>
-                    <CardContent className="space-y-4 pt-6">{Array.isArray(submission.comments) && submission.comments.length > 0 ? (<div className="space-y-6">{submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (<div key={index} className="flex gap-3"><Avatar className="h-8 w-8 shrink-0"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{comment.authorName.charAt(0)}</AvatarFallback></Avatar><div className="flex-1 min-w-0"><div className="flex justify-between items-center gap-2"><p className="text-xs font-bold truncate">{comment.authorName}</p><p className="text-[10px] text-muted-foreground whitespace-nowrap">{getFormattedDate(comment.createdAt)}</p></div><p className="text-[10px] text-muted-foreground italic mb-1">({comment.authorRole})</p><p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-md border border-dashed">{comment.text}</p></div></div>))}</div>) : (<div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2"><History className="h-8 w-8 opacity-10" /><p className="text-xs">No comments logged for this submission.</p></div>)}</CardContent>
-                </Card>
-            </div>
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <Card className="shadow-md">
+              <CardHeader className="border-b">
+                <CardTitle className="text-md">Conversation History</CardTitle>
+                <CardDescription className="text-[10px] uppercase font-bold tracking-widest">
+                  Official audit trail
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                {Array.isArray(submission.comments) && submission.comments.length > 0 ? (
+                  <div className="space-y-6">
+                    {submission.comments
+                      .slice()
+                      .sort((a, b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis())
+                      .map((comment, index) => (
+                        <div key={index} className="flex gap-3">
+                          <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                              {comment.authorName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center gap-2">
+                              <p className="text-xs font-bold truncate">{comment.authorName}</p>
+                              <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                {getFormattedDate(comment.createdAt)}
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic mb-1">({comment.authorRole})</p>
+                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-md border border-dashed">
+                              {comment.text}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2">
+                    <History className="h-8 w-8 opacity-10" />
+                    <p className="text-xs">No comments logged for this submission.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
 
       {isRiskSyncOpen && submission && (
-        <RiskFormDialog 
-            isOpen={isRiskSyncOpen} 
-            onOpenChange={setIsRiskSyncOpen} 
-            risk={editingRisk} 
-            unitUsers={unitUsers || []} 
-            allUnits={allUnits || []} 
-            allCampuses={allCampuses || []} 
-            defaultYear={submission.year} 
-            defaultUnitId={submission.unitId} 
-            defaultCampusId={submission.campusId} 
-            registryLink={submission.googleDriveLink} 
+        <RiskFormDialog
+          isOpen={isRiskSyncOpen}
+          onOpenChange={setIsRiskSyncOpen}
+          risk={editingRisk}
+          unitUsers={unitUsers || []}
+          allUnits={allUnits || []}
+          allCampuses={allCampuses || []}
+          defaultYear={submission.year}
+          defaultUnitId={submission.unitId}
+          defaultCampusId={submission.campusId}
+          registryLink={submission.googleDriveLink}
         />
       )}
 
       <AlertDialog open={!!riskToDelete} onOpenChange={(open) => !open && setRiskToDelete(null)}>
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <div className="flex items-center gap-2 text-destructive mb-2">
-                    <Trash2 className="h-6 w-6" />
-                    <AlertDialogTitle>Delete Digital Record?</AlertDialogTitle>
-                </div>
-                <AlertDialogDescription className="space-y-4">
-                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
-                        You are about to remove the digital entry: <br/>
-                        <strong className="text-destructive">"{riskToDelete?.description}"</strong>
-                    </p>
-                    <p className="text-xs text-muted-foreground italic leading-relaxed">
-                        This will delete the record from the institutional digital registry. This action is irreversible.
-                    </p>
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-4">
-                <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
-                <Button 
-                    onClick={handleDeleteRisk} 
-                    className="bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-destructive/20 h-10" 
-                    disabled={isDeletingRisk}
-                >
-                    {isDeletingRisk ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                    Confirm Deletion
-                </Button>
-            </AlertDialogFooter>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 text-destructive mb-2">
+              <Trash2 className="h-6 w-6" />
+              <AlertDialogTitle>Delete Digital Record?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-4">
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
+                You are about to remove the digital entry: <br />
+                <strong className="text-destructive">"{riskToDelete?.description}"</strong>
+              </p>
+              <p className="text-xs text-muted-foreground italic leading-relaxed">
+                This will delete the record from the institutional digital registry. This action is irreversible.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="font-bold text-[10px] uppercase">Abort</AlertDialogCancel>
+            <Button
+              onClick={handleDeleteRisk}
+              className="bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-destructive/20 h-10"
+              disabled={isDeletingRisk}
+            >
+              {isDeletingRisk ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Confirm Deletion
+            </Button>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
