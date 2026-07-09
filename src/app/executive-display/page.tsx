@@ -138,15 +138,15 @@ function KpiTile({
   sub?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-3 flex flex-col gap-1.5 shadow-lg shadow-black/10">
+    <div className="relative overflow-hidden rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md px-4 py-3 flex flex-col gap-1.5 shadow-lg shadow-black/10">
       <div className="flex items-center justify-between">
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/70">{label}</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/85">{label}</p>
         <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ background: `${color}33` }}>
           <Icon className="h-3 w-3" style={{ color: P.white }} />
         </div>
       </div>
       <AnimatedNumber value={value} suffix={suffix} className="text-2xl font-black tabular-nums text-white" />
-      {sub && <p className="text-[8px] text-white/60 font-bold uppercase tracking-widest">{sub}</p>}
+      {sub && <p className="text-[8px] text-white/75 font-bold uppercase tracking-widest">{sub}</p>}
       <div
         className="absolute bottom-0 left-0 h-0.5 w-full"
         style={{ background: `linear-gradient(to right, ${color}, ${P.goldLight})` }}
@@ -177,7 +177,7 @@ function SectionHeader({
       </div>
       <div>
         <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
-        {subtitle && <p className="text-[8px] text-white/60 font-bold uppercase tracking-widest">{subtitle}</p>}
+        {subtitle && <p className="text-[8px] text-white/75 font-bold uppercase tracking-widest">{subtitle}</p>}
       </div>
     </div>
   );
@@ -226,12 +226,12 @@ function CampusRow({
   highlightColor?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors border-b border-white/10 last:border-0">
-      <span className="text-[10px] font-black text-white/40 w-5 text-right tabular-nums">{rank}</span>
+    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors border-b border-white/10 last:border-0">
+      <span className="text-[10px] font-black text-white/55 w-5 text-right tabular-nums">{rank}</span>
       <span className="text-xs font-bold text-white/90 truncate w-28 shrink-0">{name}</span>
       {metrics.map((m, i) => (
         <div key={i} className="flex items-center gap-1.5 flex-1">
-          <span className="text-[9px] font-black text-white/40 w-12 text-right tabular-nums">{m.value}%</span>
+          <span className="text-[9px] font-black text-white/55 w-12 text-right tabular-nums">{m.value}%</span>
           <MiniBar value={m.value} color={m.color || statusColor(m.value)} />
         </div>
       ))}
@@ -242,10 +242,10 @@ function CampusRow({
 // ─── Narrative Card ──────────────────────────────────────────────────────────
 function NarrativeCard({ title, text, color }: { title: string; text: string; color: string }) {
   return (
-    <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-4 flex flex-col gap-2 shadow-md">
+    <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 flex flex-col gap-2 shadow-md">
       <div className="flex items-center gap-2">
         <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/60">{title}</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/75">{title}</p>
       </div>
       <p className="text-[10px] text-white/80 leading-relaxed">{text}</p>
     </div>
@@ -322,7 +322,7 @@ function GreenDonut({
       {centerLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <p className="text-sm font-black text-white tabular-nums">{centerValue}</p>
-          <p className="text-[6px] font-black uppercase tracking-widest text-white/50 mt-0.5">{centerLabel}</p>
+          <p className="text-[6px] font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
         </div>
       )}
     </div>
@@ -342,7 +342,7 @@ function TrendLine({
   areaColor?: string;
 }) {
   if (!data.length)
-    return <div className="h-full flex items-center justify-center text-[8px] text-white/30">No data</div>;
+    return <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>;
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
@@ -380,7 +380,7 @@ function LegendRow({ items }: { items: { name: string; color: string }[] }) {
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-1">
           <div className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-          <span className="text-[6px] font-bold text-white/50 uppercase tracking-wider">{item.name}</span>
+          <span className="text-[6px] font-bold text-white/65 uppercase tracking-wider">{item.name}</span>
         </div>
       ))}
     </div>
@@ -434,17 +434,17 @@ function ViewOverview({
       />
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
         {/* Grade card */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm flex flex-col items-center justify-center p-3 relative overflow-hidden shadow-lg">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md flex flex-col items-center justify-center p-3 relative overflow-hidden shadow-lg">
           <div
             className="absolute inset-0"
             style={{ background: `radial-gradient(circle at 50% 50%, ${sc}15, transparent 70%)` }}
           />
-          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/50">EOMS</p>
+          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/65">EOMS</p>
           <div className="text-5xl font-black leading-none" style={{ color: sc }}>
             {grade}
           </div>
           <AnimatedNumber value={eomsScore} suffix="%" className="text-base font-black text-white mt-1" />
-          <p className="text-[7px] text-white/50 font-bold uppercase tracking-widest mt-1 text-center leading-tight">
+          <p className="text-[7px] text-white/65 font-bold uppercase tracking-widest mt-1 text-center leading-tight">
             {eomsScore >= 88
               ? 'Mature'
               : eomsScore >= 70
@@ -456,70 +456,70 @@ function ViewOverview({
         </div>
 
         {/* Quality Dimensions horizontal bars */}
-        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-2">Quality Dimensions</p>
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-2">Quality Dimensions</p>
           <div className="space-y-1.5">
             {radarData.map((d) => (
               <div key={d.subject} className="flex items-center gap-2">
-                <span className="text-[7px] font-bold text-white/60 w-14 truncate">{d.subject}</span>
-                <div className="flex-1 h-2.5 bg-white/10 rounded-full overflow-hidden">
+                <span className="text-[7px] font-bold text-white/75 w-14 truncate">{d.subject}</span>
+                <div className="flex-1 h-2.5 bg-white/20 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${d.value}%`, background: d.color, opacity: 0.85 }}
                   />
                 </div>
-                <span className="text-[8px] font-black text-white/70 w-7 text-right tabular-nums">{d.value}%</span>
+                <span className="text-[8px] font-black text-white/85 w-7 text-right tabular-nums">{d.value}%</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Submission Trend Line Chart */}
-        <div className="col-span-4 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-2 shrink-0">
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-2 shrink-0">
             Submission Trend
           </p>
           <div className="flex-1 min-h-0">
             {trendData.length > 0 ? (
               <TrendLine data={trendData} dataKey="value" strokeColor={P.green} />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/30">Insufficient data</div>
+              <div className="h-full flex items-center justify-center text-[8px] text-white/45">Insufficient data</div>
             )}
           </div>
         </div>
 
         {/* Risk Severity Donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">Risk Severity</p>
+        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
           <div className="flex-1 w-full min-h-0 flex items-center justify-center">
             {riskDist.length > 0 ? (
               <GreenDonut data={riskDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <span className="text-[8px] text-white/30">No data</span>
+              <span className="text-[8px] text-white/45">No data</span>
             )}
           </div>
           <LegendRow items={riskDist} />
         </div>
 
         {/* CAR Status Donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">CAR Status</p>
+        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
           <div className="flex-1 w-full min-h-0 flex items-center justify-center">
             {carDist.length > 0 ? (
               <GreenDonut data={carDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <span className="text-[8px] text-white/30">No data</span>
+              <span className="text-[8px] text-white/45">No data</span>
             )}
           </div>
           <LegendRow items={carDist} />
         </div>
 
         {/* Campus ranking table */}
-        <div className="col-span-6 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 flex flex-col shadow-lg">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">
+        <div className="col-span-6 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 flex flex-col shadow-lg">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Campus Performance Ranking
           </p>
-          <div className="flex text-[7px] font-black text-white/30 uppercase tracking-wider mb-1 px-3">
+          <div className="flex text-[7px] font-black text-white/45 uppercase tracking-wider mb-1 px-3">
             <span className="w-5 shrink-0" />
             <span className="w-24 shrink-0">Campus</span>
             <span className="flex-1 text-center">Sub</span>
@@ -539,11 +539,11 @@ function ViewOverview({
         {/* Top / Low performer + Narrative */}
         <div className="col-span-6 grid grid-cols-2 gap-2">
           {topCampus && (
-            <div className="rounded-xl border border-green-500/30 bg-green-500/10 backdrop-blur-sm p-3 shadow-md flex flex-col justify-center">
+            <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
               <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300">Top Performer</p>
               <p className="text-xs font-black text-green-200">{topCampus.name}</p>
-              <p className="text-[8px] text-white/70 mt-0.5">Leading at {topCampus.compositeScore}% composite score</p>
-              <div className="flex gap-3 mt-1.5 text-[7px] text-white/50">
+              <p className="text-[8px] text-white/85 mt-0.5">Leading at {topCampus.compositeScore}% composite score</p>
+              <div className="flex gap-3 mt-1.5 text-[7px] text-white/65">
                 <span>Sub {topCampus.subsRate}%</span>
                 <span>Risk {topCampus.riskRate}%</span>
                 <span>CAR {topCampus.carRate}%</span>
@@ -551,23 +551,23 @@ function ViewOverview({
             </div>
           )}
           {lowCampus && (
-            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm p-3 shadow-md flex flex-col justify-center">
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
               <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">Needs Attention</p>
               <p className="text-xs font-black text-yellow-400">{lowCampus.name}</p>
-              <p className="text-[8px] text-white/70 mt-0.5">At {lowCampus.compositeScore}% — needs intervention</p>
-              <div className="flex gap-3 mt-1.5 text-[7px] text-white/50">
+              <p className="text-[8px] text-white/85 mt-0.5">At {lowCampus.compositeScore}% — needs intervention</p>
+              <div className="flex gap-3 mt-1.5 text-[7px] text-white/65">
                 <span>Sub {lowCampus.subsRate}%</span>
                 <span>Risk {lowCampus.riskRate}%</span>
                 <span>CAR {lowCampus.carRate}%</span>
               </div>
             </div>
           )}
-          <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-md flex flex-col justify-center">
-            <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50">Institution Overview</p>
-            <p className="text-[9px] text-white/70 mt-1 leading-relaxed">
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
+            <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65">Institution Overview</p>
+            <p className="text-[9px] text-white/85 mt-1 leading-relaxed">
               {totalSubs} submissions · {totalRisks} risks · {totalCars} CARs across {campuses.length} campuses
             </p>
-            <p className="text-[7px] text-white/40 mt-1">
+            <p className="text-[7px] text-white/55 mt-1">
               The EOMS score integrates submission compliance, risk mitigation, CAR closure, audit progress, and
               accreditation.
             </p>
@@ -636,8 +636,8 @@ function ViewSubmissions({
         </div>
 
         {/* Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Status Breakdown</p>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={subDist}
@@ -652,22 +652,22 @@ function ViewSubmissions({
         </div>
 
         {/* Monthly trend line */}
-        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Monthly Submission Trend
           </p>
           <div className="flex-1 min-h-0">
             {trendData.length > 0 ? (
               <TrendLine data={trendData} dataKey="value" strokeColor={P.green} />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/30">Insufficient data</div>
+              <div className="h-full flex items-center justify-center text-[8px] text-white/45">Insufficient data</div>
             )}
           </div>
         </div>
 
         {/* Campus compliance bar chart */}
-        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Compliance by Campus
           </p>
           <div className="flex-1 min-h-0">
@@ -694,21 +694,21 @@ function ViewSubmissions({
 
         {/* Top/Bottom performers + Narrative */}
         <div className="col-span-2 flex flex-col gap-2">
-          <div className="rounded-xl border border-green-500/30 bg-green-500/10 backdrop-blur-sm p-3 shadow-md">
+          <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md">
             <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
             {top3.map((c, i) => (
               <div key={i} className="flex items-center justify-between mt-1.5">
-                <span className="text-[8px] font-bold text-white/70 truncate max-w-[80px]">{c.name}</span>
+                <span className="text-[8px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
                 <span className="text-[8px] font-black text-green-300">{c.rate}%</span>
               </div>
             ))}
           </div>
           {bottom3.length > 0 && (
-            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm p-3 shadow-md">
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md">
               <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
               {bottom3.map((c, i) => (
                 <div key={i} className="flex items-center justify-between mt-1.5">
-                  <span className="text-[8px] font-bold text-white/70 truncate max-w-[80px]">{c.name}</span>
+                  <span className="text-[8px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
                   <span className="text-[8px] font-black text-yellow-400">{c.rate}%</span>
                 </div>
               ))}
@@ -764,17 +764,17 @@ function ViewRisks({
           <KpiTile label="Mitigation Rate" value={rate} icon={ShieldCheck} color={statusColor(rate)} />
           <KpiTile label="Total Risks" value={totalRisks} suffix="" icon={AlertTriangle} color={P.gold} />
           {highRisks > 0 && (
-            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm px-4 py-3">
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md px-4 py-3">
               <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">High Risk</p>
               <p className="text-2xl font-black text-white tabular-nums">{highRisks}</p>
-              <p className="text-[7px] text-white/60 mt-0.5">Requires immediate attention</p>
+              <p className="text-[7px] text-white/75 mt-0.5">Requires immediate attention</p>
             </div>
           )}
         </div>
 
         {/* Severity donut */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Severity Distribution</p>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Severity Distribution</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={severityDist}
@@ -789,8 +789,8 @@ function ViewRisks({
         </div>
 
         {/* Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Status Breakdown</p>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut data={statusDist} dataKey="value" nameKey="name" size="100%" />
           </div>
@@ -798,8 +798,8 @@ function ViewRisks({
         </div>
 
         {/* Mitigation bar chart */}
-        <div className="col-span-4 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Mitigation by Campus
           </p>
           <div className="flex-1 min-h-0">
@@ -898,8 +898,8 @@ function ViewCars({
         </div>
 
         {/* CAR Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">CAR Status</p>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">CAR Status</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={carStatusDist}
@@ -914,34 +914,34 @@ function ViewCars({
         </div>
 
         {/* CAR Nature donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">NC vs OFI</p>
+        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">NC vs OFI</p>
           <div className="flex-1 w-full min-h-0">
             {carNatureDist.length > 0 ? (
               <GreenDonut data={carNatureDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/30">No data</div>
+              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>
             )}
           </div>
           <LegendRow items={carNatureDist} />
         </div>
 
         {/* Audit Status donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Audit Status</p>
+        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Audit Status</p>
           <div className="flex-1 w-full min-h-0">
             {auditDist.length > 0 ? (
               <GreenDonut data={auditDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/30">No audits</div>
+              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No audits</div>
             )}
           </div>
           <LegendRow items={auditDist} />
         </div>
 
         {/* CAR closure bar chart */}
-        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             CAR Closure by Campus
           </p>
           <div className="flex-1 min-h-0">
@@ -1041,17 +1041,17 @@ function ViewAccred({
             sub={`${withCopc} with COPC`}
           />
           {noCopc > 0 && (
-            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm px-4 py-3">
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md px-4 py-3">
               <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">No COPC</p>
               <p className="text-2xl font-black text-white tabular-nums">{noCopc}</p>
-              <p className="text-[7px] text-white/60 mt-0.5">Programs needing attention</p>
+              <p className="text-[7px] text-white/75 mt-0.5">Programs needing attention</p>
             </div>
           )}
         </div>
 
         {/* COPC donut */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">COPC Status</p>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">COPC Status</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={copcDist}
@@ -1066,34 +1066,34 @@ function ViewAccred({
         </div>
 
         {/* Accreditation level donut */}
-        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Accreditation Levels</p>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Accreditation Levels</p>
           <div className="flex-1 w-full min-h-0">
             {accredDist.length > 0 ? (
               <GreenDonut data={accredDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/30">No data</div>
+              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>
             )}
           </div>
           <LegendRow items={accredDist} />
         </div>
 
         {/* Program level donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Program Level</p>
+        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Program Level</p>
           <div className="flex-1 w-full min-h-0">
             {progLevelDist.length > 0 ? (
               <GreenDonut data={progLevelDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/30">No data</div>
+              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>
             )}
           </div>
           <LegendRow items={progLevelDist} />
         </div>
 
         {/* COPC by campus bar chart */}
-        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/50 mb-1 shrink-0">
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             COPC by Campus
           </p>
           <div className="flex-1 min-h-0">
@@ -1849,14 +1849,14 @@ export default function ExecutiveDisplayPage() {
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
             <ShieldCheck className="h-4 w-4 text-yellow-400" />
           </div>
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
               RSU Executive Academic and Operations Overview
             </p>
-            <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
+            <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">
               Real-time Institutional Performance Dashboard
             </p>
           </div>
@@ -1878,7 +1878,7 @@ export default function ExecutiveDisplayPage() {
                   'flex items-center gap-1 px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest transition-all',
                   currentView === i && animPhase === 'show'
                     ? 'bg-white/15 text-white border border-white/20'
-                    : 'text-white/30 hover:text-white/60 hover:bg-white/5',
+                    : 'text-white/45 hover:text-white/75 hover:bg-white/5',
                 )}
               >
                 <Icon className="h-2.5 w-2.5" />
@@ -1899,23 +1899,23 @@ export default function ExecutiveDisplayPage() {
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
           >
             {isFullscreen ? (
-              <Minimize2 className="h-3 w-3 text-white/70" />
+              <Minimize2 className="h-3 w-3 text-white/85" />
             ) : (
               <Maximize2 className="h-3 w-3 text-yellow-400" />
             )}
             <span
-              className={`text-[7px] font-black uppercase tracking-widest ${isFullscreen ? 'text-white/50' : 'text-yellow-400'}`}
+              className={`text-[7px] font-black uppercase tracking-widest ${isFullscreen ? 'text-white/65' : 'text-yellow-400'}`}
             >
               {isFullscreen ? 'Fullscreen' : 'Fullscreen'}
             </span>
           </button>
           <div className="text-right">
             <p className="text-sm font-black tabular-nums text-white">{timeStr}</p>
-            <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{dateStr}</p>
+            <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">{dateStr}</p>
           </div>
           <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
             <button className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
-              <X className="h-3 w-3 text-white/60" />
+              <X className="h-3 w-3 text-white/75" />
             </button>
           </Link>
         </div>
@@ -1923,7 +1923,7 @@ export default function ExecutiveDisplayPage() {
 
       {/* Timer bar */}
       <div className="relative z-10 px-6 shrink-0">
-        <div className="w-full h-0.5 bg-white/10 rounded-full overflow-hidden">
+        <div className="w-full h-0.5 bg-white/20 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-200"
             style={{
@@ -1955,7 +1955,7 @@ export default function ExecutiveDisplayPage() {
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
-        <p className="text-[7px] font-bold text-white/30 uppercase tracking-widest">
+        <p className="text-[7px] font-bold text-white/45 uppercase tracking-widest">
           AY {selectedYear}–{selectedYear + 1} &middot; Real-time
         </p>
         <div className="flex items-center gap-3">
@@ -1966,7 +1966,7 @@ export default function ExecutiveDisplayPage() {
             }}
             className="h-5 w-5 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
           >
-            <ChevronLeft className="h-2.5 w-2.5 text-white/50" />
+            <ChevronLeft className="h-2.5 w-2.5 text-white/65" />
           </button>
           <div className="flex gap-1">
             {Array.from({ length: TOTAL_VIEWS }).map((_, i) => (
@@ -1995,7 +1995,7 @@ export default function ExecutiveDisplayPage() {
             }}
             className="h-5 w-5 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
           >
-            <ChevronRight className="h-2.5 w-2.5 text-white/50" />
+            <ChevronRight className="h-2.5 w-2.5 text-white/65" />
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -2008,7 +2008,7 @@ export default function ExecutiveDisplayPage() {
             ) : (
               <>
                 <div className="h-1 w-1 rounded-full bg-white/30" />
-                <span className="text-[6px] font-black uppercase tracking-widest text-white/30">Manual</span>
+                <span className="text-[6px] font-black uppercase tracking-widest text-white/45">Manual</span>
               </>
             )}
           </div>
