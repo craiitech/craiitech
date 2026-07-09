@@ -259,6 +259,7 @@ function GreenDonut({
   centerLabel,
   centerValue,
   size = '100%',
+  showDataSummary = false,
 }: {
   data: { name: string; value: number; color: string }[];
   dataKey: string;
@@ -266,37 +267,45 @@ function GreenDonut({
   centerLabel?: string;
   centerValue?: string;
   size?: string;
+  showDataSummary?: boolean;
 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div className="relative w-full h-full">
-      <ResponsiveContainer width={size} height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey={dataKey}
-            nameKey={nameKey}
-            cx="50%"
-            cy="50%"
-            innerRadius={55}
-            outerRadius={80}
-            paddingAngle={2}
-            stroke="none"
-            labelLine={false}
-            label={false}
-          >
-            {data.map((entry, i) => (
-              <Cell key={i} fill={entry.color} fillOpacity={0.85} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-      {centerLabel && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-lg font-black text-white tabular-nums">{centerValue}</p>
-          <p className="text-sm font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
+    <div className="relative w-full h-full flex flex-col">
+      {showDataSummary && data.length > 0 && (
+        <div className="shrink-0 text-center text-[9px] text-white/80 font-bold uppercase tracking-wider mb-0.5 leading-tight">
+          {data.map((d) => `${d.name}: ${d.value}`).join(' · ')}
         </div>
       )}
+      <div className="flex-1 relative min-h-0">
+        <ResponsiveContainer width={size} height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey={dataKey}
+              nameKey={nameKey}
+              cx="50%"
+              cy="50%"
+              innerRadius={55}
+              outerRadius={80}
+              paddingAngle={2}
+              stroke="none"
+              labelLine={false}
+              label={false}
+            >
+              {data.map((entry, i) => (
+                <Cell key={i} fill={entry.color} fillOpacity={0.85} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        {centerLabel && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <p className="text-lg font-black text-white tabular-nums">{centerValue}</p>
+            <p className="text-sm font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -459,7 +468,7 @@ function ViewOverview({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
           <div className="flex-1 w-full min-h-0">
             {riskDist.length > 0 ? (
-              <GreenDonut data={riskDist} dataKey="value" nameKey="name" size="100%" />
+              <GreenDonut data={riskDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
             ) : (
               <span className="text-[11px] text-white/45">No data</span>
             )}
@@ -472,7 +481,7 @@ function ViewOverview({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
           <div className="flex-1 w-full min-h-0">
             {carDist.length > 0 ? (
-              <GreenDonut data={carDist} dataKey="value" nameKey="name" size="100%" />
+              <GreenDonut data={carDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
             ) : (
               <span className="text-[11px] text-white/45">No data</span>
             )}
@@ -616,6 +625,7 @@ function ViewSubmissions({
               size="100%"
               centerLabel="Total"
               centerValue={String(totalSubs)}
+              showDataSummary
             />
           </div>
           <LegendRow items={subDist} />
@@ -779,6 +789,7 @@ function ViewRisks({
               size="100%"
               centerLabel="Total"
               centerValue={String(totalRisks)}
+              showDataSummary
             />
           </div>
           <LegendRow items={severityDist} />
@@ -788,7 +799,7 @@ function ViewRisks({
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
-            <GreenDonut data={statusDist} dataKey="value" nameKey="name" size="100%" />
+            <GreenDonut data={statusDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
           </div>
           <LegendRow items={statusDist} />
         </div>
@@ -916,6 +927,7 @@ function ViewCars({
               size="100%"
               centerLabel="Total"
               centerValue={String(totalCars)}
+              showDataSummary
             />
           </div>
           <LegendRow items={carStatusDist} />
@@ -926,7 +938,7 @@ function ViewCars({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">NC vs OFI</p>
           <div className="flex-1 w-full min-h-0">
             {carNatureDist.length > 0 ? (
-              <GreenDonut data={carNatureDist} dataKey="value" nameKey="name" size="100%" />
+              <GreenDonut data={carNatureDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
             ) : (
               <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>
             )}
@@ -939,7 +951,7 @@ function ViewCars({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Audit Status</p>
           <div className="flex-1 w-full min-h-0">
             {auditDist.length > 0 ? (
-              <GreenDonut data={auditDist} dataKey="value" nameKey="name" size="100%" />
+              <GreenDonut data={auditDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
             ) : (
               <div className="h-full flex items-center justify-center text-[11px] text-white/45">No audits</div>
             )}
@@ -1086,6 +1098,7 @@ function ViewAccred({
               size="100%"
               centerLabel="Programs"
               centerValue={String(totalPrograms)}
+              showDataSummary
             />
           </div>
           <LegendRow items={copcDist} />
@@ -1098,7 +1111,7 @@ function ViewAccred({
           </p>
           <div className="flex-1 min-h-0 flex flex-col">
             <div className="h-[55%]">
-              <GreenDonut data={accredDist} dataKey="value" nameKey="name" size="100%" />
+              <GreenDonut data={accredDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
             </div>
             <div className="h-px bg-white/10 my-1" />
             <div className="flex-1 overflow-hidden">
