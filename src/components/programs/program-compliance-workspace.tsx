@@ -33,17 +33,23 @@ function sanitizeForFirestore(obj: any): any {
 }
 
 const emptyEnrollment = { male: 0, female: 0, total: 0, specialNeeds: 0 };
-const emptyYearLevelEnrollment = { 
-    firstYear: { ...emptyEnrollment }, 
-    secondYear: { ...emptyEnrollment }, 
-    thirdYear: { ...emptyEnrollment }, 
-    fourthYear: { ...emptyEnrollment } 
+const emptyYearLevelEnrollment = {
+  firstYear: { ...emptyEnrollment },
+  secondYear: { ...emptyEnrollment },
+  thirdYear: { ...emptyEnrollment },
+  fourthYear: { ...emptyEnrollment },
 };
-const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned' as const, sex: 'Female' as const };
+const emptyLeadership = {
+  name: '',
+  academicRank: '',
+  highestEducation: '',
+  isAlignedWithCMO: 'Aligned' as const,
+  sex: 'Female' as const,
+};
 
 interface ProgramComplianceWorkspaceProps {
-    program: AcademicProgram;
-    campusId: string;
+  program: AcademicProgram;
+  campusId: string;
 }
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
@@ -52,10 +58,17 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   const { toast } = useToast();
   const [selectedAY, setSelectedAY] = useState<number>(new Date().getFullYear());
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("performance");
+  const [activeTab, setActiveTab] = useState('performance');
 
   const roleLower = userRole?.toLowerCase() || '';
-  const canEdit = !!(isAdmin || isMainCampusDOI || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi || (userProfile?.campusId === campusId && (roleLower.includes('coordinator') || roleLower.includes('odimo') || isDoi)));
+  const canEdit = !!(
+    isAdmin ||
+    isMainCampusDOI ||
+    userRole === 'Campus Director' ||
+    userRole === 'Campus ODIMO' ||
+    isDoi ||
+    (userProfile?.campusId === campusId && (roleLower.includes('coordinator') || roleLower.includes('odimo') || isDoi))
+  );
 
   /**
    * ACADEMIC YEAR GENERATION
@@ -68,7 +81,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     const current = new Date().getFullYear();
     const years = new Set<number>();
     for (let i = -2; i < 6; i++) years.add(current - i);
-    allCycles?.forEach(c => years.add(Number(c.year)));
+    allCycles?.forEach((c) => years.add(Number(c.year)));
     return Array.from(years).sort((a, b) => b - a);
   }, [allCycles]);
 
@@ -78,12 +91,13 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
    */
   const allProgramCompliancesQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'programCompliances'), where('programId', '==', program.id)) : null),
-    [firestore, program.id]
+    [firestore, program.id],
   );
-  const { data: allRecords, isLoading: isLoadingRecords } = useCollection<ProgramComplianceRecord>(allProgramCompliancesQuery);
+  const { data: allRecords, isLoading: isLoadingRecords } =
+    useCollection<ProgramComplianceRecord>(allProgramCompliancesQuery);
 
   const activeRecord = useMemo(() => {
-    return allRecords?.find(r => r.academicYear === selectedAY) || null;
+    return allRecords?.find((r) => r.academicYear === selectedAY) || null;
   }, [allRecords, selectedAY]);
 
   const latestHistoricalRecord = useMemo(() => {
@@ -95,25 +109,41 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { 
-        copcStatus: 'In Progress', 
-        copcLink: '', 
+      ched: {
+        copcStatus: 'In Progress',
+        copcLink: '',
         copcAwardDate: '',
+        majorCopcs: [],
         boardApprovalMode: 'sole',
-        boardApprovalLink: '', 
+        boardApprovalLink: '',
         majorBoardApprovals: [],
-        programCmoLink: '', 
+        programCmoLink: '',
         rqatVisits: [],
         closureResolutionLink: '',
         closureApprovalDate: '',
-        closureReferendumNumber: ''
+        closureReferendumNumber: '',
       },
       accreditationRecords: [],
       curriculumRecords: [],
       enrollmentRecords: [],
-      faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
-      stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
-      graduationRecords: [], tracerRecords: [], boardPerformance: []
+      faculty: {
+        hasAssociateDean: false,
+        dean: { ...emptyLeadership },
+        associateDean: { ...emptyLeadership },
+        programChair: { ...emptyLeadership },
+        members: [],
+      },
+      stats: {
+        enrollment: {
+          firstSemester: { ...emptyYearLevelEnrollment },
+          secondSemester: { ...emptyYearLevelEnrollment },
+          midYearTerm: { ...emptyYearLevelEnrollment },
+        },
+        graduationCount: 0,
+      },
+      graduationRecords: [],
+      tracerRecords: [],
+      boardPerformance: [],
     },
   });
 
@@ -127,11 +157,11 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     if (currentId === lastResetId.current) return;
 
     if (activeRecord) {
-      methods.reset({ 
-        ...activeRecord, 
+      methods.reset({
+        ...activeRecord,
         academicYear: selectedAY,
         curriculumRecords: activeRecord.curriculumRecords || [],
-        enrollmentRecords: activeRecord.enrollmentRecords || []
+        enrollmentRecords: activeRecord.enrollmentRecords || [],
       });
     } else if (latestHistoricalRecord) {
       methods.reset({
@@ -142,40 +172,69 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         ched: latestHistoricalRecord.ched || {},
         accreditationRecords: latestHistoricalRecord.accreditationRecords || [],
         curriculumRecords: latestHistoricalRecord.curriculumRecords || [],
-        faculty: latestHistoricalRecord.faculty || { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
+        faculty: latestHistoricalRecord.faculty || {
+          hasAssociateDean: false,
+          dean: { ...emptyLeadership },
+          associateDean: { ...emptyLeadership },
+          programChair: { ...emptyLeadership },
+          members: [],
+        },
         enrollmentRecords: [],
-        stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
-        graduationRecords: [], 
+        stats: {
+          enrollment: {
+            firstSemester: { ...emptyYearLevelEnrollment },
+            secondSemester: { ...emptyYearLevelEnrollment },
+            midYearTerm: { ...emptyYearLevelEnrollment },
+          },
+          graduationCount: 0,
+        },
+        graduationRecords: [],
         boardPerformance: [],
-        tracerRecords: []
+        tracerRecords: [],
       });
-      
-      toast({ 
-        title: 'New Cycle Initialized', 
+
+      toast({
+        title: 'New Cycle Initialized',
         description: `Permanent regulatory evidence has been carried over from AY ${latestHistoricalRecord.academicYear}.`,
       });
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { 
-            copcStatus: 'In Progress', 
-            copcLink: '', 
-            copcAwardDate: '',
-            boardApprovalMode: 'sole',
-            boardApprovalLink: '', 
-            majorBoardApprovals: [],
-            programCmoLink: '', 
-            rqatVisits: [],
-            closureResolutionLink: '',
-            closureApprovalDate: '',
-            closureReferendumNumber: ''
+        ched: {
+          copcStatus: 'In Progress',
+          copcLink: '',
+          copcAwardDate: '',
+          majorCopcs: [],
+          boardApprovalMode: 'sole',
+          boardApprovalLink: '',
+          majorBoardApprovals: [],
+          programCmoLink: '',
+          rqatVisits: [],
+          closureResolutionLink: '',
+          closureApprovalDate: '',
+          closureReferendumNumber: '',
         },
         accreditationRecords: [],
         curriculumRecords: [],
         enrollmentRecords: [],
-        faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
-        stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
-        graduationRecords: [], tracerRecords: [], boardPerformance: []
+        faculty: {
+          hasAssociateDean: false,
+          dean: { ...emptyLeadership },
+          associateDean: { ...emptyLeadership },
+          programChair: { ...emptyLeadership },
+          members: [],
+        },
+        stats: {
+          enrollment: {
+            firstSemester: { ...emptyYearLevelEnrollment },
+            secondSemester: { ...emptyYearLevelEnrollment },
+            midYearTerm: { ...emptyYearLevelEnrollment },
+          },
+          graduationCount: 0,
+        },
+        graduationRecords: [],
+        tracerRecords: [],
+        boardPerformance: [],
       });
     }
     lastResetId.current = currentId;
@@ -187,25 +246,30 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
-    
+
     if (values.ched?.boardApprovalMode === 'per-major' && program.specializations) {
-        values.ched.majorBoardApprovals = values.ched.majorBoardApprovals?.map((a: any, idx: number) => ({
-            ...a,
-            majorId: program.specializations![idx]?.id
+      values.ched.majorBoardApprovals =
+        values.ched.majorBoardApprovals?.map((a: any, idx: number) => ({
+          ...a,
+          majorId: program.specializations![idx]?.id,
         })) || [];
     }
 
-    const sanitizedData = sanitizeForFirestore({ 
-        ...values, 
-        id: recordId,
-        academicYear: selectedAY, 
-        programId: program.id, 
-        campusId,
-        unitId: program.collegeId 
+    const sanitizedData = sanitizeForFirestore({
+      ...values,
+      id: recordId,
+      academicYear: selectedAY,
+      programId: program.id,
+      campusId,
+      unitId: program.collegeId,
     });
 
     try {
-      await setDoc(docRef, { ...sanitizedData, updatedAt: serverTimestamp(), updatedBy: userProfile.id }, { merge: true });
+      await setDoc(
+        docRef,
+        { ...sanitizedData, updatedAt: serverTimestamp(), updatedBy: userProfile.id },
+        { merge: true },
+      );
       toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved.` });
     } catch (error) {
       toast({ title: 'Save Failed', description: 'Could not update record.', variant: 'destructive' });
@@ -222,52 +286,89 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             <ShieldCheck className="h-5 w-5 text-primary" />
             <span className="text-sm font-semibold uppercase tracking-wider">Academic Monitoring System</span>
             <div className="flex flex-col">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1 flex items-center gap-1">
-                    <Filter className="h-2.5 w-2.5" /> Registry Year
-                </label>
-                <Select value={String(selectedAY)} onValueChange={(v) => setSelectedAY(Number(v))}>
-                  <SelectTrigger className="w-[180px] h-9 bg-white font-bold"><SelectValue placeholder="Academic Year" /></SelectTrigger>
-                  <SelectContent>{academicYears.map(year => <SelectItem key={year} value={String(year)}>AY {year}</SelectItem>)}</SelectContent>
-                </Select>
+              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1 flex items-center gap-1">
+                <Filter className="h-2.5 w-2.5" /> Registry Year
+              </label>
+              <Select value={String(selectedAY)} onValueChange={(v) => setSelectedAY(Number(v))}>
+                <SelectTrigger className="w-[180px] h-9 bg-white font-bold">
+                  <SelectValue placeholder="Academic Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      AY {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!canEdit && <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">Read-Only</Badge>}
+            {!canEdit && (
+              <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">
+                Read-Only
+              </Badge>
+            )}
             {canEdit && (
               <Button type="submit" disabled={isSaving} className="shadow-lg shadow-primary/20">
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Compliance Record
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
+                Compliance Record
               </Button>
             )}
           </div>
         </div>
 
         {isLoadingRecords ? (
-          <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+          </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-6">
-              <TabsTrigger value="performance" className="py-2"><Presentation className="mr-2 h-4 w-4" /> Performance</TabsTrigger>
-              <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
-              <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
-              <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
-              <TabsTrigger value="curriculum" className="py-2"><BookOpen className="mr-2 h-4 w-4" /> Curriculum</TabsTrigger>
-              <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
+              <TabsTrigger value="performance" className="py-2">
+                <Presentation className="mr-2 h-4 w-4" /> Performance
+              </TabsTrigger>
+              <TabsTrigger value="ched" className="py-2">
+                <FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT
+              </TabsTrigger>
+              <TabsTrigger value="accreditation" className="py-2">
+                <ShieldCheck className="mr-2 h-4 w-4" /> Accreditation
+              </TabsTrigger>
+              <TabsTrigger value="faculty" className="py-2">
+                <Users className="mr-2 h-4 w-4" /> Faculty
+              </TabsTrigger>
+              <TabsTrigger value="curriculum" className="py-2">
+                <BookOpen className="mr-2 h-4 w-4" /> Curriculum
+              </TabsTrigger>
+              <TabsTrigger value="outcomes" className="py-2">
+                <BarChart3 className="mr-2 h-4 w-4" /> Outcomes
+              </TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
               <TabsContent value="performance">
-                <ProgramPerformanceView 
-                    program={program} 
-                    record={activeRecord} 
-                    selectedYear={selectedAY} 
-                    onResolveDeficiency={(tab) => setActiveTab(tab)}
+                <ProgramPerformanceView
+                  program={program}
+                  record={activeRecord}
+                  selectedYear={selectedAY}
+                  onResolveDeficiency={(tab) => setActiveTab(tab)}
                 />
               </TabsContent>
-              <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} program={program} /></TabsContent>
-              <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
-              <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>
-              <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
-              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} program={program} /></TabsContent>
+              <TabsContent value="ched">
+                <ChedComplianceModule canEdit={canEdit} program={program} />
+              </TabsContent>
+              <TabsContent value="accreditation">
+                <AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} />
+              </TabsContent>
+              <TabsContent value="faculty">
+                <FacultyModule canEdit={canEdit} program={program} />
+              </TabsContent>
+              <TabsContent value="curriculum">
+                <CurriculumModule canEdit={canEdit} programSpecializations={program.specializations} />
+              </TabsContent>
+              <TabsContent value="outcomes">
+                <OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} program={program} />
+              </TabsContent>
             </div>
           </Tabs>
         )}

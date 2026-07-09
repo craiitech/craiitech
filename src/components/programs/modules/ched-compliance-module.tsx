@@ -77,6 +77,16 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
     name: 'ched.rqatVisits',
   });
 
+  const {
+    fields: majorCopcFields,
+    append: appendMajorCopc,
+    remove: removeMajorCopc,
+  } = useFieldArray({
+    control,
+    name: 'ched.majorCopcs',
+  });
+
+  const majorCopcValues = useWatch({ control, name: 'ched.majorCopcs' }) || [];
   const hasSpecializations = program?.hasSpecializations && (program?.specializations?.length || 0) > 0;
 
   return (
@@ -178,18 +188,124 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
             <GDrivePreview url={copcLinkVal} title="CHED COPC Certificate" />
 
             {hasSpecializations && (
-              <div className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50/80">
-                <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-800">
-                    Institutional COPC — Program with Majors
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5" /> Additional COPC
                   </p>
-                  <p className="text-[10px] text-amber-700 leading-relaxed">
-                    This program has <strong>{program.specializations?.length}</strong> registered major(s). CHED issues
-                    a <strong>single institutional COPC</strong> that covers all majors under this program umbrella. Do
-                    not add separate COPC entries per major — the certificate above applies to the entire program
-                    offering.
-                  </p>
+                  {canEdit && isAdmin && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendMajorCopc({ copcStatus: 'In Progress', copcLink: '', copcAwardDate: '' })}
+                      className="h-7 text-[9px] font-black uppercase border-primary/20 text-primary"
+                    >
+                      <PlusCircle className="mr-1 h-3 w-3" /> Add COPC
+                    </Button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {majorCopcFields.map((field, idx) => (
+                    <div
+                      key={field.id}
+                      className="relative p-4 rounded-xl border bg-muted/5 space-y-3 group hover:border-primary/30 transition-all"
+                    >
+                      {canEdit && isAdmin && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeMajorCopc(idx)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      <FormField
+                        control={control}
+                        name={`ched.majorCopcs.${idx}.copcStatus`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                              COPC Status
+                            </FormLabel>
+                            <Select onValueChange={f.onChange} value={f.value} disabled={!canEdit || !isAdmin}>
+                              <FormControl>
+                                <SelectTrigger className="h-9 text-xs bg-white border-primary/10 font-bold">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="With COPC" className="font-bold text-emerald-600">
+                                  With COPC
+                                </SelectItem>
+                                <SelectItem value="No COPC" className="font-bold text-rose-600">
+                                  No COPC
+                                </SelectItem>
+                                <SelectItem value="In Progress" className="font-bold text-amber-600">
+                                  In Progress
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={control}
+                          name={`ched.majorCopcs.${idx}.copcAwardDate`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                                Award Date
+                              </FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Calendar className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                  <Input
+                                    {...f}
+                                    value={f.value || ''}
+                                    type="date"
+                                    className="pl-9 h-9 text-xs bg-white"
+                                    disabled={!canEdit || !isAdmin}
+                                  />
+                                </div>
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={control}
+                          name={`ched.majorCopcs.${idx}.copcLink`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                Certificate Link
+                                {majorCopcValues[idx]?.copcLink && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                              </FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                  <Input
+                                    {...f}
+                                    value={f.value || ''}
+                                    placeholder="https://drive.google.com/..."
+                                    className="pl-9 h-9 text-xs bg-white"
+                                    disabled={!canEdit || !isAdmin}
+                                  />
+                                </div>
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <GDrivePreview url={majorCopcValues[idx]?.copcLink} title={`Additional COPC #${idx + 1}`} />
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
