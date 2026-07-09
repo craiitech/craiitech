@@ -22,6 +22,7 @@ import {
   ChevronRight,
   X,
   Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import type {
   Submission,
@@ -57,8 +58,6 @@ const PALETTE = {
 };
 
 const P = PALETTE;
-
-const GG = { green: P.green, gold: P.gold, greenLight: P.greenLight, goldLight: P.goldLight };
 
 function gradeColor(score: number) {
   if (score >= 88) return P.green;
@@ -961,7 +960,6 @@ export default function ExecutiveDisplayPage() {
   const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const viewTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [fsAttempted, setFsAttempted] = useState(false);
 
   // ── Clock ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1017,29 +1015,43 @@ export default function ExecutiveDisplayPage() {
   }, [animPhase]);
 
   // ── Fullscreen ────────────────────────────────────────────────────────────
-  const enterFullscreen = useCallback(() => {
-    containerRef.current?.requestFullscreen().catch(() => {});
-    setFsAttempted(true);
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Fullscreen may be unavailable
+    }
   }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      containerRef.current?.requestFullscreen().catch(() => {});
-      setFsAttempted(true);
+      toggleFullscreen().catch(() => {});
     }, 1000);
     return () => clearTimeout(t);
-  }, []);
+  }, [toggleFullscreen]);
 
   useEffect(() => {
     const handler = () => {
-      const fs = !!document.fullscreenElement;
-      setIsFullscreen(fs);
-      if (!fs) {
-        setFsAttempted(false);
-      }
+      setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  // Prevent Escape from exiting fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && document.fullscreenElement) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, []);
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -1351,7 +1363,7 @@ export default function ExecutiveDisplayPage() {
   return (
     <div
       ref={containerRef}
-      onClick={enterFullscreen}
+      onClick={toggleFullscreen}
       className="h-screen w-screen text-white overflow-hidden flex flex-col select-none cursor-pointer animate-gold-green-bg"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
@@ -1415,15 +1427,26 @@ export default function ExecutiveDisplayPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Fullscreen warning */}
-          {!isFullscreen && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-yellow-500/15 border border-yellow-500/30 animate-pulse">
+          {/* Fullscreen toggle button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFullscreen();
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/8 border border-white/15 hover:bg-white/15 transition-all"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-3 w-3 text-white/70" />
+            ) : (
               <Maximize2 className="h-3 w-3 text-yellow-400" />
-              <span className="text-[7px] font-black uppercase tracking-widest text-yellow-400">
-                Click for Fullscreen
-              </span>
-            </div>
-          )}
+            )}
+            <span
+              className={`text-[7px] font-black uppercase tracking-widest ${isFullscreen ? 'text-white/50' : 'text-yellow-400'}`}
+            >
+              {isFullscreen ? 'Fullscreen' : 'Fullscreen'}
+            </span>
+          </button>
           <div className="text-right">
             <p className="text-sm font-black tabular-nums text-white">{timeStr}</p>
             <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{dateStr}</p>
