@@ -1249,18 +1249,18 @@ export default function ExecutiveDisplayPage() {
   const risksQ = useMemoFirebase(() => (firestore ? collection(firestore, 'risks') : null), [firestore]);
   const { data: rawRisks } = useCollection<Risk>(risksQ);
   const carsQ = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'corrective_action_requests') : null),
+    () => (firestore ? collection(firestore, 'correctiveActionRequests') : null),
     [firestore],
   );
   const { data: rawCars } = useCollection<CorrectiveActionRequest>(carsQ);
   const compliancesQ = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'program_compliance') : null),
+    () => (firestore ? collection(firestore, 'programCompliances') : null),
     [firestore],
   );
   const { data: rawCompliances } = useCollection<ProgramComplianceRecord>(compliancesQ);
-  const programsQ = useMemoFirebase(() => (firestore ? collection(firestore, 'academic_programs') : null), [firestore]);
+  const programsQ = useMemoFirebase(() => (firestore ? collection(firestore, 'academicPrograms') : null), [firestore]);
   const { data: rawPrograms } = useCollection<AcademicProgram>(programsQ);
-  const schedulesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'audit_schedules') : null), [firestore]);
+  const schedulesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'auditSchedules') : null), [firestore]);
   const { data: rawSchedules } = useCollection<AuditSchedule>(schedulesQ);
   const unitsQ = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(unitsQ);
