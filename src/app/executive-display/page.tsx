@@ -1,32 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from '@/firebase/firestore-wrapper';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from '@/firebase/firestore-wrapper';
 import { useYear } from '@/lib/year-provider';
-import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RTooltip,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  Legend,
-  RadialBarChart,
-  RadialBar,
-} from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Cell } from 'recharts';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -35,42 +13,35 @@ import {
   Activity,
   GraduationCap,
   CheckCircle2,
-  Clock,
-  Users,
-  Zap,
   Target,
-  BarChart3,
-  Globe,
-  ChevronLeft,
-  ChevronRight,
-  Circle,
-  Wifi,
-  WifiOff,
   ClipboardCheck,
   BookOpen,
   FileText,
+  Users,
+  ChevronLeft,
+  ChevronRight,
   X,
+  Maximize2,
 } from 'lucide-react';
 import type {
   Submission,
   Unit,
   Campus,
-  Cycle,
   Risk,
   AuditSchedule,
   CorrectiveActionRequest,
   ProgramComplianceRecord,
   AcademicProgram,
 } from '@/lib/types';
-import { normalizeReportType, isCycleActive } from '@/lib/utils';
+import { normalizeReportType } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const SLIDE_DURATION_MS = 60_000; // 1 minute
-const IDLE_TIMEOUT_MS = 5_000; // 5 seconds before auto-play resumes after last interaction
-const TOTAL_SLIDES = 5;
+const VIEW_INTERVAL_MS = 60_000;
+const IDLE_TIMEOUT_MS = 5_000;
+const TOTAL_VIEWS = 5;
 
 const PALETTE = {
   emerald: '#10b981',
@@ -85,13 +56,21 @@ const PALETTE = {
   slate: '#94a3b8',
 };
 
-// ─── Helper: grade colour ────────────────────────────────────────────────────
+const P = PALETTE;
+
 function gradeColor(score: number) {
-  if (score >= 88) return PALETTE.emerald;
-  if (score >= 70) return PALETTE.teal;
-  if (score >= 55) return PALETTE.blue;
-  if (score >= 40) return PALETTE.amber;
-  return PALETTE.rose;
+  if (score >= 88) return P.emerald;
+  if (score >= 70) return P.teal;
+  if (score >= 55) return P.blue;
+  if (score >= 40) return P.amber;
+  return P.rose;
+}
+
+function statusColor(rate: number) {
+  if (rate >= 80) return P.emerald;
+  if (rate >= 60) return P.teal;
+  if (rate >= 40) return P.amber;
+  return P.rose;
 }
 
 // ─── Animated Counter ────────────────────────────────────────────────────────
@@ -127,32 +106,6 @@ function AnimatedNumber({
   );
 }
 
-// ─── Slide Progress Bar ──────────────────────────────────────────────────────
-function SlideTimer({ running, duration }: { running: boolean; duration: number }) {
-  const [pct, setPct] = useState(0);
-  const startRef = useRef(Date.now());
-  useEffect(() => {
-    startRef.current = Date.now();
-    setPct(0);
-  }, [running]);
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => {
-      const elapsed = Date.now() - startRef.current;
-      setPct(Math.min(100, (elapsed / duration) * 100));
-    }, 200);
-    return () => clearInterval(id);
-  }, [running, duration]);
-  return (
-    <div className="w-full h-0.5 bg-white/10 rounded-full overflow-hidden">
-      <div
-        className="h-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-200"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
-
 // ─── KPI Tile ────────────────────────────────────────────────────────────────
 function KpiTile({
   label,
@@ -170,17 +123,15 @@ function KpiTile({
   sub?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 flex flex-col gap-3 hover:bg-white/8 transition-all group">
+    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">{label}</p>
-        <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: `${color}22` }}>
-          <Icon className="h-4 w-4" style={{ color }} />
+        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/50">{label}</p>
+        <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ background: `${color}22` }}>
+          <Icon className="h-3 w-3" style={{ color }} />
         </div>
       </div>
-      <div className="flex items-end gap-2">
-        <AnimatedNumber value={value} suffix={suffix} className="text-4xl font-black tabular-nums text-white" />
-      </div>
-      {sub && <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">{sub}</p>}
+      <AnimatedNumber value={value} suffix={suffix} className="text-2xl font-black tabular-nums text-white" />
+      {sub && <p className="text-[8px] text-white/40 font-bold uppercase tracking-widest">{sub}</p>}
       <div
         className="absolute bottom-0 left-0 h-0.5 w-full"
         style={{ background: `linear-gradient(to right, ${color}, transparent)` }}
@@ -202,22 +153,22 @@ function SectionHeader({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-4 mb-6">
+    <div className="flex items-center gap-3 mb-3 shrink-0">
       <div
-        className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
+        className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
         style={{ background: `${color}22`, border: `1px solid ${color}44` }}
       >
-        <Icon className="h-6 w-6" style={{ color }} />
+        <Icon className="h-4 w-4" style={{ color }} />
       </div>
       <div>
-        <h2 className="text-2xl font-black tracking-tight text-white">{title}</h2>
-        {subtitle && <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-0.5">{subtitle}</p>}
+        <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
+        {subtitle && <p className="text-[8px] text-white/40 font-bold uppercase tracking-widest">{subtitle}</p>}
       </div>
     </div>
   );
 }
 
-// ─── Custom Recharts Tooltip ──────────────────────────────────────────────────
+// ─── Custom Tooltip ──────────────────────────────────────────────────────────
 const DarkTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -234,538 +185,54 @@ const DarkTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ─── Slide 1: EOMS Health Overview ──────────────────────────────────────────
-function SlideEOMS({ data }: { data: any }) {
-  const { score, breakdown, submissions, risks, cars, programs } = data;
-  const radarData = [
-    { subject: 'Submissions', A: breakdown.submissions },
-    { subject: 'IQA Audits', A: breakdown.audits },
-    { subject: 'CAR Closure', A: breakdown.cars },
-    { subject: 'Risk Mgmt', A: breakdown.risks },
-    { subject: 'CHED COPC', A: breakdown.ched },
-    { subject: 'Accreditation', A: breakdown.accreditation },
-  ];
-
-  const grade = score >= 88 ? 'A' : score >= 70 ? 'B+' : score >= 55 ? 'B' : score >= 40 ? 'C' : 'F';
-  const scoreColor = gradeColor(score);
-
+// ─── Mini Bar ────────────────────────────────────────────────────────────────
+function MiniBar({ value, color }: { value: number; color?: string }) {
+  const c = color || statusColor(value);
   return (
-    <div className="h-full flex flex-col gap-6">
-      <SectionHeader
-        icon={ShieldCheck}
-        title="EOMS Health Overview"
-        subtitle="Educational Quality Management System — University-wide Score"
-        color={scoreColor}
+    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden w-full max-w-[80px]">
+      <div
+        className="h-full rounded-full transition-all duration-700"
+        style={{ width: `${Math.min(100, value)}%`, background: c }}
       />
-      <div className="flex-1 grid grid-cols-3 gap-6">
-        {/* Score Card */}
-        <div className="col-span-1 flex flex-col gap-6">
-          <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center p-8 relative overflow-hidden">
-            <div
-              className="absolute inset-0 rounded-2xl"
-              style={{ background: `radial-gradient(circle at 50% 50%, ${scoreColor}15, transparent 70%)` }}
-            />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-4">EOMS Grade</p>
-            <div className="text-9xl font-black tabular-nums leading-none" style={{ color: scoreColor }}>
-              {grade}
-            </div>
-            <AnimatedNumber value={score} suffix="%" className="text-3xl font-black text-white mt-3" />
-            <p className="text-xs text-white/50 font-bold uppercase tracking-widest mt-2 text-center">
-              {score >= 88
-                ? 'Mature EOMS Alignment'
-                : score >= 70
-                  ? 'Good Standing'
-                  : score >= 55
-                    ? 'Satisfactory'
-                    : 'Needs Improvement'}
-            </p>
-            <div className="mt-6 w-full bg-white/10 rounded-full h-2">
-              <div
-                className="h-2 rounded-full transition-all duration-1000"
-                style={{ width: `${score}%`, background: `linear-gradient(to right, ${scoreColor}, ${scoreColor}aa)` }}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <KpiTile label="Programs" value={programs} suffix="" icon={BookOpen} color={PALETTE.violet} />
-            <KpiTile label="Submissions" value={submissions} suffix="" icon={FileText} color={PALETTE.sky} />
-          </div>
-        </div>
-
-        {/* Radar Chart */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">
-            Quality Dimension Scores
-          </p>
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
-                <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                <PolarAngleAxis
-                  dataKey="subject"
-                  tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700 }}
-                />
-                <Radar
-                  name="Score"
-                  dataKey="A"
-                  stroke={scoreColor}
-                  fill={scoreColor}
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                  dot={{ fill: scoreColor, r: 4 }}
-                />
-                <RTooltip content={<DarkTooltip />} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Breakdown bars */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col gap-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Metric Breakdown</p>
-          {[
-            { label: 'Submissions', value: breakdown.submissions, color: PALETTE.sky },
-            { label: 'IQA Audits', value: breakdown.audits, color: PALETTE.indigo },
-            { label: 'CAR Closure', value: breakdown.cars, color: PALETTE.teal },
-            { label: 'Risk Mgmt', value: breakdown.risks, color: PALETTE.amber },
-            { label: 'CHED COPC', value: breakdown.ched, color: PALETTE.violet },
-            { label: 'Accreditation', value: breakdown.accreditation, color: PALETTE.emerald },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-wider text-white/50">{label}</span>
-                <span className="text-xs font-black text-white tabular-nums">{value}%</span>
-              </div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-1000"
-                  style={{ width: `${value}%`, background: color }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
 
-// ─── Slide 2: Submissions & Compliance ──────────────────────────────────────
-function SlideSubmissions({ data }: { data: any }) {
-  const { byUnit, approvedCount, pendingCount, rejectedCount, totalCount, byReportType } = data;
-  const statusData = [
-    { name: 'Approved', value: approvedCount, color: PALETTE.emerald },
-    { name: 'Pending', value: pendingCount, color: PALETTE.amber },
-    { name: 'Rejected', value: rejectedCount, color: PALETTE.rose },
-  ].filter((d) => d.value > 0);
-
+// ─── Campus Row ──────────────────────────────────────────────────────────────
+function CampusRow({
+  rank,
+  name,
+  metrics,
+  highlightColor,
+}: {
+  rank: number;
+  name: string;
+  metrics: { label: string; value: number; color?: string }[];
+  highlightColor?: string;
+}) {
   return (
-    <div className="h-full flex flex-col gap-6">
-      <SectionHeader
-        icon={ClipboardCheck}
-        title="Submissions & Compliance"
-        subtitle="Document submission rates across all units and campuses"
-        color={PALETTE.sky}
-      />
-      <div className="flex-1 grid grid-cols-3 gap-6">
-        {/* Status Pie */}
-        <div className="col-span-1 flex flex-col gap-4">
-          <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Submission Status</p>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="55%"
-                    outerRadius="80%"
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {statusData.map((entry, idx) => (
-                      <Cell key={idx} fill={entry.color} strokeWidth={0} />
-                    ))}
-                  </Pie>
-                  <RTooltip content={<DarkTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-2 mt-2">
-              {statusData.map((d) => (
-                <div key={d.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{ background: d.color }} />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/50">{d.name}</span>
-                  </div>
-                  <span className="text-sm font-black text-white tabular-nums">{d.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <KpiTile label="Total Submissions" value={totalCount} suffix="" icon={FileText} color={PALETTE.sky} />
+    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
+      <span className="text-[10px] font-black text-white/30 w-5 text-right tabular-nums">{rank}</span>
+      <span className="text-xs font-bold text-white/80 truncate w-28 shrink-0">{name}</span>
+      {metrics.map((m, i) => (
+        <div key={i} className="flex items-center gap-1.5 flex-1">
+          <span className="text-[9px] font-black text-white/40 w-12 text-right tabular-nums">{m.value}%</span>
+          <MiniBar value={m.value} color={m.color || statusColor(m.value)} />
         </div>
-
-        {/* By Report Type */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">By Report Type</p>
-          <div className="h-full pb-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={byReportType} layout="vertical" margin={{ left: 8, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: 700 }}
-                  width={90}
-                />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="count" fill={PALETTE.sky} radius={[0, 4, 4, 0]} name="Count" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* By Unit */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">
-            Compliance by Unit (Top 8)
-          </p>
-          <div className="h-full pb-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={byUnit.slice(0, 8)} margin={{ top: 0, right: 10, left: -20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 8, fontWeight: 700 }}
-                  angle={-40}
-                  textAnchor="end"
-                  interval={0}
-                />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="approved" fill={PALETTE.emerald} name="Approved" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pending" fill={PALETTE.amber} name="Pending" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
 
-// ─── Slide 3: Risks & CARs ───────────────────────────────────────────────────
-function SlideRisks({ data }: { data: any }) {
-  const { openRisks, closedRisks, highRisks, medRisks, lowRisks, openCars, closedCars, carsByUnit, riskTrend } = data;
-  const total = openRisks + closedRisks;
-  const mitigated = total > 0 ? Math.round((closedRisks / total) * 100) : 0;
-  const carTotal = openCars + closedCars;
-  const carClosed = carTotal > 0 ? Math.round((closedCars / carTotal) * 100) : 0;
-
-  const riskDistData = [
-    { name: 'High', value: highRisks, color: PALETTE.rose },
-    { name: 'Medium', value: medRisks, color: PALETTE.amber },
-    { name: 'Low', value: lowRisks, color: PALETTE.emerald },
-  ].filter((d) => d.value > 0);
-
+// ─── Narrative Card ──────────────────────────────────────────────────────────
+function NarrativeCard({ title, text, color }: { title: string; text: string; color: string }) {
   return (
-    <div className="h-full flex flex-col gap-6">
-      <SectionHeader
-        icon={AlertTriangle}
-        title="Risk & Corrective Actions"
-        subtitle="Risk treatment progress and CAR closure rates"
-        color={PALETTE.amber}
-      />
-      <div className="flex-1 grid grid-cols-3 gap-6">
-        {/* Risk score cards */}
-        <div className="col-span-1 flex flex-col gap-4">
-          <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Risk Distribution</p>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={riskDistData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius="75%"
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                    labelLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  >
-                    {riskDistData.map((e, i) => (
-                      <Cell key={i} fill={e.color} strokeWidth={0} />
-                    ))}
-                  </Pie>
-                  <RTooltip content={<DarkTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <KpiTile label="Mitigation Rate" value={mitigated} icon={ShieldCheck} color={PALETTE.emerald} />
-            <KpiTile label="CAR Closure" value={carClosed} icon={CheckCircle2} color={PALETTE.teal} />
-          </div>
-        </div>
-
-        {/* CAR trend */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Open vs Closed Risks</p>
-          <div className="h-full pb-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { name: 'Risks', Open: openRisks, Closed: closedRisks },
-                  { name: 'CARs', Open: openCars, Closed: closedCars },
-                ]}
-                margin={{ top: 0, right: 20, left: -10, bottom: 10 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700 }} />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="Open" fill={PALETTE.rose} radius={[4, 4, 0, 0]} name="Open" />
-                <Bar dataKey="Closed" fill={PALETTE.emerald} radius={[4, 4, 0, 0]} name="Closed" />
-                <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* CAR by unit */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-2">CAR Closure by Unit</p>
-          <div className="h-full pb-8 overflow-y-auto space-y-3 pr-1">
-            {carsByUnit.slice(0, 10).map(({ name, closed, total }: any) => (
-              <div key={name} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-white/55 truncate max-w-[65%]">{name}</span>
-                  <span className="text-[10px] font-black text-white tabular-nums">
-                    {closed}/{total}
-                  </span>
-                </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${total > 0 ? Math.round((closed / total) * 100) : 0}%`,
-                      background: total > 0 && closed === total ? PALETTE.emerald : PALETTE.amber,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-4 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ background: color }} />
+        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">{title}</p>
       </div>
-    </div>
-  );
-}
-
-// ─── Slide 4: CHED Programs & Accreditation ──────────────────────────────────
-function SlideCHED({ data }: { data: any }) {
-  const { programs, withCopc, noCopc, inProgress, levelBreakdown, campusBreakdown } = data;
-
-  const copcPieData = [
-    { name: 'With COPC', value: withCopc, color: PALETTE.emerald },
-    { name: 'In Progress', value: inProgress, color: PALETTE.amber },
-    { name: 'No COPC', value: noCopc, color: PALETTE.rose },
-  ].filter((d) => d.value > 0);
-
-  return (
-    <div className="h-full flex flex-col gap-6">
-      <SectionHeader
-        icon={GraduationCap}
-        title="CHED Programs & Accreditation"
-        subtitle="Program compliance, COPC status, and accreditation levels"
-        color={PALETTE.violet}
-      />
-      <div className="flex-1 grid grid-cols-3 gap-6">
-        {/* COPC status */}
-        <div className="col-span-1 flex flex-col gap-4">
-          <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-3">COPC Status</p>
-            <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={copcPieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="50%"
-                    outerRadius="80%"
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {copcPieData.map((e, i) => (
-                      <Cell key={i} fill={e.color} strokeWidth={0} />
-                    ))}
-                  </Pie>
-                  <RTooltip content={<DarkTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-1.5 mt-2">
-              {copcPieData.map((d) => (
-                <div key={d.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{ background: d.color }} />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-white/50">{d.name}</span>
-                  </div>
-                  <span className="text-sm font-black text-white">{d.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <KpiTile label="Total Programs" value={programs} suffix="" icon={BookOpen} color={PALETTE.violet} />
-        </div>
-
-        {/* Accreditation levels */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Accreditation Levels</p>
-          <div className="h-full pb-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={levelBreakdown} margin={{ top: 0, right: 10, left: -20, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="level" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: 700 }} />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} allowDecimals={false} />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Programs">
-                  {levelBreakdown.map((_: any, i: number) => (
-                    <Cell
-                      key={i}
-                      fill={
-                        [PALETTE.emerald, PALETTE.teal, PALETTE.blue, PALETTE.indigo, PALETTE.violet, PALETTE.slate][
-                          i % 6
-                        ]
-                      }
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* By campus */}
-        <div className="col-span-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Programs by Campus</p>
-          <div className="h-full pb-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={campusBreakdown} layout="vertical" margin={{ left: 8, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} allowDecimals={false} />
-                <YAxis
-                  dataKey="campus"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: 700 }}
-                  width={80}
-                />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="withCopc" fill={PALETTE.emerald} name="With COPC" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="noCopc" fill={PALETTE.rose} name="No COPC" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Slide 5: Audit Performance ──────────────────────────────────────────────
-function SlideAudit({ data }: { data: any }) {
-  const { total, completed, inProgress: inProg, scheduled, overdue, completionRate, byCampus } = data;
-
-  const statusData = [
-    { name: 'Completed', value: completed, color: PALETTE.emerald },
-    { name: 'In Progress', value: inProg, color: PALETTE.sky },
-    { name: 'Scheduled', value: scheduled, color: PALETTE.indigo },
-    { name: 'Overdue', value: overdue, color: PALETTE.rose },
-  ].filter((d) => d.value > 0);
-
-  const radialData = statusData.map((d, i) => ({
-    ...d,
-    fill: d.color,
-    pct: total > 0 ? Math.round((d.value / total) * 100) : 0,
-  }));
-
-  return (
-    <div className="h-full flex flex-col gap-6">
-      <SectionHeader
-        icon={Activity}
-        title="IQA Audit Performance"
-        subtitle="Internal Quality Audit completion rates and scheduling overview"
-        color={PALETTE.indigo}
-      />
-      <div className="flex-1 grid grid-cols-3 gap-6">
-        {/* Radial breakdown */}
-        <div className="col-span-1 flex flex-col gap-4">
-          <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-3">Audit Status</p>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="30%"
-                  outerRadius="90%"
-                  data={radialData}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <RadialBar background={{ fill: 'rgba(255,255,255,0.04)' }} dataKey="pct" cornerRadius={6} />
-                  <RTooltip content={<DarkTooltip />} />
-                </RadialBarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {statusData.map((d) => (
-                <div key={d.name} className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full shrink-0" style={{ background: d.color }} />
-                  <div>
-                    <p className="text-[8px] font-black uppercase tracking-wider text-white/40">{d.name}</p>
-                    <p className="text-sm font-black text-white">{d.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <KpiTile label="Completion Rate" value={completionRate} icon={Target} color={PALETTE.emerald} />
-        </div>
-
-        {/* By campus stacked bar */}
-        <div className="col-span-2 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Audit Status by Campus</p>
-          <div className="h-full pb-12">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={byCampus} margin={{ top: 0, right: 20, left: -10, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis
-                  dataKey="campus"
-                  tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: 700 }}
-                  angle={-35}
-                  textAnchor="end"
-                  interval={0}
-                />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} allowDecimals={false} />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="completed" fill={PALETTE.emerald} name="Completed" radius={[0, 0, 0, 0]} stackId="a" />
-                <Bar dataKey="inProgress" fill={PALETTE.sky} name="In Progress" stackId="a" />
-                <Bar dataKey="scheduled" fill={PALETTE.indigo} name="Scheduled" stackId="a" />
-                <Bar dataKey="overdue" fill={PALETTE.rose} name="Overdue" radius={[4, 4, 0, 0]} stackId="a" />
-                <Legend
-                  wrapperStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, paddingTop: 10 }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      <p className="text-[10px] text-white/65 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -774,17 +241,12 @@ function SlideAudit({ data }: { data: any }) {
 function NewsTicker({ items }: { items: string[] }) {
   if (!items.length) return null;
   return (
-    <div className="relative overflow-hidden h-8 bg-black/40 border-t border-white/8 shrink-0">
-      <div
-        className="flex items-center h-full whitespace-nowrap"
-        style={{
-          animation: 'marquee 45s linear infinite',
-        }}
-      >
+    <div className="relative overflow-hidden h-7 bg-black/40 border-t border-white/8 shrink-0">
+      <div className="flex items-center h-full whitespace-nowrap" style={{ animation: 'marquee 45s linear infinite' }}>
         {items.concat(items).map((item, i) => (
           <span
             key={i}
-            className="inline-flex items-center gap-3 mx-8 text-[11px] font-bold text-white/60 uppercase tracking-wider"
+            className="inline-flex items-center gap-2 mx-6 text-[10px] font-bold text-white/60 uppercase tracking-wider"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             {item}
@@ -795,26 +257,713 @@ function NewsTicker({ items }: { items: string[] }) {
   );
 }
 
-// ─── SLIDE LABELS ─────────────────────────────────────────────────────────────
-const SLIDE_META = [
-  { label: 'EOMS Health', icon: ShieldCheck, color: PALETTE.emerald },
-  { label: 'Submissions', icon: ClipboardCheck, color: PALETTE.sky },
-  { label: 'Risks & CARs', icon: AlertTriangle, color: PALETTE.amber },
-  { label: 'CHED & Accred.', icon: GraduationCap, color: PALETTE.violet },
-  { label: 'IQA Audits', icon: Activity, color: PALETTE.indigo },
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW 1: Institutional Performance Overview
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewOverview({
+  campuses,
+  eomsScore,
+  radarData,
+}: {
+  campuses: any[];
+  eomsScore: number;
+  radarData: { subject: string; value: number; color: string }[];
+}) {
+  const grade = eomsScore >= 88 ? 'A' : eomsScore >= 70 ? 'B+' : eomsScore >= 55 ? 'B' : eomsScore >= 40 ? 'C' : 'F';
+  const sc = gradeColor(eomsScore);
+  const topCampus = campuses.length
+    ? campuses.reduce((a: any, b: any) => (a.compositeScore > b.compositeScore ? a : b))
+    : null;
+  const lowCampus = campuses.length
+    ? campuses.reduce((a: any, b: any) => (a.compositeScore < b.compositeScore ? a : b))
+    : null;
+
+  const tableMetrics = (c: any) => [
+    { label: 'Sub', value: c.subsRate, color: P.sky },
+    { label: 'Risk', value: c.riskRate, color: P.amber },
+    { label: 'CAR', value: c.carRate, color: P.teal },
+    { label: 'Audit', value: c.auditRate, color: P.indigo },
+    {
+      label: 'Accred',
+      value: c.programsTotal > 0 ? Math.round((c.programsWithCopc / c.programsTotal) * 100) : 0,
+      color: P.violet,
+    },
+  ];
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={ShieldCheck}
+        title="Institutional Performance Overview"
+        subtitle="Campus-level EOMS health assessment"
+        color={sc}
+      />
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+        {/* Grade card */}
+        <div className="col-span-2 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center p-3 relative overflow-hidden">
+          <div
+            className="absolute inset-0"
+            style={{ background: `radial-gradient(circle at 50% 50%, ${sc}15, transparent 70%)` }}
+          />
+          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40">EOMS</p>
+          <div className="text-5xl font-black leading-none" style={{ color: sc }}>
+            {grade}
+          </div>
+          <AnimatedNumber value={eomsScore} suffix="%" className="text-base font-black text-white mt-1" />
+          <p className="text-[7px] text-white/40 font-bold uppercase tracking-widest mt-1 text-center leading-tight">
+            {eomsScore >= 88
+              ? 'Mature'
+              : eomsScore >= 70
+                ? 'Good Standing'
+                : eomsScore >= 55
+                  ? 'Satisfactory'
+                  : 'Needs Improvement'}
+          </p>
+        </div>
+
+        {/* Radar */}
+        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">Quality Dimensions</p>
+          <div className="h-[calc(100%-20px)]">
+            <div className="flex flex-wrap gap-1 mb-2">
+              {radarData.map((d) => (
+                <div key={d.subject} className="flex items-center gap-1">
+                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: d.color }} />
+                  <span className="text-[6px] font-bold text-white/40">{d.subject}</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {radarData.map((d) => (
+                <div key={d.subject} className="flex items-center gap-2">
+                  <span className="text-[7px] font-bold text-white/50 w-16 truncate">{d.subject}</span>
+                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${d.value}%`, background: d.color }} />
+                  </div>
+                  <span className="text-[8px] font-black text-white/60 w-7 text-right tabular-nums">{d.value}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Campus table */}
+        <div className="col-span-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
+            Campus Performance Ranking
+          </p>
+          <div className="flex-1 overflow-hidden">
+            <div className="flex text-[7px] font-black text-white/30 uppercase tracking-wider mb-1 px-3">
+              <span className="w-5 shrink-0" />
+              <span className="w-28 shrink-0">Campus</span>
+              <span className="flex-1 text-center">Sub</span>
+              <span className="flex-1 text-center">Risk</span>
+              <span className="flex-1 text-center">CAR</span>
+              <span className="flex-1 text-center">Audit</span>
+              <span className="flex-1 text-center">Accred</span>
+            </div>
+            <div className="space-y-0 overflow-y-auto max-h-[calc(100%-18px)]">
+              {campuses
+                .sort((a: any, b: any) => b.compositeScore - a.compositeScore)
+                .map((c: any, i: number) => (
+                  <CampusRow key={c.id} rank={i + 1} name={c.name} metrics={tableMetrics(c)} />
+                ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Narrative */}
+        <div className="col-span-3 flex flex-col gap-2">
+          <NarrativeCard
+            title="What This Means"
+            text="The institutional EOMS score reflects the university's overall quality management health. It aggregates campus-level performance across document submission, risk mitigation, corrective action closure, audit completion, and program accreditation. Campuses scoring above 80% demonstrate mature alignment with the quality management system."
+            color={sc}
+          />
+          {topCampus && (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-sm p-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-emerald-400/70 mb-1">
+                Top Performer
+              </p>
+              <p className="text-xs font-black text-emerald-300">{topCampus.name}</p>
+              <p className="text-[8px] text-white/50 mt-0.5">
+                Leading with {topCampus.compositeScore}% composite score
+              </p>
+            </div>
+          )}
+          {lowCampus && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm p-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-amber-400/70 mb-1">
+                Needs Attention
+              </p>
+              <p className="text-xs font-black text-amber-300">{lowCampus.name}</p>
+              <p className="text-[8px] text-white/50 mt-0.5">
+                At {lowCampus.compositeScore}% — targeted intervention recommended
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW 2: Submission Compliance
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewSubmissions({
+  campuses,
+  totalApproved,
+  totalPending,
+  totalRejected,
+  totalSubs,
+}: {
+  campuses: any[];
+  totalApproved: number;
+  totalPending: number;
+  totalRejected: number;
+  totalSubs: number;
+}) {
+  const rate = totalSubs > 0 ? Math.round((totalApproved / totalSubs) * 100) : 0;
+  const chartData = campuses
+    .filter((c) => c.subsTotal > 0)
+    .sort((a: any, b: any) => b.subsRate - a.subsRate)
+    .slice(0, 10)
+    .map((c: any) => ({ name: c.name, rate: c.subsRate }));
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={ClipboardCheck}
+        title="Submission Compliance by Campus"
+        subtitle="Document submission rates across all units"
+        color={P.sky}
+      />
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+        {/* KPI summary */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <KpiTile label="Compliance Rate" value={rate} icon={CheckCircle2} color={statusColor(rate)} />
+          <KpiTile
+            label="Approved"
+            value={totalApproved}
+            suffix=""
+            icon={FileText}
+            color={P.emerald}
+            sub={`of ${totalSubs} total`}
+          />
+          {totalPending > 0 && (
+            <KpiTile label="Pending" value={totalPending} suffix="" icon={FileText} color={P.amber} />
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
+            Compliance by Campus
+          </p>
+          <div className="flex-1 overflow-y-auto space-y-0.5">
+            {campuses
+              .filter((c: any) => c.subsTotal > 0)
+              .sort((a: any, b: any) => b.subsRate - a.subsRate)
+              .map((c: any, i: number) => (
+                <div key={c.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+                  <span className="text-[8px] font-black text-white/30 w-4 tabular-nums">{i + 1}</span>
+                  <span className="text-[10px] font-bold text-white/70 w-24 truncate shrink-0">{c.name}</span>
+                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${c.subsRate}%`, background: statusColor(c.subsRate) }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-black text-white/60 w-8 text-right tabular-nums">{c.subsRate}%</span>
+                  <span className="text-[7px] text-white/30 w-12 text-right">
+                    {c.subsApproved}/{c.subsTotal}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">Top 10 Compliance</p>
+          <div className="h-[calc(100%-20px)]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  width={70}
+                />
+                <RTooltip content={<DarkTooltip />} />
+                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Rate">
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Narrative */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <NarrativeCard
+            title="Why Submissions Matter"
+            text="Document submission compliance measures how consistently units meet reporting deadlines. High compliance rates indicate strong adherence to the QMS documentation requirements. Low-performing campuses may need additional support in document management and submission workflows."
+            color={P.sky}
+          />
+          <NarrativeCard
+            title="University Context"
+            text={`With ${totalApproved} of ${totalSubs} submissions approved (${rate}%), the university maintains ${rate >= 80 ? 'strong' : rate >= 60 ? 'adequate' : 'below-target'} compliance. The target is 80% or higher for all campuses.`}
+            color={P.teal}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW 3: Risk Management
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewRisks({
+  campuses,
+  totalRisks,
+  closedRisks,
+  highRisks,
+}: {
+  campuses: any[];
+  totalRisks: number;
+  closedRisks: number;
+  highRisks: number;
+}) {
+  const rate = totalRisks > 0 ? Math.round((closedRisks / totalRisks) * 100) : 0;
+  const chartData = campuses
+    .filter((c: any) => c.risksTotal > 0)
+    .sort((a: any, b: any) => b.riskRate - a.riskRate)
+    .slice(0, 10)
+    .map((c: any) => ({ name: c.name, rate: c.riskRate }));
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={AlertTriangle}
+        title="Risk Management by Campus"
+        subtitle="Risk identification, treatment, and mitigation effectiveness"
+        color={P.amber}
+      />
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+        {/* KPI summary */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <KpiTile label="Mitigation Rate" value={rate} icon={ShieldCheck} color={statusColor(rate)} />
+          <KpiTile label="Total Risks" value={totalRisks} suffix="" icon={AlertTriangle} color={P.amber} />
+          {highRisks > 0 && (
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 backdrop-blur-sm px-4 py-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-rose-400/70">High Risk</p>
+              <p className="text-2xl font-black text-rose-300 tabular-nums">{highRisks}</p>
+              <p className="text-[7px] text-white/40 mt-0.5">Requires immediate attention</p>
+            </div>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
+            Risk Mitigation by Campus
+          </p>
+          <div className="flex-1 overflow-y-auto space-y-0.5">
+            {campuses
+              .filter((c: any) => c.risksTotal > 0)
+              .sort((a: any, b: any) => b.riskRate - a.riskRate)
+              .map((c: any, i: number) => (
+                <div key={c.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+                  <span className="text-[8px] font-black text-white/30 w-4 tabular-nums">{i + 1}</span>
+                  <span className="text-[10px] font-bold text-white/70 w-24 truncate shrink-0">{c.name}</span>
+                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${c.riskRate}%`, background: statusColor(c.riskRate) }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-black text-white/60 w-8 text-right tabular-nums">{c.riskRate}%</span>
+                  <span className="text-[7px] text-white/30 w-16 text-right">
+                    {c.risksClosed}/{c.risksTotal}
+                  </span>
+                  {c.risksHigh > 0 && (
+                    <span className="text-[7px] font-bold text-rose-400 w-6 text-right">{c.risksHigh}!</span>
+                  )}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">Top Mitigation Rates</p>
+          <div className="h-[calc(100%-20px)]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  width={70}
+                />
+                <RTooltip content={<DarkTooltip />} />
+                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Mitigated">
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Narrative */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <NarrativeCard
+            title="Why Risk Management Matters"
+            text="Effective risk management protects the university from operational, financial, and reputational harm. The mitigation rate indicates how successfully identified risks have been treated. Campuses with high open risk counts or elevated high-risk items should prioritize their risk treatment plans."
+            color={P.amber}
+          />
+          <NarrativeCard
+            title="Strategic Context"
+            text={
+              highRisks > 0
+                ? `With ${highRisks} high-risk items remaining across all campuses, immediate executive attention is needed for these critical exposures. ${rate}% overall mitigation shows ${rate >= 70 ? 'strong' : 'developing'} risk governance.`
+                : `All high-risk items have been addressed. The university's ${rate}% mitigation rate reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
+            }
+            color={P.rose}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW 4: CAR Performance
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewCars({
+  campuses,
+  totalCars,
+  closedCars,
+  openCars,
+}: {
+  campuses: any[];
+  totalCars: number;
+  closedCars: number;
+  openCars: number;
+}) {
+  const rate = totalCars > 0 ? Math.round((closedCars / totalCars) * 100) : 0;
+  const chartData = campuses
+    .filter((c: any) => c.carsTotal > 0)
+    .sort((a: any, b: any) => b.carRate - a.carRate)
+    .slice(0, 10)
+    .map((c: any) => ({ name: c.name, rate: c.carRate }));
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={CheckCircle2}
+        title="Corrective Action Performance"
+        subtitle="CAR closure rates and effectiveness by campus"
+        color={P.teal}
+      />
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+        {/* KPI summary */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <KpiTile label="CAR Closure Rate" value={rate} icon={CheckCircle2} color={statusColor(rate)} />
+          <KpiTile
+            label="Total CARs"
+            value={totalCars}
+            suffix=""
+            icon={FileText}
+            color={P.teal}
+            sub={`${closedCars} closed · ${openCars} open`}
+          />
+        </div>
+
+        {/* Table */}
+        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
+            CAR Closure by Campus
+          </p>
+          <div className="flex-1 overflow-y-auto space-y-0.5">
+            {campuses
+              .filter((c: any) => c.carsTotal > 0)
+              .sort((a: any, b: any) => b.carRate - a.carRate)
+              .map((c: any, i: number) => (
+                <div key={c.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+                  <span className="text-[8px] font-black text-white/30 w-4 tabular-nums">{i + 1}</span>
+                  <span className="text-[10px] font-bold text-white/70 w-24 truncate shrink-0">{c.name}</span>
+                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${c.carRate}%`, background: statusColor(c.carRate) }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-black text-white/60 w-8 text-right tabular-nums">{c.carRate}%</span>
+                  <span className="text-[7px] text-white/30 w-14 text-right">
+                    {c.carsClosed}/{c.carsTotal}
+                  </span>
+                  {c.carsOpen > 0 && c.carRate < 50 && <span className="text-[7px] font-bold text-rose-400">!</span>}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">CAR Closure Rates</p>
+          <div className="h-[calc(100%-20px)]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  width={70}
+                />
+                <RTooltip content={<DarkTooltip />} />
+                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Closed">
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Narrative */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <NarrativeCard
+            title="Why CAR Closure Matters"
+            text="Corrective Action Requests are the primary mechanism for addressing non-conformities identified during audits and operations. High closure rates demonstrate a campus's commitment to continuous improvement. Delayed CARs may indicate systemic issues needing management attention."
+            color={P.teal}
+          />
+          <NarrativeCard
+            title="Current Status"
+            text={`With ${closedCars} of ${totalCars} CARs resolved (${rate}%), the institution is ${rate >= 70 ? 'effectively' : 'gradually'} addressing identified issues. ${openCars > 5 ? `The ${openCars} open CARs need coordinated follow-up.` : 'Open CARs are being managed within acceptable thresholds.'}`}
+            color={P.emerald}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW 5: Accreditation & Programs
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewAccred({
+  campuses,
+  totalPrograms,
+  withCopc,
+  noCopc,
+  inProg,
+}: {
+  campuses: any[];
+  totalPrograms: number;
+  withCopc: number;
+  noCopc: number;
+  inProg: number;
+}) {
+  const copcRate = totalPrograms > 0 ? Math.round((withCopc / totalPrograms) * 100) : 0;
+  const chartData = campuses
+    .filter((c: any) => c.programsTotal > 0)
+    .sort((a: any, b: any) => {
+      const aRate = a.programsTotal > 0 ? (a.programsWithCopc / a.programsTotal) * 100 : 0;
+      const bRate = b.programsTotal > 0 ? (b.programsWithCopc / b.programsTotal) * 100 : 0;
+      return bRate - aRate;
+    })
+    .slice(0, 10)
+    .map((c: any) => ({
+      name: c.name,
+      rate: c.programsTotal > 0 ? Math.round((c.programsWithCopc / c.programsTotal) * 100) : 0,
+    }));
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={GraduationCap}
+        title="Accreditation & COPC Compliance"
+        subtitle="Program compliance with CHED COPC requirements and accreditation"
+        color={P.violet}
+      />
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+        {/* KPI summary */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <KpiTile label="COPC Compliance" value={copcRate} icon={Award} color={statusColor(copcRate)} />
+          <KpiTile
+            label="Total Programs"
+            value={totalPrograms}
+            suffix=""
+            icon={BookOpen}
+            color={P.violet}
+            sub={`${withCopc} with COPC`}
+          />
+          {noCopc > 0 && (
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 backdrop-blur-sm px-4 py-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-rose-400/70">No COPC</p>
+              <p className="text-2xl font-black text-rose-300 tabular-nums">{noCopc}</p>
+              <p className="text-[7px] text-white/40 mt-0.5">Programs needing attention</p>
+            </div>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
+            Program COPC by Campus
+          </p>
+          <div className="flex-1 overflow-y-auto space-y-0.5">
+            {campuses
+              .filter((c: any) => c.programsTotal > 0)
+              .sort((a: any, b: any) => {
+                const aRate = a.programsTotal > 0 ? (a.programsWithCopc / a.programsTotal) * 100 : 0;
+                const bRate = b.programsTotal > 0 ? (b.programsWithCopc / b.programsTotal) * 100 : 0;
+                return bRate - aRate;
+              })
+              .map((c: any, i: number) => {
+                const pRate = c.programsTotal > 0 ? Math.round((c.programsWithCopc / c.programsTotal) * 100) : 0;
+                return (
+                  <div key={c.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+                    <span className="text-[8px] font-black text-white/30 w-4 tabular-nums">{i + 1}</span>
+                    <span className="text-[10px] font-bold text-white/70 w-24 truncate shrink-0">{c.name}</span>
+                    <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pRate}%`, background: statusColor(pRate) }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-black text-white/60 w-8 text-right tabular-nums">{pRate}%</span>
+                    <span className="text-[7px] text-white/30 w-16 text-right">
+                      {c.programsWithCopc}/{c.programsTotal}
+                    </span>
+                    {c.programsNoCopc > 0 && (
+                      <span className="text-[7px] font-bold text-rose-400 w-5 text-right">{c.programsNoCopc}</span>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">COPC Compliance Rates</p>
+          <div className="h-[calc(100%-20px)]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  width={70}
+                />
+                <RTooltip content={<DarkTooltip />} />
+                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="COPC Rate">
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Narrative */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <NarrativeCard
+            title="Why COPC & Accreditation Matter"
+            text="CHED Certificate of Program Compliance (COPC) is a regulatory requirement for all academic programs. Accreditation levels (I-IV) reflect program quality against national standards. Programs without COPC or with lapsed accreditation may face regulatory sanctions."
+            color={P.violet}
+          />
+          <NarrativeCard
+            title="University Position"
+            text={`With ${copcRate}% of programs COPC-compliant and ${noCopc} programs needing action, the university must prioritize securing compliance for non-compliant programs to maintain CHED regulatory good standing.`}
+            color={P.indigo}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW METADATA
+// ═══════════════════════════════════════════════════════════════════════════════
+const VIEW_META = [
+  { label: 'Overview', icon: ShieldCheck, color: P.emerald },
+  { label: 'Submissions', icon: ClipboardCheck, color: P.sky },
+  { label: 'Risks', icon: AlertTriangle, color: P.amber },
+  { label: 'CARs', icon: CheckCircle2, color: P.teal },
+  { label: 'Accreditation', icon: GraduationCap, color: P.violet },
 ];
 
-// ─── MAIN PAGE ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTERFACE
+// ═══════════════════════════════════════════════════════════════════════════════
+interface CampusPerf {
+  id: string;
+  name: string;
+  subsTotal: number;
+  subsApproved: number;
+  subsPending: number;
+  subsRejected: number;
+  subsRate: number;
+  risksTotal: number;
+  risksOpen: number;
+  risksClosed: number;
+  risksHigh: number;
+  risksMed: number;
+  risksLow: number;
+  riskRate: number;
+  carsTotal: number;
+  carsOpen: number;
+  carsClosed: number;
+  carRate: number;
+  programsTotal: number;
+  programsWithCopc: number;
+  programsInProg: number;
+  programsNoCopc: number;
+  programsTopLevel: string;
+  auditsTotal: number;
+  auditsCompleted: number;
+  auditsInProg: number;
+  auditsScheduled: number;
+  auditsOverdue: number;
+  auditRate: number;
+  compositeScore: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
 export default function ExecutiveDisplayPage() {
   const firestore = useFirestore();
   const { selectedYear } = useYear();
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentView, setCurrentView] = useState(0);
+  const [animPhase, setAnimPhase] = useState<'show' | 'hide' | 'enter'>('show');
   const [isIdle, setIsIdle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
   const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const slideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const viewTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [fsAttempted, setFsAttempted] = useState(false);
 
   // ── Clock ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -842,21 +991,45 @@ export default function ExecutiveDisplayPage() {
     };
   }, [resetIdle]);
 
-  // ── Auto-rotate when idle ─────────────────────────────────────────────────
+  // ── View auto-rotation ────────────────────────────────────────────────────
   useEffect(() => {
     if (!isIdle) {
-      clearTimeout(slideTimer.current);
+      clearTimeout(viewTimer.current);
       return;
     }
-    slideTimer.current = setTimeout(() => {
-      setCurrentSlide((s) => (s + 1) % TOTAL_SLIDES);
-    }, SLIDE_DURATION_MS);
-    return () => clearTimeout(slideTimer.current);
-  }, [isIdle, currentSlide]);
+    viewTimer.current = setTimeout(() => {
+      setAnimPhase('hide');
+    }, VIEW_INTERVAL_MS);
+    return () => clearTimeout(viewTimer.current);
+  }, [isIdle, currentView, animPhase]);
 
-  // ── Fullscreen (always on) ───────────────────────────────────────────────
+  // Handle animation phases
   useEffect(() => {
+    if (animPhase === 'hide') {
+      const t = setTimeout(() => {
+        setCurrentView((s) => (s + 1) % TOTAL_VIEWS);
+        setTimeout(() => setAnimPhase('enter'), 50); // Micro-delay for DOM paint
+      }, 350);
+      return () => clearTimeout(t);
+    }
+    if (animPhase === 'enter') {
+      const t = setTimeout(() => setAnimPhase('show'), 450);
+      return () => clearTimeout(t);
+    }
+  }, [animPhase]);
+
+  // ── Fullscreen ────────────────────────────────────────────────────────────
+  const enterFullscreen = useCallback(() => {
     containerRef.current?.requestFullscreen().catch(() => {});
+    setFsAttempted(true);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      containerRef.current?.requestFullscreen().catch(() => {});
+      setFsAttempted(true);
+    }, 1000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -864,7 +1037,7 @@ export default function ExecutiveDisplayPage() {
       const fs = !!document.fullscreenElement;
       setIsFullscreen(fs);
       if (!fs) {
-        containerRef.current?.requestFullscreen().catch(() => {});
+        setFsAttempted(false);
       }
     };
     document.addEventListener('fullscreenchange', handler);
@@ -874,44 +1047,32 @@ export default function ExecutiveDisplayPage() {
   // ── Data fetching ─────────────────────────────────────────────────────────
   const submissionsQ = useMemoFirebase(() => (firestore ? collection(firestore, 'submissions') : null), [firestore]);
   const { data: rawSubs } = useCollection<Submission>(submissionsQ);
-
   const risksQ = useMemoFirebase(() => (firestore ? collection(firestore, 'risks') : null), [firestore]);
   const { data: rawRisks } = useCollection<Risk>(risksQ);
-
   const carsQ = useMemoFirebase(
     () => (firestore ? collection(firestore, 'corrective_action_requests') : null),
     [firestore],
   );
   const { data: rawCars } = useCollection<CorrectiveActionRequest>(carsQ);
-
   const compliancesQ = useMemoFirebase(
     () => (firestore ? collection(firestore, 'program_compliance') : null),
     [firestore],
   );
   const { data: rawCompliances } = useCollection<ProgramComplianceRecord>(compliancesQ);
-
   const programsQ = useMemoFirebase(() => (firestore ? collection(firestore, 'academic_programs') : null), [firestore]);
   const { data: rawPrograms } = useCollection<AcademicProgram>(programsQ);
-
   const schedulesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'audit_schedules') : null), [firestore]);
   const { data: rawSchedules } = useCollection<AuditSchedule>(schedulesQ);
-
   const unitsQ = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(unitsQ);
-
   const campusesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(campusesQ);
 
   // ── Memoised derivations ──────────────────────────────────────────────────
   const submissions = useMemo(
-    () =>
-      (rawSubs || []).map((s) => ({
-        ...s,
-        reportType: normalizeReportType(s.reportType),
-      })),
+    () => (rawSubs || []).map((s) => ({ ...s, reportType: normalizeReportType(s.reportType) })),
     [rawSubs],
   );
-
   const yearSubs = useMemo(
     () => submissions.filter((s) => Number(s.year) === Number(selectedYear)),
     [submissions, selectedYear],
@@ -929,360 +1090,435 @@ export default function ExecutiveDisplayPage() {
       }),
     [rawCars, selectedYear],
   );
+  const yearSch = useMemo(
+    () =>
+      (rawSchedules || []).filter((s) => {
+        if (!s.scheduledDate) return false;
+        const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
+        return d.getFullYear() === Number(selectedYear);
+      }),
+    [rawSchedules, selectedYear],
+  );
 
   const campusMap = useMemo(() => new Map((allCampuses || []).map((c) => [c.id, c.name])), [allCampuses]);
-  const unitMap = useMemo(() => new Map((allUnits || []).map((u) => [u.id, u.name])), [allUnits]);
 
-  // EOMS Slide data
-  const eomsData = useMemo(() => {
-    const yearSch = (rawSchedules || []).filter((s) => {
-      if (!s.scheduledDate) return false;
-      const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
-      return d.getFullYear() === Number(selectedYear);
+  // ── Campus performance data ───────────────────────────────────────────────
+  const campusData = useMemo(() => {
+    const map = new Map<string, CampusPerf>();
+
+    (allCampuses || []).forEach((c) => {
+      map.set(c.id, {
+        id: c.id,
+        name: c.name || c.id,
+        subsTotal: 0,
+        subsApproved: 0,
+        subsPending: 0,
+        subsRejected: 0,
+        subsRate: 0,
+        risksTotal: 0,
+        risksOpen: 0,
+        risksClosed: 0,
+        risksHigh: 0,
+        risksMed: 0,
+        risksLow: 0,
+        riskRate: 0,
+        carsTotal: 0,
+        carsOpen: 0,
+        carsClosed: 0,
+        carRate: 0,
+        programsTotal: 0,
+        programsWithCopc: 0,
+        programsInProg: 0,
+        programsNoCopc: 0,
+        programsTopLevel: 'None',
+        auditsTotal: 0,
+        auditsCompleted: 0,
+        auditsInProg: 0,
+        auditsScheduled: 0,
+        auditsOverdue: 0,
+        auditRate: 0,
+        compositeScore: 0,
+      });
     });
-    const approved = yearSubs.filter((s) => s.statusId === 'approved').length;
-    const total = yearSubs.length || 1;
-    const subRate = Math.min(100, Math.round((approved / total) * 100));
-    const completedSch = yearSch.filter((s) => s.status === 'Completed').length;
-    const auditRate = yearSch.length > 0 ? Math.min(100, Math.round((completedSch / yearSch.length) * 100)) : 0;
-    const closedCars = yearCars.filter((c) => c.status === 'Closed').length;
-    const carRate = yearCars.length > 0 ? Math.min(100, Math.round((closedCars / yearCars.length) * 100)) : 0;
-    const mitigated = yearRisks.filter((r) => r.status === 'Closed').length;
-    const riskRate = yearRisks.length > 0 ? Math.min(100, Math.round((mitigated / yearRisks.length) * 100)) : 0;
-    const programs = (rawPrograms || []).filter((p) => p.isActive);
-    const copcCompliant = (rawCompliances || []).filter((c) => c.ched?.copcStatus === 'With COPC').length;
-    const chedRate = programs.length > 0 ? Math.min(100, Math.round((copcCompliant / programs.length) * 100)) : 0;
-    const score = Math.round([subRate, auditRate, carRate, riskRate, chedRate].reduce((a, b) => a + b, 0) / 5);
-    return {
-      score,
-      breakdown: {
-        submissions: subRate,
-        audits: auditRate,
-        cars: carRate,
-        risks: riskRate,
-        ched: chedRate,
-        accreditation: 0,
-      },
-      submissions: yearSubs.length,
-      risks: yearRisks.length,
-      cars: yearCars.length,
-      programs: programs.length,
-    };
-  }, [yearSubs, yearRisks, yearCars, rawSchedules, rawPrograms, rawCompliances, selectedYear]);
 
-  // Submissions slide data
-  const submissionsData = useMemo(() => {
-    const approved = yearSubs.filter((s) => s.statusId === 'approved').length;
-    const pending = yearSubs.filter(
-      (s) => s.statusId === 'pending' || s.statusId === 'submitted' || s.statusId === 'awaiting approval',
-    ).length;
-    const rejected = yearSubs.filter((s) => s.statusId === 'rejected').length;
-    const byUnitMap = new Map<string, { approved: number; pending: number; total: number }>();
+    // Submissions
     yearSubs.forEach((s) => {
-      const name = unitMap.get(s.unitId) || s.unitId;
-      const cur = byUnitMap.get(name) || { approved: 0, pending: 0, total: 0 };
-      cur.total++;
-      if (s.statusId === 'approved') cur.approved++;
-      else cur.pending++;
-      byUnitMap.set(name, cur);
+      const c = map.get(s.campusId);
+      if (!c) return;
+      c.subsTotal++;
+      if (s.statusId === 'approved') c.subsApproved++;
+      else if (s.statusId === 'rejected') c.subsRejected++;
+      else c.subsPending++;
     });
-    const byUnit = Array.from(byUnitMap.entries())
-      .map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.total - a.total);
-    const rtMap = new Map<string, number>();
-    yearSubs.forEach((s) => rtMap.set(s.reportType, (rtMap.get(s.reportType) || 0) + 1));
-    const byReportType = Array.from(rtMap.entries())
-      .map(([name, count]) => ({ name: name.length > 15 ? name.slice(0, 15) + '…' : name, count }))
-      .sort((a, b) => b.count - a.count);
-    return {
-      approvedCount: approved,
-      pendingCount: pending,
-      rejectedCount: rejected,
-      totalCount: yearSubs.length,
-      byUnit,
-      byReportType,
-    };
-  }, [yearSubs, unitMap]);
 
-  // Risks + CARs slide data
-  const riskData = useMemo(() => {
-    const open = yearRisks.filter((r) => r.status !== 'Closed');
-    const closed = yearRisks.filter((r) => r.status === 'Closed');
-    const high = open.filter((r) => r.preTreatment?.rating === 'high' || r.postTreatment?.rating === 'high').length;
-    const med = open.filter((r) => r.preTreatment?.rating === 'medium' || r.postTreatment?.rating === 'medium').length;
-    const low = open.length - high - med;
-    const openCars = yearCars.filter((c) => c.status !== 'Closed').length;
-    const closedCars = yearCars.filter((c) => c.status === 'Closed').length;
-    const carUnitMap = new Map<string, { closed: number; total: number }>();
-    yearCars.forEach((c) => {
-      const name = unitMap.get(c.unitId || '') || c.unitId || 'Unknown';
-      const cur = carUnitMap.get(name) || { closed: 0, total: 0 };
-      cur.total++;
-      if (c.status === 'Closed') cur.closed++;
-      carUnitMap.set(name, cur);
+    // Risks
+    yearRisks.forEach((r) => {
+      const c = map.get(r.campusId);
+      if (!c) return;
+      c.risksTotal++;
+      if (r.status === 'Closed') c.risksClosed++;
+      else c.risksOpen++;
+      if (r.preTreatment?.rating === 'high' || r.postTreatment?.rating === 'high') c.risksHigh++;
+      else if (r.preTreatment?.rating === 'medium' || r.postTreatment?.rating === 'medium') c.risksMed++;
+      else c.risksLow++;
     });
-    const carsByUnit = Array.from(carUnitMap.entries())
-      .map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.total - a.total);
-    return {
-      openRisks: open.length,
-      closedRisks: closed.length,
-      highRisks: high,
-      medRisks: med,
-      lowRisks: Math.max(0, low),
-      openCars,
-      closedCars,
-      carsByUnit,
-      riskTrend: [],
-    };
-  }, [yearRisks, yearCars, unitMap]);
 
-  // CHED slide data
-  const chedData = useMemo(() => {
-    const active = (rawPrograms || []).filter((p) => p.isActive);
-    const withCopc = active.filter((p) => {
-      const c = (rawCompliances || []).find((c) => c.programId === p.id);
-      return c?.ched?.copcStatus === 'With COPC';
-    }).length;
-    const inProg = active.filter((p) => {
-      const c = (rawCompliances || []).find((c) => c.programId === p.id);
-      return c?.ched?.copcStatus === 'In Progress';
-    }).length;
-    const levelMap = new Map<string, number>();
-    active.forEach((p) => {
-      const c = (rawCompliances || []).find((c) => c.programId === p.id);
-      const records = c?.accreditationRecords || [];
+    // CARs
+    yearCars.forEach((car) => {
+      const c = map.get(car.campusId);
+      if (!c) return;
+      c.carsTotal++;
+      if (car.status === 'Closed') c.carsClosed++;
+      else c.carsOpen++;
+    });
+
+    // Programs
+    const activePrograms = (rawPrograms || []).filter((p) => p.isActive);
+    activePrograms.forEach((p) => {
+      const c = map.get(p.campusId);
+      if (!c) return;
+      c.programsTotal++;
+      const comp = (rawCompliances || []).find((co) => co.programId === p.id);
+      if (comp?.ched?.copcStatus === 'With COPC') c.programsWithCopc++;
+      else if (comp?.ched?.copcStatus === 'In Progress') c.programsInProg++;
+      else c.programsNoCopc++;
+      // Track top accreditation level
+      const records = comp?.accreditationRecords || [];
       const cur = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
-      const lvl = cur?.level?.trim() || 'Non Accredited';
-      const key = lvl.includes('Level IV')
-        ? 'Level IV'
-        : lvl.includes('Level III')
-          ? 'Level III'
-          : lvl.includes('Level II')
-            ? 'Level II'
-            : lvl.includes('Level I')
-              ? 'Level I'
-              : lvl.includes('Candidate') || lvl.includes('PSV')
-                ? 'Candidate'
-                : 'Non Accredited';
-      levelMap.set(key, (levelMap.get(key) || 0) + 1);
+      if (cur?.level) {
+        const lvlOrder = ['Level IV', 'Level III', 'Level II', 'Level I', 'Candidate'];
+        const currentTop = lvlOrder.indexOf(c.programsTopLevel);
+        const thisLvl = lvlOrder.find((l) => cur.level.includes(l));
+        if (thisLvl && lvlOrder.indexOf(thisLvl) > currentTop) {
+          c.programsTopLevel = thisLvl;
+        }
+      }
     });
-    const levelBreakdown = ['Level IV', 'Level III', 'Level II', 'Level I', 'Candidate', 'Non Accredited']
-      .map((l) => ({ level: l, count: levelMap.get(l) || 0 }))
-      .filter((d) => d.count > 0);
-    const campusPMap = new Map<string, { withCopc: number; noCopc: number }>();
-    active.forEach((p) => {
-      const campus = campusMap.get(p.campusId || '') || p.campusId || 'Unknown';
-      const c = (rawCompliances || []).find((c) => c.programId === p.id);
-      const cur = campusPMap.get(campus) || { withCopc: 0, noCopc: 0 };
-      if (c?.ched?.copcStatus === 'With COPC') cur.withCopc++;
-      else cur.noCopc++;
-      campusPMap.set(campus, cur);
-    });
-    const campusBreakdown = Array.from(campusPMap.entries()).map(([campus, v]) => ({ campus, ...v }));
-    return {
-      programs: active.length,
-      withCopc,
-      noCopc: active.length - withCopc - inProg,
-      inProgress: inProg,
-      levelBreakdown,
-      campusBreakdown,
-    };
-  }, [rawPrograms, rawCompliances, campusMap]);
 
-  // Audit slide data
-  const auditData = useMemo(() => {
-    const yearSch = (rawSchedules || []).filter((s) => {
-      if (!s.scheduledDate) return false;
-      const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
-      return d.getFullYear() === Number(selectedYear);
-    });
-    const completed = yearSch.filter((s) => s.status === 'Completed').length;
-    const inProg = yearSch.filter((s) => s.status === 'In Progress').length;
-    const scheduled = yearSch.filter((s) => s.status === 'Scheduled').length;
-    const overdue = yearSch.filter((s) => (s.status as string) === 'Overdue').length;
-    const total = yearSch.length;
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const campusSchMap = new Map<
-      string,
-      { completed: number; inProgress: number; scheduled: number; overdue: number }
-    >();
+    // Audits
     yearSch.forEach((s) => {
-      const campus = campusMap.get(s.campusId || '') || s.campusId || 'Unknown';
-      const cur = campusSchMap.get(campus) || { completed: 0, inProgress: 0, scheduled: 0, overdue: 0 };
-      if (s.status === 'Completed') cur.completed++;
-      else if (s.status === 'In Progress') cur.inProgress++;
-      else if ((s.status as string) === 'Overdue') cur.overdue++;
-      else cur.scheduled++;
-      campusSchMap.set(campus, cur);
+      const c = map.get(s.campusId);
+      if (!c) return;
+      c.auditsTotal++;
+      if (s.status === 'Completed') c.auditsCompleted++;
+      else if (s.status === 'In Progress') c.auditsInProg++;
+      else if ((s.status as string) === 'Overdue') c.auditsOverdue++;
+      else c.auditsScheduled++;
     });
-    const byCampus = Array.from(campusSchMap.entries()).map(([campus, v]) => ({ campus, ...v }));
-    return { total, completed, inProgress: inProg, scheduled, overdue, completionRate, byCampus };
-  }, [rawSchedules, campusMap, selectedYear]);
+
+    // Calculate rates
+    map.forEach((c) => {
+      c.subsRate = c.subsTotal > 0 ? Math.round((c.subsApproved / c.subsTotal) * 100) : 0;
+      c.riskRate = c.risksTotal > 0 ? Math.round((c.risksClosed / c.risksTotal) * 100) : 0;
+      c.carRate = c.carsTotal > 0 ? Math.round((c.carsClosed / c.carsTotal) * 100) : 0;
+      c.auditRate = c.auditsTotal > 0 ? Math.round((c.auditsCompleted / c.auditsTotal) * 100) : 0;
+      c.compositeScore = Math.round((c.subsRate + c.riskRate + c.carRate + c.auditRate) / 4);
+    });
+
+    return Array.from(map.values());
+  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses]);
+
+  // ── Aggregate university totals ───────────────────────────────────────────
+  const totals = useMemo(() => {
+    const agg = {
+      subsApproved: 0,
+      subsPending: 0,
+      subsRejected: 0,
+      subsTotal: 0,
+      risksTotal: 0,
+      risksClosed: 0,
+      risksHigh: 0,
+      risksMed: 0,
+      risksLow: 0,
+      carsTotal: 0,
+      carsClosed: 0,
+      carsOpen: 0,
+      programsTotal: 0,
+      programsWithCopc: 0,
+      programsNoCopc: 0,
+      programsInProg: 0,
+      auditsTotal: 0,
+      auditsCompleted: 0,
+      auditsOverdue: 0,
+    };
+    campusData.forEach((c) => {
+      agg.subsApproved += c.subsApproved;
+      agg.subsPending += c.subsPending;
+      agg.subsRejected += c.subsRejected;
+      agg.subsTotal += c.subsTotal;
+      agg.risksTotal += c.risksTotal;
+      agg.risksClosed += c.risksClosed;
+      agg.risksHigh += c.risksHigh;
+      agg.risksMed += c.risksMed;
+      agg.risksLow += c.risksLow;
+      agg.carsTotal += c.carsTotal;
+      agg.carsClosed += c.carsClosed;
+      agg.carsOpen += c.carsOpen;
+      agg.programsTotal += c.programsTotal;
+      agg.programsWithCopc += c.programsWithCopc;
+      agg.programsNoCopc += c.programsNoCopc;
+      agg.programsInProg += c.programsInProg;
+      agg.auditsTotal += c.auditsTotal;
+      agg.auditsCompleted += c.auditsCompleted;
+      agg.auditsOverdue += c.auditsOverdue;
+    });
+    return agg;
+  }, [campusData]);
+
+  // ── EOMS Score ────────────────────────────────────────────────────────────
+  const eomsScore = useMemo(() => {
+    const subRate = totals.subsTotal > 0 ? Math.round((totals.subsApproved / totals.subsTotal) * 100) : 0;
+    const riskRate = totals.risksTotal > 0 ? Math.round((totals.risksClosed / totals.risksTotal) * 100) : 0;
+    const carRate = totals.carsTotal > 0 ? Math.round((totals.carsClosed / totals.carsTotal) * 100) : 0;
+    const auditRate = totals.auditsTotal > 0 ? Math.round((totals.auditsCompleted / totals.auditsTotal) * 100) : 0;
+    const progRate = totals.programsTotal > 0 ? Math.round((totals.programsWithCopc / totals.programsTotal) * 100) : 0;
+    return Math.round((subRate + riskRate + carRate + auditRate + progRate) / 5);
+  }, [totals]);
+
+  // ── Radar data ────────────────────────────────────────────────────────────
+  const radarData = useMemo(() => {
+    const subRate = totals.subsTotal > 0 ? Math.round((totals.subsApproved / totals.subsTotal) * 100) : 0;
+    const riskRate = totals.risksTotal > 0 ? Math.round((totals.risksClosed / totals.risksTotal) * 100) : 0;
+    const carRate = totals.carsTotal > 0 ? Math.round((totals.carsClosed / totals.carsTotal) * 100) : 0;
+    const auditRate = totals.auditsTotal > 0 ? Math.round((totals.auditsCompleted / totals.auditsTotal) * 100) : 0;
+    const progRate = totals.programsTotal > 0 ? Math.round((totals.programsWithCopc / totals.programsTotal) * 100) : 0;
+    return [
+      { subject: 'Submissions', value: subRate, color: P.sky },
+      { subject: 'Risk Mgmt', value: riskRate, color: P.amber },
+      { subject: 'CAR Closure', value: carRate, color: P.teal },
+      { subject: 'Audits', value: auditRate, color: P.indigo },
+      { subject: 'Accreditation', value: progRate, color: P.violet },
+    ];
+  }, [totals]);
 
   // ── Ticker items ─────────────────────────────────────────────────────────
   const tickerItems = useMemo(() => {
     const items: string[] = [];
-    const pending = submissionsData.pendingCount;
-    if (pending > 0) items.push(`${pending} submission${pending > 1 ? 's' : ''} pending approval`);
-    const overdueAudits = auditData.overdue;
-    if (overdueAudits > 0) items.push(`${overdueAudits} audit${overdueAudits > 1 ? 's' : ''} overdue`);
-    const high = riskData.highRisks;
-    if (high > 0) items.push(`${high} high-risk item${high > 1 ? 's' : ''} requiring attention`);
-    const noCopcCount = chedData.noCopc;
-    if (noCopcCount > 0) items.push(`${noCopcCount} program${noCopcCount > 1 ? 's' : ''} without COPC`);
+    if (totals.subsPending > 0)
+      items.push(`${totals.subsPending} submission${totals.subsPending > 1 ? 's' : ''} pending approval`);
+    if (totals.auditsOverdue > 0)
+      items.push(`${totals.auditsOverdue} audit${totals.auditsOverdue > 1 ? 's' : ''} overdue`);
+    if (totals.risksHigh > 0)
+      items.push(`${totals.risksHigh} high-risk item${totals.risksHigh > 1 ? 's' : ''} requiring attention`);
+    if (totals.programsNoCopc > 0)
+      items.push(`${totals.programsNoCopc} program${totals.programsNoCopc > 1 ? 's' : ''} without COPC`);
     items.push(
-      `EOMS Score: ${eomsData.score}%  ·  Submissions: ${submissionsData.totalCount}  ·  Risks: ${riskData.openRisks + riskData.closedRisks}  ·  CARs: ${riskData.openCars + riskData.closedCars}  ·  Programs: ${chedData.programs}  ·  Audits: ${auditData.total}`,
+      `EOMS Score: ${eomsScore}%  ·  Submissions: ${totals.subsTotal}  ·  Risks: ${totals.risksTotal}  ·  CARs: ${totals.carsTotal}  ·  Programs: ${totals.programsTotal}  ·  Audits: ${totals.auditsTotal}`,
     );
     return items;
-  }, [submissionsData, auditData, riskData, chedData, eomsData]);
+  }, [totals, eomsScore]);
 
-  // ── Render slides ─────────────────────────────────────────────────────────
-  const slides = [
-    <SlideEOMS data={eomsData} key="eoms" />,
-    <SlideSubmissions data={submissionsData} key="subs" />,
-    <SlideRisks data={riskData} key="risks" />,
-    <SlideCHED data={chedData} key="ched" />,
-    <SlideAudit data={auditData} key="audit" />,
-  ];
+  // ── Views ─────────────────────────────────────────────────────────────────
+  const views = useMemo(
+    () => [
+      <ViewOverview key="v0" campuses={campusData} eomsScore={eomsScore} radarData={radarData} />,
+      <ViewSubmissions
+        key="v1"
+        campuses={campusData}
+        totalApproved={totals.subsApproved}
+        totalPending={totals.subsPending}
+        totalRejected={totals.subsRejected}
+        totalSubs={totals.subsTotal}
+      />,
+      <ViewRisks
+        key="v2"
+        campuses={campusData}
+        totalRisks={totals.risksTotal}
+        closedRisks={totals.risksClosed}
+        highRisks={totals.risksHigh}
+      />,
+      <ViewCars
+        key="v3"
+        campuses={campusData}
+        totalCars={totals.carsTotal}
+        closedCars={totals.carsClosed}
+        openCars={totals.carsOpen}
+      />,
+      <ViewAccred
+        key="v4"
+        campuses={campusData}
+        totalPrograms={totals.programsTotal}
+        withCopc={totals.programsWithCopc}
+        noCopc={totals.programsNoCopc}
+        inProg={totals.programsInProg}
+      />,
+    ],
+    [campusData, eomsScore, radarData, totals],
+  );
 
+  // ── Render ────────────────────────────────────────────────────────────────
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div
       ref={containerRef}
-      className="h-screen w-screen bg-[#060912] text-white overflow-hidden flex flex-col select-none"
+      onClick={enterFullscreen}
+      className="h-screen w-screen bg-[#060912] text-white overflow-hidden flex flex-col select-none cursor-pointer"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {/* ── Marquee animation keyframes ──────────────────────────────────── */}
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
+      <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
 
-      {/* ── Background gradient blobs ─────────────────────────────────────── */}
+      {/* Background gradient blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div
           className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full opacity-10 blur-3xl"
-          style={{ background: `radial-gradient(circle, ${SLIDE_META[currentSlide].color}, transparent)` }}
+          style={{ background: `radial-gradient(circle, ${VIEW_META[currentView].color}, transparent)` }}
         />
         <div
           className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full opacity-8 blur-3xl"
-          style={{ background: `radial-gradient(circle, ${PALETTE.indigo}, transparent)` }}
+          style={{ background: `radial-gradient(circle, ${P.indigo}, transparent)` }}
         />
       </div>
 
-      {/* ── Header bar ───────────────────────────────────────────────────── */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-4 border-b border-white/8 bg-black/20 backdrop-blur-sm shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-emerald-400" />
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/8 bg-black/20 backdrop-blur-sm shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-white">RSU CrAIITech EOMS</p>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Executive Management Display</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">RSU CrAIITech EOMS</p>
+            <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">Executive Management Display</p>
           </div>
         </div>
 
-        {/* Slide nav dots */}
-        <div className="flex items-center gap-2">
-          {SLIDE_META.map((s, i) => {
-            const Icon = s.icon;
+        {/* View nav */}
+        <div className="flex items-center gap-1">
+          {VIEW_META.map((v, i) => {
+            const Icon = v.icon;
             return (
               <button
                 key={i}
-                onClick={() => setCurrentSlide(i)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAnimPhase('hide');
+                  setCurrentView(i);
+                }}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300',
-                  currentSlide === i
+                  'flex items-center gap-1 px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest transition-all',
+                  currentView === i && animPhase === 'show'
                     ? 'bg-white/15 text-white border border-white/20'
                     : 'text-white/30 hover:text-white/60 hover:bg-white/5',
                 )}
               >
-                <Icon className="h-3 w-3" />
-                <span className="hidden xl:inline">{s.label}</span>
+                <Icon className="h-2.5 w-2.5" />
+                <span className="hidden lg:inline">{v.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Clock + controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Fullscreen warning */}
+          {!isFullscreen && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 animate-pulse">
+              <Maximize2 className="h-3 w-3 text-amber-400" />
+              <span className="text-[7px] font-black uppercase tracking-widest text-amber-400">
+                Click for Fullscreen
+              </span>
+            </div>
+          )}
           <div className="text-right">
-            <p className="text-lg font-black tabular-nums text-white">{timeStr}</p>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{dateStr}</p>
+            <p className="text-sm font-black tabular-nums text-white">{timeStr}</p>
+            <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{dateStr}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard">
-              <button className="h-8 w-8 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
-                <X className="h-3.5 w-3.5 text-white/60" />
-              </button>
-            </Link>
-          </div>
+          <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
+            <button className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
+              <X className="h-3 w-3 text-white/60" />
+            </button>
+          </Link>
         </div>
       </header>
 
-      {/* ── Timer bar ────────────────────────────────────────────────────── */}
-      <div className="px-8 pt-0 shrink-0">
-        <SlideTimer running={isIdle} duration={SLIDE_DURATION_MS} />
+      {/* Timer bar */}
+      <div className="relative z-10 px-6 shrink-0">
+        <div className="w-full h-0.5 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-200"
+            style={{
+              width: `${animPhase === 'hide' ? 100 : animPhase === 'enter' ? 0 : isIdle ? 0 : 0}%`,
+              background: `linear-gradient(to right, ${VIEW_META[currentView].color}, ${P.emerald})`,
+              animation: isIdle && animPhase === 'show' ? `timer ${VIEW_INTERVAL_MS}ms linear` : 'none',
+            }}
+          />
+        </div>
       </div>
 
-      {/* ── Slide content ────────────────────────────────────────────────── */}
-      <main className="flex-1 min-h-0 px-8 py-6 relative overflow-hidden">
-        <div key={currentSlide} className="h-full animate-in fade-in slide-in-from-right-4 duration-500">
-          {slides[currentSlide]}
+      {/* ── Main content ──────────────────────────────────────────────────── */}
+      <main className="flex-1 min-h-0 px-6 py-3 relative overflow-hidden">
+        <div
+          className={`h-full transition-all duration-[350ms] ease-in-out ${
+            animPhase === 'hide'
+              ? 'opacity-0 scale-[0.97] blur-sm'
+              : animPhase === 'enter'
+                ? 'opacity-100 scale-100 blur-none'
+                : 'opacity-100 scale-100 blur-none'
+          }`}
+        >
+          {views[currentView]}
         </div>
       </main>
 
-      {/* ── News ticker ──────────────────────────────────────────────────── */}
+      {/* ── Ticker ─────────────────────────────────────────────────────────── */}
       <NewsTicker items={tickerItems} />
 
-      {/* ── Footer bar ───────────────────────────────────────────────────── */}
-      <footer className="relative z-10 flex items-center justify-between px-8 py-2 border-t border-white/8 bg-black/30 backdrop-blur-sm shrink-0">
-        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/8 bg-black/30 backdrop-blur-sm shrink-0">
+        <p className="text-[7px] font-bold text-white/30 uppercase tracking-widest">
           AY {selectedYear}–{selectedYear + 1} &middot; Real-time
         </p>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setCurrentSlide((s) => (s - 1 + TOTAL_SLIDES) % TOTAL_SLIDES)}
-            className="h-6 w-6 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentView((s) => (s - 1 + TOTAL_VIEWS) % TOTAL_VIEWS);
+            }}
+            className="h-5 w-5 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
           >
-            <ChevronLeft className="h-3 w-3 text-white/50" />
+            <ChevronLeft className="h-2.5 w-2.5 text-white/50" />
           </button>
-          <div className="flex gap-1.5">
-            {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
-              <button key={i} onClick={() => setCurrentSlide(i)} className="transition-all duration-300">
+          <div className="flex gap-1">
+            {Array.from({ length: TOTAL_VIEWS }).map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentView(i);
+                }}
+                className="transition-all duration-300"
+              >
                 <div
                   className={cn(
                     'rounded-full transition-all duration-300',
-                    currentSlide === i ? 'h-2 w-6' : 'h-2 w-2 bg-white/20',
+                    currentView === i ? 'h-1.5 w-5' : 'h-1.5 w-1.5 bg-white/20',
                   )}
-                  style={currentSlide === i ? { background: SLIDE_META[i].color } : {}}
+                  style={currentView === i ? { background: VIEW_META[i].color } : {}}
                 />
               </button>
             ))}
           </div>
           <button
-            onClick={() => setCurrentSlide((s) => (s + 1) % TOTAL_SLIDES)}
-            className="h-6 w-6 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentView((s) => (s + 1) % TOTAL_VIEWS);
+            }}
+            className="h-5 w-5 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
           >
-            <ChevronRight className="h-3 w-3 text-white/50" />
+            <ChevronRight className="h-2.5 w-2.5 text-white/50" />
           </button>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {isIdle ? (
               <>
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/70">Auto</span>
+                <div className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[6px] font-black uppercase tracking-widest text-emerald-400/70">Auto</span>
               </>
             ) : (
               <>
-                <div className="h-1.5 w-1.5 rounded-full bg-white/30" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-white/30">Manual</span>
+                <div className="h-1 w-1 rounded-full bg-white/30" />
+                <span className="text-[6px] font-black uppercase tracking-widest text-white/30">Manual</span>
               </>
             )}
           </div>
