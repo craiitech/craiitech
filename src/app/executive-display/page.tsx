@@ -234,14 +234,14 @@ function NarrativeCard({ title, text, color }: { title: string; text: string; co
 function NewsTicker({ items }: { items: string[] }) {
   if (!items.length) return null;
   return (
-    <div className="relative overflow-hidden h-7 bg-green-950/60 border-t border-white/10 shrink-0">
-      <div className="flex items-center h-full whitespace-nowrap" style={{ animation: 'marquee 45s linear infinite' }}>
+    <div className="relative overflow-hidden h-10 bg-green-950/70 border-t border-white/10 shrink-0">
+      <div className="flex items-center h-full whitespace-nowrap" style={{ animation: 'marquee 25s linear infinite' }}>
         {items.concat(items).map((item, i) => (
           <span
             key={i}
-            className="inline-flex items-center gap-2 mx-6 text-[10px] font-bold text-white/80 uppercase tracking-wider"
+            className="inline-flex items-center gap-3 mx-8 text-sm font-bold text-white/90 uppercase tracking-wider"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse shrink-0" />
+            <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
             {item}
           </span>
         ))}
@@ -453,7 +453,7 @@ function ViewOverview({
         {/* Risk Severity Donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
-          <div className="flex-1 w-full min-h-0 flex items-center justify-center">
+          <div className="flex-1 w-full min-h-0">
             {riskDist.length > 0 ? (
               <GreenDonut data={riskDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
@@ -466,7 +466,7 @@ function ViewOverview({
         {/* CAR Status Donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
-          <div className="flex-1 w-full min-h-0 flex items-center justify-center">
+          <div className="flex-1 w-full min-h-0">
             {carDist.length > 0 ? (
               <GreenDonut data={carDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
@@ -1777,8 +1777,7 @@ export default function ExecutiveDisplayPage() {
   return (
     <div
       ref={containerRef}
-      onClick={toggleFullscreen}
-      className="h-screen w-screen text-white overflow-hidden flex flex-col select-none cursor-pointer animate-gold-green-bg"
+      className="h-screen w-screen text-white overflow-hidden flex flex-col select-none animate-gold-green-bg"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
@@ -1798,111 +1797,132 @@ export default function ExecutiveDisplayPage() {
         />
       </div>
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
-            <ShieldCheck className="h-4 w-4 text-yellow-400" />
-          </div>
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
-              RSU Executive Academic and Operations Overview
-            </p>
-            <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">
-              Real-time Institutional Performance Dashboard
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* View indicator dots */}
-          <div className="flex gap-2 items-center">
-            {VIEW_META.map((v, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <div
-                  className={`rounded-full transition-all duration-500 ${currentView === i ? 'h-2 w-6' : 'h-2 w-2 bg-white/20'}`}
-                  style={currentView === i ? { background: v.color } : {}}
-                />
-              </div>
-            ))}
-          </div>
-          {/* Fullscreen toggle button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFullscreen();
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/8 border border-white/15 hover:bg-white/15 transition-all"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="h-3 w-3 text-white/85" />
-            ) : (
-              <Maximize2 className="h-3 w-3 text-yellow-400" />
-            )}
-            <span
-              className={`text-[7px] font-black uppercase tracking-widest ${isFullscreen ? 'text-white/65' : 'text-yellow-400'}`}
-            >
-              Fullscreen
-            </span>
-          </button>
-          <div className="text-right">
-            <p className="text-sm font-black tabular-nums text-white">{timeStr}</p>
-            <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">{dateStr}</p>
-          </div>
-          <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
-            <button className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
-              <X className="h-3 w-3 text-white/75" />
-            </button>
-          </Link>
-        </div>
-      </header>
-
-      {/* ── Main content ──────────────────────────────────────────────────── */}
-      <main className="flex-1 min-h-0 px-6 py-3 relative overflow-hidden">
-        <div
-          className={`h-full transition-all duration-[350ms] ease-in-out ${
-            animPhase === 'hide'
-              ? 'opacity-0 scale-[0.97] blur-sm'
-              : animPhase === 'enter'
-                ? 'opacity-100 scale-100 blur-none'
-                : 'opacity-100 scale-100 blur-none'
-          }`}
-        >
-          {views[currentView]}
-        </div>
-      </main>
-
-      {/* ── Ticker ─────────────────────────────────────────────────────────── */}
-      <NewsTicker items={tickerItems} />
-
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
-        <p className="text-[7px] font-bold text-white/45 uppercase tracking-widest">
-          AY {selectedYear}–{selectedYear + 1} &middot; Real-time
-        </p>
-        <div className="flex items-center gap-1.5">
-          {VIEW_META.map((v, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all duration-500"
-              style={{
-                background: currentView === i ? `${v.color}25` : 'transparent',
-                border: currentView === i ? `1px solid ${v.color}40` : '1px solid transparent',
-              }}
-            >
-              <div className="h-1.5 w-1.5 rounded-full" style={{ background: v.color }} />
-              <span
-                className="text-[6px] font-black uppercase tracking-widest transition-all duration-500"
-                style={{ color: currentView === i ? v.color : 'rgba(255,255,255,0.35)' }}
-              >
-                {v.label}
-              </span>
+      {/* ── Fullscreen gate ───────────────────────────────────────────────── */}
+      {!isFullscreen && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-green-950/90 backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-6 px-8 py-12 rounded-2xl border border-white/15 bg-green-950/70 shadow-2xl">
+            <div className="h-16 w-16 rounded-2xl bg-green-500/20 flex items-center justify-center">
+              <Maximize2 className="h-8 w-8 text-yellow-400" />
             </div>
-          ))}
+            <p className="text-xl font-black uppercase tracking-[0.15em] text-white text-center">
+              RSU Executive Dashboard
+            </p>
+            <p className="text-sm text-white/65 text-center max-w-md">
+              This dashboard is designed for fullscreen display on a wall-mounted monitor.
+            </p>
+            <button
+              onClick={toggleFullscreen}
+              className="px-10 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+              style={{ background: `linear-gradient(135deg, ${P.green}, ${P.gold})`, color: '#fff' }}
+            >
+              Enter Fullscreen
+            </button>
+          </div>
         </div>
-        <p className="text-[7px] font-bold text-white/45 tabular-nums">{timeStr}</p>
-      </footer>
+      )}
+
+      {/* ── Dashboard content (only visible in fullscreen) ────────────────── */}
+      {isFullscreen && (
+        <>
+          {/* ── Header ──────────────────────────────────────────────────────── */}
+          <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <ShieldCheck className="h-4 w-4 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
+                  RSU Executive Academic and Operations Overview
+                </p>
+                <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">
+                  Real-time Institutional Performance Dashboard
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* View indicator dots */}
+              <div className="flex gap-2 items-center">
+                {VIEW_META.map((v, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <div
+                      className={`rounded-full transition-all duration-500 ${currentView === i ? 'h-2 w-6' : 'h-2 w-2 bg-white/20'}`}
+                      style={currentView === i ? { background: v.color } : {}}
+                    />
+                  </div>
+                ))}
+              </div>
+              {/* Fullscreen toggle button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFullscreen();
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/8 border border-white/15 hover:bg-white/15 transition-all"
+                title="Exit Fullscreen"
+              >
+                <Minimize2 className="h-3 w-3 text-white/85" />
+                <span className="text-[7px] font-black uppercase tracking-widest text-white/65">Exit</span>
+              </button>
+              <div className="text-right">
+                <p className="text-sm font-black tabular-nums text-white">{timeStr}</p>
+                <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">{dateStr}</p>
+              </div>
+              <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
+                <button className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
+                  <X className="h-3 w-3 text-white/75" />
+                </button>
+              </Link>
+            </div>
+          </header>
+
+          {/* ── Main content ────────────────────────────────────────────────── */}
+          <main className="flex-1 min-h-0 px-6 py-3 relative overflow-hidden">
+            <div
+              className={`h-full transition-all duration-[350ms] ease-in-out ${
+                animPhase === 'hide'
+                  ? 'opacity-0 scale-[0.97] blur-sm'
+                  : animPhase === 'enter'
+                    ? 'opacity-100 scale-100 blur-none'
+                    : 'opacity-100 scale-100 blur-none'
+              }`}
+            >
+              {views[currentView]}
+            </div>
+          </main>
+
+          {/* ── Ticker ─────────────────────────────────────────────────────── */}
+          <NewsTicker items={tickerItems} />
+
+          {/* ── Footer ──────────────────────────────────────────────────────── */}
+          <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
+            <p className="text-[7px] font-bold text-white/45 uppercase tracking-widest">
+              AY {selectedYear}–{selectedYear + 1} &middot; Real-time
+            </p>
+            <div className="flex items-center gap-1.5">
+              {VIEW_META.map((v, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all duration-500"
+                  style={{
+                    background: currentView === i ? `${v.color}25` : 'transparent',
+                    border: currentView === i ? `1px solid ${v.color}40` : '1px solid transparent',
+                  }}
+                >
+                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: v.color }} />
+                  <span
+                    className="text-[6px] font-black uppercase tracking-widest transition-all duration-500"
+                    style={{ color: currentView === i ? v.color : 'rgba(255,255,255,0.35)' }}
+                  >
+                    {v.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[7px] font-bold text-white/45 tabular-nums">{timeStr}</p>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
