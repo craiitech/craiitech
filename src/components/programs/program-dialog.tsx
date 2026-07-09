@@ -1,4 +1,3 @@
-﻿
 'use client';
 
 import {
@@ -9,22 +8,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -38,7 +23,6 @@ import { useState, useEffect, useMemo } from 'react';
 import type { AcademicProgram, Campus, Unit } from '@/lib/types';
 import { Loader2, GraduationCap, PlusCircle, Trash2, Layers, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface ProgramDialogProps {
@@ -58,10 +42,14 @@ const formSchema = z.object({
   isBoardProgram: z.boolean().default(false),
   isNewProgram: z.boolean().default(false),
   hasSpecializations: z.boolean().default(false),
-  specializations: z.array(z.object({
-    id: z.string(),
-    name: z.string().min(1, 'Name is required')
-  })).optional(),
+  specializations: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1, 'Name is required'),
+      }),
+    )
+    .optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -92,7 +80,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "specializations"
+    name: 'specializations',
   });
 
   const watchName = form.watch('name');
@@ -102,10 +90,9 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
 
   const academicUnitsForCampus = useMemo(() => {
     if (!allUnits || !selectedCampusId) return [];
-    return allUnits.filter(u => 
-        u.campusIds?.includes(selectedCampusId) && 
-        u.category === 'Academic'
-    ).sort((a, b) => a.name.localeCompare(b.name));
+    return allUnits
+      .filter((u) => u.campusIds?.includes(selectedCampusId) && u.category === 'Academic')
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [allUnits, selectedCampusId]);
 
   useEffect(() => {
@@ -115,7 +102,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
         isBoardProgram: program.isBoardProgram ?? false,
         isNewProgram: program.isNewProgram ?? false,
         hasSpecializations: program.hasSpecializations ?? false,
-        specializations: program.specializations || []
+        specializations: program.specializations || [],
       });
     } else {
       form.reset({
@@ -137,19 +124,21 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
   // Duplication check logic
   useEffect(() => {
     if (!watchName || !selectedCampusId || !existingPrograms || program) {
-        setDuplicationError(null);
-        return;
+      setDuplicationError(null);
+      return;
     }
 
-    const isDuplicate = existingPrograms.some(p => 
-        p.campusId === selectedCampusId && 
-        (p.name.toLowerCase() === watchName.toLowerCase() || p.abbreviation.toLowerCase() === watchAbbreviation.toLowerCase())
+    const isDuplicate = existingPrograms.some(
+      (p) =>
+        p.campusId === selectedCampusId &&
+        (p.name.toLowerCase() === watchName.toLowerCase() ||
+          p.abbreviation.toLowerCase() === watchAbbreviation.toLowerCase()),
     );
 
     if (isDuplicate) {
-        setDuplicationError(`A program with this name or abbreviation is already registered at the selected campus.`);
+      setDuplicationError(`A program with this name or abbreviation is already registered at the selected campus.`);
     } else {
-        setDuplicationError(null);
+      setDuplicationError(null);
     }
   }, [watchName, watchAbbreviation, selectedCampusId, existingPrograms, program]);
 
@@ -158,7 +147,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
     if (duplicationError) return;
 
     setIsSubmitting(true);
-    
+
     const id = program ? program.id : doc(collection(firestore, 'dummy')).id;
     const programRef = doc(firestore, 'academicPrograms', id);
 
@@ -167,16 +156,16 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
       ...values,
       updatedAt: serverTimestamp(),
     };
-    
+
     try {
-        await setDoc(programRef, programData, { merge: true });
-        toast({ title: 'Success', description: `Program ${program ? 'updated' : 'registered'} successfully.` });
-        onOpenChange(false);
+      await setDoc(programRef, programData, { merge: true });
+      toast({ title: 'Success', description: `Program ${program ? 'updated' : 'registered'} successfully.` });
+      onOpenChange(false);
     } catch (error) {
-        console.error('Error saving program:', error);
-        toast({ title: 'Error', description: 'Could not save academic program.', variant: 'destructive'});
+      console.error('Error saving program:', error);
+      toast({ title: 'Error', description: 'Could not save academic program.', variant: 'destructive' });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -189,169 +178,283 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
             <span className="text-xs font-bold uppercase tracking-widest">Registry Configuration</span>
           </div>
           <DialogTitle>{program ? 'Modify' : 'Register'} Academic Program</DialogTitle>
-          <DialogDescription>
-            Configure the base parameters for a university degree offering.
-          </DialogDescription>
+          <DialogDescription>Configure the base parameters for a university degree offering.</DialogDescription>
         </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-hidden flex flex-col">
-            <ScrollArea className="flex-1 p-6">
-                <div className="space-y-6">
-                    {duplicationError && (
-                        <Alert variant="destructive" className="animate-in slide-in-from-top-2">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Registry Conflict</AlertTitle>
-                            <AlertDescription className="text-xs font-medium">{duplicationError}</AlertDescription>
-                        </Alert>
-                    )}
 
-                    <FormField control={form.control} name="name" render={({ field }) => (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {duplicationError && (
+                  <Alert variant="destructive" className="animate-in slide-in-from-top-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Registry Conflict</AlertTitle>
+                    <AlertDescription className="text-xs font-medium">{duplicationError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase">Full Program Name</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., Bachelor of Science in Information Technology" className="h-11" /></FormControl>
-                        <FormMessage />
+                      <FormLabel className="text-[10px] font-bold uppercase">Full Program Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="e.g., Bachelor of Science in Information Technology"
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )} />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="abbreviation" render={({ field }) => (
-                        <FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="abbreviation"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase">Initials / Abbreviation</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., BSIT" /></FormControl>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., BSIT" />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="level" render={({ field }) => (
-                        <FormItem>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="level"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase">Education Level</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent modal={false}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
                             <SelectItem value="Undergraduate">Undergraduate</SelectItem>
                             <SelectItem value="Graduate">Graduate</SelectItem>
                             <SelectItem value="TVET">TVET</SelectItem>
-                            </SelectContent>
+                          </SelectContent>
                         </Select>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="campusId" render={({ field }) => (
-                        <FormItem>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="campusId"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase">Campus Site</FormLabel>
-                        <Select onValueChange={(val) => { field.onChange(val); form.setValue('collegeId', ''); }} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                            <SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                        <Select
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue('collegeId', '');
+                          }}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Campus" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {campuses.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="collegeId" render={({ field }) => (
-                        <FormItem>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="collegeId"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase">Academic Unit (Parent)</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCampusId}>
-                            <FormControl><SelectTrigger><SelectValue placeholder={selectedCampusId ? "Select Unit" : "Select Campus First"} /></SelectTrigger></FormControl>
-                            <SelectContent modal={false}>
-                                {academicUnitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                                {selectedCampusId && academicUnitsForCampus.length === 0 && (
-                                    <div className="p-4 text-[10px] text-muted-foreground italic">No units marked as 'Academic' in this campus.</div>
-                                )}
-                            </SelectContent>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={selectedCampusId ? 'Select Unit' : 'Select Campus First'} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {academicUnitsForCampus.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.name}
+                              </SelectItem>
+                            ))}
+                            {selectedCampusId && academicUnitsForCampus.length === 0 && (
+                              <div className="p-4 text-[10px] text-muted-foreground italic">
+                                No units marked as 'Academic' in this campus.
+                              </div>
+                            )}
+                          </SelectContent>
                         </Select>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    </div>
-                    
-                    <div className="space-y-4 pt-2 border-t">
-                        <FormField control={form.control} name="isBoardProgram" render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-primary/5 border-primary/10">
-                            <div className="space-y-0.5">
-                            <FormLabel className="text-primary font-bold text-xs uppercase tracking-tight">Board Program</FormLabel>
-                            <FormDescription className="text-[10px]">Does this program have a professional board licensure exam?</FormDescription>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="isNewProgram" render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-emerald-50 border-emerald-100">
-                            <div className="space-y-0.5">
-                            <FormLabel className="text-emerald-800 font-bold text-xs uppercase tracking-tight">New Program Offering</FormLabel>
-                            <FormDescription className="text-[10px]">Enable this if the program is not yet subject to accreditation.</FormDescription>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="hasSpecializations" render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-blue-50 border-blue-100">
-                            <div className="space-y-0.5">
-                            <FormLabel className="text-blue-800 font-bold text-xs uppercase tracking-tight flex items-center gap-2">
-                                <Layers className="h-3.5 w-3.5" />
-                                Programs with Specialization / Major
-                            </FormLabel>
-                            <FormDescription className="text-[10px]">Enable this if the program has multiple tracks or majors.</FormDescription>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        </FormItem>
-                        )} />
-
-                        {hasSpecializations && (
-                            <div className="pl-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-700">Majors Registry</h4>
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '' })}
-                                        className="h-7 text-[9px] font-black uppercase border-blue-200 text-blue-700"
-                                    >
-                                        <PlusCircle className="mr-1 h-3 w-3" /> Add Major
-                                    </Button>
-                                </div>
-                                <div className="space-y-2">
-                                    {fields.map((field, index) => (
-                                        <div key={field.id} className="flex items-center gap-2">
-                                            <FormField
-                                                control={form.control}
-                                                name={`specializations.${index}.name`}
-                                                render={({ field: inputField }) => (
-                                                    <FormControl><Input {...inputField} placeholder="e.g., Major in Network Systems" className="h-9 text-xs" /></FormControl>
-                                                )}
-                                            />
-                                            <Button type="button" variant="ghost" size="icon" className="text-destructive h-9 w-9" onClick={() => remove(index)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    {fields.length === 0 && (
-                                        <p className="text-[10px] text-muted-foreground italic text-center py-4 border border-dashed rounded bg-white">No majors added. Click "+" to register a specialization.</p>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        <FormField control={form.control} name="isActive" render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <div className="space-y-0.5">
-                            <FormLabel className="text-xs uppercase font-bold">Active Offering</FormLabel>
-                            <FormDescription className="text-[10px]">Whether this program is currently accepting students.</FormDescription>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        </FormItem>
-                        )} />
-                    </div>
+                      </FormItem>
+                    )}
+                  />
                 </div>
-            </ScrollArea>
+
+                <div className="space-y-4 pt-2 border-t">
+                  <FormField
+                    control={form.control}
+                    name="isBoardProgram"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-primary/5 border-primary/10">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-primary font-bold text-xs uppercase tracking-tight">
+                            Board Program
+                          </FormLabel>
+                          <FormDescription className="text-[10px]">
+                            Does this program have a professional board licensure exam?
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="isNewProgram"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-emerald-50 border-emerald-100">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-emerald-800 font-bold text-xs uppercase tracking-tight">
+                            New Program Offering
+                          </FormLabel>
+                          <FormDescription className="text-[10px]">
+                            Enable this if the program is not yet subject to accreditation.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hasSpecializations"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-blue-50 border-blue-100">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-blue-800 font-bold text-xs uppercase tracking-tight flex items-center gap-2">
+                            <Layers className="h-3.5 w-3.5" />
+                            Programs with Specialization / Major
+                          </FormLabel>
+                          <FormDescription className="text-[10px]">
+                            Enable this if the program has multiple tracks or majors.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {hasSpecializations && (
+                    <div className="pl-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-700">
+                          Majors Registry
+                        </h4>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '' })}
+                          className="h-7 text-[9px] font-black uppercase border-blue-200 text-blue-700"
+                        >
+                          <PlusCircle className="mr-1 h-3 w-3" /> Add Major
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {fields.map((field, index) => (
+                          <div key={field.id} className="flex items-center gap-2">
+                            <FormField
+                              control={form.control}
+                              name={`specializations.${index}.name`}
+                              render={({ field: inputField }) => (
+                                <FormControl>
+                                  <Input
+                                    {...inputField}
+                                    placeholder="e.g., Major in Network Systems"
+                                    className="h-9 text-xs"
+                                  />
+                                </FormControl>
+                              )}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive h-9 w-9"
+                              onClick={() => remove(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {fields.length === 0 && (
+                          <p className="text-[10px] text-muted-foreground italic text-center py-4 border border-dashed rounded bg-white">
+                            No majors added. Click "+" to register a specialization.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <FormField
+                    control={form.control}
+                    name="isActive"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-xs uppercase font-bold">Active Offering</FormLabel>
+                          <FormDescription className="text-[10px]">
+                            Whether this program is currently accepting students.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
 
             <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting || !!duplicationError} className="min-w-[140px] shadow-lg shadow-primary/20">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !!duplicationError}
+                className="min-w-[140px] shadow-lg shadow-primary/20"
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {program ? 'Update Registry' : 'Register Program'}
               </Button>
