@@ -51,7 +51,7 @@ import { Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const VIEW_INTERVAL_MS = 12_000;
+const VIEW_INTERVAL_MS = 60_000;
 const TOTAL_VIEWS = 6;
 
 const PALETTE = {
@@ -555,6 +555,7 @@ function ViewSubmissions({
   totalSubs,
   subDist,
   trendData,
+  cardPhase,
 }: {
   campuses: any[];
   totalApproved: number;
@@ -563,6 +564,7 @@ function ViewSubmissions({
   totalSubs: number;
   subDist: { name: string; value: number; color: string }[];
   trendData: { name: string; value: number }[];
+  cardPhase: number;
 }) {
   const rate = totalSubs > 0 ? Math.round((totalApproved / totalSubs) * 100) : 0;
   const chartData = campuses
@@ -572,6 +574,8 @@ function ViewSubmissions({
     .map((c: any) => ({ name: c.name, rate: c.subsRate }));
   const top3 = [...chartData].slice(0, 3);
   const bottom3 = [...chartData].slice(-3).reverse();
+  const topIdx = cardPhase % 3;
+  const botIdx = cardPhase % 3;
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -668,9 +672,18 @@ function ViewSubmissions({
           <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
             {top3.map((c, i) => (
-              <div key={i} className="flex items-center justify-between mt-1.5">
-                <span className="text-[11px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
-                <span className="text-[11px] font-black text-green-300">{c.rate}%</span>
+              <div
+                key={i}
+                className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === topIdx ? 'opacity-100' : 'opacity-30'}`}
+              >
+                <span
+                  className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}
+                >
+                  {c.name}
+                </span>
+                <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>
+                  {c.rate}%
+                </span>
               </div>
             ))}
           </div>
@@ -678,9 +691,18 @@ function ViewSubmissions({
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md">
               <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
               {bottom3.map((c, i) => (
-                <div key={i} className="flex items-center justify-between mt-1.5">
-                  <span className="text-[11px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
-                  <span className="text-[11px] font-black text-yellow-400">{c.rate}%</span>
+                <div
+                  key={i}
+                  className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === botIdx ? 'opacity-100' : 'opacity-30'}`}
+                >
+                  <span
+                    className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}
+                  >
+                    {c.name}
+                  </span>
+                  <span className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}>
+                    {c.rate}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -706,6 +728,7 @@ function ViewRisks({
   highRisks,
   severityDist,
   statusDist,
+  cardPhase,
 }: {
   campuses: any[];
   totalRisks: number;
@@ -713,6 +736,7 @@ function ViewRisks({
   highRisks: number;
   severityDist: { name: string; value: number; color: string }[];
   statusDist: { name: string; value: number; color: string }[];
+  cardPhase: number;
 }) {
   const rate = totalRisks > 0 ? Math.round((closedRisks / totalRisks) * 100) : 0;
   const chartData = campuses
@@ -720,6 +744,7 @@ function ViewRisks({
     .sort((a: any, b: any) => b.riskRate - a.riskRate)
     .slice(0, 10)
     .map((c: any) => ({ name: c.name, rate: c.riskRate }));
+  const riskChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -792,7 +817,11 @@ function ViewRisks({
                   label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
+                    <Cell
+                      key={i}
+                      fill={i === riskChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                      fillOpacity={i === riskChartIdx ? 1 : 0.3}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -833,6 +862,7 @@ function ViewCars({
   carStatusDist,
   carNatureDist,
   auditDist,
+  cardPhase,
 }: {
   campuses: any[];
   totalCars: number;
@@ -841,6 +871,7 @@ function ViewCars({
   carStatusDist: { name: string; value: number; color: string }[];
   carNatureDist: { name: string; value: number; color: string }[];
   auditDist: { name: string; value: number; color: string }[];
+  cardPhase: number;
 }) {
   const rate = totalCars > 0 ? Math.round((closedCars / totalCars) * 100) : 0;
   const chartData = campuses
@@ -849,6 +880,7 @@ function ViewCars({
     .slice(0, 10)
     .map((c: any) => ({ name: c.name, rate: c.carRate }));
   const totalAudits = auditDist.reduce((s, d) => s + d.value, 0);
+  const carChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -939,7 +971,11 @@ function ViewCars({
                   label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
+                    <Cell
+                      key={i}
+                      fill={i === carChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                      fillOpacity={i === carChartIdx ? 1 : 0.3}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -979,6 +1015,8 @@ function ViewAccred({
   progLevelDist,
   currentLevelKey,
   currentLevelPrograms,
+  copcYearlyTrend,
+  cardPhase,
 }: {
   campuses: any[];
   totalPrograms: number;
@@ -990,6 +1028,8 @@ function ViewAccred({
   progLevelDist: { name: string; value: number; color: string }[];
   currentLevelKey: string;
   currentLevelPrograms: { name: string; campus: string }[];
+  copcYearlyTrend: { year: number; rate: number }[];
+  cardPhase: number;
 }) {
   const copcRate = totalPrograms > 0 ? Math.round((withCopc / totalPrograms) * 100) : 0;
   const chartData = campuses
@@ -1004,6 +1044,7 @@ function ViewAccred({
       name: c.name,
       rate: c.programsTotal > 0 ? Math.round((c.programsWithCopc / c.programsTotal) * 100) : 0,
     }));
+  const copcChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -1078,17 +1119,22 @@ function ViewAccred({
           </div>
         </div>
 
-        {/* Program level donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Program Level</p>
-          <div className="flex-1 w-full min-h-0">
-            {progLevelDist.length > 0 ? (
-              <GreenDonut data={progLevelDist} dataKey="value" nameKey="name" size="100%" />
+        {/* COPC yearly trend line */}
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+            COPC Yearly Trend
+          </p>
+          <div className="flex-1 min-h-0">
+            {copcYearlyTrend.length > 0 ? (
+              <TrendLine
+                data={copcYearlyTrend.map((d) => ({ name: String(d.year), value: d.rate }))}
+                dataKey="value"
+                strokeColor={P.gold}
+              />
             ) : (
-              <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>
+              <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
             )}
           </div>
-          <LegendRow items={progLevelDist} />
         </div>
 
         {/* COPC by campus bar chart */}
@@ -1113,7 +1159,11 @@ function ViewAccred({
                   label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
+                    <Cell
+                      key={i}
+                      fill={i === copcChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                      fillOpacity={i === copcChartIdx ? 1 : 0.3}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -1149,6 +1199,7 @@ function ViewUnitSubmission({
   unitsWithSubs,
   unitsWithoutSubs,
   unitSubData,
+  cardPhase,
 }: {
   unitSubTop: {
     id: string;
@@ -1177,12 +1228,15 @@ function ViewUnitSubmission({
     subsApproved: number;
     subRate: number;
   }[];
+  cardPhase: number;
 }) {
   const overallRate = totalUnits > 0 ? Math.round((unitsWithSubs / totalUnits) * 100) : 0;
   const chartData = unitSubData
     .filter((u) => u.name)
     .slice(0, 15)
     .map((u) => ({ name: u.name, rate: u.subRate, total: u.subsTotal }));
+  const topUnitIdx = unitSubTop.length > 0 ? cardPhase % unitSubTop.length : 0;
+  const botUnitIdx = unitSubBottom.length > 0 ? cardPhase % unitSubBottom.length : 0;
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -1221,7 +1275,10 @@ function ViewUnitSubmission({
           <div className="flex-1 overflow-y-auto space-y-1">
             {unitSubTop.length === 0 && <p className="text-[11px] text-white/45">No data</p>}
             {unitSubTop.map((u, i) => (
-              <div key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+              <div
+                key={u.id}
+                className={`flex items-center gap-2 px-2 py-1 rounded-lg transition-opacity duration-700 ${i === topUnitIdx ? 'bg-green-800/40 opacity-100' : 'opacity-25'}`}
+              >
                 <span className="text-[11px] font-black text-green-300 w-4 tabular-nums">{i + 1}</span>
                 <span className="text-xs font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
                 <span className="text-[8px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
@@ -1243,7 +1300,10 @@ function ViewUnitSubmission({
           <div className="flex-1 overflow-y-auto space-y-1">
             {unitSubBottom.length === 0 && <p className="text-[11px] text-white/45">All units are compliant</p>}
             {unitSubBottom.map((u, i) => (
-              <div key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+              <div
+                key={u.id}
+                className={`flex items-center gap-2 px-2 py-1 rounded-lg transition-opacity duration-700 ${i === botUnitIdx ? 'bg-yellow-800/40 opacity-100' : 'opacity-25'}`}
+              >
                 <span className="text-[11px] font-black text-yellow-400 w-4 tabular-nums">{i + 1}</span>
                 <span className="text-xs font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
                 <span className="text-[8px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
@@ -1393,7 +1453,7 @@ export default function ExecutiveDisplayPage() {
 
   // ── Card-level data cycling (every 6s within a view) ─────────────────────
   useEffect(() => {
-    const t = setInterval(() => setCardPhase((s) => s + 1), 6_000);
+    const t = setInterval(() => setCardPhase((s) => s + 1), 10_000);
     return () => clearInterval(t);
   }, []);
 
@@ -1970,6 +2030,26 @@ export default function ExecutiveDisplayPage() {
   const currentLevelKey = levelKeys.length > 0 ? levelKeys[cardPhase % levelKeys.length] : '';
   const currentLevelPrograms = currentLevelKey ? programsByLevel[currentLevelKey] || [] : [];
 
+  // ── COPC yearly performance trend ──────────────────────────────────────
+  const copcYearlyTrend = useMemo(() => {
+    const years: Record<number, { total: number; withCopc: number }> = {};
+    (rawPrograms || [])
+      .filter((p) => p.isActive)
+      .forEach((p) => {
+        const comps = (rawCompliances || []).filter((c) => c.programId === p.id);
+        comps.forEach((c) => {
+          const yr = c.academicYear;
+          if (!yr) return;
+          if (!years[yr]) years[yr] = { total: 0, withCopc: 0 };
+          years[yr].total++;
+          if (c.ched?.copcStatus === 'With COPC') years[yr].withCopc++;
+        });
+      });
+    return Object.entries(years)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([year, d]) => ({ year: Number(year), rate: d.total > 0 ? Math.round((d.withCopc / d.total) * 100) : 0 }));
+  }, [rawPrograms, rawCompliances]);
+
   // ── Program level distribution ────────────────────────────────────────
   const progLevelDist = useMemo(() => {
     const levels: Record<string, number> = { Undergraduate: 0, Graduate: 0, TVET: 0 };
@@ -2026,6 +2106,7 @@ export default function ExecutiveDisplayPage() {
         totalSubs={totals.subsTotal}
         subDist={subStatusDist}
         trendData={submissionTrend}
+        cardPhase={cardPhase}
       />,
       <ViewRisks
         key="v2"
@@ -2035,6 +2116,7 @@ export default function ExecutiveDisplayPage() {
         highRisks={totals.risksHigh}
         severityDist={riskSeverityDist}
         statusDist={riskStatusDist}
+        cardPhase={cardPhase}
       />,
       <ViewCars
         key="v3"
@@ -2045,6 +2127,7 @@ export default function ExecutiveDisplayPage() {
         carStatusDist={carStatusDist}
         carNatureDist={carNatureDist}
         auditDist={auditStatusDist}
+        cardPhase={cardPhase}
       />,
       <ViewAccred
         key="v4"
@@ -2058,6 +2141,8 @@ export default function ExecutiveDisplayPage() {
         progLevelDist={progLevelDist}
         currentLevelKey={currentLevelKey}
         currentLevelPrograms={currentLevelPrograms}
+        copcYearlyTrend={copcYearlyTrend}
+        cardPhase={cardPhase}
       />,
       <ViewUnitSubmission
         key="v5"
@@ -2067,6 +2152,7 @@ export default function ExecutiveDisplayPage() {
         unitsWithSubs={unitsWithSubs}
         unitsWithoutSubs={unitsWithoutSubs}
         unitSubData={unitSubData}
+        cardPhase={cardPhase}
       />,
     ],
     [
@@ -2092,6 +2178,8 @@ export default function ExecutiveDisplayPage() {
       unitSubData,
       currentLevelKey,
       currentLevelPrograms,
+      copcYearlyTrend,
+      cardPhase,
     ],
   );
 
