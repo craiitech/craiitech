@@ -288,8 +288,9 @@ function GreenDonut({
   centerValue?: string;
   size?: string;
 }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div className="relative w-full h-full" style={{ minHeight: 140 }}>
+    <div className="relative w-full h-full">
       <ResponsiveContainer width={size} height="100%">
         <PieChart>
           <Pie
@@ -298,10 +299,12 @@ function GreenDonut({
             nameKey={nameKey}
             cx="50%"
             cy="50%"
-            innerRadius={38}
-            outerRadius={58}
+            innerRadius={55}
+            outerRadius={80}
             paddingAngle={2}
             stroke="none"
+            label={({ name, value }) => `${name} ${value}`}
+            labelLine={false}
           >
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.color} fillOpacity={0.85} />
@@ -321,8 +324,8 @@ function GreenDonut({
       </ResponsiveContainer>
       {centerLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-sm font-black text-white tabular-nums">{centerValue}</p>
-          <p className="text-[6px] font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
+          <p className="text-lg font-black text-white tabular-nums">{centerValue}</p>
+          <p className="text-[7px] font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
         </div>
       )}
     </div>
@@ -405,7 +408,6 @@ function ViewOverview({
   riskDist: { name: string; value: number; color: string }[];
   carDist: { name: string; value: number; color: string }[];
 }) {
-  const grade = eomsScore >= 88 ? 'A' : eomsScore >= 70 ? 'B+' : eomsScore >= 55 ? 'B' : eomsScore >= 40 ? 'C' : 'F';
   const sc = gradeColor(eomsScore);
   const topCampus = campuses.length
     ? campuses.reduce((a: any, b: any) => (a.compositeScore > b.compositeScore ? a : b))
@@ -439,11 +441,8 @@ function ViewOverview({
             className="absolute inset-0"
             style={{ background: `radial-gradient(circle at 50% 50%, ${sc}15, transparent 70%)` }}
           />
-          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/65">EOMS</p>
-          <div className="text-5xl font-black leading-none" style={{ color: sc }}>
-            {grade}
-          </div>
-          <AnimatedNumber value={eomsScore} suffix="%" className="text-base font-black text-white mt-1" />
+          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/65">EOMS Score</p>
+          <AnimatedNumber value={eomsScore} suffix="%" className="text-4xl font-black text-white mt-1" />
           <p className="text-[7px] text-white/65 font-bold uppercase tracking-widest mt-1 text-center leading-tight">
             {eomsScore >= 88
               ? 'Mature'
@@ -451,7 +450,9 @@ function ViewOverview({
                 ? 'Good Standing'
                 : eomsScore >= 55
                   ? 'Satisfactory'
-                  : 'Needs Improvement'}
+                  : eomsScore >= 40
+                    ? 'Developing'
+                    : 'Baseline'}
           </p>
         </div>
 
@@ -475,7 +476,7 @@ function ViewOverview({
         </div>
 
         {/* Submission Trend Line Chart */}
-        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-2 shrink-0">
             Submission Trend
           </p>
@@ -489,7 +490,7 @@ function ViewOverview({
         </div>
 
         {/* Risk Severity Donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
           <div className="flex-1 w-full min-h-0 flex items-center justify-center">
             {riskDist.length > 0 ? (
@@ -502,7 +503,7 @@ function ViewOverview({
         </div>
 
         {/* CAR Status Donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
           <div className="flex-1 w-full min-h-0 flex items-center justify-center">
             {carDist.length > 0 ? (
@@ -914,7 +915,7 @@ function ViewCars({
         </div>
 
         {/* CAR Nature donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">NC vs OFI</p>
           <div className="flex-1 w-full min-h-0">
             {carNatureDist.length > 0 ? (
@@ -927,7 +928,7 @@ function ViewCars({
         </div>
 
         {/* Audit Status donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Audit Status</p>
           <div className="flex-1 w-full min-h-0">
             {auditDist.length > 0 ? (
@@ -940,7 +941,7 @@ function ViewCars({
         </div>
 
         {/* CAR closure bar chart */}
-        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             CAR Closure by Campus
           </p>
@@ -1079,7 +1080,7 @@ function ViewAccred({
         </div>
 
         {/* Program level donut */}
-        <div className="col-span-1.5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Program Level</p>
           <div className="flex-1 w-full min-h-0">
             {progLevelDist.length > 0 ? (
@@ -1092,7 +1093,7 @@ function ViewAccred({
         </div>
 
         {/* COPC by campus bar chart */}
-        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             COPC by Campus
           </p>
@@ -1119,7 +1120,7 @@ function ViewAccred({
         </div>
 
         {/* Narrative */}
-        <div className="col-span-1.5 flex flex-col gap-2">
+        <div className="col-span-2 flex flex-col gap-2">
           <NarrativeCard
             title="Regulatory Status"
             text={`${copcRate}% of programs are COPC-compliant. ${noCopc} programs need action to maintain CHED good standing.`}
