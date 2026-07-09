@@ -789,8 +789,8 @@ export default function ExecutiveDisplayPage() {
   const [isIdle, setIsIdle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
-  const idleTimer = useRef<ReturnType<typeof setTimeout>>();
-  const slideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const slideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Clock ─────────────────────────────────────────────────────────────────
@@ -1077,7 +1077,7 @@ export default function ExecutiveDisplayPage() {
     const completed = yearSch.filter((s) => s.status === 'Completed').length;
     const inProg = yearSch.filter((s) => s.status === 'In Progress').length;
     const scheduled = yearSch.filter((s) => s.status === 'Scheduled').length;
-    const overdue = yearSch.filter((s) => s.status === 'Overdue').length;
+    const overdue = yearSch.filter((s) => (s.status as string) === 'Overdue').length;
     const total = yearSch.length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     const campusSchMap = new Map<
@@ -1089,7 +1089,7 @@ export default function ExecutiveDisplayPage() {
       const cur = campusSchMap.get(campus) || { completed: 0, inProgress: 0, scheduled: 0, overdue: 0 };
       if (s.status === 'Completed') cur.completed++;
       else if (s.status === 'In Progress') cur.inProgress++;
-      else if (s.status === 'Overdue') cur.overdue++;
+      else if ((s.status as string) === 'Overdue') cur.overdue++;
       else cur.scheduled++;
       campusSchMap.set(campus, cur);
     });
